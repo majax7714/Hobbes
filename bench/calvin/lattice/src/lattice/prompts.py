@@ -38,6 +38,18 @@ C-0 under another name, and a row recorded under the wrong arm is worse than a r
 ledger did not answer is simply not in the prompt — `missing` is read from `lattice facts`, and nothing
 here infers a callee.
 
+**The stated-task sentence** (E3's revised card, §6, point 4). E2's opaque shadow renamed the hole to
+`fn_0042`, and the name turned out to be the *only* place the metric, the element type and the
+instruction set were said — so that arm measures the loss of the task statement as much as the loss of
+the names. E3's evaluation therefore carries one **stated-task opaque arm**: the opaque prompt with one
+fixed sentence put back, saying in plain English what the function computes. :func:`stated_task` writes
+it from three tables keyed by `cells.METRICS`, `cells.TYPES` and `cells.ISAS`, one phrase each, plus
+:data:`KIND_PHRASE` for what an `_impl` and a wrapper *are* — an `_impl` has no table slot and is the
+helper its two wrappers call, which the grid position alone does not say. Every word of it is English:
+the sentence states the task and never hands back an identifier, which is why it passes `e1`'s leak
+gate like any other prompt text. :func:`stated_task_digest` is the tables' SHA-256, and a run that
+carries the sentence records it, because a table that changed is a prompt that changed.
+
 Every function here reads text and returns data. The same inputs give the same bytes, and nothing in
 the output names the target's path: the prelude, the definitions and the signatures are the files' own
 bytes, and a cell is named by its `<isa>/<type>/<metric>` id.
@@ -46,6 +58,7 @@ bytes, and a cell is named by its `<isa>/<type>/<metric>` id.
 from __future__ import annotations
 
 import hashlib
+import json
 from typing import NamedTuple
 
 from . import task
@@ -57,10 +70,16 @@ __all__ = [
     "CONTROL_ARMS",
     "FACTS_ARMS",
     "INSTRUCTION",
+    "ISA_PHRASE",
+    "KIND_PHRASE",
+    "METRIC_PHRASE",
     "SHOT_ARMS",
+    "STATED_TASK",
     "SYSTEM",
+    "TYPE_PHRASE",
     "Control",
     "NoLedger",
+    "NoPhrase",
     "Shot",
     "UnknownArm",
     "callers",
@@ -70,6 +89,9 @@ __all__ = [
     "line_count",
     "messages",
     "shots",
+    "stated_task",
+    "stated_task_digest",
+    "stated_task_table",
     "turns",
 ]
 
@@ -89,6 +111,66 @@ SYSTEM = (
 
 #: The instruction the user turn ends on, word for word (E1-c).
 INSTRUCTION = "Write this function. Reply with one C code block holding the whole definition."
+
+#: **The stated-task sentence** (E3's revised card): what the hole computes, in one fixed sentence.
+#: The three phrases are substituted into it and nothing else is; the example the card gives reads
+#: "It computes the cosine distance between two vectors of 8-bit signed integers, using AVX2 instructions."
+STATED_TASK = "It computes {metric} of {type}, using {isa}."
+
+#: What each metric computes. Every phrase ends where `of <type>` picks it up, so `l2_impl` says only
+#: what it computes and :data:`KIND_PHRASE` says what its flag decides.
+METRIC_PHRASE = {
+    "l2_impl": "the Euclidean distance between two vectors",
+    "l2": "the Euclidean distance between two vectors",
+    "l2_squared": "the squared Euclidean distance between two vectors",
+    "l1": "the Manhattan distance between two vectors",
+    "dot": "the dot product of two vectors",
+    "cosine": "the cosine distance between two vectors",
+    "hamming": "the Hamming distance between two vectors",
+}
+
+#: What each element type is. Spelled in words rather than in the target's own spelling — `bfloat16`
+#: written out is a token a shadow may have renamed, and the sentence states the task, never a name.
+TYPE_PHRASE = {
+    "float32": "32-bit floats",
+    "float16": "16-bit half floats",
+    "bfloat16": "16-bit brain floating-point numbers",
+    "uint8": "8-bit unsigned integers",
+    "int8": "8-bit signed integers",
+    "bit1": "single packed bits",
+}
+
+#: Which instruction set the body is written in. `cpu` is the scalar reference and says so.
+ISA_PHRASE = {
+    "cpu": "no vector instructions, in plain scalar C",
+    "sse2": "SSE2 instructions",
+    "avx2": "AVX2 instructions",
+    "avx512": "AVX-512 instructions",
+    "neon": "NEON instructions",
+    "rvv": "RISC-V vector instructions",
+}
+
+#: What an `_impl` and a wrapper *are*, which the grid position does not say: an `_impl` has no table
+#: slot and is reached through the two wrappers, and a wrapper's whole content is the one call to it
+#: (`cells.py`). A `body` fills its own slot and needs no second sentence.
+KIND_PHRASE = {
+    "body": "",
+    "impl": (
+        " It is the shared helper both of this type's entry points call, and its flag says whether to "
+        "take the square root."
+    ),
+    "wrapper": " It is a one-line entry point that calls this type's shared helper with that flag.",
+}
+
+
+class NoPhrase(KeyError):
+    """The stated-task tables have no phrase for one of that cell's axes, so no sentence was written.
+
+    Its own type (P10, ADR-036): a sentence with a gap in it would state the task wrongly, which is
+    worse than not stating it, and a general handler must not turn that into a shrug. The tables cover
+    every axis `cells.py` names, and a test holds them to it.
+    """
+
 
 #: The ISA a shot may cross to. `avx2` is one step from both `sse2` and `avx512`, and `sse2` from `avx2`.
 ISA_PAIR = {"sse2": "avx2", "avx512": "avx2", "avx2": "sse2"}
@@ -313,6 +395,49 @@ def _slot_name(slot) -> str:
     return f"dispatch_distance_table[VECTOR_DISTANCE_{metric_enum}][VECTOR_TYPE_{type_enum}]"
 
 
+# MARK: - the stated-task sentence -
+
+
+def stated_task(cell: Cell) -> str:
+    """The one fixed sentence for *cell*: its metric, its element type and its instruction set, in English.
+
+    Read from the three tables above, plus :data:`KIND_PHRASE` where the cell is an `_impl` or a wrapper.
+    An axis no table has a phrase for is :class:`NoPhrase` rather than a sentence with a hole in it.
+    """
+    return STATED_TASK.format(
+        metric=_phrase(METRIC_PHRASE, "metric", cell.metric),
+        type=_phrase(TYPE_PHRASE, "type", cell.type),
+        isa=_phrase(ISA_PHRASE, "isa", cell.isa),
+    ) + _phrase(KIND_PHRASE, "kind", cell.kind)
+
+
+def _phrase(table: dict, axis: str, value: str) -> str:
+    try:
+        return table[value]
+    except KeyError:
+        raise NoPhrase(f"the stated-task table has no {axis} phrase for {value!r}") from None
+
+
+def stated_task_table() -> dict:
+    """The sentence and its three tables as one record — what :func:`stated_task_digest` hashes."""
+    return {
+        "sentence": STATED_TASK,
+        "metrics": dict(METRIC_PHRASE),
+        "types": dict(TYPE_PHRASE),
+        "isas": dict(ISA_PHRASE),
+        "kinds": dict(KIND_PHRASE),
+    }
+
+
+def stated_task_digest() -> str:
+    """The SHA-256 of :func:`stated_task_table`: which wording a run's prompts carried.
+
+    A run that carries the sentence records this, because a table that changed is a prompt that changed
+    and two runs whose sentences differ are not one variable apart.
+    """
+    return hashlib.sha256(json.dumps(stated_task_table(), sort_keys=True).encode("utf-8")).hexdigest()
+
+
 # MARK: - an arm as data, and as messages -
 
 
@@ -346,22 +471,26 @@ def context(lattice: Lattice, cell: Cell, arm: str, facts: Facts | None = None) 
     }
 
 
-def messages(lattice: Lattice, cell: Cell, arm: str, facts: Facts | None = None) -> list[dict]:
+def messages(
+    lattice: Lattice, cell: Cell, arm: str, facts: Facts | None = None, stated: bool = False
+) -> list[dict]:
     """The chat turns for one (cell, arm): the fixed system line, and one user turn (E1-c).
 
     The user turn is plain text with fenced C blocks, in a fixed order — the file's context, the related
     functions, the facts, the signature, the instruction — and a section the arm does not carry takes
-    its heading with it.
+    its heading with it. With *stated*, :func:`stated_task`'s sentence sits between the signature and
+    the instruction, which is the one place it belongs: after what the model is shown and before what it
+    is asked to do.
     """
-    return turns(cell, context(lattice, cell, arm, facts))
+    return turns(cell, context(lattice, cell, arm, facts), stated=stated)
 
 
-def turns(cell: Cell, data: dict) -> list[dict]:
+def turns(cell: Cell, data: dict, stated: bool = False) -> list[dict]:
     """The same turns from a context already built, so a caller that wants both does not build it twice."""
-    return [{"role": "system", "content": SYSTEM}, {"role": "user", "content": _user(cell, data)}]
+    return [{"role": "system", "content": SYSTEM}, {"role": "user", "content": _user(cell, data, stated)}]
 
 
-def _user(cell: Cell, data: dict) -> str:
+def _user(cell: Cell, data: dict, stated: bool = False) -> str:
     parts = [_section(_FILE_HEADING, _fenced(data["prelude"]))]
 
     related = data["shots"] or data["control"]
@@ -375,6 +504,8 @@ def _user(cell: Cell, data: dict) -> str:
         parts.append(_section(_CALLERS_HEADING, "\n".join(_caller_line(row) for row in data["callers"])))
 
     parts.append(_section(_SIGNATURE_HEADING, _fenced(cell.signature)))
+    if stated:
+        parts.append(stated_task(cell))
     parts.append(INSTRUCTION)
     return "\n\n".join(parts)
 

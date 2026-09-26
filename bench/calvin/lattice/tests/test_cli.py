@@ -9,6 +9,8 @@ import pytest
 import test_ages
 import test_compare
 import test_corpus
+import test_e1
+import test_e3
 import test_intrinsics
 
 from lattice import cli, corpus, e1, e4, prompts, run, shadow
@@ -694,6 +696,178 @@ def test_e2_compare_prints_the_deltas_and_refuses_two_runs_that_differ_in_more(t
     other = test_compare.write_run(tmp_path / "k5-run", {}, k=5, style="opaque")
     assert cli.main(["e2", "compare", str(original), str(other)]) == 2
     assert "one variable" in capsys.readouterr().err
+
+
+# MARK: - E3: an adapter through the plan, the stated-task sentence, and the reading -
+
+
+MODEL = "Qwen/Qwen2.5-Coder-7B-Instruct"
+
+
+def plan_with(tmp_path, root, *args, cells="avx2/int8/dot", arms="C-2", model=MODEL):
+    """`lattice e1 plan` over *root* with whatever flags a test is about, and the run directory."""
+    run_dir = tmp_path / "run"
+    argv = ["e1", "plan", str(root), str(run_dir), "--model", model,
+            "--cells", cells, "--arms", arms, "--k", "1", *args]
+    return cli.main(argv), run_dir
+
+
+def test_e1_plan_records_the_adapter_the_manifest_describes(tmp_path, capsys):
+    path, manifest = test_e1.adapter_manifest(tmp_path)
+    code, run_dir = plan_with(tmp_path, FIXTURE, "--adapter", path, "--adapter-manifest", str(manifest))
+    assert code == 0
+    printed = capsys.readouterr().out
+    assert f"served through {path}" in printed
+    assert "repo e3-c-lattice, 300 step(s), recipe fedcba987654" in printed
+
+    record = json.loads((run_dir / e1.META).read_text())
+    assert record["adapter"] == {
+        "path": path,
+        "model": MODEL,
+        "repo": "e3-c-lattice",
+        "corpus_hash": "c" * 64,
+        "recipe_hash": "fedcba987654",
+        "steps": 300,
+    }
+
+
+def test_e1_plan_refuses_an_adapter_whose_manifest_describes_another_model_or_path(tmp_path, capsys):
+    path, manifest = test_e1.adapter_manifest(tmp_path)
+    code, run_dir = plan_with(
+        tmp_path, FIXTURE, "--adapter", path, "--adapter-manifest", str(manifest),
+        model="allenai/Olmo-3-7B-Instruct",
+    )
+    assert code == 2
+    assert "one model's weights" in capsys.readouterr().err
+    assert not run_dir.exists()
+
+    _, elsewhere = test_e1.adapter_manifest(tmp_path, path="adapters/somewhere/else")
+    code, run_dir = plan_with(tmp_path, FIXTURE, "--adapter", path, "--adapter-manifest", str(elsewhere))
+    assert code == 2
+    assert "adapters/somewhere/else" in capsys.readouterr().err
+    assert not run_dir.exists()
+
+
+def test_e1_plan_refuses_one_adapter_flag_without_the_other(tmp_path, capsys):
+    path, manifest = test_e1.adapter_manifest(tmp_path)
+    code, run_dir = plan_with(tmp_path, FIXTURE, "--adapter", path)
+    assert code == 2
+    assert "come as a pair" in capsys.readouterr().err
+
+    code, run_dir = plan_with(tmp_path, FIXTURE, "--adapter-manifest", str(manifest))
+    assert code == 2
+    assert "come as a pair" in capsys.readouterr().err
+    assert not run_dir.exists()
+
+    missing = tmp_path / "nowhere.json"
+    code, _ = plan_with(tmp_path, FIXTURE, "--adapter", path, "--adapter-manifest", str(missing))
+    assert code == 2
+    assert "manifest could not be read" in capsys.readouterr().err
+
+
+def test_e1_run_serves_the_plans_own_adapter_and_not_one_from_the_command_line(tmp_path, capsys, monkeypatch):
+    path, manifest = test_e1.adapter_manifest(tmp_path)
+    code, run_dir = plan_with(tmp_path, FIXTURE, "--adapter", path, "--adapter-manifest", str(manifest))
+    assert code == 0
+    capsys.readouterr()
+
+    seen = {}
+
+    def fake_modal(model, script, keep=None, *, run_dir=None, ceiling_usd=None, adapter=None):
+        seen.update(model=model, adapter=adapter)
+        return lambda requests: {
+            "completions": [{"id": request["id"], "text": "no block here"} for request in requests],
+            "cost": 0.0,
+        }
+
+    monkeypatch.setattr(e1, "modal_generator", fake_modal)
+    assert cli.main([
+        "e1", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "1", "--generator", "modal", "--rounds", "0",
+    ]) == 0
+    assert (seen["model"], seen["adapter"]) == (MODEL, path)
+
+    # a plan with no adapter serves the base model, and says nothing about one
+    code, base_dir = plan_with(tmp_path / "base", FIXTURE)
+    assert code == 0
+    capsys.readouterr()
+    assert cli.main([
+        "e1", "run", str(base_dir), str(FIXTURE), "--ceiling-usd", "1", "--generator", "modal", "--rounds", "0",
+    ]) == 0
+    assert seen["adapter"] is None
+
+
+def test_the_stated_task_sentence_rides_on_every_user_turn_of_an_opaque_shadow(tmp_path, capsys, plans, shadows):
+    root = shadows["opaque"]
+    code, run_dir = plan_with(
+        tmp_path, root, "--rename", str(root / "shadow-map.json"), "--stated-task",
+        cells="avx2/int8/dot,avx2/float32/l2_squared,avx2/float32/l2_impl",
+    )
+    assert code == 0
+    printed = capsys.readouterr().out
+    assert "the stated-task sentence on every user turn, before the instruction" in printed
+
+    lattice = build_lattice(root, rename=plans["opaque"].reverse())
+    requests = requests_in(run_dir)
+    for request in requests:
+        if request["mode"] != "chat":
+            continue
+        sentence = prompts.stated_task(lattice.get(request["cell"]))
+        assert request["messages"][1]["content"].endswith(f"{sentence}\n\n{prompts.INSTRUCTION}")
+
+    # the plan was written, so the gate passed on it; and it still passes when asked again by hand
+    e1.check_leaks(requests, set(plans["opaque"].renames))
+    # the hole is still `fn_NNNN`: the sentence states the task and hands back no name
+    assert re.search(r"\bfn_\d{4}\b", user_turn(requests, "avx2/int8/dot", "C-2"))
+
+    record = json.loads((run_dir / e1.META).read_text())
+    assert record["stated_task"] is True
+    assert record["stated_task_sha256"] == prompts.stated_task_digest()
+
+
+def test_the_stated_task_flag_is_refused_off_an_opaque_shadow(tmp_path, capsys, shadows):
+    code, run_dir = plan_with(tmp_path, FIXTURE, "--stated-task")
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "only with --rename" in err and "no shadow" in err
+    assert not run_dir.exists()
+
+    root = shadows["descriptive"]
+    code, run_dir = plan_with(tmp_path, root, "--rename", str(root / "shadow-map.json"), "--stated-task")
+    assert code == 2
+    assert "this plan is over descriptive" in capsys.readouterr().err
+    assert not run_dir.exists()
+
+    # without the flag the same plan over the opaque shadow says nothing about the task
+    opaque = shadows["opaque"]
+    code, run_dir = plan_with(tmp_path, opaque, "--rename", str(opaque / "shadow-map.json"))
+    assert code == 0
+    capsys.readouterr()
+    record = json.loads((run_dir / e1.META).read_text())
+    assert (record["stated_task"], record["stated_task_sha256"]) == (False, None)
+    assert "It computes" not in user_turn(requests_in(run_dir), "avx2/int8/dot", "C-2")
+
+
+def test_e3_compare_prints_the_paired_reading_and_refuses_a_pair_of_two_plans(tmp_path, capsys):
+    cells = test_e3.CELLS
+    shuffled = test_e3.write_run(tmp_path / "shuffled-run", {("C-2", cells[0]): True}, adapter=test_e3.SHUFFLED)
+    trained = test_e3.write_run(
+        tmp_path / "adapter-run", {("C-2", cells[0]): True, ("C-2", cells[1]): True}, adapter=test_e3.ADAPTER
+    )
+
+    assert cli.main(["e3", "compare", str(shuffled), str(trained)]) == 0
+    table = capsys.readouterr().out
+    assert "E3 shuffled-run → adapter-run" in table
+    assert "C-2  E3-use (registered; primary pass_at_1_sampled)" in table
+    assert "repo e3-c-lattice-shuffled" in table
+
+    assert cli.main(["e3", "compare", str(shuffled), str(trained), "--json"]) == 0
+    found = json.loads(capsys.readouterr().out)
+    assert found["paired"]["bodies"]["C-2"]["pass_at_1"]["gained"] == 1
+    assert found["b"]["adapter"]["repo"] == "e3-c-lattice"
+
+    other = test_e3.write_run(tmp_path / "k5-run", {}, k=5, adapter=test_e3.ADAPTER)
+    assert cli.main(["e3", "compare", str(shuffled), str(other)]) == 2
+    assert "one difference" in capsys.readouterr().err
 
 
 # MARK: - E3's corpus -

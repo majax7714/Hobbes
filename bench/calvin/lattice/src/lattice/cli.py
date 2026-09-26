@@ -16,6 +16,7 @@
     lattice e1 paired  <run-dir> <arm> <arm>    the second arm against the first, paired by cell, exact p
     lattice e2 compare <run-dir> <shadow-run>…  E2: each shadow's deltas and flips against the original
     lattice e3 corpus  --repos L --target T --out D  E3: the draw's families as a training corpus, and its control
+    lattice e3 compare <run-a> <run-b>          E3: two runs of one plan, one adapter apart, paired by cell
     lattice e4 parse   <run-dir> <target>       E4: the parser's fields for every unit, one call each (S-5)
     lattice e4 plan    <target> <run-dir>       E4: L1's units of one file, leaves first, one arm each
     lattice e4 run     <run-dir> <target>       answer and grade them, then build the file per arm
@@ -44,6 +45,21 @@ A manifest is a JSON list of `{"id", "cell", "body"}` entries, or an object with
 a non-cell helper or the init — and `{"id", "isa", "bodies": {name: body}}` is E4's file-level build, every
 named body filled into the gold file at once. `graph-grade` reads the cell rows with a grading run's
 `class` beside them, and says which it did not carry and why.
+
+**E3's evaluation is E1's runner, twice, one adapter apart** (§6, "E3's card, revised"). `e1 plan
+--adapter <path on the hobbes-ttt volume> --adapter-manifest <a local copy of its manifest.json>` records
+the adapter in `meta.json` — the path, and the manifest's `corpus_hash`, `recipe_hash`, `steps`, `repo`
+and `model` — and **refuses, exit 2**, when that manifest names another model or another path; the two
+flags come as a pair, and one without the other is refused too. `e1 run` then takes **no new flag**: it
+reads the adapter out of `meta.json` and hands it to the generator, so a resumed run cannot switch
+adapters. `e1 plan --stated-task` adds E3's one fixed English sentence — the metric, the element type and
+the instruction set — to every user turn before the instruction, and is allowed **only** with `--rename`
+on a shadow whose map says `style: opaque`, refused (exit 2, named) anywhere else: it exists to separate
+the opaque shadow's lost names from its lost task statement, and on any other target it would state what
+the prompt already says. `meta.json` records the flag and the table's digest. Then `lattice e3 compare
+<run-a> <run-b> [--json]`, which pairs the two by cell per arm, marks **C-2 as E3-use** and **C-0 as
+E3-weights** with `pass_at_1_sampled` as their primary figure, prints every other arm as described, and
+exits 2 when the two runs differ in anything but the adapter.
 
 **`e3 corpus` writes text and calls nothing** (§6's "E3's price on D-7's pool": the corpus is a
 dispatched unit, and no spend). `--repos` is a file of `<name>=<root>` lines in the draw's taken order,
@@ -103,6 +119,7 @@ from . import compare as compare_of
 from . import corpus as corpus_of
 from . import paired as paired_of
 from . import e1 as e1_of
+from . import e3 as e3_of
 from . import e4 as e4_of
 from . import facts as facts_of
 from . import graphgrade as graph_of
@@ -424,6 +441,18 @@ def _e1_verbs(verb: argparse.ArgumentParser) -> None:
         help="with --rename, the target the shadow was written from: the ledger is read there and "
         "written forward through the map (required for a facts arm over a shadow)",
     )
+    planner.add_argument("--adapter", help="a LoRA's directory on the hobbes-ttt volume, served for every call (E3)")
+    planner.add_argument(
+        "--adapter-manifest",
+        type=Path,
+        help="a local copy of that adapter's manifest.json; its model and path are checked against the plan",
+    )
+    planner.add_argument(
+        "--stated-task",
+        action="store_true",
+        help="add E3's one English sentence (the metric, the type, the ISA) to every user turn; "
+        "only with --rename on an opaque shadow",
+    )
     _ledger(planner)
     _renamed(planner)
 
@@ -492,7 +521,41 @@ def _e1_plan(args, rename) -> int:
     With `--rename` the target is a shadow: the lattice is read through the reverse map so the prompts
     are the shadow's bytes, a facts arm reads the original's ledger written forward (E2-b), `meta.json`
     carries the shadow's identity (E2-c), and a prompt holding a renamed original is a refusal.
+
+    E3's two flags are checked **before anything is built**: `--stated-task` only makes sense on the
+    opaque shadow, and `--adapter` is only as good as the manifest that describes it.
     """
+    if args.stated_task:
+        style = None if args.rename is None else shadow_of.read_map(args.rename).get("style")
+        if style != "opaque":
+            print(
+                "lattice: --stated-task is E3's stated-task opaque arm: it puts back in one English "
+                "sentence the metric, the element type and the instruction set that the opaque names "
+                "took away, so it is allowed only with --rename on a shadow whose map says "
+                f"style: opaque (this plan is over {style or 'no shadow'})",
+                file=sys.stderr,
+            )
+            return 2
+
+    adapter_block = None
+    if args.adapter or args.adapter_manifest:
+        if not (args.adapter and args.adapter_manifest):
+            print(
+                "lattice: --adapter and --adapter-manifest come as a pair — the path says which weights "
+                "answered and the manifest says what trained them, and a plan that records one without "
+                "the other names an adapter it cannot identify",
+                file=sys.stderr,
+            )
+            return 2
+        try:
+            adapter_block = e1_of.adapter_meta(args.adapter, args.adapter_manifest, args.model)
+        except e1_of.AdapterMismatch as refusal:
+            print(f"lattice: {refusal}", file=sys.stderr)
+            return 2
+        except (OSError, ValueError) as missing:
+            print(f"lattice: the adapter's manifest could not be read ({missing})", file=sys.stderr)
+            return 2
+
     lattice = build(args.target, rename=rename)
     try:
         arms = _arms(args.arms)
@@ -535,7 +598,7 @@ def _e1_plan(args, rename) -> int:
             map_sha256=shadow_of.map_digest(args.rename),
         )
 
-    requests = e1_of.plan(lattice, cells, asked, args.model, given, k=args.k)
+    requests = e1_of.plan(lattice, cells, asked, args.model, given, k=args.k, stated_task=args.stated_task)
 
     shadow_block = None
     if rename is not None:
@@ -547,7 +610,15 @@ def _e1_plan(args, rename) -> int:
         shadow_block = e1_of.shadow_meta(args.rename, args.target, args.original)
 
     record = e1_of.meta(
-        args.model, arms=asked, cells=cells, k=args.k, target=args.target, facts=given, shadow=shadow_block
+        args.model,
+        arms=asked,
+        cells=cells,
+        k=args.k,
+        target=args.target,
+        facts=given,
+        shadow=shadow_block,
+        adapter=adapter_block,
+        stated_task=prompts_of.stated_task_digest() if args.stated_task else None,
     )
     e1_of.write_plan(args.run_dir, requests, record)
     chats = sum(1 for request in requests if request["mode"] == "chat")
@@ -560,6 +631,17 @@ def _e1_plan(args, rename) -> int:
             f"  over the {shadow_block['style']} shadow (tree {shadow_block['tree_sha256'][:12]}, "
             f"map {shadow_block['map_sha256'][:12]}); {len(shadow_block['kept'])} name(s) kept, and on the record"
         )
+    if adapter_block is not None:
+        print(
+            f"  served through {adapter_block['path']} — repo {adapter_block['repo']}, "
+            f"{adapter_block['steps']} step(s), recipe {adapter_block['recipe_hash']}, "
+            f"corpus {(adapter_block['corpus_hash'] or '?')[:12]}"
+        )
+    if args.stated_task:
+        print(
+            "  the stated-task sentence on every user turn, before the instruction "
+            f"(table {record['stated_task_sha256'][:12]})"
+        )
     return 0
 
 
@@ -567,7 +649,9 @@ def _e1_run(args) -> int:
     """The loop. The generator is named on the command line, and the grader is the image's.
 
     A run planned over a shadow says so in its own `meta.json`, and nothing on the command line repeats
-    it: the grader is handed the map at the shadow's root, which the image mounts with the target.
+    it: the grader is handed the map at the shadow's root, which the image mounts with the target. **An
+    adapter is read the same way** (E3): it is the plan's, so a resume cannot answer half a run's cells
+    through one LoRA and half through another.
     """
     try:
         record = json.loads((args.run_dir / e1_of.META).read_text(encoding="utf-8"))
@@ -575,7 +659,7 @@ def _e1_run(args) -> int:
         print(f"lattice: the run's {e1_of.META} could not be read ({missing})", file=sys.stderr)
         return 2
     try:
-        generate = _generator(args, record["model"])
+        generate = _generator(args, record["model"], (record.get("adapter") or {}).get("path"))
     except (OSError, ValueError) as refusal:
         print(f"lattice: the generator could not be built ({refusal})", file=sys.stderr)
         return 2
@@ -595,12 +679,13 @@ def _e1_run(args) -> int:
     return 0
 
 
-def _generator(args, model: str):
+def _generator(args, model: str, adapter: str | None = None):
     """`replay:<file>`, which answers from a recorded run, or `modal`, which is the only one that spends.
 
     The Modal one is given the run directory and the ceiling as well, so each call carries the money
     left as its own timeout and cannot bill past the cap even when the estimate was wrong (E2-d). *model*
-    is the run's own for a student call and `--parser-model` for a parse: one seam, two models.
+    is the run's own for a student call and `--parser-model` for a parse: one seam, two models. *adapter*
+    is the plan's LoRA where it has one (E3) — a replay has already been answered and needs none.
     """
     if args.generator.startswith("replay:"):
         return e1_of.replay_generator(Path(args.generator.split(":", 1)[1]))
@@ -612,6 +697,7 @@ def _generator(args, model: str):
         keep=args.run_dir / "modal-calls",
         run_dir=args.run_dir,
         ceiling_usd=args.ceiling_usd,
+        adapter=adapter,
     )
 
 
@@ -643,11 +729,11 @@ def _e1_paired(args) -> int:
     return 0
 
 
-# MARK: - E3's corpus -
+# MARK: - E3's corpus, and its reading -
 
 
 def _e3_verbs(verb: argparse.ArgumentParser) -> None:
-    """`corpus` — the only step: the draw's members as training examples, and their shuffled control."""
+    """`corpus`, the training examples, and `compare`, the reading between two runs one adapter apart."""
     steps = verb.add_subparsers(dest="step", required=True)
 
     builder = steps.add_parser("corpus", help="the draw's families as a training corpus, and its control")
@@ -656,8 +742,30 @@ def _e3_verbs(verb: argparse.ArgumentParser) -> None:
     builder.add_argument("--out", type=Path, required=True, help="the directory the two corpora and the report go in")
     builder.add_argument("--seed", type=int, default=corpus_of.SEED, help=f"default: {corpus_of.SEED}, the draw's")
 
+    comparer = steps.add_parser("compare", help="two runs of one plan, one adapter apart, paired by cell")
+    comparer.add_argument("a", type=Path, help="the run the delta is read from (the shuffled adapter, or the base)")
+    comparer.add_argument("b", type=Path, help="the run read against it (E3's adapter)")
+    comparer.add_argument("--json", action="store_true", help="the comparison as JSON rather than a table")
+
 
 def _e3(args) -> int:
+    if args.step == "compare":
+        return _e3_compare(args)
+    return _e3_corpus(args)
+
+
+def _e3_compare(args) -> int:
+    """E3's two registered readings, from the runs' own rows. Anything but the adapter differing refuses."""
+    try:
+        found = e3_of.compare(args.a, args.b)
+    except e3_of.NotComparable as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    print(json.dumps(found, indent=2, sort_keys=True) if args.json else e3_of.render(found))
+    return 0
+
+
+def _e3_corpus(args) -> int:
     """Read the clones, write the two corpora, print what was kept and what was dropped and why."""
     try:
         repos = corpus_of.read_list(args.repos)

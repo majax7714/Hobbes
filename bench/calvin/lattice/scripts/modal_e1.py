@@ -6,7 +6,8 @@
 
     uv run bench/calvin/lattice/scripts/modal_e1.py \
         --model Qwen/Qwen2.5-Coder-7B-Instruct \
-        --requests requests.jsonl --out completions.jsonl [--call call.json] [--max-usd 1.50]
+        --requests requests.jsonl --out completions.jsonl [--call call.json] [--max-usd 1.50] \
+        [--adapter adapters/qwen-qwen2-5-coder-7b-instruct/e3-c-lattice/<sha>/<recipe>]
 
 One offline vLLM batch per call — no served endpoint. A serve costs idle time, and its per-request seed is
 weaker than `SamplingParams(seed=…)` on an offline batch, which is what makes a sample reproducible
@@ -36,6 +37,17 @@ at $1.57 — cost $2.56 and carried its run $0.39 past a $4 cap. So the money le
 remote function's own `timeout` by :func:`timeout_for`, and a cap too small to run under at all is
 refused here rather than half-spent. A timeout loses its batch; the estimate check refuses first, so it
 only acts when the estimate was wrong.
+
+**`--adapter` serves E3's LoRA** (`calvin-experiments.md` §6, "E3's card, revised"). The weights are the
+ones `pipeline/scripts/modal_ttt.py` trained, on the volume it wrote them to: this script mounts
+`hobbes-ttt` at :data:`ADAPTER_MOUNT` **read-only**, because an evaluation has no business writing to the
+directory its own adapter came from. vLLM is then built with `enable_lora` at
+:data:`MAX_LORA_RANK` — ADR-099's `r = 32`, the rank the trainer's recipe pins — and every request, chat
+or raw, carries the same :class:`LoRARequest`. Without the flag the model is the base one and nothing
+about the batch changes; either way the call record says which it was, since an adapter is the whole
+difference between E3's two arms and neither is readable without knowing which it ran. The read-only
+mount is `Volume.read_only()` at the pinned `modal>=1.1`, and like every other pin on this page it is
+first exercised by the developer: this package's tests read this file's source and never import `modal`.
 
 **A call that fails is still priced.** The record is written in a `finally` around the remote call, so
 a timeout or a remote error leaves `call.json` behind with `answered: 0`, the error and the host-wall
@@ -93,6 +105,18 @@ BOOT_SECONDS = 120
 #: A timeout under this is not a call, it is a cold start that dies: the script refuses instead.
 MIN_TIMEOUT_SECONDS = 60
 
+#: Where the `hobbes-ttt` volume rides in the function, and the one name a `--adapter` path is relative
+#: to. The same volume `pipeline/scripts/modal_ttt.py` writes its adapters and their manifests to.
+ADAPTER_MOUNT = "/ttt"
+
+#: The LoRA rank vLLM must be built for: ADR-099's recipe trains at `r = 32` and a served rank under the
+#: trained one cannot load the weights at all.
+MAX_LORA_RANK = 32
+
+#: One name for the adapter inside a call. There is at most one per call — a run is one arm — so the id
+#: is fixed and the path is what varies.
+LORA_NAME = "e3"
+
 
 def timeout_for(max_usd: float | None, gpu: str) -> int:
     """The remote function's `timeout`, in seconds, for a call that may bill at most *max_usd*.
@@ -111,6 +135,8 @@ image = (
     .env({"VLLM_USE_FLASHINFER_SAMPLER": "0"})
 )
 weights = modal.Volume.from_name("hobbes-hf-cache", create_if_missing=True)
+#: The adapters' volume, **read only**: this script evaluates a LoRA and never writes one.
+adapters = modal.Volume.from_name("hobbes-ttt", create_if_missing=True).read_only()
 app = modal.App(APP)
 
 
@@ -118,8 +144,13 @@ class UnpinnedModel(Exception):
     """That model is not in :data:`MODELS`, so it was not run."""
 
 
-@app.function(image=image, gpu="A10G", volumes={"/root/.cache/huggingface": weights}, timeout=4 * 3600)
-def generate(model: str, requests: list[dict]) -> dict:
+@app.function(
+    image=image,
+    gpu="A10G",
+    volumes={"/root/.cache/huggingface": weights, ADAPTER_MOUNT: adapters},
+    timeout=4 * 3600,
+)
+def generate(model: str, requests: list[dict], adapter: str | None = None) -> dict:
     """Answer every request in one offline batch, and say how long it took inside this function.
 
     The return is a mapping and not a bare list because the seconds are the call's and not any one
@@ -129,32 +160,59 @@ def generate(model: str, requests: list[dict]) -> dict:
     The two modes go through the two vLLM entry points — `chat` applies the model's own chat template,
     `complete` does not, and a G-mem probe is a raw continuation that a chat template would wrap into a
     question. Each request carries its own `SamplingParams`, so the seed is per request.
+
+    *adapter* is a path under :data:`ADAPTER_MOUNT` on the `hobbes-ttt` volume. With it the engine is
+    built for LoRA at :data:`MAX_LORA_RANK` and every request of the batch — both entry points — carries
+    the one `LoRARequest`; without it this is the base model and the batch is exactly what it was.
     """
     from vllm import LLM, SamplingParams
+    from vllm.lora.request import LoRARequest
 
     pinned = MODELS.get(model)
     if pinned is None:
         raise UnpinnedModel(f"{model!r} is not one of {', '.join(sorted(MODELS))}")
 
     started = time.time()
-    llm = LLM(model, max_model_len=pinned["max_model_len"], enable_prefix_caching=True, seed=0)
+    if adapter is None:
+        lora = None
+        llm = LLM(model, max_model_len=pinned["max_model_len"], enable_prefix_caching=True, seed=0)
+    else:
+        lora = LoRARequest(LORA_NAME, 1, f"{ADAPTER_MOUNT}/{adapter}")
+        llm = LLM(
+            model,
+            max_model_len=pinned["max_model_len"],
+            enable_prefix_caching=True,
+            seed=0,
+            enable_lora=True,
+            max_lora_rank=MAX_LORA_RANK,
+        )
 
     chats = [request for request in requests if request.get("mode") == "chat"]
     raw = [request for request in requests if request.get("mode") != "chat"]
     answers: list[dict] = []
     if chats:
         outputs = llm.chat(
-            [request["messages"] for request in chats], [_params(SamplingParams, request) for request in chats]
+            [request["messages"] for request in chats],
+            [_params(SamplingParams, request) for request in chats],
+            lora_request=lora,
         )
         answers += [_answer(request, output) for request, output in zip(chats, outputs)]
     if raw:
         outputs = llm.generate(
-            [request["prompt"] for request in raw], [_params(SamplingParams, request) for request in raw]
+            [request["prompt"] for request in raw],
+            [_params(SamplingParams, request) for request in raw],
+            lora_request=lora,
         )
         answers += [_answer(request, output) for request, output in zip(raw, outputs)]
 
     seconds = round(time.time() - started, 3)
-    return {"model": model, "completions": answers, "seconds": seconds, "requests": len(requests)}
+    return {
+        "model": model,
+        "adapter": adapter,
+        "completions": answers,
+        "seconds": seconds,
+        "requests": len(requests),
+    }
 
 
 def _params(SamplingParams, request: dict):
@@ -191,6 +249,10 @@ def main(argv: list[str]) -> int:
         type=float,
         help="the most this one call may bill; it becomes the remote function's timeout (E2-d)",
     )
+    parser.add_argument(
+        "--adapter",
+        help=f"a LoRA's directory on the hobbes-ttt volume, served read-only at {ADAPTER_MOUNT} (E3)",
+    )
     args = parser.parse_args(argv[1:])
 
     if args.model not in MODELS:
@@ -215,7 +277,7 @@ def main(argv: list[str]) -> int:
         with app.run():
             # the decorator's GPU is only the default: each model runs on the card MODELS pins for it,
             # and under the budget's own timeout rather than the decorator's four hours
-            answer = generate.with_options(gpu=gpu, timeout=timeout).remote(args.model, requests)
+            answer = generate.with_options(gpu=gpu, timeout=timeout).remote(args.model, requests, args.adapter)
         with open(args.out, "w", encoding="utf-8") as handle:
             for completion in answer["completions"]:
                 handle.write(f"{json.dumps(completion, sort_keys=True)}\n")
@@ -227,6 +289,9 @@ def main(argv: list[str]) -> int:
         wall = round(time.time() - started, 3)
         record = {
             "model": args.model,
+            # which weights answered: an E3 reading is an adapter against another adapter, and a call
+            # that does not say which it served cannot be put on either side of it
+            "adapter": args.adapter,
             "requests": len(requests),
             "answered": 0 if answer is None else len(answer["completions"]),
             # `seconds` is the function's own time (the weight load and the batch). The call is priced on the

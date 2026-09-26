@@ -357,6 +357,21 @@ callees is C-0 under another name, and a row recorded under the wrong arm is wor
 What the ledger did not answer is simply not in the prompt — nothing here infers a callee. The same
 inputs give the same bytes, and no output names the target's path.
 
+**The stated-task sentence** (E3's revised card, point 4). E2's opaque shadow renamed the hole to
+`fn_0042`, and that name turned out to be the only place the metric, the element type and the instruction
+set were said — so the arm measured the loss of the *task statement* as much as the loss of the names.
+`stated_task(cell)` writes it back in one fixed English sentence, from three tables keyed by `METRICS`,
+`TYPES` and `ISAS`, one phrase each: "It computes the cosine distance between two vectors of 8-bit signed
+integers, using AVX2 instructions." `KIND_PHRASE` adds what an `_impl` and a wrapper *are* — the shared
+helper and its one-line entry point — because that is a fact about the grid the position alone does not
+carry, and the metric phrases stop where `of <type>` picks them up. `messages(…, stated=True)` puts the
+sentence **between the signature and the instruction**, which is the only place it belongs, and changes
+nothing else: a run with the flag draws the same samples under the same ids and seeds. An axis no table
+has a phrase for is `NoPhrase`, its own type, rather than a sentence with a hole in it. Every word is
+English and none of them is an identifier the target writes, which is why `e1`'s leak gate reads it like
+any other prompt text and passes; `stated_task_digest()` is the tables' SHA-256, and a run that carries
+the sentence records it, since a wording that changed is a prompt that changed.
+
 **`extract`** — **E1-c's parse:** `extract(completion, name)` gives `{"body", "reason", "block", "params"}`. The
 body comes from the **first** fenced block, whatever its tag (```` ```c ````, ```` ```C ````,
 ```` ```cpp ````, bare), and a block with no closing fence — a completion cut off at `max_tokens` — runs
@@ -445,6 +460,17 @@ refusal goes up, and where there was no record the row carries the call's *estim
 `cost_source: "estimate (the call failed and reported nothing)"`. A timeout still loses its batch; the
 estimate check refuses first, so the timeout only acts when the estimate was wrong.
 
+**A run may be served through a LoRA, and the plan says which** (E3). `meta.json` gains an **`adapter`
+block** — the path on the `hobbes-ttt` volume, and the `model`, `repo`, `corpus_hash`, `recipe_hash` and
+`steps` read from the `manifest.json` the trainer wrote beside the weights (`adapter_meta`). A manifest
+naming another model, or another path than the one being served, is `AdapterMismatch`, its own type, and
+no plan is written: E3's two readings are an adapter against a shuffled adapter *at one model*, and a plan
+that cannot identify its own weights records a comparison nobody made. `e1 run` reads the block back
+rather than taking a flag, so a **resume cannot switch adapters** — the same reason `_same_target` holds a
+resume to one tree — and `modal_generator(…, adapter=…)` passes it on as `--adapter`. `meta.json` also
+records `stated_task` and the sentence table's digest, so the two runs E3 differences can be checked to be
+one plan. Nothing here serves the weights: that is `scripts/modal_e1.py`'s, from the volume, read-only.
+
 **A run over a rename shadow** (E2) is the same run under other names, and three things carry it.
 `meta.json` gains a **`shadow` block** — `style`, `map_sha256`, `tree_sha256`, `from_sha` (the original's
 commit, where one was named) and `kept`, the names the shadow left alone, which leak by design and are
@@ -500,6 +526,24 @@ answered is counted in `unpaired`, never read as a fail. A p is two-sided, per c
 **uncorrected** — the reader names which comparison the card registered before the run.
 `lattice e1 paired <run> <arm> <arm>` pairs two arms of one run (E1's C-2 against C-4), and `e2
 compare` carries the same three tests per arm against the original.
+
+**`e3`** — **E3's reading** (§6, "E3's card, revised"): two runs of one plan, one adapter apart. It lives
+in **`e3.py`**, beside E2's in `compare.py` rather than inside it, because what it refuses is different:
+E2 deliberately compares a five-arm original with a two-arm shadow on what they share, and E3's two runs
+must be **the same plan answered twice** — the model, `k`, the params, the arms, the cells, the shadow, the
+stated-task sentence and the target's SHA all equal, with the **adapter the one thing allowed to differ**
+(`SAME`; the arms and the cells are read as sets, since an order is not part of a plan). The refusal is
+`compare.NotComparable`, the same type, because "these two runs are not one variable apart" is one
+guarantee and one type is what a caller catches for it. Per section and per arm it gives `paired.paired`
+from `a` to `b` — so `e3 compare <shuffled> <adapter>` reads the delta the card's way round — beside which
+weights each side served, by path and by what trained them. **Two comparisons are marked as registered**
+(`REGISTERED`): **C-2 is E3-use** (does training make the model better at using examples?) and **C-0 is
+E3-weights** (did the pattern move into the weights?), each with `pass_at_1_sampled` named as its primary
+figure, since at 63 bodies the greedy rate needs about nine net cells to reach p < 0.05 and the sampled
+rate is the sensitive one. All three tests print under every arm and everything else — C-3, C-4, the
+stated-task arm, and **the wrapper section of the same two arms** (`REGISTERED_SECTION` is `bodies`; a
+wrapper is not the task a body is) — is described and not read. A run whose `rows.jsonl` is not there is
+named in `missing`, never read as a floor.
 
 **`e4`** — **E4's runner** (§6's card and "E4's design"; D-6 as recommended). E1 asked what context is
 worth on one body; E4 holds out a **whole file** at rung **L1** and asks whether the graph can serve a
@@ -710,6 +754,21 @@ duplicates, every drop with its reason and both corpora's digests, and **exits 2
 a repos list it cannot read, an input root holding a dispatched session's text, and a corpus one family
 holds half of, which has no derangement to be a control. It reads files only and calls no model.
 
+**And this unit adds two flags, one pair of them, and one verb — E3's evaluation plumbing.** `lattice e1
+plan --adapter <path on the hobbes-ttt volume> --adapter-manifest <a local copy of its manifest.json>`
+records the adapter in `meta.json` and **exits 2** when that manifest names another model or another path,
+or when one of the two flags comes without the other: the path says which weights answered and the
+manifest says what trained them, and a plan that has one without the other names an adapter it cannot
+identify. `e1 run` takes **no new flag** — it reads the adapter out of `meta.json` and hands it to the
+generator, which is what makes a resume unable to switch adapters. `lattice e1 plan --stated-task` adds
+E3's one English sentence to every user turn, before the instruction, and is allowed **only with
+`--rename` on a shadow whose map says `style: opaque`**; anywhere else it exits 2 naming what the plan was
+over, because on the target or on the descriptive shadow the names already state the task. Then `lattice
+e3 compare <run-a> <run-b> [--json]`, which prints the paired reading of `b` against `a` with C-2 marked
+**E3-use** and C-0 marked **E3-weights**, every other arm described, and exits 2 when the two runs are not
+one plan one adapter apart. None of the three calls a model: `e1 run --generator modal` still does that,
+and it is the only verb that does.
+
 Everything that compiles or runs the target's code runs in the image (ADR-092, C-64) — and so does the
 intrinsic index, whose headers are the image's clang's. `graph-grade` is the exception and says why: it
 runs a Hobbes ingest, which contains its own lane B. Still to come: G-test, `grade` and `diff` taking a
@@ -779,6 +838,22 @@ lattice e4 report runs/qwen-avx2-l1                 # or --json
 # E3: the draw's 40 clones as a training corpus and its shuffled control, on the host, spending nothing
 # repos.txt is one <name>=<root> a line, in the draw's taken order (its dedupe depends on that order)
 lattice e3 corpus --repos repos.txt --target /path/to/sqlite-vector --out corpora/e3
+
+# E3's evaluation: the same plan three times — base, adapter, shuffled — and the paired reading of it.
+# the adapter's path is the one `modal_ttt.train_adapter` returned; the manifest is a local copy of its
+lattice e1 plan /path/to/sqlite-vector runs/e3-adapter-300 \
+  --model Qwen/Qwen2.5-Coder-7B-Instruct --arms C-0,C-2,C-3,C-4 --k 10 \
+  --adapter adapters/qwen-qwen2-5-coder-7b-instruct/e3-c-lattice/<sha>/<recipe> \
+  --adapter-manifest manifests/e3-pattern-300.json \
+  --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
+lattice e1 run runs/e3-adapter-300 /path/to/sqlite-vector --ceiling-usd 5 --generator modal
+lattice e3 compare runs/e3-shuffled-300 runs/e3-adapter-300    # E3-use and E3-weights; or --json
+lattice e3 compare runs/e3-base runs/e3-adapter-300            # the adapter against the base beside it
+
+# and the stated-task opaque arm: the opaque shadow's prompts with the task said in one sentence
+lattice e1 plan /tmp/shadow-opaque runs/e3-stated-base \
+  --model Qwen/Qwen2.5-Coder-7B-Instruct --arms C-2 --k 10 \
+  --rename /tmp/shadow-opaque/shadow-map.json --stated-task
 ```
 
 ## E1's runner — the order of work
@@ -849,11 +924,11 @@ order:
 own base at the same size, so the same card and the same 16k window the student runs under, and
 `e1.PRICING`'s fall-back is the A10G's rate it bills at.
 
-## E3's corpus — the order of work
+## E3 — the order of work
 
-**Nothing has been built and nothing has been trained.** The corpus is the step before E3 spends
-anything (§6, "E3's price on D-7's pool"), and it runs on the host against the draw's own clones, which
-live in the driver directory and not in this repo. The order:
+**Nothing has been built, nothing has been trained and no adapter has been served.** The corpus is the
+step before E3 spends anything (§6, "E3's price on D-7's pool"), and it runs on the host against the
+draw's own clones, which live in the driver directory and not in this repo. The order:
 
 1. **`lattice e3 corpus`** over the 40 taken repos, in the draw's order, with the target named. It reads
    files and costs nothing. Read `corpus-report.json` first: the kept count against the draw's 24,222,
@@ -866,8 +941,29 @@ live in the driver directory and not in this repo. The order:
    card binds every number to its G-mem reading, and the reading has to exist before the adapter does.
 4. **Max's word** (D-9): the corpus reviewed, then E3's run at the $25 ceiling — the 300-step pair
    first, priced against its estimate, and the 3,000-step pair only after that reading.
+5. **Train the pair**, `uv run pipeline/scripts/modal_ttt.py put <corpus-dir> corpora/e3-pattern` then
+   `… train --corpus corpora/e3-pattern --steps 300 --model Qwen/Qwen2.5-Coder-7B-Instruct`, and the same
+   two for the shuffled control — **300 steps first**, about $0.35 each. They are two `repo` names and so
+   two adapter keys, neither able to overwrite the other. Read the manifest each run prints and **fetch a
+   copy of it** (`… get <adapter-path>/manifest.json manifests/e3-pattern-300.json`), because `e1 plan
+   --adapter-manifest` is what checks that the weights being served are this model's and this path's.
+6. **Plan and run the arms over the same cells and the same arms**, three plans that differ in one field:
+   the **base** (no `--adapter`), the **adapter**, and the **shuffled** control, each at `--k 10` with no
+   iterate rounds, each priced against `e1.estimate` before the next. The stated-task opaque arm is a
+   fourth plan, over the opaque shadow with `--stated-task`, on the base and on the adapter.
+7. **`lattice e3 compare`**, twice: shuffled → adapter is **E3-use** on C-2 and **E3-weights** on C-0,
+   which are the two findings; adapter → base goes beside them and is described. Read
+   `pass_at_1_sampled` and its sign-flip p first — it is the figure the card registered — and treat every
+   other arm, and the wrapper section, as description.
+8. **Max's word again**, before the 3,000-step pair. ADR-099 saw the effect leave as facts came in, so the
+   steps ablation is the reading and not a formality.
 
 The corpus and its control are two directories a Modal volume can take as they are: `train_adapter`
 reads `<corpus>/train.jsonl` and `<corpus>/manifest.json` and keys the adapter on `repo`, `sha` and
 `corpus_hash`, which is why the control is a **second repo name** and not a flag — two adapters, two
-keys, no chance of one overwriting the other.
+keys, no chance of one overwriting the other. The evaluation side is the same shape: an adapter is a
+property of the **plan**, recorded in `meta.json` with its manifest's fields, so `e1 run` cannot be told
+to answer half a run's cells through other weights and `e3 compare` can refuse two runs that are not one
+plan. `scripts/modal_e1.py --adapter` mounts `hobbes-ttt` **read-only** at `/ttt` and builds vLLM with
+`enable_lora` at rank 32, ADR-099's `r`; the one `LoRARequest` rides on both entry points, so the G-mem
+probes are served by the same weights as the arms.
