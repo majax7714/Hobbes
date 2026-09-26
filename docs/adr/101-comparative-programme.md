@@ -241,3 +241,42 @@ Re-converting every other foreign cell under @4 checks the rule's
 reach; a cell whose edges move is regraded the same way. The foreign
 C++ cells are pre-registered in `oracle-grading.md` §10.7. Nothing
 under `bench/` moves the version (ADR-103).
+
+## Amendment (2026-09-26): a `__module__` caller is a call site — repowise converter@5
+
+**Context.** The foreign JavaScript cells' first run found the repowise
+converter dropping almost all of Express's graph: 57 of its 59 call
+edges, 356 of 358 call lines, all counted as `unknown-caller`. The
+dropped callers are all one id shape, `<file>::__module__`. repowise
+files a call made at a file's top level, or inside an anonymous
+function there, under that per-file node, and the node has no
+`wiki_symbols` row. The tool stored the file (in the id) and the lines
+(`call_lines_json`), so the drop was the converter's misreading (C-94),
+not the tool's. It applied from converter@1 to @4 on every repowise
+cell. Every unknown caller in every stored repowise dump on this box
+is of this shape.
+
+**Decision.** **converter@5 reads a caller id `<file>::__module__`
+that is not a symbol as call sites in `<file>` at the tool's call
+lines,** keeps that id as the edge's caller, and counts such edges in
+`notes.module_callers`. A caller that is neither a symbol nor a
+`__module__` id is still dropped and counted as `unknown-caller`, so
+the drop count stays honest. The adapter's Go test carries a
+hand-read fixture (`testdata/cjsmodule.raw.json`). It holds two rows
+repowise stored for Express at 9a34acf0, copied as stored: the
+`__module__` row `examples/auth/index.js:106` → `authenticate`, and an
+ordinary symbol caller. It adds one synthetic caller that is neither
+kind, which must still drop. CodeGraphContext's converter is
+untouched: its dump reads a module-level caller as a `File` node with
+a path.
+
+**Consequences.**
+- Every published repowise cell was re-converted from its stored dump
+  (no re-index) and graded by its standing key. First, @4 re-run from
+  the same dump reproduced every stored `edges.json` row for row.
+- Each record carries a signed direction line; the @5 outputs sit in
+  the cell's `at5/` beside the @4 artifacts.
+- The five foreign JavaScript cells were graded at @5 first.
+- A residual is named in C-94, not converted away. repowise files a
+  member call in a chain written over several lines at the chain's
+  first line, and its stored lines hold nothing finer.

@@ -48,3 +48,23 @@ foreign cell . (edges.json): 0s
 
 **What the record does not say:** anything about the tool beyond this run on this box at this version; the matcher's tolerances were tuned on Hobbes' output (C-95); the conversion is Hobbes' and a misread would be Hobbes' defect (C-94).
 
+## Regrade, converter@5 (2026-09-26) — a `__module__` caller is a call site
+
+`repowise-adapter@5` (ADR-101's 2026-09-26 amendment, C-94) reads a call edge whose caller is repowise's per-file `<file>::__module__` node — a call at the file's top level, or inside an anonymous function there — as call sites in that file at the tool's own `call_lines_json`; through @4 the converter dropped every such edge as `unknown-caller`. Re-converted from this cell's stored `raw.json` (no re-index; @4 re-run from the same `raw.json` reproduced the stored `edges.json` row for row first), source lines read from `/home/mmarrujo/.hobbes/bench/oracle/repos/sqlite-vector`, graded by the same key with today's `oracle` binary. Outputs in `/home/mmarrujo/.hobbes/bench/comparative/repowise-sqlite-vector/at5`. Conversion: 1,702 → 1,738 (site, callee) pairs; `unknown-caller` 24 → 0 edges; 24 edge(s) read from a `__module__` caller. **Every row graded before keeps its bucket; everything that moved is a row the fix added.**
+
+**Direction of fix (repowise-adapter@3 → repowise-adapter@5, 2026-09-26, signed):** graded edges 1,050 → 1,053 (+3); confirmed 780 → 783 (+3); contradicted 0 → 0 (+0); precision-against-oracle 100.0% (780/780) → 100.0% (783/783) (+0.0); strict = precision before and after (no line-unresolved row); recall 93.3% (1,018/1,091) → 93.6% (1,021/1,091). Nothing on the tool's side moved; the edges were in its store all along.
+
+The 36 added pairs grade as 3 confirmed; the rest are outside the cell or repeats (`other-language`/`duplicate` at import); none contradicted.
+
+```
+cell   oracle Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution)  sha 0c2223ad
+hobbes edges 1053: confirmed 783  contradicted 0  abstract 0  silent 270 map[not-loaded:119 unreachable:151]
+precision-against-oracle 100.0% (783/783)
+recall 93.6% (1021/1091 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 1721; misses map[static→function:70]
+recall-collapsed 92.0% (783/851 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[static→function   ]  93.6% (1021/1091)  misses 70 = 100.0% of all misses
+  tier repowise:import_merged confirmed 265  contradicted 0  abstract 0  silent 42
+  tier repowise:same_file confirmed 518  contradicted 0  abstract 0  silent 228
+  line-grain tolerance used on 317 edge(s) (several oracle sites on one line)
+poison check: PASS — 1053 seeded wrong edges: 777 refused, 276 unjudged (oracle silent there), 0 falsely confirmed
+```

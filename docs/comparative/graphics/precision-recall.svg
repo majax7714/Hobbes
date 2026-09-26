@@ -427,15 +427,6 @@ misses by class: none recorded
 <text x="550.0" y="436" font-size="10" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >recall, % of in-repo oracle pairs at the cell's roots</text>
 <text x="366" y="256.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 366 256.0)">precision vs oracle, %, axis from 20</text>
 <g>
-<title>cheerio — repowise — TypeScript, tsc 6.0.3 (the zone's own) (resolution), host-run, 2026-09-09
-precision-against-oracle 167/184 = 90.8%
-recall 168/5,910 = 2.8% over every resolved site (resolution oracle: no roots)
-misses by class: static→function 3,759, func-value→local-binding 1,070, func-value→variable 671, static→closure 173, static→method 46, static→anonymous-signature 12, static→type-member 6, static→class 5
-repowise graded by the same key as the Hobbes cheerio cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="408.4,134.5 414.4,140.5 408.4,146.5 402.4,140.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<text x="416.4" y="164.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cheerio ·rw</text>
-<g>
 <title>zod — codegraphcontext — TypeScript, tsc 5.9.3 (harness) (resolution), host-run, 2026-09-09
 precision-against-oracle 1,434/5,891 = 24.3% · strict 1,434/6,662 (21.5%)
 recall 1,443/21,931 = 6.6% over every resolved site (resolution oracle: no roots)
@@ -444,15 +435,6 @@ codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run 
 <rect x="414.8" y="384.875" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="427.8" y="393.875" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >zod ·cgc</text>
-<g>
-<title>zod — repowise — TypeScript, tsc 5.9.3 (harness) (resolution), host-run, 2026-09-09
-precision-against-oracle 2,182/2,361 = 92.4%
-recall 2,190/21,931 = 10.0% over every resolved site (resolution oracle: no roots)
-misses by class: static→function 8,986, static→type-member 4,955, static→method 2,637, static→property 1,274, func-value→variable 1,046, static→closure 324, static→variable 271, interface→type-member 88, static→class 88, func-value→local-binding 59, static→anonymous-signature 13
-repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="430.0,128.5 436.0,134.5 430.0,140.5 424.0,134.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<text x="438.0" y="178.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >zod ·rw</text>
 <g>
 <title>cheerio — codegraphcontext — TypeScript, tsc 6.0.3 (the zone's own) (resolution), host-run, 2026-09-09
 precision-against-oracle 1,035/1,141 = 90.7%
@@ -463,6 +445,15 @@ codegraphcontext graded by the same key as the Hobbes cheerio cell (ADR-101); ho
 </g>
 <text x="461.1" y="144.875" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cheerio ·cgc</text>
 <g>
+<title>cheerio — repowise — TypeScript, tsc 6.0.3 (the zone's own) (resolution), host-run, 2026-09-09
+precision-against-oracle 1,348/1,378 = 97.8%
+recall 1,370/5,910 = 23.2% over every resolved site (resolution oracle: no roots)
+misses by class: static→function 2,934, func-value→local-binding 1,070, func-value→variable 294, static→closure 173, static→method 46, static→anonymous-signature 12, static→type-member 6, static→class 5
+repowise graded by the same key as the Hobbes cheerio cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="469.6,108.25 475.6,114.25 469.6,120.25 463.6,114.25" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="477.6" y="158.25" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cheerio ·rw</text>
+<g>
 <title>ajv — repowise — TypeScript, tsc 5.3.3 (the zone's own) (resolution), host-run, 2026-09-09
 precision-against-oracle 739/754 = 98.0%
 recall 746/2,232 = 33.4% over every resolved site (resolution oracle: no roots)
@@ -471,6 +462,15 @@ repowise graded by the same key as the Hobbes ajv cell (ADR-101); host-run (C-96
 <polygon points="500.2,107.5 506.2,113.5 500.2,119.5 494.2,113.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="508.2" y="127.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >ajv ·rw</text>
+<g>
+<title>zod — repowise — TypeScript, tsc 5.9.3 (harness) (resolution), host-run, 2026-09-09
+precision-against-oracle 7,216/7,630 = 94.6% · strict 7,216/7,698 (93.7%)
+recall 7,360/21,931 = 33.6% over every resolved site (resolution oracle: no roots)
+misses by class: static→function 5,169, static→type-member 4,955, static→method 2,527, static→property 1,274, static→closure 324, interface→type-member 88, static→class 87, func-value→local-binding 59, func-value→variable 59, static→variable 16, static→anonymous-signature 13
+repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="500.8,120.25 506.8,126.25 500.8,132.25 494.8,126.25" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="508.8" y="170.25" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >zod ·rw</text>
 <g>
 <title>kbet (private app) — TypeScript, tsc 5.9.3 (the zone's own) (resolution), contained, 2026-08-25
 precision-against-oracle 630/630 = 100.0%
@@ -518,13 +518,13 @@ codegraphcontext graded by the same key as the Hobbes ajv cell (ADR-101); host-r
 <text x="560.7" y="204.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >ajv ·cgc</text>
 <g>
 <title>hono (tsconfig.build.json) — repowise — TypeScript, tsc 5.9.3 (harness) (resolution), host-run, 2026-09-09
-precision-against-oracle 735/785 = 93.6% · strict 735/787 (93.4%)
-recall 741/1,403 = 52.8% over every resolved site (resolution oracle: no roots)
-misses by class: static→closure 229, static→method 169, static→property 93, func-value→local-binding 61, interface→type-member 30, static→variable 30, static→type-member 20, static→anonymous-signature 15, static→class 12, func-value→variable 1, static→anonymous-function 1, static→function 1
+precision-against-oracle 743/793 = 93.7% · strict 743/795 (93.5%)
+recall 749/1,403 = 53.4% over every resolved site (resolution oracle: no roots)
+misses by class: static→closure 229, static→method 169, static→property 93, func-value→local-binding 61, interface→type-member 30, static→variable 22, static→type-member 20, static→anonymous-signature 15, static→class 12, func-value→variable 1, static→anonymous-function 1, static→function 1
 repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="558.4,124.0 564.4,130.0 558.4,136.0 552.4,130.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="560.2,123.625 566.2,129.625 560.2,135.625 554.2,129.625" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="550.4" y="204.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hono (tsconfig.build.json) ·rw</text>
+<text x="552.2" y="203.625" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hono (tsconfig.build.json) ·rw</text>
 <g>
 <title>hono (tsconfig.build.json) — TypeScript, tsc 5.9.3 (harness) (resolution), contained, 2026-09-09
 precision-against-oracle 833/833 = 100.0%
@@ -572,6 +572,15 @@ regraded 2026-09-09 after the union-member abstention (ADR-104, C-97): the three
 <text x="890.0" y="436" font-size="10" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >recall, % of in-repo oracle pairs at the cell's roots</text>
 <text x="706" y="256.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 706 256.0)">precision vs oracle, %, axis from 40</text>
 <g>
+<title>preact (ESM, JSDoc, JSX) — repowise — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), host-run, 2026-09-26
+precision-against-oracle 1,212/2,902 = 41.8% · strict 1,212/3,354 (36.1%)
+recall 1,398/9,211 = 15.2% over every resolved site (resolution oracle: no roots)
+misses by class: static→closure 2,023, interface→type-member 1,796, func-value→local-binding 1,588, static→function 1,268, static→class 570, func-value→variable 217, static→method 205, func-value→parameter 112, static→type-member 33, static→anonymous-function 1
+repowise graded by the same key as the Hobbes preact (ESM, JSDoc, JSX) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="785.6,391.0 791.6,397.0 785.6,403.0 779.6,397.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="793.6" y="389.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >preact (ESM, JSDoc, JSX) ·rw</text>
+<g>
 <title>preact (ESM, JSDoc, JSX) — codegraphcontext — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), host-run, 2026-09-26
 precision-against-oracle 1,484/3,686 = 40.3% · strict 1,484/4,297 (34.5%)
 recall 1,693/9,211 = 18.4% over every resolved site (resolution oracle: no roots)
@@ -579,7 +588,7 @@ misses by class: interface→type-member 1,796, func-value→local-binding 1,588
 codegraphcontext graded by the same key as the Hobbes preact (ESM, JSDoc, JSX) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
 <rect x="790.2" y="399.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="803.2" y="396.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >preact (ESM, JSDoc, JSX) ·cgc</text>
+<text x="803.2" y="376.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >preact (ESM, JSDoc, JSX) ·cgc</text>
 <g>
 <title>express (CommonJS) — codegraphcontext — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), host-run, 2026-09-26
 precision-against-oracle 318/326 = 97.5% · strict 318/327 (97.2%)
@@ -588,7 +597,16 @@ misses by class: static→function 709, func-value→parameter 352, func-value�
 codegraphcontext graded by the same key as the Hobbes express (CommonJS) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
 <rect x="797.7" y="113.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="810.7" y="122.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >express (CommonJS) ·cgc</text>
+<text x="810.7" y="132.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >express (CommonJS) ·cgc</text>
+<g>
+<title>express (CommonJS) — repowise — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), host-run, 2026-09-26
+precision-against-oracle 355/356 = 99.7%
+recall 355/1,520 = 23.4% over every resolved site (resolution oracle: no roots)
+misses by class: static→function 654, func-value→parameter 352, func-value→variable 85, static→anonymous-function 46, func-value→local-binding 25, static→closure 3
+repowise graded by the same key as the Hobbes express (CommonJS) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="810.2,101.5 816.2,107.5 810.2,113.5 804.2,107.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="818.2" y="121.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >express (CommonJS) ·rw</text>
 <g>
 <title>preact (ESM, JSDoc, JSX) — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), contained, 2026-09-19
 precision-against-oracle 2,447/2,447 = 100.0%
@@ -597,7 +615,7 @@ misses by class: static→closure 2,038, interface→type-member 1,796, func-val
 its root zone; first pass 1,223 contradicted, all the oracle's (H-34, H-35), regraded; no dependency tree (C-165); jsconfig not read (C-166)</title>
 <circle cx="825.8" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="833.8" y="160.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >preact (ESM, JSDoc, JSX)</text>
+<text x="833.8" y="180.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >preact (ESM, JSDoc, JSX)</text>
 <g>
 <title>cypress github-action — codegraphcontext — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), host-run, 2026-09-26
 precision-against-oracle 63/68 = 92.6% · strict 63/69 (91.3%)
@@ -606,7 +624,7 @@ misses by class: func-value→variable 86, static→variable 8, static→functio
 codegraphcontext graded by the same key as the Hobbes cypress github-action cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
 <rect x="844.2" y="138.00000000000006" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="857.2" y="147.00000000000006" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cypress github-action ·cgc</text>
+<text x="857.2" y="217.00000000000006" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cypress github-action ·cgc</text>
 <g>
 <title>xmpp.js — codegraphcontext — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), host-run, 2026-09-26
 precision-against-oracle 337/408 = 82.6% · strict 337/442 (76.2%)
@@ -617,6 +635,15 @@ codegraphcontext graded by the same key as the Hobbes xmpp.js cell (its stored k
 </g>
 <text x="870.1" y="197.00000000000003" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >xmpp.js ·cgc</text>
 <g>
+<title>xmpp.js — repowise — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), host-run, 2026-09-26
+precision-against-oracle 489/543 = 90.1% · strict 489/563 (86.9%)
+recall 495/840 = 58.9% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 140, func-value→parameter 64, func-value→variable 43, static→closure 42, static→class 26, func-value→local-binding 18, static→function 12
+repowise graded by the same key as the Hobbes xmpp.js cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="916.7,149.50000000000003 922.7,155.50000000000003 916.7,161.50000000000003 910.7,155.50000000000003" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="924.7" y="159.50000000000003" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >xmpp.js ·rw</text>
+<g>
 <title>cue — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), contained, 2026-09-20
 precision-against-oracle 1,005/1,005 = 100.0%
 recall 1,016/1,644 = 61.8% over every resolved site (resolution oracle: no roots)
@@ -624,7 +651,7 @@ misses by class: static→closure 521, static→method 49, func-value→local-bi
 graded with its dependency tree (276 packages); at 0.2.60-beta its 881 rows were the same without it (C-165)</title>
 <circle cx="925.4" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="933.4" y="180.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cue</text>
+<text x="933.4" y="200.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cue</text>
 <g>
 <title>cue — codegraphcontext — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), host-run, 2026-09-26
 precision-against-oracle 1,010/1,050 = 96.2% · strict 1,010/1,054 (95.8%)
@@ -642,7 +669,16 @@ misses by class: func-value→parameter 352, func-value→variable 72, static→
 no dependency tree (C-165); the tests' express() through a CommonJS re-export drawn since 0.2.56-beta, syntactic (ADR-141, C-167)</title>
 <circle cx="937.1" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="945.1" y="160.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >express (CommonJS)</text>
+<text x="945.1" y="140.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >express (CommonJS)</text>
+<g>
+<title>cue — repowise — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), host-run, 2026-09-26
+precision-against-oracle 1,235/1,254 = 98.5%
+recall 1,251/1,644 = 76.1% over every resolved site (resolution oracle: no roots)
+misses by class: static→closure 140, static→method 128, static→function 63, func-value→local-binding 30, func-value→parameter 23, static→class 7, static→anonymous-function 2
+repowise graded by the same key as the Hobbes cue cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="968.3,107.5 974.3,113.5 968.3,119.5 962.3,113.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="976.3" y="127.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cue ·rw</text>
 <g>
 <title>xmpp.js — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), contained, 2026-09-19
 precision-against-oracle 705/705 = 100.0%
@@ -651,7 +687,7 @@ misses by class: func-value→parameter 64, static→closure 42, func-value→lo
 its lockfile refused by npm ci: no dependency tree (C-165)</title>
 <circle cx="993.8" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="1001.8" y="130.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >xmpp.js</text>
+<text x="1001.8" y="160.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >xmpp.js</text>
 <g>
 <title>cypress github-action — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), contained, 2026-09-20
 precision-against-oracle 154/154 = 100.0%
@@ -660,7 +696,16 @@ misses by class: static→variable 8, func-value→local-binding 4, static→clo
 graded with its dependency tree; its in-repo rows are the same without it (C-165)</title>
 <circle cx="1007.0" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="999.0" y="210.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cypress github-action</text>
+<text x="999.0" y="230.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cypress github-action</text>
+<g>
+<title>cypress github-action — repowise — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), host-run, 2026-09-26
+precision-against-oracle 154/154 = 100.0%
+recall 154/173 = 89.0% over every resolved site (resolution oracle: no roots)
+misses by class: static→variable 8, func-value→local-binding 4, static→closure 4, func-value→parameter 3
+repowise graded by the same key as the Hobbes cypress github-action cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="1007.0,100.0 1013.0,106.0 1007.0,112.0 1001.0,106.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="999.0" y="250.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cypress github-action ·rw</text>
 <text x="60" y="470" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rust — rustc-mir (compiler-graded)</text>
 <rect x="60" y="480" width="300" height="300" fill="none" stroke="#d9d8d2"/>
 <line x1="60.0" y1="480" x2="60.0" y2="780" stroke="#d9d8d2" stroke-dasharray="2 3"/>
@@ -901,13 +946,13 @@ misses by class: interface→method 4, static→constructor 2</title>
 <text x="706" y="630.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 706 630.0)">precision vs oracle, %, axis from 80</text>
 <g>
 <title>cJSON — repowise — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
-precision-against-oracle 1,073/1,075 = 99.8%
-recall 1,074/1,918 = 56.0% over every resolved site (resolution oracle: no roots)
-misses by class: macro→function 728, static→function 116
+precision-against-oracle 1,102/1,104 = 99.8%
+recall 1,103/1,918 = 57.5% over every resolved site (resolution oracle: no roots)
+misses by class: macro→function 728, static→function 87
 repowise graded by the same key as the Hobbes cJSON cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state</title>
-<polygon points="908.0,477.00000000000006 914.0,483.00000000000006 908.0,489.00000000000006 902.0,483.00000000000006" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="912.5,477.00000000000006 918.5,483.00000000000006 912.5,489.00000000000006 906.5,483.00000000000006" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="916.0" y="497.00000000000006" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cJSON ·rw</text>
+<text x="920.5" y="497.00000000000006" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cJSON ·rw</text>
 <g>
 <title>cJSON — codegraphcontext — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
 precision-against-oracle 1,179/1,179 = 100.0%
@@ -928,13 +973,13 @@ every miss is a call a macro's expansion makes, drawn to the macro: 723 into Uni
 <text x="934.0" y="534.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cJSON</text>
 <g>
 <title>sqlite-vector — repowise — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
-precision-against-oracle 780/780 = 100.0%
-recall 1,018/1,091 = 93.3% over every resolved site (resolution oracle: no roots)
-misses by class: static→function 73
+precision-against-oracle 783/783 = 100.0%
+recall 1,021/1,091 = 93.6% over every resolved site (resolution oracle: no roots)
+misses by class: static→function 70
 repowise graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state</title>
-<polygon points="1019.9,474.0 1025.9,480.0 1019.9,486.0 1013.9,480.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="1020.8,474.0 1026.8,480.0 1020.8,486.0 1014.8,480.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="1011.9" y="554.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector ·rw</text>
+<text x="1012.8" y="554.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector ·rw</text>
 <g>
 <title>sqlite-vector — codegraphcontext — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
 precision-against-oracle 851/855 = 99.5% · strict 851/863 (98.6%)
@@ -1002,13 +1047,13 @@ codegraphcontext graded by the same key as the Hobbes fmt cell (ADR-101; `oracle
 <text x="103.4" y="879.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt ·cgc</text>
 <g>
 <title>fmt — repowise — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
-precision-against-oracle 2,410/5,024 = 48.0% · strict 2,410/5,343 (45.1%)
-recall 7,013/50,524 = 13.9% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 22,204, static→function 10,303, static→constructor 8,233, macro→function 1,631, macro→method 1,140
+precision-against-oracle 2,541/5,214 = 48.7% · strict 2,541/5,582 (45.5%)
+recall 7,247/50,525 = 14.3% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 22,180, static→function 10,106, static→constructor 8,231, macro→function 1,621, macro→method 1,140
 repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="101.7,1108.0 107.7,1114.0 101.7,1120.0 95.7,1114.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="102.9,1104.5 108.9,1110.5 102.9,1116.5 96.9,1110.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="109.7" y="1118.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt ·rw</text>
+<text x="110.9" y="1114.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt ·rw</text>
 <g>
 <title>args — repowise — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
 precision-against-oracle 815/904 = 90.2% · strict 815/937 (87.0%)
@@ -1068,16 +1113,16 @@ misses by class: observed→closure 1,164, observed→method 897, observed→cla
 codegraphcontext graded by the same key as the Hobbes click cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
 <rect x="480.5" y="1101.75" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="493.5" y="1110.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·cgc</text>
+<text x="493.5" y="1120.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·cgc</text>
 <g>
 <title>click — repowise — Python, py-trace 3.12.13 sys.monitoring (trace), host-run, 2026-09-09
-confirmation rate 1,703/2,426 = 70.2%
-recall 1,703/4,561 = 37.3% recall-against-executed (coverage-limited)
-misses by class: observed→closure 1,195, observed→method 894, observed→function 533, observed→class 155, observed→lambda 81
+confirmation rate 1,776/2,638 = 67.3%
+recall 1,776/4,561 = 38.9% recall-against-executed (coverage-limited)
+misses by class: observed→closure 1,195, observed→method 894, observed→function 510, observed→class 105, observed→lambda 81
 repowise graded by the same key as the Hobbes click cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="511.9,1071.5 517.9,1077.5 511.9,1083.5 505.9,1077.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="516.7,1093.25 522.7,1099.25 516.7,1105.25 510.70000000000005,1099.25" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="519.9" y="1081.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·rw</text>
+<text x="524.7" y="1103.25" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·rw</text>
 <g>
 <title>flask — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-09-22
 confirmation rate 1,121/1,330 = 84.3%

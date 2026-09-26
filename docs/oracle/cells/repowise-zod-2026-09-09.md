@@ -84,3 +84,40 @@ Sample rows (site → the tool's callee; the oracle's targets at that site):
 
 **Direction of fix:** first grade of this tool on this cell — nothing to sign. **What the record does not say:** anything about the tool beyond this run on this box at this version; the matcher's tolerances were tuned on Hobbes' output (C-95); the conversion is Hobbes' and a misread would be Hobbes' defect (C-94).
 
+## Regrade, converter@5 (2026-09-26) — a `__module__` caller is a call site
+
+`repowise-adapter@5` (ADR-101's 2026-09-26 amendment, C-94) reads a call edge whose caller is repowise's per-file `<file>::__module__` node — a call at the file's top level, or inside an anonymous function there — as call sites in that file at the tool's own `call_lines_json`; through @4 the converter dropped every such edge as `unknown-caller`. Re-converted from this cell's stored `raw.json` (no re-index; @4 re-run from the same `raw.json` reproduced the stored `edges.json` row for row first), source lines read from `/home/mmarrujo/.hobbes/bench/comparative/repos/zod`, graded by the same key with today's `oracle` binary. Outputs in `/home/mmarrujo/.hobbes/bench/comparative/repowise-zod/at5`. Conversion: 2,784 → 9,186 (site, callee) pairs; `unknown-caller` 1,153 → 0 edges; 1,153 edge(s) read from a `__module__` caller. **Every row graded before keeps its bucket; everything that moved is a row the fix added.**
+
+**Direction of fix (repowise-adapter@2 → repowise-adapter@5, 2026-09-26, signed):** graded edges 2,784 → 9,186 (+6,402); confirmed 2,182 → 7,216 (+5,034); contradicted 179 → 414 (+235); precision-against-oracle 92.4% (2,182/2,361) → 94.6% (7,216/7,630) (+2.2); no line-unresolved row, strict = precision → strict 7,216/7,698 (93.7%); recall 10.0% (2,190/21,931) → 33.6% (7,360/21,931). Nothing on the tool's side moved; the edges were in its store all along.
+
+**The 235 new contradictions, 5 read by hand (drawn at random, seed 20260926): tool-wrong 5**, oracle-grain 0, converter-defect 0 — `z.string().or(…)` and `z.object({}).or(…)` in the v4 tests drawn to `packages/zod/src/v3/types.ts`'s `or` (the key names v4's `ZodType.or`), `.brand<…>()` and `.default(…)` likewise drawn to v3's methods, and `String(v).toUpperCase()` drawn to v3's `ZodString.toUpperCase`. 3 of the 235 are the multi-line chain shape (the cheerio record's). The other 230 are untriaged.
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha bbc68f99
+hobbes edges 9186: confirmed 7216  contradicted 414  abstract 1017  silent 539 map[line-unresolved:68 no-targets:146 not-loaded:48 unreachable:277]
+precision-against-oracle 94.6% (7216/7630)
+precision-strict 93.7% (7216/7698): the 68 line-unresolved rows counted as contradicted — a lower bound under the lower bound (ADR-124)
+recall 33.6% (7360/21931 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 3239; misses map[func-value→local-binding:59 func-value→variable:59 interface→type-member:88 static→anonymous-signature:13 static→class:87 static→closure:324 static→function:5169 static→method:2527 static→property:1274 static→type-member:4955 static→variable:16]
+recall-collapsed 43.4% (7216/16634 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[func-value→local-binding]   0.0% (0/59)  misses 59 = 0.4% of all misses
+  recall[func-value→variable]  94.8% (1084/1143)  misses 59 = 0.4% of all misses
+  recall[interface→type-member]   0.0% (0/88)  misses 88 = 0.6% of all misses
+  recall[static→anonymous-signature]   0.0% (0/13)  misses 13 = 0.1% of all misses
+  recall[static→class      ]  20.9% (23/110)  misses 87 = 0.6% of all misses
+  recall[static→closure    ]   0.0% (0/324)  misses 324 = 2.2% of all misses
+  recall[static→function   ]  51.6% (5506/10675)  misses 5169 = 35.5% of all misses
+  recall[static→method     ]   9.9% (279/2806)  misses 2527 = 17.3% of all misses
+  recall[static→property   ]   0.0% (0/1274)  misses 1274 = 8.7% of all misses
+  recall[static→type-member]   0.0% (0/4955)  misses 4955 = 34.0% of all misses
+  recall[static→variable   ]  96.7% (468/484)  misses 16 = 0.1% of all misses
+  tier repowise:global_unique confirmed 107  contradicted 213  abstract 7  silent 112
+  tier repowise:import_merged confirmed 2  contradicted 87  abstract 0  silent 2
+  tier repowise:import_scoped confirmed 393  contradicted 0  abstract 0  silent 21
+  tier repowise:module_alias confirmed 5902  contradicted 64  abstract 1001  silent 368
+  tier repowise:receiver_same_file confirmed 2  contradicted 0  abstract 0  silent 0
+  tier repowise:same_file confirmed 660  contradicted 50  abstract 9  silent 36
+  tier repowise:self_inherited confirmed 84  contradicted 0  abstract 0  silent 0
+  tier repowise:self_scope confirmed 66  contradicted 0  abstract 0  silent 0
+  line-grain tolerance used on 5256 edge(s) (several oracle sites on one line)
+poison check: PASS — 9186 seeded wrong edges: 8107 refused, 1079 unjudged (oracle silent there), 0 falsely confirmed
+```

@@ -189,6 +189,29 @@
   were regraded with signed direction lines (fmt 42.3% → 45.2%, args
   86.9% → 87.0%). At @4 the 60-row C++ sample reads tool-wrong 56,
   oracle-grain 4, converter-defect 0.
+  **Sighted again on the JavaScript cells (2026-09-26): a dropped
+  caller, from converter@1 to @4.** repowise files a call made at a
+  file's top level, or inside an anonymous function there (an Express
+  route handler, a test's body), under a caller id `<file>::__module__`
+  that has no `wiki_symbols` row. The converter dropped every such edge
+  as `unknown-caller`, although the tool had stored its file and its
+  lines. The drop count was printed in every record, but nothing said
+  what it cost. On JavaScript it was most of the graph: Express 356 of
+  358 call lines. On the published cells it took zod's 6,402 of 9,186,
+  hono's 4,051 of 4,995 and cheerio's 1,288 of 1,496, and less
+  elsewhere. converter@5 (ADR-101's 2026-09-26 amendment) reads such a
+  caller as call sites in its file, and `unknown-caller` now counts only
+  a caller that is neither. All 22 published repowise cells were
+  re-converted from their stored dumps and regraded with signed
+  direction lines. 8 moved, and every row graded before kept its
+  bucket (cheerio 90.8% → 97.8%, recall 2.8% → 23.2%; zod 92.4% →
+  94.6%, recall 10.0% → 33.6%; fmt 48.0% → 48.7%). The other 14 are row
+  for row the same. Fixed; the entry stays active for the residual
+  named above. repowise files a member call in a chain written over
+  several lines at the chain's first line, and its `call_lines_json`
+  holds nothing finer, so the converter cannot move it: all 13 of
+  cheerio's new contradictions are that shape, each with the right
+  method.
 - **You find out:** **surfaced** (2026-09-09). Every converter ships a
   hand-read fixture (its own dump of `minigo`, read against the
   conversion in a Go test), a malformed position refuses the whole

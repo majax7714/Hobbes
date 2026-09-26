@@ -134,7 +134,8 @@ offline pass), fixed the same session and regraded 16,050/16,050.
    the same day), and the cells were regraded with signed direction
    lines, the first grade kept beside each: CodeGraphContext
    1,179/1,179 and 851/863 (nothing moved — it stored no edge to a
-   `#define`); repowise 1,073/1,075 and 780/780. What is left is read
+   `#define`); repowise 1,073/1,075 and 780/780 (1,102/1,104 and
+   783/783 at converter@5, 2026-09-26, below). What is left is read
    in full: repowise's two are `setUp`/`tearDown` declared in a dead
    `#if` arm; CodeGraphContext's twelve on sqlite-vector are nine API
    names drawn into the vendored amalgamation the build never
@@ -146,9 +147,10 @@ offline pass), fixed the same session and regraded 16,050/16,050.
      parser table). So it graded nothing on args, and on fmt only the
      headers: 847/885 (**95.7%**; strict 847/975, 86.9%), recall 11.8% —
      844/975 (86.6%) as first run on 2026-09-15.
-   - **repowise:** fmt 2,410/5,024 (**48.0%**, was 45.2%; strict
-     2,410/5,343, 45.1%), recall 13.9%; args 815/904 (**90.2%**, was
-     87.0%; strict 815/937, 87.0%), recall 23.3%.
+   - **repowise:** fmt 2,541/5,214 (**48.7%** at converter@5; 48.0% at
+     @4, 45.2% before H-30; strict 2,541/5,582, 45.5%), recall 14.3%;
+     args 815/904 (**90.2%**, was 87.0%; strict 815/937, 87.0%), recall
+     23.3%, unchanged at @5.
    - **Hobbes, same keys:** fmt 7,012/7,012 (**100%**; strict
      7,012/7,039, 99.62%, at 0.2.45-beta), recall 30.4%; args
      2,567/2,567, recall 72.9%. (At 0.2.44-beta: fmt 6,993/6,993, strict
@@ -181,28 +183,55 @@ offline pass), fixed the same session and regraded 16,050/16,050.
    another class's member, the other overload, `std::end` drawn to a
    repo member `end()`.
 
-   **JavaScript, 2026-09-26:** CodeGraphContext on the five JavaScript
-   cells (Express, Preact, xmpp.js, cypress-io/github-action, cue), each
-   at its Hobbes cell's commit and graded by that cell's standing key
-   (`--lang ts`, the export's; cue and github-action by their
-   provisioned arms' keys). Each index ran on a copy of Hobbes' clone
-   (the clones are regraded later and stay clean) in a network namespace
-   with no interface up (`unshare -rn`). Precision runs from 97.5% on
-   Express (strict 97.2%) to 40.3% on Preact (strict 34.5%). 32
-   contradicted rows were read by hand and all 32 are tool-wrong: a call
-   drawn by its short name to another declaration of that name. On
-   Preact, 1,023 of its 2,202 contradictions are rows where the key names
-   one of the repo's own `.d.ts` declarations and the tool's callee
-   declares a function of the same name. That is a count, not a verdict,
-   and the record says so. **repowise is not graded on these cells.**
-   Its converter drops every call whose caller is repowise's per-file
-   `__module__` node, although repowise stores those calls with a file
-   and a line. On JavaScript that drop takes most of the graph (Express
-   356 of 358 call lines, Preact 4,194 of 4,664). The drop is the
-   converter's defect (C-94), and it already applies to the TypeScript
-   repowise cells above (cheerio 1,288 of 1,496 call lines, hono 4,051
-   of 4,995, zod 6,402 of 9,186). Its fix, and the regrade that follows
-   from it, wait on the lead.
+   **JavaScript, 2026-09-26:** both tools on the five JavaScript
+   cells (Express, Preact, xmpp.js, cypress-io/github-action, cue).
+   - **Setup.** Each cell ran at its Hobbes cell's commit and was graded
+     by that cell's standing key, with `--lang ts` as the export ran;
+     cue and github-action use their provisioned arms' keys. Each index
+     ran on a copy of Hobbes' clone, because the clones are regraded
+     later and must stay clean. Every index ran in a network namespace
+     with no interface up (`unshare -rn`).
+   - **CodeGraphContext:** precision from 97.5% on Express (strict
+     97.2%) to 40.3% on Preact (strict 34.5%).
+   - **repowise:** from 100% on github-action (154/154) to 41.8% on
+     Preact (strict 36.1%). Its recall on cue, 76.1%, is above Hobbes'
+     61.8% on the same key.
+   - **The hand reads** found both tools' usual error, a call drawn by
+     its short name to another declaration of that name. They also
+     found rows that are the key's grain, not the tool's error, where
+     the tool names the function that runs:
+     - preact, which types its JavaScript with hand-written `.d.ts`
+       files: the key names the typing and the tool the
+       implementation. That is 1,222 of repowise's 1,690 contradictions
+       on a mechanical count, and 86 of CodeGraphContext's 2,202; the
+       rows read from that shape are all oracle-grain.
+     - cue's `icon(…)` through `window.ICONS`: 13 rows for each tool.
+     - xmpp.js's `jid(…)` through `jid.bind()`: 21 rows for repowise.
+
+   Each record gives its split.
+
+   **The repowise converter's dropped caller (C-94), found here and
+   fixed.** repowise files a call at a file's top level, or inside an
+   anonymous function there, under a per-file `<file>::__module__`
+   node that has no symbol row. converter@1 to @4 dropped every such
+   edge as `unknown-caller`, although the tool stores the file and the
+   lines. On Express that was 356 of 358 call lines. converter@5 reads
+   them as call sites (ADR-101's 2026-09-26 amendment, with a hand-read
+   fixture from Express's own rows).
+   - **The regrade.** All 22 published repowise cells were
+     re-converted from their stored dumps and regraded with signed
+     direction lines. 14 are row for row the same. 8 moved, and every
+     row graded before kept its bucket:
+     - cheerio 90.8% → **97.8%**, recall 2.8% → 23.2%
+     - zod 92.4% → **94.6%**, recall 10.0% → 33.6%
+     - fmt 48.0% → **48.7%**
+     - hono (build) 93.6% → 93.7%
+     - cJSON, sqlite-vector, ajv and click: small or silent moves
+   - **What the new rows show.** cheerio's 13 new contradictions are
+     all one shape: repowise files a member call in a multi-line chain
+     at the chain's first line, with the right method. That is the
+     tool's site grain, and its stored lines cannot be moved, so C-94
+     keeps it as a residual.
 
 ## The 1-1 on repowise's draws
 

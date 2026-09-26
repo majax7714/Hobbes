@@ -85,3 +85,33 @@ coverage: hobbes sites observed 2027/2279 (88.9%); files loaded 51/79; declarati
   tier repowise:self_scope confirmed 134  suspect 9  unobserved 15
 poison check: PASS — 2426 seeded wrong edges: 1964 refused, 462 unjudged (oracle silent there), 0 falsely confirmed
 ```
+
+## Regrade, converter@5 (2026-09-26) — a `__module__` caller is a call site
+
+`repowise-adapter@5` (ADR-101's 2026-09-26 amendment, C-94) reads a call edge whose caller is repowise's per-file `<file>::__module__` node — a call at the file's top level, or inside an anonymous function there — as call sites in that file at the tool's own `call_lines_json`; through @4 the converter dropped every such edge as `unknown-caller`. Re-converted from this cell's stored `raw.json` (no re-index; @4 re-run from the same `raw.json` reproduced the stored `edges.json` row for row first), source lines read from `/home/mmarrujo/.hobbes/bench/oracle/repos/click`, graded by the same key with today's `oracle` binary. Outputs in `/home/mmarrujo/.hobbes/bench/comparative/repowise-click/at5`. Conversion: 2,426 → 2,638 (site, callee) pairs; `unknown-caller` 96 → 0 edges; 96 edge(s) read from a `__module__` caller. **Every row graded before keeps its bucket; everything that moved is a row the fix added.**
+
+**Direction of fix (repowise-adapter@2 → repowise-adapter@5, 2026-09-26, signed):** graded edges 2,426 → 2,638 (+212); confirmed 1,703 → 1,776 (+73); suspect 406 → 411 (+5); unobserved 317 → 451 (+134); confirmation rate (coverage-limited, not precision) 70.2% → 67.3%; recall-against-executed 37.3% → 38.9% (1,776/4,561). Nothing on the tool's side moved; the edges were in its store all along.
+
+A trace cell: the added rows read 73 confirmed, 5 suspect, 134 unobserved; nothing is precision here (C-60).
+
+```
+cell   oracle py-trace 3.12.13 sys.monitoring (trace)  sha 36baa15f
+hobbes edges 2638: confirmed 1776  suspect 411  unobserved 451 map[line-mixed:63 line-not-called:119 not-loaded:269]
+confirmation rate 67.3% (1776/2638 hobbes edges; coverage-limited, not precision)
+recall-against-executed 38.9% (1776/4561 observed in-repo pairs) over 2 run(s) of [/home/mmarrujo/.hobbes/bench/oracle/repos/click/./.venv/bin/python -m pytest -q -p no:cacheprovider]; external python targets 1529; misses map[observed→class:105 observed→closure:1195 observed→function:510 observed→lambda:81 observed→method:894]
+  recall[observed→class    ]  83.1% (516/621)  misses 105 = 3.8% of all misses
+  recall[observed→closure  ]   0.0% (0/1195)  misses 1195 = 42.9% of all misses
+  recall[observed→function ]  65.5% (970/1480)  misses 510 = 18.3% of all misses
+  recall[observed→lambda   ]   0.0% (0/81)  misses 81 = 2.9% of all misses
+  recall[observed→method   ]  24.5% (290/1184)  misses 894 = 32.1% of all misses
+  tier repowise:global_unique confirmed 1  suspect 4  unobserved 3
+  tier repowise:import_merged confirmed 9  suspect 2  unobserved 13
+  tier repowise:import_scoped confirmed 345  suspect 12  unobserved 33
+  tier repowise:module_alias confirmed 893  suspect 370  unobserved 279
+  tier repowise:receiver_typed_import confirmed 105  suspect 2  unobserved 8
+  tier repowise:receiver_typed_same_file confirmed 12  suspect 4  unobserved 0
+  tier repowise:same_file confirmed 248  suspect 8  unobserved 97
+  tier repowise:self_inherited confirmed 29  suspect 0  unobserved 3
+  tier repowise:self_scope confirmed 134  suspect 9  unobserved 15
+poison check: PASS — 2638 seeded wrong edges: 2037 refused, 601 unjudged (oracle silent there), 0 falsely confirmed
+```

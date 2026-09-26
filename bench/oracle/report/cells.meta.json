@@ -630,5 +630,45 @@
   "label": "cue",
   "tool": "codegraphcontext",
   "note": "codegraphcontext graded by the same key as the Hobbes cue cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-express": {
+  "lang": "JavaScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (picked)",
+  "label": "express (CommonJS)",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes express (CommonJS) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-preact": {
+  "lang": "JavaScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (picked)",
+  "label": "preact (ESM, JSDoc, JSX)",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes preact (ESM, JSDoc, JSX) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-xmpp": {
+  "lang": "JavaScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (random)",
+  "label": "xmpp.js",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes xmpp.js cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-github-action": {
+  "lang": "JavaScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (random)",
+  "label": "cypress github-action",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes cypress github-action cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-cue": {
+  "lang": "JavaScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (random)",
+  "label": "cue",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes cue cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
  }
 }

@@ -1,0 +1,71 @@
+{
+ "database": "/repo/express/.repowise/wiki.db",
+ "repositories": [
+  {
+   "name": "express",
+   "local_path": "/repo/express",
+   "head_commit": "9a34acf03cb818ff3f8bc40e44176e277a25cbb9"
+  }
+ ],
+ "edges": [
+  {
+   "source_node_id": "examples/auth/index.js::__module__",
+   "target_node_id": "examples/auth/index.js::authenticate",
+   "edge_type": "calls",
+   "confidence": 0.95,
+   "hint_source": null,
+   "resolution_origin": "same_file",
+   "call_lines_json": "[106]"
+  },
+  {
+   "source_node_id": "test/support/tmpl.js::onReadFile",
+   "target_node_id": "test/support/tmpl.js::generateVariableLookup",
+   "edge_type": "calls",
+   "confidence": 0.95,
+   "hint_source": null,
+   "resolution_origin": "same_file",
+   "call_lines_json": "[13]"
+  },
+  {
+   "source_node_id": "examples/auth/index.js::synthetic_not_a_symbol",
+   "target_node_id": "examples/auth/index.js::authenticate",
+   "edge_type": "calls",
+   "confidence": 0.5,
+   "hint_source": null,
+   "resolution_origin": "synthetic",
+   "call_lines_json": "[1]"
+  }
+ ],
+ "symbols": [
+  {
+   "symbol_id": "examples/auth/index.js::authenticate",
+   "file_path": "examples/auth/index.js",
+   "name": "authenticate",
+   "qualified_name": "examples.auth.index.authenticate",
+   "kind": "function",
+   "start_line": 60,
+   "end_line": 73,
+   "language": "javascript"
+  },
+  {
+   "symbol_id": "test/support/tmpl.js::generateVariableLookup",
+   "file_path": "test/support/tmpl.js",
+   "name": "generateVariableLookup",
+   "qualified_name": "test.support.tmpl.generateVariableLookup",
+   "kind": "function",
+   "start_line": 25,
+   "end_line": 36,
+   "language": "javascript"
+  },
+  {
+   "symbol_id": "test/support/tmpl.js::onReadFile",
+   "file_path": "test/support/tmpl.js",
+   "name": "onReadFile",
+   "qualified_name": "test.support.tmpl.onReadFile",
+   "kind": "function",
+   "start_line": 6,
+   "end_line": 20,
+   "language": "javascript"
+  }
+ ]
+}

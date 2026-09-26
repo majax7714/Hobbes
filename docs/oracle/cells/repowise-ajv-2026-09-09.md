@@ -78,3 +78,35 @@ Sample rows (site → the tool's callee; the oracle's targets at that site):
 
 **Direction of fix:** first grade of this tool on this cell — nothing to sign. **What the record does not say:** anything about the tool beyond this run on this box at this version; the matcher's tolerances were tuned on Hobbes' output (C-95); the conversion is Hobbes' and a misread would be Hobbes' defect (C-94).
 
+## Regrade, converter@5 (2026-09-26) — a `__module__` caller is a call site
+
+`repowise-adapter@5` (ADR-101's 2026-09-26 amendment, C-94) reads a call edge whose caller is repowise's per-file `<file>::__module__` node — a call at the file's top level, or inside an anonymous function there — as call sites in that file at the tool's own `call_lines_json`; through @4 the converter dropped every such edge as `unknown-caller`. Re-converted from this cell's stored `raw.json` (no re-index; @4 re-run from the same `raw.json` reproduced the stored `edges.json` row for row first), source lines read from `/home/mmarrujo/.hobbes/bench/oracle/repos/ajv`, graded by the same key with today's `oracle` binary. Outputs in `/home/mmarrujo/.hobbes/bench/comparative/repowise-ajv/at5`. Conversion: 875 → 1,313 (site, callee) pairs; `unknown-caller` 75 → 0 edges; 75 edge(s) read from a `__module__` caller. **Every row graded before keeps its bucket; everything that moved is a row the fix added.**
+
+**Direction of fix (repowise-adapter@2 → repowise-adapter@5, 2026-09-26, signed):** graded edges 806 → 1,240 (+434); confirmed 739 → 739 (+0); contradicted 15 → 15 (+0); precision-against-oracle 98.0% (739/754) → 98.0% (739/754) (+0.0); strict = precision before and after (no line-unresolved row); recall 33.4% (746/2,232) → 33.4% (746/2,232). Nothing on the tool's side moved; the edges were in its store all along.
+
+The 434 added rows are all `silent`/`not-loaded`: they sit in files the key's zone does not load (module-level calls in `spec/` and the repo's scripts), so the confirmed and contradicted counts do not move.
+
+```
+cell .  oracle tsc 5.3.3 (the zone's own) (resolution)  sha f177fe32
+hobbes edges 1240: confirmed 739  contradicted 15  abstract 0  silent 486 map[not-loaded:473 unreachable:13]
+precision-against-oracle 98.0% (739/754)
+recall 33.4% (746/2232 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 482; misses map[func-value→local-binding:13 interface→type-member:12 static→class:18 static→closure:174 static→function:461 static→method:791 static→type-member:17]
+recall-collapsed 34.5% (739/2143 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[func-value→local-binding]   0.0% (0/13)  misses 13 = 0.9% of all misses
+  recall[func-value→variable] 100.0% (1/1)  misses 0 = 0.0% of all misses
+  recall[interface→type-member]   0.0% (0/12)  misses 12 = 0.8% of all misses
+  recall[static→class      ]  83.2% (89/107)  misses 18 = 1.2% of all misses
+  recall[static→closure    ]   0.0% (0/174)  misses 174 = 11.7% of all misses
+  recall[static→function   ]  53.3% (526/987)  misses 461 = 31.0% of all misses
+  recall[static→method     ]  12.9% (117/908)  misses 791 = 53.2% of all misses
+  recall[static→type-member]   0.0% (0/17)  misses 17 = 1.1% of all misses
+  recall[static→variable   ] 100.0% (13/13)  misses 0 = 0.0% of all misses
+  tier repowise:global_unique confirmed 1  contradicted 4  abstract 0  silent 261
+  tier repowise:import_merged confirmed 18  contradicted 5  abstract 0  silent 30
+  tier repowise:import_scoped confirmed 323  contradicted 0  abstract 0  silent 15
+  tier repowise:same_file confirmed 303  contradicted 6  abstract 0  silent 180
+  tier repowise:self_inherited confirmed 2  contradicted 0  abstract 0  silent 0
+  tier repowise:self_scope confirmed 92  contradicted 0  abstract 0  silent 0
+  line-grain tolerance used on 254 edge(s) (several oracle sites on one line)
+poison check: PASS — 1240 seeded wrong edges: 754 refused, 486 unjudged (oracle silent there), 0 falsely confirmed
+```

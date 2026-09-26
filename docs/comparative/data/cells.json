@@ -3371,15 +3371,15 @@
    "label": "ajv",
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes ajv cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
-   "edges": 806,
+   "edges": 1240,
    "confirmed": 739,
    "contradicted": 15,
    "abstract": 0,
-   "silent": 52,
+   "silent": 486,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "not-loaded": 39,
+    "not-loaded": 473,
     "unreachable": 13
    },
    "precision": {
@@ -3405,9 +3405,9 @@
    },
    "poison": {
     "passed": true,
-    "seeded": 806,
+    "seeded": 1240,
     "refused": 754,
-    "unjudged": 52,
+    "unjudged": 486,
     "falsely": 0
    }
   },
@@ -3479,43 +3479,44 @@
    "label": "cheerio",
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes cheerio cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
-   "edges": 208,
-   "confirmed": 167,
-   "contradicted": 17,
-   "abstract": 8,
-   "silent": 16,
+   "edges": 1496,
+   "confirmed": 1348,
+   "contradicted": 30,
+   "abstract": 98,
+   "silent": 20,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "not-loaded": 16
+    "not-loaded": 17,
+    "unreachable": 3
    },
    "precision": {
-    "pct": 90.8,
-    "num": 167,
-    "den": 184
+    "pct": 97.8,
+    "num": 1348,
+    "den": 1378
    },
    "recall": {
-    "pct": 2.8,
-    "hits": 168,
+    "pct": 23.2,
+    "hits": 1370,
     "pairs": 5910,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
     "func-value→local-binding": 1070,
-    "func-value→variable": 671,
+    "func-value→variable": 294,
     "static→anonymous-signature": 12,
     "static→class": 5,
     "static→closure": 173,
-    "static→function": 3759,
+    "static→function": 2934,
     "static→method": 46,
     "static→type-member": 6
    },
    "poison": {
     "passed": true,
-    "seeded": 208,
-    "refused": 192,
-    "unjudged": 16,
+    "seeded": 1496,
+    "refused": 1476,
+    "unjudged": 20,
     "falsely": 0
    }
   },
@@ -3531,38 +3532,38 @@
    "label": "cJSON",
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes cJSON cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state",
-   "edges": 1328,
-   "confirmed": 1073,
+   "edges": 1406,
+   "confirmed": 1102,
    "contradicted": 2,
    "abstract": 0,
-   "silent": 253,
+   "silent": 302,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "not-loaded": 241,
+    "not-loaded": 290,
     "unreachable": 12
    },
    "precision": {
     "pct": 99.8,
-    "num": 1073,
-    "den": 1075
+    "num": 1102,
+    "den": 1104
    },
    "recall": {
-    "pct": 56.0,
-    "hits": 1074,
+    "pct": 57.5,
+    "hits": 1103,
     "pairs": 1918,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
     "macro→function": 728,
-    "static→function": 116
+    "static→function": 87
    },
    "poison": {
     "passed": true,
-    "seeded": 1328,
-    "refused": 1075,
-    "unjudged": 253,
+    "seeded": 1406,
+    "refused": 1104,
+    "unjudged": 302,
     "falsely": 0
    }
   },
@@ -3578,43 +3579,43 @@
    "label": "click",
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes click cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
-   "edges": 2426,
-   "confirmed": 1703,
+   "edges": 2638,
+   "confirmed": 1776,
    "contradicted": 0,
    "abstract": 0,
    "silent": 0,
-   "suspect": 406,
-   "unobserved": 317,
+   "suspect": 411,
+   "unobserved": 451,
    "silent_by": {
-    "line-mixed": 53,
+    "line-mixed": 63,
     "line-not-called": 119,
-    "not-loaded": 145
+    "not-loaded": 269
    },
    "confirmation_rate": {
-    "pct": 70.2,
-    "num": 1703,
-    "den": 2426
+    "pct": 67.3,
+    "num": 1776,
+    "den": 2638
    },
    "recall": {
-    "pct": 37.3,
-    "hits": 1703,
+    "pct": 38.9,
+    "hits": 1776,
     "pairs": 4561,
     "roots": null,
     "runs": 2,
     "basis": "recall-against-executed (coverage-limited)"
    },
    "misses": {
-    "observed→class": 155,
+    "observed→class": 105,
     "observed→closure": 1195,
-    "observed→function": 533,
+    "observed→function": 510,
     "observed→lambda": 81,
     "observed→method": 894
    },
    "poison": {
     "passed": true,
-    "seeded": 2426,
-    "refused": 1964,
-    "unjudged": 462,
+    "seeded": 2638,
+    "refused": 2037,
+    "unjudged": 601,
     "falsely": 0
    }
   },
@@ -3669,6 +3670,105 @@
    }
   },
   {
+   "stem": "repowise-cue",
+   "record": "repowise-cue-2026-09-26.md",
+   "date": "2026-09-26",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (random)",
+   "label": "cue",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes cue cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 1258,
+   "confirmed": 1235,
+   "contradicted": 19,
+   "abstract": 4,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {},
+   "precision": {
+    "pct": 98.5,
+    "num": 1235,
+    "den": 1254
+   },
+   "recall": {
+    "pct": 76.1,
+    "hits": 1251,
+    "pairs": 1644,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 30,
+    "func-value→parameter": 23,
+    "static→anonymous-function": 2,
+    "static→class": 7,
+    "static→closure": 140,
+    "static→function": 63,
+    "static→method": 128
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1258,
+    "refused": 1142,
+    "unjudged": 116,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-express",
+   "record": "repowise-express-2026-09-26.md",
+   "date": "2026-09-26",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (picked)",
+   "label": "express (CommonJS)",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes express (CommonJS) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 358,
+   "confirmed": 355,
+   "contradicted": 1,
+   "abstract": 0,
+   "silent": 2,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "no-targets": 2
+   },
+   "precision": {
+    "pct": 99.7,
+    "num": 355,
+    "den": 356
+   },
+   "recall": {
+    "pct": 23.4,
+    "hits": 355,
+    "pairs": 1520,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 25,
+    "func-value→parameter": 352,
+    "func-value→variable": 85,
+    "static→anonymous-function": 46,
+    "static→closure": 3,
+    "static→function": 654
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 358,
+    "refused": 214,
+    "unjudged": 144,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "repowise-fmt",
    "record": "repowise-fmt-2026-09-15.md",
    "date": "2026-09-15",
@@ -3680,50 +3780,50 @@
    "label": "fmt",
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
-   "edges": 6366,
-   "confirmed": 2410,
-   "contradicted": 2614,
+   "edges": 6630,
+   "confirmed": 2541,
+   "contradicted": 2673,
    "abstract": 0,
-   "silent": 1342,
+   "silent": 1416,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "line-unresolved": 319,
-    "no-targets": 234,
+    "line-unresolved": 368,
+    "no-targets": 242,
     "not-loaded": 118,
-    "unreachable": 671
+    "unreachable": 688
    },
    "precision": {
-    "pct": 48.0,
-    "num": 2410,
-    "den": 5024
+    "pct": 48.7,
+    "num": 2541,
+    "den": 5214
    },
    "recall": {
-    "pct": 13.9,
-    "hits": 7013,
-    "pairs": 50524,
+    "pct": 14.3,
+    "hits": 7247,
+    "pairs": 50525,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
-    "macro→function": 1631,
+    "macro→function": 1621,
     "macro→method": 1140,
-    "static→constructor": 8233,
-    "static→function": 10303,
-    "static→method": 22204
+    "static→constructor": 8231,
+    "static→function": 10106,
+    "static→method": 22180
    },
    "poison": {
     "passed": true,
-    "seeded": 6366,
-    "refused": 4473,
-    "unjudged": 1893,
+    "seeded": 6630,
+    "refused": 4609,
+    "unjudged": 2021,
     "falsely": 0
    },
    "precision_strict": {
-    "pct": 45.1,
-    "num": 2410,
-    "den": 5343,
-    "line_unresolved": 319
+    "pct": 45.5,
+    "num": 2541,
+    "den": 5582,
+    "line_unresolved": 368
    }
   },
   {
@@ -3781,6 +3881,52 @@
     "num": 2125,
     "den": 2297,
     "line_unresolved": 5
+   }
+  },
+  {
+   "stem": "repowise-github-action",
+   "record": "repowise-github-action-2026-09-26.md",
+   "date": "2026-09-26",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (random)",
+   "label": "cypress github-action",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes cypress github-action cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 154,
+   "confirmed": 154,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {},
+   "precision": {
+    "pct": 100.0,
+    "num": 154,
+    "den": 154
+   },
+   "recall": {
+    "pct": 89.0,
+    "hits": 154,
+    "pairs": 173,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 4,
+    "func-value→parameter": 3,
+    "static→closure": 4,
+    "static→variable": 8
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 154,
+    "refused": 148,
+    "unjudged": 6,
+    "falsely": 0
    }
   },
   {
@@ -3896,26 +4042,26 @@
    "label": "hono (tsconfig.build.json)",
    "tool": "repowise",
    "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
-   "edges": 944,
-   "confirmed": 735,
+   "edges": 4995,
+   "confirmed": 743,
    "contradicted": 50,
    "abstract": 2,
-   "silent": 157,
+   "silent": 4200,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
     "line-unresolved": 2,
     "no-targets": 9,
-    "not-loaded": 146
+    "not-loaded": 4189
    },
    "precision": {
-    "pct": 93.6,
-    "num": 735,
-    "den": 785
+    "pct": 93.7,
+    "num": 743,
+    "den": 793
    },
    "recall": {
-    "pct": 52.8,
-    "hits": 741,
+    "pct": 53.4,
+    "hits": 749,
     "pairs": 1403,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -3932,19 +4078,19 @@
     "static→method": 169,
     "static→property": 93,
     "static→type-member": 20,
-    "static→variable": 30
+    "static→variable": 22
    },
    "poison": {
     "passed": true,
-    "seeded": 944,
-    "refused": 784,
-    "unjudged": 160,
+    "seeded": 4995,
+    "refused": 792,
+    "unjudged": 4203,
     "falsely": 0
    },
    "precision_strict": {
-    "pct": 93.4,
-    "num": 735,
-    "den": 787,
+    "pct": 93.5,
+    "num": 743,
+    "den": 795,
     "line_unresolved": 2
    }
   },
@@ -4103,6 +4249,68 @@
     "refused": 918,
     "unjudged": 45,
     "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-preact",
+   "record": "repowise-preact-2026-09-26.md",
+   "date": "2026-09-26",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (picked)",
+   "label": "preact (ESM, JSDoc, JSX)",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes preact (ESM, JSDoc, JSX) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 4664,
+   "confirmed": 1212,
+   "contradicted": 1690,
+   "abstract": 85,
+   "silent": 1677,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "line-unresolved": 452,
+    "no-targets": 949,
+    "not-loaded": 276
+   },
+   "precision": {
+    "pct": 41.8,
+    "num": 1212,
+    "den": 2902
+   },
+   "recall": {
+    "pct": 15.2,
+    "hits": 1398,
+    "pairs": 9211,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 1588,
+    "func-value→parameter": 112,
+    "func-value→variable": 217,
+    "interface→type-member": 1796,
+    "static→anonymous-function": 1,
+    "static→class": 570,
+    "static→closure": 2023,
+    "static→function": 1268,
+    "static→method": 205,
+    "static→type-member": 33
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 4664,
+    "refused": 2765,
+    "unjudged": 1899,
+    "falsely": 0
+   },
+   "precision_strict": {
+    "pct": 36.1,
+    "num": 1212,
+    "den": 3354,
+    "line_unresolved": 452
    }
   },
   {
@@ -4357,8 +4565,8 @@
    "label": "sqlite-vector",
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state",
-   "edges": 1050,
-   "confirmed": 780,
+   "edges": 1053,
+   "confirmed": 783,
    "contradicted": 0,
    "abstract": 0,
    "silent": 270,
@@ -4370,24 +4578,24 @@
    },
    "precision": {
     "pct": 100.0,
-    "num": 780,
-    "den": 780
+    "num": 783,
+    "den": 783
    },
    "recall": {
-    "pct": 93.3,
-    "hits": 1018,
+    "pct": 93.6,
+    "hits": 1021,
     "pairs": 1091,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
-    "static→function": 73
+    "static→function": 70
    },
    "poison": {
     "passed": true,
-    "seeded": 1050,
-    "refused": 780,
-    "unjudged": 270,
+    "seeded": 1053,
+    "refused": 777,
+    "unjudged": 276,
     "falsely": 0
    }
   },
@@ -4442,6 +4650,65 @@
    }
   },
   {
+   "stem": "repowise-xmpp",
+   "record": "repowise-xmpp-2026-09-26.md",
+   "date": "2026-09-26",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (random)",
+   "label": "xmpp.js",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes xmpp.js cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 898,
+   "confirmed": 489,
+   "contradicted": 54,
+   "abstract": 1,
+   "silent": 354,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "line-unresolved": 20,
+    "no-targets": 332,
+    "unreachable": 2
+   },
+   "precision": {
+    "pct": 90.1,
+    "num": 489,
+    "den": 543
+   },
+   "recall": {
+    "pct": 58.9,
+    "hits": 495,
+    "pairs": 840,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 18,
+    "func-value→parameter": 64,
+    "func-value→variable": 43,
+    "static→class": 26,
+    "static→closure": 42,
+    "static→function": 12,
+    "static→method": 140
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 898,
+    "refused": 408,
+    "unjudged": 490,
+    "falsely": 0
+   },
+   "precision_strict": {
+    "pct": 86.9,
+    "num": 489,
+    "den": 563,
+    "line_unresolved": 20
+   }
+  },
+  {
    "stem": "repowise-zod",
    "record": "repowise-zod-2026-09-09.md",
    "date": "2026-09-09",
@@ -4453,49 +4720,56 @@
    "label": "zod",
    "tool": "repowise",
    "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
-   "edges": 2784,
-   "confirmed": 2182,
-   "contradicted": 179,
-   "abstract": 232,
-   "silent": 191,
+   "edges": 9186,
+   "confirmed": 7216,
+   "contradicted": 414,
+   "abstract": 1017,
+   "silent": 539,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "no-targets": 134,
-    "not-loaded": 44,
-    "unreachable": 13
+    "line-unresolved": 68,
+    "no-targets": 146,
+    "not-loaded": 48,
+    "unreachable": 277
    },
    "precision": {
-    "pct": 92.4,
-    "num": 2182,
-    "den": 2361
+    "pct": 94.6,
+    "num": 7216,
+    "den": 7630
    },
    "recall": {
-    "pct": 10.0,
-    "hits": 2190,
+    "pct": 33.6,
+    "hits": 7360,
     "pairs": 21931,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
     "func-value→local-binding": 59,
-    "func-value→variable": 1046,
+    "func-value→variable": 59,
     "interface→type-member": 88,
     "static→anonymous-signature": 13,
-    "static→class": 88,
+    "static→class": 87,
     "static→closure": 324,
-    "static→function": 8986,
-    "static→method": 2637,
+    "static→function": 5169,
+    "static→method": 2527,
     "static→property": 1274,
     "static→type-member": 4955,
-    "static→variable": 271
+    "static→variable": 16
    },
    "poison": {
     "passed": true,
-    "seeded": 2784,
-    "refused": 2593,
-    "unjudged": 191,
+    "seeded": 9186,
+    "refused": 8107,
+    "unjudged": 1079,
     "falsely": 0
+   },
+   "precision_strict": {
+    "pct": 93.7,
+    "num": 7216,
+    "den": 7698,
+    "line_unresolved": 68
    }
   },
   {

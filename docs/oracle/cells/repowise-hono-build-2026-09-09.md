@@ -88,3 +88,40 @@ Sample rows (site → the tool's callee; the oracle's targets at that site):
 
 **Direction of fix (the oracle's H-30, 2026-09-16, signed):** the grader no longer contradicts on a line the key itself left unresolved — a defect of the oracle, not of this tool (`oracle-grading.md` §7d and D-O4; `oracle-defects.md` H-30). graded edges 944 → 944 (+0); confirmed 735 → 735 (+0); contradicted 52 → 50 (-2); silent 155 → 157 (+2), of which `line-unresolved` 2; precision-against-oracle 93.4% → 93.6%. Nothing on the tool's side moved and its graph is unchanged: the rule withdraws judgement where the key is silent, which is why every moved foreign cell moves upward. Hobbes' own 38 non-C++ cells did not move at all, because it abstains where lane B is silent. The regrade's outputs are in `~/.hobbes/bench/oracle-defect-drivers/regrade-out/foreign-poison/repowise-hono-build/`; the `report.json` beside this cell in `~/.hobbes/bench/comparative/` is still the converter@4 grade this line moves from, kept as it was.
 
+## Regrade, converter@5 (2026-09-26) — a `__module__` caller is a call site
+
+`repowise-adapter@5` (ADR-101's 2026-09-26 amendment, C-94) reads a call edge whose caller is repowise's per-file `<file>::__module__` node — a call at the file's top level, or inside an anonymous function there — as call sites in that file at the tool's own `call_lines_json`; through @4 the converter dropped every such edge as `unknown-caller`. Re-converted from this cell's stored `raw.json` (no re-index; @4 re-run from the same `raw.json` reproduced the stored `edges.json` row for row first), source lines read from `/home/mmarrujo/.hobbes/bench/comparative/repos/hono`, graded by the same key with today's `oracle` binary. Outputs in `/home/mmarrujo/.hobbes/bench/comparative/repowise-hono-build/at5`. Conversion: 944 → 4,995 (site, callee) pairs; `unknown-caller` 618 → 0 edges; 618 edge(s) read from a `__module__` caller. **Every row graded before keeps its bucket; everything that moved is a row the fix added.**
+
+**Direction of fix (repowise-adapter@2 → repowise-adapter@5, 2026-09-26, signed):** graded edges 944 → 4,995 (+4,051); confirmed 735 → 743 (+8); contradicted 50 → 50 (+0); precision-against-oracle 93.6% (735/785) → 93.7% (743/793) (+0.1); strict 735/787 (93.4%) → strict 743/795 (93.5%); recall 52.8% (741/1,403) → 53.4% (749/1,403). Nothing on the tool's side moved; the edges were in its store all along.
+
+4,043 of the 4,051 added rows are `silent`/`not-loaded` (module-level calls in files outside `tsconfig.build.json`'s program: tests, benchmarks, runtime adapters); 8 are confirmed and none is contradicted.
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha 97c6fe1f
+hobbes edges 4995: confirmed 743  contradicted 50  abstract 2  silent 4200 map[line-unresolved:2 no-targets:9 not-loaded:4189]
+precision-against-oracle 93.7% (743/793)
+precision-strict 93.5% (743/795): the 2 line-unresolved rows counted as contradicted — a lower bound under the lower bound (ADR-124)
+recall 53.4% (749/1403 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 2122; misses map[func-value→local-binding:61 func-value→variable:1 interface→type-member:30 static→anonymous-function:1 static→anonymous-signature:15 static→class:12 static→closure:229 static→function:1 static→method:169 static→property:93 static→type-member:20 static→variable:22]
+recall-collapsed 57.0% (743/1303 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[func-value→local-binding]   0.0% (0/61)  misses 61 = 9.3% of all misses
+  recall[func-value→variable]  75.0% (3/4)  misses 1 = 0.2% of all misses
+  recall[interface→type-member]   0.0% (0/30)  misses 30 = 4.6% of all misses
+  recall[static→anonymous-function]   0.0% (0/1)  misses 1 = 0.2% of all misses
+  recall[static→anonymous-signature]   0.0% (0/15)  misses 15 = 2.3% of all misses
+  recall[static→class      ]  84.6% (66/78)  misses 12 = 1.8% of all misses
+  recall[static→closure    ]   0.0% (0/229)  misses 229 = 35.0% of all misses
+  recall[static→function   ]  98.4% (63/64)  misses 1 = 0.2% of all misses
+  recall[static→method     ]  17.2% (35/204)  misses 169 = 25.8% of all misses
+  recall[static→property   ]   0.0% (0/93)  misses 93 = 14.2% of all misses
+  recall[static→type-member]   0.0% (0/20)  misses 20 = 3.1% of all misses
+  recall[static→variable   ]  96.4% (582/604)  misses 22 = 3.4% of all misses
+  tier repowise:global_unique confirmed 0  contradicted 37  abstract 0  silent 380
+  tier repowise:import_merged confirmed 0  contradicted 5  abstract 0  silent 60
+  tier repowise:import_scoped confirmed 324  contradicted 4  abstract 0  silent 3236
+  tier repowise:module_alias confirmed 0  contradicted 0  abstract 0  silent 116
+  tier repowise:same_file confirmed 384  contradicted 4  abstract 2  silent 408
+  tier repowise:self_inherited confirmed 1  contradicted 0  abstract 0  silent 0
+  tier repowise:self_scope confirmed 34  contradicted 0  abstract 0  silent 0
+  line-grain tolerance used on 167 edge(s) (several oracle sites on one line)
+poison check: PASS — 4995 seeded wrong edges: 792 refused, 4203 unjudged (oracle silent there), 0 falsely confirmed
+```

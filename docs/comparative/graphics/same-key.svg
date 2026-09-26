@@ -189,10 +189,10 @@
 <rect x="517.1" y="277" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>cheerio — repowise: precision-against-oracle 167/184 = 90.8%</title>
-<polygon points="522.4,275.5 528.9,282 522.4,288.5 515.9,282" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>cheerio — repowise: precision-against-oracle 1,348/1,378 = 97.8%</title>
+<polygon points="543.4,275.5 549.9,282 543.4,288.5 536.9,282" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="618.4" y1="282" x2="745.3" y2="282" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="663.1" y1="282" x2="745.3" y2="282" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>cheerio — hobbes: recall 2,667/5,910 = 45.1% over every resolved site (resolution oracle: no roots)</title>
 <circle cx="745.3" cy="282" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
@@ -202,8 +202,8 @@
 <rect x="658.1" y="277" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>cheerio — repowise: recall 168/5,910 = 2.8% over every resolved site (resolution oracle: no roots)</title>
-<polygon points="618.4,275.5 624.9,282 618.4,288.5 611.9,282" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>cheerio — repowise: recall 1,370/5,910 = 23.2% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="679.6,275.5 686.1,282 679.6,288.5 673.1,282" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="24" y="308" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >JavaScript — the loop and random-draw cells</text>
 <text x="240" y="330" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cue</text>
@@ -216,7 +216,11 @@
 <title>cue — hobbes: precision-against-oracle 1,005/1,005 = 100.0%</title>
 <circle cx="550.0" cy="326" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="795.4" y1="326" x2="797.5" y2="326" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>cue — repowise: precision-against-oracle 1,235/1,254 = 98.5%</title>
+<polygon points="545.5,319.5 552.0,326 545.5,332.5 539.0,326" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line x1="795.4" y1="326" x2="838.3" y2="326" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>cue — codegraphcontext: recall 1,028/1,644 = 62.5% over every resolved site (resolution oracle: no roots)</title>
 <rect x="792.5" y="321" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
@@ -224,6 +228,10 @@
 <g>
 <title>cue — hobbes: recall 1,016/1,644 = 61.8% over every resolved site (resolution oracle: no roots)</title>
 <circle cx="795.4" cy="326" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>cue — repowise: recall 1,251/1,644 = 76.1% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="838.3,319.5 844.8,326 838.3,332.5 831.8,326" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="240" y="352" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cypress github-action</text>
 <line x1="527.8" y1="348" x2="550.0" y2="348" stroke="#d9d8d2" stroke-width="2"/>
@@ -235,6 +243,10 @@
 <title>cypress github-action — hobbes: precision-against-oracle 154/154 = 100.0%</title>
 <circle cx="550.0" cy="348" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
+<g>
+<title>cypress github-action — repowise: precision-against-oracle 154/154 = 100.0%</title>
+<polygon points="550.0,341.5 556.5,348 550.0,354.5 543.5,348" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
 <line x1="719.2" y1="348" x2="877.0" y2="348" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>cypress github-action — codegraphcontext: recall 63/173 = 36.4% over every resolved site (resolution oracle: no roots)</title>
@@ -243,6 +255,10 @@
 <g>
 <title>cypress github-action — hobbes: recall 154/173 = 89.0% over every resolved site (resolution oracle: no roots)</title>
 <circle cx="877.0" cy="348" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>cypress github-action — repowise: recall 154/173 = 89.0% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="877.0,341.5 883.5,348 877.0,354.5 870.5,348" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="240" y="374" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >express (CommonJS)</text>
 <line x1="542.5" y1="370" x2="550.0" y2="370" stroke="#d9d8d2" stroke-width="2"/>
@@ -254,6 +270,10 @@
 <title>express (CommonJS) — hobbes: precision-against-oracle 998/998 = 100.0%</title>
 <circle cx="550.0" cy="370" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
+<g>
+<title>express (CommonJS) — repowise: precision-against-oracle 355/356 = 99.7%</title>
+<polygon points="549.1,363.5 555.6,370 549.1,376.5 542.6,370" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
 <line x1="672.7" y1="370" x2="807.1" y2="370" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>express (CommonJS) — codegraphcontext: recall 318/1,520 = 20.9% over every resolved site (resolution oracle: no roots)</title>
@@ -262,6 +282,10 @@
 <g>
 <title>express (CommonJS) — hobbes: recall 998/1,520 = 65.7% over every resolved site (resolution oracle: no roots)</title>
 <circle cx="807.1" cy="370" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>express (CommonJS) — repowise: recall 355/1,520 = 23.4% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="680.2,363.5 686.7,370 680.2,376.5 673.7,370" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="240" y="396" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >preact (ESM, JSDoc, JSX)</text>
 <line x1="370.9" y1="392" x2="550.0" y2="392" stroke="#d9d8d2" stroke-width="2"/>
@@ -273,7 +297,11 @@
 <title>preact (ESM, JSDoc, JSX) — hobbes: precision-against-oracle 2,447/2,447 = 100.0%</title>
 <circle cx="550.0" cy="392" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="665.2" y1="392" x2="695.8" y2="392" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>preact (ESM, JSDoc, JSX) — repowise: precision-against-oracle 1,212/2,902 = 41.8% · strict 1,212/3,354 (36.1%)</title>
+<polygon points="375.4,385.5 381.9,392 375.4,398.5 368.9,392" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line x1="655.6" y1="392" x2="695.8" y2="392" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>preact (ESM, JSDoc, JSX) — codegraphcontext: recall 1,693/9,211 = 18.4% over every resolved site (resolution oracle: no roots)</title>
 <rect x="660.2" y="387" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
@@ -282,11 +310,19 @@
 <title>preact (ESM, JSDoc, JSX) — hobbes: recall 2,633/9,211 = 28.6% over every resolved site (resolution oracle: no roots)</title>
 <circle cx="695.8" cy="392" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
+<g>
+<title>preact (ESM, JSDoc, JSX) — repowise: recall 1,398/9,211 = 15.2% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="655.6,385.5 662.1,392 655.6,398.5 649.1,392" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
 <text x="240" y="418" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >xmpp.js</text>
 <line x1="497.8" y1="414" x2="550.0" y2="414" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>xmpp.js — codegraphcontext: precision-against-oracle 337/408 = 82.6% · strict 337/442 (76.2%)</title>
 <rect x="492.8" y="409" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>xmpp.js — repowise: precision-against-oracle 489/543 = 90.1% · strict 489/563 (86.9%)</title>
+<polygon points="520.3,407.5 526.8,414 520.3,420.5 513.8,414" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>xmpp.js — hobbes: precision-against-oracle 705/705 = 100.0%</title>
@@ -296,6 +332,10 @@
 <g>
 <title>xmpp.js — codegraphcontext: recall 342/840 = 40.7% over every resolved site (resolution oracle: no roots)</title>
 <rect x="727.1" y="409" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>xmpp.js — repowise: recall 495/840 = 58.9% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="786.7,407.5 793.2,414 786.7,420.5 780.2,414" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>xmpp.js — hobbes: recall 711/840 = 84.6% over every resolved site (resolution oracle: no roots)</title>
@@ -474,10 +514,10 @@
 <rect x="545.0" y="629" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>cJSON — repowise: precision-against-oracle 1,073/1,075 = 99.8%</title>
+<title>cJSON — repowise: precision-against-oracle 1,102/1,104 = 99.8%</title>
 <polygon points="549.4,627.5 555.9,634 549.4,640.5 542.9,634" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="778.0" y1="634" x2="796.0" y2="634" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="782.5" y1="634" x2="796.0" y2="634" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>cJSON — hobbes: recall 1,190/1,918 = 62.0% over every resolved site (resolution oracle: no roots)</title>
 <circle cx="796.0" cy="634" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
@@ -487,8 +527,8 @@
 <rect x="789.5" y="629" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>cJSON — repowise: recall 1,074/1,918 = 56.0% over every resolved site (resolution oracle: no roots)</title>
-<polygon points="778.0,627.5 784.5,634 778.0,640.5 771.5,634" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>cJSON — repowise: recall 1,103/1,918 = 57.5% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="782.5,627.5 789.0,634 782.5,640.5 776.0,634" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="240" y="660" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector</text>
 <line x1="548.5" y1="656" x2="550.0" y2="656" stroke="#d9d8d2" stroke-width="2"/>
@@ -497,21 +537,21 @@
 <rect x="543.5" y="651" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>sqlite-vector — repowise: precision-against-oracle 780/780 = 100.0%</title>
+<title>sqlite-vector — repowise: precision-against-oracle 783/783 = 100.0%</title>
 <polygon points="550.0,649.5 556.5,656 550.0,662.5 543.5,656" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>sqlite-vector — hobbes: precision-against-oracle 851/851 = 100.0%</title>
 <circle cx="550.0" cy="656" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="889.9" y1="656" x2="910.0" y2="656" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="890.8" y1="656" x2="910.0" y2="656" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>sqlite-vector — codegraphcontext: recall 1,091/1,091 = 100.0% over every resolved site (resolution oracle: no roots)</title>
 <rect x="905.0" y="651" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>sqlite-vector — repowise: recall 1,018/1,091 = 93.3% over every resolved site (resolution oracle: no roots)</title>
-<polygon points="889.9,649.5 896.4,656 889.9,662.5 883.4,656" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>sqlite-vector — repowise: recall 1,021/1,091 = 93.6% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="890.8,649.5 897.3,656 890.8,662.5 884.3,656" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>sqlite-vector — hobbes: recall 1,091/1,091 = 100.0% over every resolved site (resolution oracle: no roots)</title>
@@ -543,7 +583,7 @@
 <polygon points="679.9,693.5 686.4,700 679.9,706.5 673.4,700" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="240" y="726" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt</text>
-<line x1="394.0" y1="722" x2="550.0" y2="722" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="396.1" y1="722" x2="550.0" y2="722" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>fmt — codegraphcontext: precision-against-oracle 847/885 = 95.7% · strict 847/975 (86.9%)</title>
 <rect x="532.1" y="717" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
@@ -553,8 +593,8 @@
 <circle cx="550.0" cy="722" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>fmt — repowise: precision-against-oracle 2,410/5,024 = 48.0% · strict 2,410/5,343 (45.1%)</title>
-<polygon points="394.0,715.5 400.5,722 394.0,728.5 387.5,722" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>fmt — repowise: precision-against-oracle 2,541/5,214 = 48.7% · strict 2,541/5,582 (45.5%)</title>
+<polygon points="396.1,715.5 402.6,722 396.1,728.5 389.6,722" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <line x1="645.4" y1="722" x2="701.2" y2="722" stroke="#d9d8d2" stroke-width="2"/>
 <g>
@@ -566,8 +606,8 @@
 <circle cx="701.2" cy="722" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>fmt — repowise: recall 7,013/50,524 = 13.9% over every resolved site (resolution oracle: no roots)</title>
-<polygon points="651.7,715.5 658.2,722 651.7,728.5 645.2,722" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>fmt — repowise: recall 7,247/50,525 = 14.3% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="652.9,715.5 659.4,722 652.9,728.5 646.4,722" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="24" y="748" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Python — the loop and random-draw cells</text>
 <text x="240" y="770" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click (trace: confirmation rate)</text>
@@ -581,8 +621,8 @@
 <rect x="443.9" y="761" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>click — repowise: confirmation rate 1,703/2,426 = 70.2%</title>
-<polygon points="460.6,759.5 467.1,766 460.6,772.5 454.1,766" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>click — repowise: confirmation rate 1,776/2,638 = 67.3%</title>
+<polygon points="451.9,759.5 458.4,766 451.9,772.5 445.4,766" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <line x1="695.5" y1="766" x2="830.8" y2="766" stroke="#d9d8d2" stroke-width="2"/>
 <g>
@@ -594,8 +634,8 @@
 <rect x="690.5" y="761" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>click — repowise: recall 1,703/4,561 = 37.3% recall-against-executed (coverage-limited)</title>
-<polygon points="721.9,759.5 728.4,766 721.9,772.5 715.4,766" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>click — repowise: recall 1,776/4,561 = 38.9% recall-against-executed (coverage-limited)</title>
+<polygon points="726.7,759.5 733.2,766 726.7,772.5 720.2,766" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="24" y="792" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise-bench's draws under our key (Go, TypeScript) — the 1-1</text>
 <text x="240" y="814" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cobra (with tests)</text>
@@ -690,8 +730,8 @@
 <circle cx="550.0" cy="876" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>hono (tsconfig.build.json) — repowise: precision-against-oracle 735/785 = 93.6% · strict 735/787 (93.4%)</title>
-<polygon points="530.8,869.5 537.3,876 530.8,882.5 524.3,876" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>hono (tsconfig.build.json) — repowise: precision-against-oracle 743/793 = 93.7% · strict 743/795 (93.5%)</title>
+<polygon points="531.1,869.5 537.6,876 531.1,882.5 524.6,876" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <line x1="741.1" y1="876" x2="789.1" y2="876" stroke="#d9d8d2" stroke-width="2"/>
 <g>
@@ -703,8 +743,8 @@
 <circle cx="789.1" cy="876" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>hono (tsconfig.build.json) — repowise: recall 741/1,403 = 52.8% over every resolved site (resolution oracle: no roots)</title>
-<polygon points="768.4,869.5 774.9,876 768.4,882.5 761.9,876" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>hono (tsconfig.build.json) — repowise: recall 749/1,403 = 53.4% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="770.2,869.5 776.7,876 770.2,882.5 763.7,876" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="240" y="902" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >zod</text>
 <line x1="322.9" y1="898" x2="550.0" y2="898" stroke="#d9d8d2" stroke-width="2"/>
@@ -713,8 +753,8 @@
 <rect x="317.9" y="893" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>zod — repowise: precision-against-oracle 2,182/2,361 = 92.4%</title>
-<polygon points="527.2,891.5 533.7,898 527.2,904.5 520.7,898" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>zod — repowise: precision-against-oracle 7,216/7,630 = 94.6% · strict 7,216/7,698 (93.7%)</title>
+<polygon points="533.8,891.5 540.3,898 533.8,904.5 527.3,898" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>zod — hobbes: precision-against-oracle 9,872/9,872 = 100.0%</title>
@@ -726,8 +766,8 @@
 <rect x="624.8" y="893" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>zod — repowise: recall 2,190/21,931 = 10.0% over every resolved site (resolution oracle: no roots)</title>
-<polygon points="640.0,891.5 646.5,898 640.0,904.5 633.5,898" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>zod — repowise: recall 7,360/21,931 = 33.6% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="710.8,891.5 717.3,898 710.8,904.5 704.3,898" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>zod — hobbes: recall 10,034/21,931 = 45.8% over every resolved site (resolution oracle: no roots)</title>

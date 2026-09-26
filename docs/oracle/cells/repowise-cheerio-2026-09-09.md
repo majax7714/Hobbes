@@ -79,3 +79,33 @@ Sample rows (site → the tool's callee; the oracle's targets at that site):
 
 **Direction of fix:** first grade of this tool on this cell — nothing to sign. **What the record does not say:** anything about the tool beyond this run on this box at this version; the matcher's tolerances were tuned on Hobbes' output (C-95); the conversion is Hobbes' and a misread would be Hobbes' defect (C-94).
 
+## Regrade, converter@5 (2026-09-26) — a `__module__` caller is a call site
+
+`repowise-adapter@5` (ADR-101's 2026-09-26 amendment, C-94) reads a call edge whose caller is repowise's per-file `<file>::__module__` node — a call at the file's top level, or inside an anonymous function there — as call sites in that file at the tool's own `call_lines_json`; through @4 the converter dropped every such edge as `unknown-caller`. Re-converted from this cell's stored `raw.json` (no re-index; @4 re-run from the same `raw.json` reproduced the stored `edges.json` row for row first), source lines read from `/home/mmarrujo/.hobbes/bench/oracle/repos/cheerio`, graded by the same key with today's `oracle` binary. Outputs in `/home/mmarrujo/.hobbes/bench/comparative/repowise-cheerio/at5`. Conversion: 208 → 1,496 (site, callee) pairs; `unknown-caller` 121 → 0 edges; 121 edge(s) read from a `__module__` caller. **Every row graded before keeps its bucket; everything that moved is a row the fix added.**
+
+**Direction of fix (repowise-adapter@2 → repowise-adapter@5, 2026-09-26, signed):** graded edges 208 → 1,496 (+1,288); confirmed 167 → 1,348 (+1,181); contradicted 17 → 30 (+13); precision-against-oracle 90.8% (167/184) → 97.8% (1,348/1,378) (+7.1); strict = precision before and after (no line-unresolved row); recall 2.8% (168/5,910) → 23.2% (1,370/5,910). Nothing on the tool's side moved; the edges were in its store all along.
+
+**The 13 new contradictions, read by hand (5 of 13) and counted mechanically (13 of 13): one shape, and not a wrong callee.** Each is a member call in a chain written over several lines — `const more = $(\n  '<li…>',\n).get();`, `$('li')\n  .last()`, `load(…)\n  .root()` — which repowise files at the chain's first line, where the key's resolved target is the `$`/`load` call. The callee the tool names (`get`, `last`, `insertBefore`, `root`) is the method the chain calls, one or two lines further down. This is the tool's site-line grain (its `call_lines_json` holds the call expression's first line), graded against the tool as the lane's rules require; the converter cannot recover the member's line from what the tool stores. The same mechanical count finds 7 of this cell's 17 earlier contradictions in that shape.
+
+```
+cell .  oracle tsc 6.0.3 (the zone's own) (resolution)  sha 98c7d131
+hobbes edges 1496: confirmed 1348  contradicted 30  abstract 98  silent 20 map[not-loaded:17 unreachable:3]
+precision-against-oracle 97.8% (1348/1378)
+recall 23.2% (1370/5910 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 5180; misses map[func-value→local-binding:1070 func-value→variable:294 static→anonymous-signature:12 static→class:5 static→closure:173 static→function:2934 static→method:46 static→type-member:6]
+recall-collapsed 35.2% (1348/3826 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[func-value→local-binding]   0.0% (0/1070)  misses 1070 = 23.6% of all misses
+  recall[func-value→variable]  57.0% (390/684)  misses 294 = 6.5% of all misses
+  recall[static→anonymous-signature]   0.0% (0/12)  misses 12 = 0.3% of all misses
+  recall[static→class      ]   0.0% (0/5)  misses 5 = 0.1% of all misses
+  recall[static→closure    ]   0.0% (0/173)  misses 173 = 3.8% of all misses
+  recall[static→function   ]  25.0% (980/3914)  misses 2934 = 64.6% of all misses
+  recall[static→method     ]   0.0% (0/46)  misses 46 = 1.0% of all misses
+  recall[static→type-member]   0.0% (0/6)  misses 6 = 0.1% of all misses
+  tier repowise:global_unique confirmed 939  contradicted 20  abstract 2  silent 6
+  tier repowise:import_merged confirmed 1  contradicted 3  abstract 24  silent 0
+  tier repowise:import_scoped confirmed 240  contradicted 0  abstract 23  silent 1
+  tier repowise:module_alias confirmed 40  contradicted 0  abstract 5  silent 0
+  tier repowise:same_file confirmed 128  contradicted 7  abstract 44  silent 13
+  line-grain tolerance used on 1109 edge(s) (several oracle sites on one line)
+poison check: PASS — 1496 seeded wrong edges: 1476 refused, 20 unjudged (oracle silent there), 0 falsely confirmed
+```

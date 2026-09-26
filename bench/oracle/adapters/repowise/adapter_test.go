@@ -4,6 +4,8 @@
 package repowise
 
 import (
+	"encoding/json"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -149,5 +151,70 @@ func TestCppGrainSpacedDefineAndSplitHead(t *testing.T) {
 	}
 	if h.Excluded["macro"] != 1 {
 		t.Fatalf("Excluded[macro] = %d, want 1", h.Excluded["macro"])
+	}
+}
+
+// converter@5 (ADR-101's 2026-09-26 amendment, C-94), read by hand from
+// testdata/cjsmodule.raw.json: two rows repowise 0.49.0 stored for
+// expressjs/express at 9a34acf0, copied as stored, and one synthetic row.
+//   - `examples/auth/index.js::__module__` → `authenticate` at line 106:
+//     the source there is `authenticate(req.body.username, …)` inside the
+//     anonymous handler of `app.post('/login', function (req, res, next)`,
+//     at the file's top level, and `function authenticate(name, pass, fn)`
+//     is line 60. The caller id has no wiki_symbols row; @4 dropped it as
+//     unknown-caller, @5 reads it as a site in that file.
+//   - `test/support/tmpl.js::onReadFile` → `generateVariableLookup` at
+//     line 13 (`str.replace(variableRegExp, generateVariableLookup(options))`;
+//     the function is line 25): an ordinary symbol caller, unchanged.
+//   - the synthetic row's caller, `…::synthetic_not_a_symbol`, is neither
+//     a symbol nor a `__module__` id, and must still be dropped and counted.
+func TestModuleCallerIsASiteInItsFile(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "edges.json")
+	cmd := exec.Command("python3", "adapter.py", "convert", "--raw", "testdata/cjsmodule.raw.json", "--sha", "fixture", "--version", "0.49.0", "--out", out)
+	if b, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("convert: %v\n%s", err, b)
+	}
+	h, f, err := foreign.FromFile(out, ".", "ts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string][2]string{
+		"examples/auth/index.js:106": {"examples/auth/index.js:60", "examples/auth/index.js::__module__"},
+		"test/support/tmpl.js:13":    {"test/support/tmpl.js:25", "test/support/tmpl.js::onReadFile"},
+	}
+	if len(h.Edges) != len(want) {
+		t.Fatalf("want %d edges, got %d: %+v", len(want), len(h.Edges), h.Edges)
+	}
+	for _, e := range h.Edges {
+		w, ok := want[e.Site.Key()]
+		if !ok || w[0] != e.Target.Key() || e.Tier != "repowise:same_file" {
+			t.Errorf("%s -> %s (%s) is not the hand read %v", e.Site.Key(), e.Target.Key(), e.Tier, w)
+		}
+	}
+	callers := map[string]string{}
+	for _, e := range f.Edges {
+		callers[e.Site] = e.Caller
+	}
+	for site, w := range want {
+		if callers[site] != w[1] {
+			t.Errorf("%s: caller %q, want %q", site, callers[site], w[1])
+		}
+	}
+	raw, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc struct {
+		Converter string `json:"converter"`
+		Notes     struct {
+			Dropped       map[string]int `json:"dropped"`
+			ModuleCallers int            `json:"module_callers"`
+		} `json:"notes"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if doc.Converter != "repowise-adapter@5" || doc.Notes.Dropped["unknown-caller"] != 1 || doc.Notes.ModuleCallers != 1 {
+		t.Fatalf("header: converter %q dropped %v module_callers %d", doc.Converter, doc.Notes.Dropped, doc.Notes.ModuleCallers)
 	}
 }

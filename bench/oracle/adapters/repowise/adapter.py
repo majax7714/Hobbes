@@ -41,6 +41,18 @@ type or an attribute macro on the line above the name) starts at a line
 that does not hold the name. converter@4 reads `#` + optional spaces +
 `define`, and advances a head with no `;`, `{` or `}` up to three lines
 to the line holding the declared name (`identifier_line`).
+
+Callers (C-94, ADR-101's 2026-09-26 amendment): repowise files a call
+made at a file's top level — or inside an anonymous function there, e.g.
+an Express route handler — under a caller id `<file>::__module__`, which
+has no `wiki_symbols` row. Through converter@4 every such edge was
+dropped as `unknown-caller`, although the tool stored its file (in the
+id) and its lines (`call_lines_json`); on the JavaScript cells that was
+most of the graph (Express: 356 of 358 call lines). converter@5 reads a
+`__module__` caller as call sites in that file. A caller that is neither
+a symbol nor a `__module__` id is still dropped and counted as
+`unknown-caller`; the edges read this way are counted in
+`notes.module_callers`.
 """
 from __future__ import annotations
 
@@ -52,7 +64,9 @@ import sqlite3
 import sys
 from pathlib import Path
 
-VERSION = "repowise-adapter@4"
+VERSION = "repowise-adapter@5"
+
+MODULE = "::__module__"
 
 DEFINE = re.compile(r"\s*#\s*define\b")
 C_FAMILY = (".c", ".h", ".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx")  # the export's c and cpp sets
@@ -153,8 +167,13 @@ def convert(raw_path: str, sha: str, version: str, out: str, repo: str = "") -> 
     raw = json.loads(Path(raw_path).read_text())
     sym = {s["symbol_id"]: s for s in raw["symbols"]}
     edges, dropped = [], {"unknown-caller": 0, "unknown-callee": 0, "no-call-lines": 0}
+    module_callers = 0
     for e in raw["edges"]:
         src, dst = sym.get(e["source_node_id"]), sym.get(e["target_node_id"])
+        if src is None and e["source_node_id"].endswith(MODULE) and len(e["source_node_id"]) > len(MODULE):
+            # converter@5: a top-level caller; the file is the id's, the lines the tool's own
+            src = {"symbol_id": e["source_node_id"], "file_path": e["source_node_id"][: -len(MODULE)]}
+            module_callers += 1
         if src is None:
             dropped["unknown-caller"] += 1
             continue
@@ -179,9 +198,10 @@ def convert(raw_path: str, sha: str, version: str, out: str, repo: str = "") -> 
     edges.sort(key=lambda x: (x["site"], x["callee"]))
     repo = repo or (raw["repositories"][0]["local_path"] if raw.get("repositories") else "")
     doc = {"repo": repo, "sha": sha, "tool": "repowise", "version": version, "converter": VERSION,
-           "notes": {"dropped": dropped, "grain": "declaration line = wiki_symbols.start_line advanced past leading annotation/decorator lines to the identifier's line (converter@2; @1 graded the annotation line)"
+           "notes": {"dropped": dropped, "module_callers": module_callers, "grain": "declaration line = wiki_symbols.start_line advanced past leading annotation/decorator lines to the identifier's line (converter@2; @1 graded the annotation line)"
                      "; a callee whose declared line begins with #define is kind macro, which the lane excludes (converter@3; @2 graded it as stored)"
-                     "; `# define` with spaces is the same directive, and a declaration head split over lines advances to the line holding the name (converter@4; @3 graded both as stored)"},
+                     "; `# define` with spaces is the same directive, and a declaration head split over lines advances to the line holding the name (converter@4; @3 graded both as stored)"
+                     "; a `<file>::__module__` caller (a top-level call, no wiki_symbols row) is read as call sites in that file at the tool's call lines (converter@5; @4 dropped every such edge as unknown-caller)"},
            "edges": edges}
     Path(out).write_text(json.dumps(doc, indent=1) + "\n")
     print(f"{len(edges)} edges (dropped {dropped}) → {out}", file=sys.stderr)
