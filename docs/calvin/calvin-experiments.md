@@ -584,6 +584,76 @@ not ruled out. The candidates, for Max:
   evidence of skill.
 - **Cost:** about half of E1's. Could fold into E1 as a sixth arm.
 
+#### E2's runner — the design (2026-09-26; routes E2-a to E2-g taken as recommended, Max: "All as recommended", ceiling $3)
+
+These facts were read from the tree and the drivers on 2026-09-26:
+- `lattice e1 plan` and `e1 run` take no `--rename`. `map`, `task`, `grade` and `graph-grade` do, and
+  `shadow.grading` is the seam that lets the graders read a shadow.
+- A cell's id is its grid position (`<isa>/<type>/<metric>`), and the seed is drawn from the id. So a shadow run
+  asks with E1's own seeds, and only the names differ.
+- A written shadow is not a git checkout, so `meta.json`'s `target_sha` would be `None` and `_same_target`
+  would check nothing.
+- Only the descriptive shadow is on disk (`~/.hobbes/bench/calvin-lattice/shadows/descriptive/`: 493 renamed,
+  106 kept, 88 `sv_`-prefixed). None of the 88 is a kernel name; all are `sqlite-vector.c`'s, which no L0 prompt
+  carries. The opaque shadow was accepted at E0 but not kept.
+- The facts arm reads the target's `graph.json` and clang key by name and by column. A shadow shifts columns and
+  changes every name.
+- E1's Qwen calls: round 0 cost $0.38 for five arms, and the three iterate rounds $1.08, since the conversations
+  grow.
+- **The run cap has a hole beside the one E1 found.** A generator call that fails writes no `calls.jsonl` row,
+  so `spent()` reads the lost call as free. Olmo's lost call ($0.03) was counted by hand.
+
+Routes (recommended first):
+
+- **E2-a — what runs.** **Recommended:** Qwen, arms C-2 and C-3, all 93 native cells, on both shadows. Greedy
+  plus k = 5; C-3 iterates for three rounds as in E1; the G-mem probes go in round 0. The original's figures are
+  E1's Qwen rows, at the same model, params and seeds, and nothing is re-run. The readings: descriptive − original
+  is what renaming to equally meaningful names costs. Both bases predate the target (E0), so this gap is
+  name-reading, not memory. opaque − descriptive is what meaning in the names carries. **b:** add C-0 and C-4, as
+  the card's "best and worst arms" says. At 0.03 and 0.05 they cannot fall far, so this is about $0.6 for little
+  reading. L2's `sqlite-vector.c` holes wait for an L2 instrument, which E0 did not build.
+- **E2-b — the facts arm in a shadow.** **Recommended:**
+  - Read E1's ledger at the target. Write every name in its rows (callee, signature, definition line) forward
+    through the shadow's own map with `shadow.apply`, the same renamer that wrote the shadow's files.
+  - `meta.json` records `ledger.translated_through`, the map's digest.
+  - This is exact by construction, because the map is a bijection (`Collision` refuses otherwise).
+  - **b:** re-derive the ledger on the shadow instead: a Hobbes ingest of the shadow, plus a clang key made over
+    it in the image. This means two more instrument runs, with nothing gained for this reading.
+- **E2-c — the shadow's identity, and a leak gate.** **Recommended:**
+  - `e1 plan --rename <shadow-map.json>` builds the lattice through the reverse map. `meta.json` records `shadow:
+    {style, map_sha256, tree_sha256, from_sha}`, and `_same_target` checks the tree digest where there is no SHA.
+  - The plan **refuses** (`ShadowLeak`, its own type, P10) when any prompt holds a renamed original as an
+    identifier token.
+  - The names the shadow keeps (enum constants, file-scope declarations, the entry point) are listed in
+    `meta.json` with their reasons. They leak by design, and the record says so.
+  - `e1 run` takes no new flag. It reads the shadow from `meta.json`, refuses a target whose map digest is not
+    the plan's, and grades in the image through `lattice grade --rename /target/shadow-map.json`: the map sits
+    at the shadow's root, which the image already mounts.
+- **E2-d — the guard fix.** **Recommended:**
+  - `modal_e1.py` takes `--max-usd`, and the remote function runs under `timeout = min(4 h, max_usd / GPU $/s −
+    120 s)` (`with_options(timeout=…)`).
+  - The runner passes `ceiling − spent`, so a call cannot bill past the cap even when the estimate is wrong.
+  - A call that fails or times out writes its `calls.jsonl` row, at the host-wall price with `answered: 0`,
+    before `GenerateFailed` goes up. Then `spent()` never reads a lost call as free.
+  - A timeout loses its batch. The estimate check still refuses first, so the timeout only acts when the estimate
+    was wrong. **b:** split a round into chunks whose estimates each fit, which is more calls and more cold
+    starts.
+- **E2-e — the opaque shadow.** **Recommended:** write it with `lattice shadow --style opaque` beside the
+  descriptive one. Accept it as E0 did, in the image and before any spend: `make unittest`, `make
+  unittest-simd`, and all 93 golds `pass` through it. This is the developer's check, not the unit's.
+- **E2-f — Olmo.** **Recommended:** Olmo is not an arm from E2 on. On this lattice it does not write intrinsics
+  (80% `invented`), so a shadow can only move it along the floor. E1's record keeps its rows. **b:** run it on
+  both shadows too, for about $3–4 more.
+- **E2-g — the price and the ceiling.** From E1's calls: per shadow, round 0 with two arms is about $0.15 and
+  C-3's iterate rounds about $0.55, with cold starts included. That is **≈ $1.4 for both shadows**. **Recommended
+  ceiling: $3**, as one run per shadow at `--ceiling-usd 1.50` each. The descriptive run goes first, and its
+  measured cost is compared with this estimate before the opaque run is sent.
+
+**The unit that builds it** (one dispatch, no spend): `e1 plan|run --rename`, with E2-b's translation, E2-c's
+identity and leak gate, and E2-d in `e1.py` and `modal_e1.py`. Tests on the fixture's shadow, among them a
+planted leak refused and a failed call priced. `e1 report` reads the shadow runs unchanged. A small
+`e2 compare <original-run> <shadow-run>…` gives the per-cell and per-arm deltas, from the rows alone.
+
 ### E3 — pattern training that transfers (M-b, L0/L1)
 
 - **Question:** a LoRA trained on C pattern families from *other* repos, sqlite-vector
