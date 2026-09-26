@@ -5,6 +5,20 @@ One entry is `{"id", "cell", "body"}`, where `body` is a body's text (`{` … `}
 body's fault: a body that does not balance its braces is a `compile` result with the reason, because a
 truncated generation is a fact about the model, not an exception for the harness.
 
+**Two more entry forms, both E4's** (`calvin-experiments.md` §6). At rung L1 the whole file is held out, so
+a hole is any of its definitions and not only a lattice cell:
+
+| form | fills | graded over |
+|---|---|---|
+| `{"id", "cell", "body"}` | that cell's body | the cell's `graded_via` slots — unchanged, byte for byte |
+| `{"id", "unit", "isa", "body"}` | that **definition's** body | a cell: as above. A helper: the union of the `graded_via` slots of every cell whose gold body reaches it, and :data:`UNEXERCISED` where no cell does. The init: every slot the file installs |
+| `{"id", "isa", "bodies": {name: body}}` | **several** definitions at once | every slot the file installs — E4's file-level build |
+
+Every one of them fills into the **gold** file and puts it back afterwards, so a unit's result is its own:
+a wrong helper fails on its own row and the cells that call it are still graded against the target's own
+(E4-d, gold substitution). The unit forms read the file's definitions and the call edges between them
+through :mod:`lattice.e4`, which owns that reading; nothing here duplicates its token rule.
+
 **The staged copy is made once and reused.** Each entry writes its filled file over the staged tree, is
 graded, and the file is put back. That is not only cheaper — it is what makes the object cache work,
 since the `-I` flags (and so the cache key) would differ under a per-entry directory, and five of the six
@@ -39,18 +53,20 @@ Each entry in `slots` also carries `graded`, the case counts per reference, and 
 
 from __future__ import annotations
 
+import hashlib
 import re
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import build, diff, feedback, holes, hsr, run
-from .cells import Lattice, Slot, UnknownCell
+from .cells import NATIVE, Lattice, Slot, UnknownCell
 from .cells import build as build_lattice
 from .scan import ScanError, scan
 
 __all__ = [
     "DIAGNOSTIC_LIMIT",
+    "UNEXERCISED",
     "Bench",
     "GoldReference",
     "GoldUnavailable",
@@ -62,6 +78,13 @@ __all__ = [
 
 #: How many clang messages a result keeps. The rest are counted, never carried.
 DIAGNOSTIC_LIMIT = 20
+
+#: What a unit no table slot exercises is graded (E4-d): it compiled, and no cell's gold body reaches it,
+#: so the differential has nothing to read it through. It sits beside `hsr.CLASSES` — the graders' own six
+#: — as `e1.PARAM` sits beside `hsr.BUCKETS`, and is a fact about the **unit** rather than a verdict on the
+#: body: reading it as `not-installed` would put it among the bodies that lost their slot, and reading it
+#: as a pass would credit a body nothing ran.
+UNEXERCISED = "unexercised"
 
 #: What a grading run copies out of the target: the kernels, their headers, and fp16's. Nothing else is
 #: needed, and the real target's `libs/` holds a 263k-line `sqlite3.c`.
@@ -294,10 +317,17 @@ def _isas_of(lattice: Lattice, entries: list[dict] | tuple[dict, ...]) -> list[s
     """The ISAs a run's entries are graded on: native, reached through a slot, each once, in a fixed order.
 
     An entry naming a cell this lattice does not have needs no gold — it is a result with a reason, and
-    :func:`_one` writes it without compiling anything.
+    :func:`_one` writes it without compiling anything. A **unit** or **file** entry names its ISA itself,
+    and asks for that ISA's gold whenever the file is one this box runs: a lone unexercised helper then
+    pays for a gold build it does not read, which is cheaper than working out here what it will need.
     """
     found: dict[str, None] = {}
     for entry in entries:
+        if entry.get("unit") is not None or entry.get("bodies") is not None:
+            isa = entry.get("isa")
+            if isa in NATIVE and isa in lattice.sources and installed_slots(lattice, isa):
+                found[isa] = None
+            continue
         try:
             cell = lattice.get(entry.get("cell", ""))
         except UnknownCell:
@@ -311,9 +341,19 @@ def _isas_of(lattice: Lattice, entries: list[dict] | tuple[dict, ...]) -> list[s
 
 
 def _one(bench: Bench, entry: dict, known: frozenset[str]) -> dict:
-    result = {
+    """One entry of whichever form it is. The cell form is the one below and is unchanged."""
+    if entry.get("bodies") is not None:
+        return _file_entry(bench, entry, known)
+    if entry.get("unit") is not None:
+        return _unit_entry(bench, entry, known)
+    return _cell_entry(bench, entry, known)
+
+
+def _blank(entry: dict, cell: str | None) -> dict:
+    """The result every form starts from: the fields the experiments read, all of them said."""
+    return {
         "id": entry.get("id"),
-        "cell": entry.get("cell"),
+        "cell": cell,
         "class": "compile",
         "reason": None,
         "diagnostics": [],
@@ -327,6 +367,10 @@ def _one(bench: Bench, entry: dict, known: frozenset[str]) -> dict:
         "seconds": {"compile": 0.0, "link": 0.0, "run": 0.0, "total": 0.0},
         "feedback": "",
     }
+
+
+def _cell_entry(bench: Bench, entry: dict, known: frozenset[str]) -> dict:
+    result = _blank(entry, entry.get("cell"))
     try:
         cell = bench.lattice.get(entry["cell"])
     except UnknownCell:
@@ -343,21 +387,196 @@ def _one(bench: Bench, entry: dict, known: frozenset[str]) -> dict:
         result["feedback"] = feedback.build(result)
         return result
 
-    source = bench.root / cell.file
-    original = source.read_text(encoding="utf-8")
-    try:
-        source.write_text(filled, encoding="utf-8")
-        _grade_filled(bench, cell, filled, gold, known, result)
-    finally:
-        source.write_text(original, encoding="utf-8")
+    _in_the_staged_file(
+        bench, cell.file, filled, gold, known, result,
+        isa=cell.isa, native=cell.native, slots=cell.graded_via, label=cell.id,
+    )
     result["feedback"] = feedback.build(result)
     return result
 
 
-def _grade_filled(bench: Bench, cell, filled: str, gold: str, known: frozenset[str], result: dict) -> None:
+# MARK: - E4's two forms: a unit, and a whole file -
+
+
+def _e4():
+    """E4's reading of a file's definitions and the calls between them, imported on use.
+
+    Not at the top: the unit forms are E4's (`calvin-experiments.md` §6), most grading runs carry none,
+    and the token rule that orders the units is written once — there — rather than twice.
+    """
+    from . import e4
+
+    return e4
+
+
+def _unit_entry(bench: Bench, entry: dict, known: frozenset[str]) -> dict:
+    """One definition of one file, filled into the gold and graded over the slots that exercise it."""
+    isa, name = entry.get("isa"), entry.get("unit")
+    found, refusal = _units_of(bench, isa)
+    if refusal is not None:
+        result = _blank(entry, None)
+        result.update({"unit": name, "isa": isa, "reason": refusal, "feedback": refusal})
+        return result
+
+    unit = found.get(name)
+    if unit is None:
+        result = _blank(entry, None)
+        reason = f"no definition named {name!r} in {bench.lattice.sources[isa].file}"
+        result.update({"unit": name, "isa": isa, "reason": reason, "feedback": reason})
+        return result
+
+    if unit.kind == "cell":
+        # a cell is graded exactly as the cell form grades it; the unit fields ride beside the result
+        result = _cell_entry(bench, {"id": entry.get("id"), "cell": unit.cell, "body": entry.get("body")}, known)
+        result.update(
+            {
+                "unit": name,
+                "unit_kind": "cell",
+                "isa": isa,
+                "graded_over": [list(slot) for slot in bench.lattice.get(unit.cell).graded_via],
+            }
+        )
+        return result
+
+    source = bench.lattice.sources[isa]
+    result = _blank(entry, None)
+    result.update({"unit": name, "unit_kind": unit.kind, "isa": isa})
+    gold = source.text
+    body = holes.gold_body(gold, unit) if entry.get("body") == "gold" else entry.get("body", "")
+    try:
+        filled = holes.fill(holes.punch(gold, unit), body)
+    except (holes.UnbalancedBody, holes.NoHole) as bad:
+        result["reason"] = str(bad)
+        result["feedback"] = feedback.build(result)
+        return result
+
+    slots = _unit_slots(bench.lattice, isa, unit)
+    result["graded_over"] = [list(slot) for slot in slots]
+    _in_the_staged_file(
+        bench, source.file, filled, gold, known, result,
+        isa=isa, native=isa in NATIVE, slots=slots, label=name,
+        no_slots=(
+            UNEXERCISED,
+            f"no cell of {source.file} reaches {name}, so no table slot exercises it",
+        )
+        if unit.kind == "helper"
+        else None,
+    )
+    result["feedback"] = feedback.build(result)
+    return result
+
+
+def _unit_slots(lattice: Lattice, isa: str, unit) -> tuple[Slot, ...]:
+    """The slots a unit is graded over: its own, the union of those that reach it, or the file's all.
+
+    A cell keeps `graded_via`, which already sends an `_impl` through its wrappers. A **helper** takes the
+    union of `graded_via` over every cell whose gold body reaches it, in the file's order, so a body is
+    read through every slot that runs it and through none that does not. The **init** takes every slot the
+    file installs: it is the only unit whose own job is to install them.
+    """
+    if unit.kind == "cell":
+        return lattice.get(unit.cell).graded_via
+    if unit.kind == "init":
+        return installed_slots(lattice, isa)
+    return tuple(
+        dict.fromkeys(
+            slot for cell in _e4().reaching_cells(lattice, isa, unit.name) for slot in cell.graded_via
+        )
+    )
+
+
+def _file_entry(bench: Bench, entry: dict, known: frozenset[str]) -> dict:
+    """E4's file-level build: several definitions filled into the gold file at once, graded as a file."""
+    isa = entry.get("isa")
+    bodies = dict(entry.get("bodies") or {})
+    found, refusal = _units_of(bench, isa)
+    result = _blank(entry, None)
+    result.update({"isa": isa, "units": sorted(bodies)})
+    if refusal is not None:
+        result.update({"reason": refusal, "feedback": refusal})
+        return result
+
+    unknown = sorted(name for name in bodies if name not in found)
+    if unknown:
+        reason = f"{bench.lattice.sources[isa].file} defines no {', '.join(unknown)}"
+        result.update({"reason": reason, "feedback": reason})
+        return result
+
+    source = bench.lattice.sources[isa]
+    gold = source.text
+    try:
+        filled = _e4().fill_units(gold, [(found[name], body) for name, body in bodies.items()])
+    except (holes.UnbalancedBody, holes.NoHole) as bad:
+        result["reason"] = str(bad)
+        result["feedback"] = feedback.build(result)
+        return result
+
+    result["filled_sha256"] = hashlib.sha256(filled.encode("utf-8")).hexdigest()
+    slots = installed_slots(bench.lattice, isa)
+    result["graded_over"] = [list(slot) for slot in slots]
+    _in_the_staged_file(
+        bench, source.file, filled, gold, known, result,
+        isa=isa, native=isa in NATIVE, slots=slots, label=source.file,
+    )
+    result["feedback"] = feedback.build(result)
+    return result
+
+
+def _units_of(bench: Bench, isa: str | None) -> tuple[dict, str | None]:
+    """The file's definitions by name, or the reason there are none to read."""
+    if isa not in bench.lattice.sources:
+        return {}, f"no file for ISA {isa!r} in this lattice"
+    try:
+        return {unit.name: unit for unit in _e4().units(bench.lattice, isa)}, None
+    except _e4().DuplicateDefinition as refusal:
+        return {}, str(refusal)
+
+
+# MARK: - the staged file, and the graders over it -
+
+
+def _in_the_staged_file(
+    bench: Bench,
+    file: str,
+    filled: str,
+    gold: str,
+    known: frozenset[str],
+    result: dict,
+    **how,
+) -> None:
+    """Write *filled* over the staged copy's *file*, grade it, and put the gold back whatever happened."""
+    staged = bench.root / file
+    original = staged.read_text(encoding="utf-8")
+    try:
+        staged.write_text(filled, encoding="utf-8")
+        _grade_filled(bench, filled, gold, known, result, **how)
+    finally:
+        staged.write_text(original, encoding="utf-8")
+
+
+def _grade_filled(
+    bench: Bench,
+    filled: str,
+    gold: str,
+    known: frozenset[str],
+    result: dict,
+    *,
+    isa: str,
+    native: bool,
+    slots: tuple[Slot, ...],
+    label: str,
+    no_slots: tuple[str, str] | None = None,
+) -> None:
+    """G-reg, G-compile, G-hsr and G-diff over *slots*, whatever the hole was.
+
+    *label* names the hole in the reasons — a cell id, a definition's name, a file. *no_slots* is the
+    `(class, reason)` for a hole no slot reaches, and defaults to `not-installed`, which is what a cell
+    with no slot has always been read as; E4 passes :data:`UNEXERCISED` for a helper, where the empty
+    union is a fact about the unit and not about its body.
+    """
     result["reg"] = _reg(filled, gold)
 
-    ok, compilations, linked = bench.build_all(cell.isa)
+    ok, compilations, linked = bench.build_all(isa)
     outputs = [bench.scrub(c.output) for c in compilations]
     diagnostics = [d for c in compilations for d in c.diagnostics]
     if linked is not None:
@@ -376,25 +595,27 @@ def _grade_filled(bench: Bench, cell, filled: str, gold: str, known: frozenset[s
         result["seconds"]["total"] = round(result["seconds"]["compile"] + result["seconds"]["link"], 3)
         return
 
-    if not cell.native:
+    if not native:
         result["class"] = "not-installed"
-        result["reason"] = f"{cell.isa} is not native on this box, so no slot of it can be read"
+        result["reason"] = f"{isa} is not native on this box, so no slot of it can be read"
         return
-    if not cell.graded_via:
-        result["class"] = "not-installed"
-        result["reason"] = f"{cell.id} is reached through no table slot, so the differential cannot see it"
+    if not slots:
+        result["class"], result["reason"] = no_slots or (
+            "not-installed",
+            f"{label} is reached through no table slot, so the differential cannot see it",
+        )
         return
 
     # Unreachable through :func:`grade_with_references`, which asks for exactly the ISAs that get here.
     # It is checked anyway because the wrong answer is a *silent* one: without the reference every case
     # would fall back to the scalar, and the gold-referenced cases would quietly fail again.
-    reference = bench.references.get(cell.isa)
+    reference = bench.references.get(isa)
     if reference is None:
-        raise GoldUnavailable(f"no gold reference for {cell.isa}; it is built before the first body is filled in")
+        raise GoldUnavailable(f"no gold reference for {isa}; it is built before the first body is filled in")
     ran = diff.run(
         linked.product,
-        cell.isa,
-        list(cell.graded_via),
+        isa,
+        list(slots),
         timeout=bench.timeout,
         gold=reference.got if reference.available else None,
     )
@@ -436,7 +657,7 @@ def _grade_filled(bench: Bench, cell, filled: str, gold: str, known: frozenset[s
 
     if not ran.available:
         result["class"] = "not-installed"
-        result["reason"] = f"init_distance_functions_{cell.isa}() returned false: the ISA is not in this build"
+        result["reason"] = f"init_distance_functions_{isa}() returned false: the ISA is not in this build"
         return
 
     installed = all(c.installed for c in ran.comparisons)

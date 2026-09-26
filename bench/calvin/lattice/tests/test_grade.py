@@ -1,11 +1,17 @@
-"""G-compile and the graders end to end: the flags, the diagnostics parser, and what a body is graded as."""
+"""G-compile and the graders end to end: the flags, the diagnostics parser, and what a body is graded as.
 
+The last section is E4's two entry forms — one definition of a file, and a whole file — which fill into the
+gold and are graded over the slots that exercise them. The cell form above them is unchanged and its tests
+are the ones that say so.
+"""
+
+import hashlib
 import shutil
 from pathlib import Path
 
 import pytest
 
-from lattice import build, diff, grade, run
+from lattice import build, diff, e4, grade, holes, report, run
 from lattice.cells import NATIVE
 from lattice.cells import build as build_lattice
 
@@ -284,3 +290,128 @@ def test_a_failing_case_names_the_reference_it_was_graded_against(tmp_path):
     result = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)[0]
     assert result["class"] == "wrong"
     assert result["first_failure"]["reference"] in diff.REFERENCES
+
+
+# MARK: - E4's entry forms: one definition of a file, and a whole file -
+
+
+def units_of(isa="avx2"):
+    """The held-out file's definitions by name, as `lattice grade` reads them."""
+    return {unit.name: unit for unit in e4.units(build_lattice(FIXTURE), isa)}
+
+
+def gold_body_of(name, isa="avx2"):
+    lattice = build_lattice(FIXTURE)
+    return holes.gold_body(lattice.sources[isa].text, units_of(isa)[name])
+
+
+def test_the_unexercised_class_is_one_string_on_both_sides_of_the_report():
+    """`report` repeats it rather than importing this module, which pulls in the compiler."""
+    assert grade.UNEXERCISED == report.UNEXERCISED == "unexercised"
+
+
+def test_a_unit_entry_for_an_isa_this_lattice_has_not_is_a_result_and_not_a_raise(tmp_path):
+    entries = [{"id": "x", "unit": "whatever", "isa": "mmx", "body": "gold"}]
+    result = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)[0]
+    assert result["class"] == "compile" and "no file for ISA 'mmx'" in result["reason"]
+    assert result["unit"] == "whatever" and result["feedback"] == result["reason"]
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_a_unit_entry_naming_a_definition_the_file_has_not_is_a_result(tmp_path):
+    entries = [{"id": "x", "unit": "hsum512_ps", "isa": "avx2", "body": "gold"}]
+    result = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)[0]
+    assert result["class"] == "compile"
+    assert result["reason"] == "no definition named 'hsum512_ps' in src/distance-avx2.c"
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_a_unit_entry_naming_a_cell_grades_exactly_as_the_cell_form(tmp_path):
+    name = build_lattice(FIXTURE).get("avx2/int8/dot").name
+    entries = [
+        {"id": "cell-form", "cell": "avx2/int8/dot", "body": "gold"},
+        {"id": "unit-form", "unit": name, "isa": "avx2", "body": "gold"},
+    ]
+    first, second = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)
+    assert second["unit"] == name and second["unit_kind"] == "cell"
+    assert second["graded_over"] == [["DOT", "I8"]]
+    for field in ("cell", "class", "reason", "reg", "bulk", "edge", "slots", "invented", "first_failure"):
+        assert second[field] == first[field], field
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_a_helper_is_graded_over_the_slots_of_every_cell_that_reaches_it(tmp_path):
+    entries = [{"id": "h", "unit": "hsum256_ps", "isa": "avx2", "body": "gold"}]
+    result = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)[0]
+    assert result["class"] == "pass" and result["unit_kind"] == "helper" and result["cell"] is None
+    # the float32 row and nothing else: the union of `graded_via` over the cells whose bodies reach it
+    assert result["graded_over"] == [["L2", "F32"], ["SQUARED_L2", "F32"], ["L1", "F32"], ["DOT", "F32"], ["COSINE", "F32"]]
+    assert all(slot["installed"] for slot in result["slots"])
+    assert result["bulk"]["failed"] == 0 and result["edge"]["failed"] == 0
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_a_wrong_helper_is_wrong_over_the_slots_that_run_it(tmp_path):
+    entries = [{"id": "h", "unit": "hsum256_ps", "isa": "avx2", "body": "{\n    (void)v;\n    return 0.0f;\n}"}]
+    result = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)[0]
+    assert result["class"] == "wrong" and result["invented"] == []
+    assert result["bulk"]["failed"] > 0
+    assert result["first_failure"]["slot"] in ("L2:F32", "SQUARED_L2:F32", "L1:F32", "DOT:F32", "COSINE:F32")
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_a_helper_no_cell_reaches_is_unexercised_and_counted_apart(tmp_path):
+    entries = [{"id": "u", "unit": "bf16x8_to_f32x8_loadu", "isa": "avx2", "body": "gold"}]
+    result = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)[0]
+    assert result["class"] == grade.UNEXERCISED
+    assert result["graded_over"] == [] and result["slots"] == []
+    assert "no cell of src/distance-avx2.c reaches bf16x8_to_f32x8_loadu" in result["reason"]
+    assert result["reg"] is True  # the file compiled and its init was never touched
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_the_init_unit_is_graded_over_every_slot_the_file_installs(tmp_path):
+    entries = [{"id": "i", "unit": "init_distance_functions_avx2", "isa": "avx2", "body": "gold"}]
+    result = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)[0]
+    assert result["class"] == "pass" and result["unit_kind"] == "init" and result["reg"] is True
+    assert len(result["graded_over"]) == 11
+    assert [slot["slot"] for slot in result["slots"]] == [f"{m}:{t}" for m, t in [tuple(s) for s in result["graded_over"]]]
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_an_init_that_installs_nothing_fails_g_reg(tmp_path):
+    entries = [{"id": "i", "unit": "init_distance_functions_avx2", "isa": "avx2", "body": "{\n    return true;\n}"}]
+    result = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)[0]
+    assert result["reg"] is False  # G-reg reads the assignments off the text, and there are none
+    assert result["class"] == "not-installed"
+    assert "pointing at the scalar table" in result["reason"]
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_the_file_form_fills_several_definitions_at_once_and_the_gold_comes_back(tmp_path):
+    names = ("hsum256_ps", "float32_distance_dot_avx2", "init_distance_functions_avx2")
+    bodies = {name: gold_body_of(name) for name in names}
+    result = grade.grade(FIXTURE, [{"id": "file", "isa": "avx2", "bodies": bodies}], tmp_path, allow_host=True)[0]
+    assert result["class"] == "pass" and result["reg"] is True
+    assert result["units"] == sorted(names) and len(result["graded_over"]) == 11
+    # every body was the gold, so the file filled is the file the target ships: the round trip, whole
+    text = build_lattice(FIXTURE).sources["avx2"].text
+    assert result["filled_sha256"] == hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_the_file_form_reports_one_bad_body_and_compiles_nothing(tmp_path):
+    bodies = {"hsum256_ps": "{\n    return 0.0f;", "popcount_avx2": gold_body_of("popcount_avx2")}
+    result = grade.grade(FIXTURE, [{"id": "file", "isa": "avx2", "bodies": bodies}], tmp_path, allow_host=True)[0]
+    assert result["class"] == "compile"
+    assert result["reason"] == "a body runs from '{' to its matching '}'"
+    assert "filled_sha256" not in result
+
+
+# it names an ISA this box runs, so the gold reference is built before the entry is even read
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_the_file_form_names_a_definition_the_file_has_not(tmp_path):
+    result = grade.grade(
+        FIXTURE, [{"id": "file", "isa": "avx2", "bodies": {"nope": "{}"}}], tmp_path, allow_host=True
+    )[0]
+    assert result["reason"] == "src/distance-avx2.c defines no nope"

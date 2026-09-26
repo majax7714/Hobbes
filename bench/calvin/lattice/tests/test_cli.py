@@ -10,7 +10,7 @@ import test_ages
 import test_compare
 import test_intrinsics
 
-from lattice import cli, e1, prompts, run, shadow
+from lattice import cli, e1, e4, prompts, run, shadow
 from lattice.cells import build as build_lattice
 from lattice.holes import HOLE
 
@@ -720,3 +720,147 @@ def test_e1_report_prints_the_table_and_the_json(tmp_path, capsys, monkeypatch):
     found = json.loads(capsys.readouterr().out)
     assert found["sections"]["bodies"]["arms"]["C-2"]["overall"]["pass_at_1"] == 1.0
     assert found["missing"] == []
+
+
+# MARK: - E4's runner: one held-out file's units -
+
+
+def plan_an_e4_run(tmp_path, capsys, *, arms="S-0", k=0, ledger=False, isa="avx2"):
+    """`lattice e4 plan` over one file, and the run directory it wrote."""
+    run_dir = tmp_path / "e4"
+    argv = [
+        "e4", "plan", str(FIXTURE), str(run_dir), "--model", "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "--isa", isa, "--arms", arms, "--k", str(k),
+    ]
+    if ledger:
+        argv += ["--graph", str(DERIVED / "graph.json"), "--key", str(DERIVED / "oracle.json")]
+    assert cli.main(argv) == 0
+    capsys.readouterr()
+    return run_dir
+
+
+def e4_completions_for(run_dir, isa="avx2"):
+    """A replay file answering every request with that unit's own gold definition."""
+    lattice = build_lattice(FIXTURE)
+    source = lattice.sources[isa]
+    units = {unit.name: unit for unit in e4.units(lattice, isa)}
+    rows = []
+    for line in (run_dir / e1.REQUESTS).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        request = json.loads(line)
+        unit = units[request["unit"]]
+        written = source.text[unit.signature_span.start : unit.body_span.end]
+        rows.append({"id": request["id"], "text": f"```c\n{written}\n```"})
+    recorded = run_dir.parent / "e4-completions.jsonl"
+    recorded.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    return recorded
+
+
+def fake_e4_grade(monkeypatch):
+    """`e1.default_grade`, replaced by one that passes every entry of either E4 form."""
+    monkeypatch.setattr(
+        e1,
+        "default_grade",
+        lambda target, image=run.IMAGE, rename_in_target=None: (
+            lambda entries: [{"id": e["id"], "class": "pass", "reg": True} for e in entries]
+        ),
+    )
+
+
+def test_e4_plan_writes_the_units_the_order_and_the_window(tmp_path, capsys):
+    run_dir = tmp_path / "e4"
+    assert cli.main([
+        "e4", "plan", str(FIXTURE), str(run_dir), "--model", "M", "--isa", "avx2", "--arms", "S-0,S-2", "--k", "1",
+    ]) == 0
+    printed = capsys.readouterr().out
+    assert "e4 plan: 108 request(s) — 27 unit(s) × 2 arm(s) × 2 sample(s) over src/distance-avx2.c at L1" in printed
+    assert "P12 decomposed: largest prompt" in printed and "every window smaller" in printed
+
+    record = json.loads((run_dir / e1.META).read_text())
+    assert record["rung"] == "L1" and record["p12"] == "decomposed" and record["arms"] == ["S-0", "S-2"]
+    assert [row["name"] for row in record["units"]] == [u.name for u in e4.units(build_lattice(FIXTURE), "avx2")]
+    assert record["decomposition"]["every_window_smaller"] is True
+    requests = [json.loads(line) for line in (run_dir / e1.REQUESTS).read_text().splitlines()]
+    assert len(requests) == 27 * 2 * 2 and all(r["mode"] == "chat" for r in requests)
+
+
+def test_e4_plan_refuses_an_arm_of_the_second_unit_and_writes_nothing(tmp_path, capsys):
+    run_dir = tmp_path / "e4"
+    for arm in ("S-5", "S-2o"):
+        assert cli.main(["e4", "plan", str(FIXTURE), str(run_dir), "--model", "M", "--arms", f"S-0,{arm}"]) == 2
+        refusal = capsys.readouterr().err
+        assert f"{arm} is built in the second unit" in refusal
+    assert not run_dir.exists()
+
+    assert cli.main(["e4", "plan", str(FIXTURE), str(run_dir), "--model", "M", "--arms", "C-2"]) == 2
+    assert "no arm 'C-2'" in capsys.readouterr().err
+
+
+def test_e4_plan_refuses_an_isa_the_target_has_not(tmp_path, capsys):
+    assert cli.main([
+        "e4", "plan", str(FIXTURE), str(tmp_path / "e4"), "--model", "M", "--isa", "mmx",
+    ]) == 2
+    assert "no file for ISA 'mmx'" in capsys.readouterr().err
+
+
+def test_e4_plan_skips_the_facts_arm_with_no_ledger_and_names_it(tmp_path, capsys):
+    run_dir = tmp_path / "e4"
+    assert cli.main([
+        "e4", "plan", str(FIXTURE), str(run_dir), "--model", "M", "--arms", "S-2,S-3", "--k", "0",
+    ]) == 0
+    assert "S-3 skipped" in capsys.readouterr().err
+    assert json.loads((run_dir / e1.META).read_text())["arms"] == ["S-2"]
+
+
+def test_e4_run_grades_every_unit_then_builds_the_file_and_reports(tmp_path, capsys, monkeypatch):
+    run_dir = plan_an_e4_run(tmp_path, capsys, arms="S-0,S-2")
+    recorded = e4_completions_for(run_dir)
+    fake_e4_grade(monkeypatch)
+
+    assert cli.main([
+        "e4", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "10", "--generator", f"replay:{recorded}",
+    ]) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["rows"] == 27 * 2 and summary["spent_usd"] == 0.0
+    assert [row["arm"] for row in summary["file_level"]] == ["S-0", "S-2"]
+    # every unit passed on gold, so each arm's file is the target's own and its patch is empty
+    for row in summary["file_level"]:
+        assert row["units_passed"] == 27 and row["diff_pass"] is True
+        assert (run_dir / f"{row['written']}.patch").read_text() == ""
+
+    assert cli.main(["e4", "report", str(run_dir)]) == 0
+    table = capsys.readouterr().out
+    assert "E4 e4 — Qwen/Qwen2.5-Coder-7B-Instruct (L1 on src/distance-avx2.c" in table
+    assert "every window smaller" in table
+    assert "file level (greedy bodies where the unit passed, gold elsewhere):" in table
+    assert "S-2 − S-0" in table and "S-5 − S-3  — S-5 is built in the second unit" in table
+
+    assert cli.main(["e4", "report", str(run_dir), "--json"]) == 0
+    found = json.loads(capsys.readouterr().out)
+    assert found["missing"] == [] and found["units"] == 27
+    assert sorted(found["arms"]["S-0"]["by_kind"]) == ["cell", "helper", "init"]
+    assert found["arms"]["S-0"]["by_kind"]["cell"]["pass_at_1"] == 1.0
+    assert found["arms"]["S-0"]["by_kind"]["init"]["cells"] == 1
+    assert found["comparisons"]["S-2 − S-0"]["pass_at_1"] == {
+        "cells": 27, "both": 27, "neither": 0, "lost": 0, "gained": 0, "delta": 0.0, "p": 1.0,
+    }
+    assert found["comparisons"]["S-5 − S-3"] == {"not_built": "S-5 is built in the second unit"}
+
+
+def test_e4_run_without_a_ceiling_exits_two(tmp_path, capsys):
+    run_dir = plan_an_e4_run(tmp_path, capsys)
+    with pytest.raises(SystemExit) as refused:
+        cli.main(["e4", "run", str(run_dir), str(FIXTURE), "--generator", "replay:nowhere.jsonl"])
+    assert refused.value.code == 2
+    assert "--ceiling-usd" in capsys.readouterr().err
+
+
+def test_e4_run_prints_the_ceiling_refusal_and_grades_nothing(tmp_path, capsys):
+    run_dir = plan_an_e4_run(tmp_path, capsys)
+    recorded = e4_completions_for(run_dir)
+    assert cli.main([
+        "e4", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "0", "--generator", f"replay:{recorded}",
+    ]) == 2
+    assert "nothing was sent" in capsys.readouterr().err
+    assert not (run_dir / e1.ROWS).exists() and not (run_dir / e4.FILE_LEVEL).exists()

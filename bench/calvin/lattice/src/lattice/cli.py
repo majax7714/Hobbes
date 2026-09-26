@@ -15,6 +15,9 @@
     lattice e1 report  <run-dir>                the readings: pass@1, pass@1(sampled), pass@k, per round
     lattice e1 paired  <run-dir> <arm> <arm>    the second arm against the first, paired by cell, exact p
     lattice e2 compare <run-dir> <shadow-run>…  E2: each shadow's deltas and flips against the original
+    lattice e4 plan    <target> <run-dir>       E4: L1's units of one file, leaves first, one arm each
+    lattice e4 run     <run-dir> <target>       answer and grade them, then build the file per arm
+    lattice e4 report  <run-dir>                per arm and unit kind, the file level, the comparisons
     lattice grade      <target> <manifest.json> grade every entry in the manifest; one JSON line each
     lattice selftest   <target> [--cells …]     the gate on the instruments (§5.5)
 
@@ -33,8 +36,21 @@ like `uv run hobbes ingest` does. `<target>` is a checkout's root — the direct
 `src/distance-*.c`.
 
 A manifest is a JSON list of `{"id", "cell", "body"}` entries, or an object with them under `entries`;
-`body` is a body's text, `{` to its matching `}`, or the word `"gold"`. `graph-grade` reads the same
-rows with a grading run's `class` beside them, and says which it did not carry and why.
+`body` is a body's text, `{` to its matching `}`, or the word `"gold"`. **Two more forms are E4's**, and
+`grade` reads all three: `{"id", "unit", "isa", "body"}` is one *definition* of that ISA's file — a cell,
+a non-cell helper or the init — and `{"id", "isa", "bodies": {name: body}}` is E4's file-level build, every
+named body filled into the gold file at once. `graph-grade` reads the cell rows with a grading run's
+`class` beside them, and says which it did not carry and why.
+
+**`e4` is E1's three steps over a file instead of a cell** (`calvin-experiments.md` §6). `e4 plan
+--isa avx2` writes one request per (unit, arm, sample) in the units' **leaves-first** order, with a bare
+skeleton — every other definition of the file a prototype — in each; `meta.json` carries the order, the
+rung and `p12: decomposed` with the largest prompt against the file's own length. The arms are
+`S-0,S-2,S-3`; **`S-5` and `S-2o` are named and not built** — asking for one exits 2 saying they are the
+second unit's — and `S-3` with no ledger is skipped and named, as `prompts` does. `e4 run` answers and
+grades every unit against the *gold* file with that one definition punched, so a failure does not
+cascade, and then builds the file the student wrote: every passing unit's greedy body, gold elsewhere,
+into `final/<arm>/` with a patch, graded once over every slot the file installs.
 
 `facts`, `task` and `prompts` take the ledger as `--graph derived/graph.json`, `--key
 derived/oracle.json` and `--intrinsics index.json`. None of the three is required, and one left out is
@@ -70,6 +86,7 @@ from . import ages as ages_of
 from . import compare as compare_of
 from . import paired as paired_of
 from . import e1 as e1_of
+from . import e4 as e4_of
 from . import facts as facts_of
 from . import graphgrade as graph_of
 from . import report as report_of
@@ -150,6 +167,9 @@ def main(argv: list[str] | None = None) -> int:
     comparer = verbs.add_parser("e2", help="E2's reading: a shadow run's deltas against the original")
     _e2_verbs(comparer)
 
+    rebuilder = verbs.add_parser("e4", help="E4's runner: one file's units at L1, the bare skeleton, the arms")
+    _e4_verbs(rebuilder)
+
     grader = verbs.add_parser("grade", help="grade a manifest of bodies")
     grader.add_argument("target", type=Path)
     grader.add_argument("manifest", type=Path, help="a JSON list of {id, cell, body} entries")
@@ -190,6 +210,8 @@ def main(argv: list[str] | None = None) -> int:
         return _e1(args, rename)
     if args.verb == "e2":
         return _e2(args)
+    if args.verb == "e4":
+        return _e4(args)
     if args.verb == "intrinsics":
         return _intrinsics(args)
     if args.verb == "ages":
@@ -595,6 +617,153 @@ def _e1_paired(args) -> int:
     for name, tests in found.items():
         print(f"  {name}:")
         print("\n".join(paired_of.render_pair(f"{args.second} − {args.first}", tests)))
+    return 0
+
+
+# MARK: - E4's runner -
+
+
+def _e4_verbs(verb: argparse.ArgumentParser) -> None:
+    """`plan`, `run` and `report` — E1's three steps over one held-out file rather than one cell."""
+    steps = verb.add_subparsers(dest="step", required=True)
+
+    planner = steps.add_parser("plan", help="write meta.json and requests.jsonl for one file's units")
+    planner.add_argument("target", type=Path)
+    planner.add_argument("run_dir", type=Path, help="the run directory to create")
+    planner.add_argument("--model", required=True, help="the model the seeds and the prices are for")
+    planner.add_argument("--isa", default="avx2", help="the ISA whose file is held out (default: avx2, E4-a)")
+    planner.add_argument("--arms", help=f"a comma-separated list of arms (default: {','.join(e4_of.ARMS)})")
+    planner.add_argument("--k", type=int, default=e4_of.K, help=f"samples beside greedy (default: {e4_of.K})")
+    _ledger(planner)
+
+    doer = steps.add_parser("run", help="answer and grade every unit, then build the file per arm")
+    doer.add_argument("run_dir", type=Path)
+    doer.add_argument("target", type=Path)
+    doer.add_argument(
+        "--ceiling-usd",
+        type=float,
+        required=True,
+        help="refuse before any call whose estimate would carry the run past this; there is no default",
+    )
+    doer.add_argument(
+        "--generator",
+        default="modal",
+        help="modal (scripts/modal_e1.py) or replay:<completions.jsonl>, which spends nothing",
+    )
+    doer.add_argument("--image", default=run.IMAGE, help=f"the image grading runs in (default: {run.IMAGE})")
+
+    reporter = steps.add_parser("report", help="per arm and unit kind, the file level, the comparisons")
+    reporter.add_argument("run_dir", type=Path)
+    reporter.add_argument("--json", action="store_true", help="the report as JSON rather than a table")
+
+
+def _e4(args) -> int:
+    if args.step == "plan":
+        return _e4_plan(args)
+    if args.step == "run":
+        return _e4_run(args)
+    return _e4_report(args)
+
+
+def _e4_arms(given: str | None) -> list[str]:
+    """The arms asked for, in the order asked. A planned one is `NotBuilt`, not an unknown arm."""
+    if not given:
+        return list(e4_of.ARMS)
+    asked: list[str] = []
+    for arm in [part.strip() for part in given.split(",") if part.strip()]:
+        if arm in e4_of.PLANNED:
+            raise e4_of.NotBuilt(
+                f"{arm} is built in the second unit; this one builds {', '.join(e4_of.ARMS)}"
+            )
+        if arm not in e4_of.ARMS:
+            raise prompts_of.UnknownArm(
+                f"no arm {arm!r}; the arms are {', '.join(e4_of.ARMS)} ({', '.join(e4_of.PLANNED)} are planned)"
+            )
+        if arm not in asked:
+            asked.append(arm)
+    return asked
+
+
+def _e4_plan(args) -> int:
+    """One request per (unit, arm, sample), in leaves-first order. A facts arm with no ledger is skipped."""
+    lattice = build(args.target)
+    if args.isa not in lattice.sources:
+        print(
+            f"lattice: no file for ISA {args.isa!r} in {args.target}; try `lattice map {args.target}`",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        arms = _e4_arms(args.arms)
+    except (e4_of.NotBuilt, prompts_of.UnknownArm) as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    try:
+        ledger = facts_of.load(args.graph, args.key, args.intrinsics)
+    except OSError as missing:
+        print(f"lattice: the ledger could not be read ({missing})", file=sys.stderr)
+        return 2
+
+    given = ledger if (args.graph or args.key or args.intrinsics) else None
+    asked = [arm for arm in arms if given is not None or arm not in e4_of.FACTS_ARMS]
+    for arm in [arm for arm in arms if arm not in asked]:
+        print(
+            f"lattice: {arm} skipped — it is a facts arm and no ledger was given "
+            "(--graph, --key, --intrinsics); it is never filled empty",
+            file=sys.stderr,
+        )
+
+    try:
+        requests = e4_of.plan(lattice, args.isa, asked, args.model, given, k=args.k)
+    except e4_of.DuplicateDefinition as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    record = e4_of.meta(
+        lattice, args.isa, requests, args.model, arms=asked, k=args.k, target=args.target, facts=given
+    )
+    e1_of.write_plan(args.run_dir, requests, record)
+    window = record["decomposition"]
+    print(
+        f"e4 plan: {len(requests)} request(s) — {window['unit_count']} unit(s) × {len(asked)} arm(s) "
+        f"× {args.k + 1} sample(s) over {record['file']} at {record['rung']} → {args.run_dir}"
+    )
+    print(
+        f"  P12 {record['p12']}: largest prompt {window['largest_prompt_chars']} chars against the file's "
+        f"{window['file_chars']} — {'every window smaller' if window['every_window_smaller'] else 'NOT every window smaller'}"
+    )
+    for cycle in record["cycles"]:
+        print(f"  cycle, emitted as one group in file order: {', '.join(cycle)}")
+    return 0
+
+
+def _e4_run(args) -> int:
+    """E1's loop with no iterate rounds, then the file-level build. The grader is the image's."""
+    try:
+        record = json.loads((args.run_dir / e1_of.META).read_text(encoding="utf-8"))
+    except OSError as missing:
+        print(f"lattice: the run's {e1_of.META} could not be read ({missing})", file=sys.stderr)
+        return 2
+    try:
+        generate = _generator(args, record)
+    except (OSError, ValueError) as refusal:
+        print(f"lattice: the generator could not be built ({refusal})", file=sys.stderr)
+        return 2
+    grade = e1_of.default_grade(args.target, args.image)
+    try:
+        summary = e4_of.run(args.run_dir, args.target, generate, grade, ceiling_usd=args.ceiling_usd)
+    except (e1_of.CeilingReached, e1_of.TargetMoved) as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    except (e1_of.MissingCompletion, e1_of.GenerateFailed, e1_of.GradeFailed) as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    print(json.dumps(summary, indent=2, sort_keys=True))
+    return 0
+
+
+def _e4_report(args) -> int:
+    found = report_of.e4_report(args.run_dir)
+    print(json.dumps(found, indent=2, sort_keys=True) if args.json else report_of.e4_render(found))
     return 0
 
 
