@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-26 (nineteenth session); Hobbes 0.2.70-beta on `main`.**
+**Reviewed 2026-09-26 (nineteenth session); Hobbes 0.2.71-beta on `main`.**
 Max pushed through the eighteenth session's last commit (`ea6cb28`,
 0.2.70-beta); the nineteenth session's commits (docs and bench, no version bump) are on
 `main`, unpushed. The image and the proxy are at 0.2.70-beta and this repo
@@ -11,7 +11,7 @@ the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.70-beta are untagged. Tags stay Max's call each time.
+  0.2.71-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -623,7 +623,7 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 170 entries: 124 active (96 surfaced, 24 partial, 3
+- **Register:** 172 entries: 126 active (98 surfaced, 24 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 29 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open** (H-36, a `<genexpr>` frame keyed as a call,

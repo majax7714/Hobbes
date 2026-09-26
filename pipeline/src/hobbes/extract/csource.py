@@ -154,7 +154,7 @@ from pathlib import Path, PurePosixPath
 import tree_sitter_c
 from tree_sitter import Language, Node, Parser
 
-from hobbes.extract.discover import SKIPPED_DIR_NAMES, is_linked_copy
+from hobbes.extract.discover import SKIPPED_DIR_NAMES, is_linked_copy, too_deep
 from hobbes.extract.graph import _edge_list
 
 _PARSER = Parser(Language(tree_sitter_c.language()))
@@ -298,7 +298,12 @@ def extract_c(
                 {"path": rel, "stage": "discover", "message": f"could not read {rel}: {exc}"}
             )
             continue
-        parsed, had_error, duplicated = _parse_file(rel, source)
+        try:
+            parsed, had_error, duplicated = _parse_file(rel, source)
+        except RecursionError:
+            # C-171: the file stays a module and is read as empty.
+            parsed, had_error, duplicated = _parse_file(rel, b"")
+            errors.append(too_deep(rel, "C"))
         files.append(parsed)
         if had_error:
             lossy.add(rel)
@@ -308,7 +313,9 @@ def extract_c(
                     "stage": "parse",
                     "message": (
                         f"{rel} parsed with syntax errors (tree-sitter ERROR nodes); "
-                        "the sites it could still see are kept"
+                        "the sites it could still see are kept, and a definition "
+                        "inside a region the parse could not read is not a symbol "
+                        "(C-172)"
                     ),
                 }
             )

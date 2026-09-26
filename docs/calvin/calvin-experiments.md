@@ -933,8 +933,11 @@ These are for Max (D-7, §9).
 **Two Hobbes defects the draw found**, each reproduced here:
 - **C lane A loses a whole file silently.** Two consecutive definitions, each preceded by an attribute
   specifier inside an `#ifndef` guard (`hypersonic-fixture/FIXTURE.c`, 8 lines), parse as one top-level
-  ERROR node under tree-sitter-c 0.24.2. `csource._parse_file` then returns **no symbols and no note**, so the
-  loss is counted nowhere. 13 non-reproducing variants are kept beside it. IN/OUT parameter macros are not
+  ERROR node under tree-sitter-c 0.24.2, and `csource` keeps **no symbols** from it. **Corrected the same day:**
+  the loss is not silent. `_parse_file`'s second value is `had_error`, which I first read as "ok", and
+  `extract_c` records the file in `extraction_errors` as "parsed with syntax errors … the sites it could still
+  see are kept". That wording does not say every definition was lost. hypersonic has no compile database
+  (C-135), so ADR-129's recovery from the index has nothing to read. 13 non-reproducing variants are kept beside it. IN/OUT parameter macros are not
   the cause, contrary to the first reading. C-131 is the nearest register entry and does not name this loss.
 - **One deep Rust file aborts a repo's whole ingest.** moonlab @ `cd3b234`'s
   `bindings/rust/moonlab-sys/build.rs` is a bindgen builder chain of 537 calls in one expression.
@@ -1178,7 +1181,7 @@ Proposed routes, the recommended one first.
   - c: take ScummVM's GPL-3.0 pool as training data for a bench adapter, never distributed. This is a licence
     call, and its families are unlike the target (no type×ISA shape, 37% near-copies).
 
-- **D-6 — E4's design** (2026-09-26, §6 "E4's design"). The routes E4-a to E4-h, recommended first:
+- **D-6 — E4's design** (2026-09-26, §6 "E4's design"). **Taken: as recommended** (Max, 2026-09-26: "good to proceed with recommended"). The routes E4-a to E4-h, recommended first:
   - L1 on `distance-avx2.c`;
   - every definition a unit, leaves first, with a bare skeleton in every prompt;
   - S-0, S-2 and S-3, S-2o described and S-5 the parser's;
@@ -1191,7 +1194,7 @@ Proposed routes, the recommended one first.
   One dispatched unit builds `lattice e4` first, with no spend. For Max: take the routes as recommended,
   or adjust them.
 
-- **D-7 — E3's pool: which count funds E3** (2026-09-26, after the draw).
+- **D-7 — E3's pool: which count funds E3** (2026-09-26, after the draw). **Taken: a** (Max, 2026-09-26).
   - **a (recommended):** mined real members train without a validation route, since the card's validation is
     for generated siblings. The pool is the **24,222 unique** tasks, deduplicated across repos, with the
     registered body-shape rule's families plus the ISA families. E3 is priced on the steps ablation (300 and
@@ -1201,12 +1204,13 @@ Proposed routes, the recommended one first.
     the limit.
   - c: widen before pricing. Take the 20 passers not reached and fix the rule's three wording faults first.
     That is a second draw, with no spend.
-- **D-8 — the two Hobbes defects the draw found** (extraction; a patch each).
+- **D-8 — the two Hobbes defects the draw found** (extraction; a patch each). **Taken: a** (Max, 2026-09-26).
   - **a (recommended):**
     - **Rust and Java first.** Make `_walk` iterative, so no file's depth ends an ingest. The defect is a
       crash, so it is contained first, with the build.rs shape as a test.
     - **Then C.** A file whose top level is one ERROR node gets a counted `parse-lost` note, surfaced
-      through `list_blind_spots`, and a C-n registers the residual.
+      through `list_blind_spots`, and a C-n registers the residual. Corrected: the file is already recorded,
+      so the change is that record saying the definitions inside were lost, plus a C-n in the C segment.
     - Whether ADR-129's read from the index (C++'s lost definitions) should reach C is measured before an ADR.
   - b: register both and fix neither yet.
 

@@ -976,6 +976,28 @@ class TestDegradation:
         # condition is the layer's to report.
         assert layer["lossy_files"] == frozenset({"broken.c"})
 
+    def test_a_file_the_parse_cannot_read_at_top_level_says_its_definitions_are_lost(self, tmp_path):
+        # The E3 draw's hypersonic-rle-kit, cut to eight lines: two
+        # definitions, each after an attribute an `#ifndef` guards, parse as
+        # one top-level ERROR node and lane A keeps no symbol from the file.
+        # The record says so (C-172); with no compile database nothing
+        # recovers them (C-135).
+        (tmp_path / "kernels.c").write_text(
+            "#ifndef _MSC_VER\n"
+            '__attribute__((target("avx2")))\n'
+            "#endif\n"
+            "int f_avx2(const int *p, int *q) { return 0; }\n"
+            "#ifndef _MSC_VER\n"
+            "__declspec(noinline)\n"
+            "#endif\n"
+            "int f_avx(const int *p, int *q) { return 0; }\n"
+        )
+        layer = extract_c(tmp_path)
+        assert not [s for s in layer["symbols"] if s["name"].startswith("f_avx")]
+        records = [e for e in layer["errors"] if e["path"] == "kernels.c"]
+        assert len(records) == 1
+        assert "C-172" in records[0]["message"] and "not a symbol" in records[0]["message"]
+
     def test_only_the_extern_c_idiom_and_the_duplicate_sep_draw_error_records(self, layer):
         # api.h's `#ifdef __cplusplus` / `extern "C" {` idiom is real,
         # legal C that tree-sitter cannot fully balance (module

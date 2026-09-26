@@ -11,9 +11,34 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.70-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.71-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.71-beta — 2026-09-26 (one file's depth never ends an ingest; C-171, C-172)
+
+**Patch: what the layer reads and says**, in lane A across languages. Built directly in the
+nineteenth session: D-8, route a, on Max's word. Both defects were found by the Calvin E3 draw.
+
+- **The cause.** moonlab's `bindings/rust/moonlab-sys/build.rs` is a bindgen builder chain of 537
+  calls in one expression. `rustsource._walk` was a recursive generator, and it overflowed Python's
+  stack. The `RecursionError` ended the **whole ingest**, not the one file. Go (twice), Java and
+  Terraform had the same walk.
+- **The fix.**
+  - Those walks use an explicit stack in the same pre-order, as C and C++ have since ADR-128. A
+    5,000-call chain now reads in full in Rust, Go and Java.
+  - Every lane A provider (Python, Rust, Go, Java, C, C++) catches an overflow per file. The file
+    keeps its module node, is read as empty, and is named in `extraction_errors` (C-171). The
+    rest of the repo is read as before.
+  - Python's walk is a structural visitor. It still overflows near 600 levels, where CPython
+    compiles 2,000, so containment is its guarantee.
+- **C's parse record says what it loses.** A C file whose top level the parse cannot read, such as
+  two definitions each after an `#ifndef`-guarded attribute (hypersonic-rle-kit), keeps no symbol
+  from it. Its `parse` record now says a definition inside such a region is not a symbol (C-172).
+  Before, it said only that the sites it saw were kept.
+- **Registered:** C-171 and C-172, both surfaced. 172 entries, 126 active.
+- **Seen, not changed:** C and C++ lane A time grows about 8× per doubling of a chain's depth
+  (6 s and 12 s at 800 calls). It is not a crash, and it is left for a measured fix.
 
 ## 0.2.70-beta — 2026-09-24 (a Python moniker one file defines at several lines is no lane B answer; ADR-150, C-170)
 

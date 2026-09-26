@@ -565,6 +565,25 @@
 - **Source:** flask's key (`oracle-grading.md` §10.35, §10.36); ADR-150;
   `~/.hobbes/bench/py-multidef/`.
 
+### C-171 — A file nested deeper than lane A's walk reaches is not read
+- **Cannot tell you:** the symbols and call sites of a file whose syntax tree is nested
+  deeper than its language's lane A walk can recurse. The file keeps its module node and
+  is read as empty. The rest of the repo is read as before.
+- **Because:** Python's recursion limit. Since 0.2.71-beta the Rust, Go, Java and
+  Terraform walks use an explicit stack, as C and C++ have since ADR-128, so a 5,000-call
+  chain reads in full. Anything in a provider that still overflows is caught per file.
+  **Python's** lane A walk (`pysource`) is a structural visitor carrying its scope
+  stack. It overflows near 600 levels, where CPython itself compiles 2,000, so a valid
+  Python file between the two is not read.
+- **Bites at:** a very long builder or fluent chain in one expression, and generated
+  code. It was found at moonlab @ `cd3b234` `bindings/rust/moonlab-sys/build.rs`, a
+  bindgen chain of 537 calls, which **ended the whole ingest** before 0.2.71-beta (the E3
+  draw, `calvin-experiments.md` §6). Python's threshold was measured on a synthetic
+  chain; no repo has met it yet.
+- **You find out:** **surfaced** — one `extraction_errors` record per file (stage
+  `parse`, naming C-171), which `list_blind_spots` reports as a degraded extraction.
+- **Source:** `pipeline/tests/test_deep_files.py`; the E3 draw's record.
+
 ---
 
 ## Lifted constraints in this segment

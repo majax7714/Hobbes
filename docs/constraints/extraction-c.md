@@ -289,6 +289,28 @@
     - a sibling unit's in-repo definition of a kind the graph does not keep, which `join_cross_unit` cannot mark.
 - **Source:** ADR-110; `docs/oracle/cells/sqlite-vector-c-2026-09-12.md`.
 
+### C-172 — A C definition inside a region the parse cannot read is not a symbol
+- **Cannot tell you:** a definition tree-sitter-c recovers into an ERROR node. Two
+  consecutive definitions, each after an attribute specifier inside an `#ifndef` guard,
+  make the whole file one top-level ERROR node, and lane A keeps **no** symbol from it.
+  Calls to those definitions fall to the tail. The call sites the walk still sees are kept.
+- **Because:** the preprocessor never runs in lane A (C-131), and the grammar cannot
+  balance a guarded specifier ahead of a definition. Where a compile database is derived,
+  the file is reported as ADR-129's `lossy_files`, but C's measured answer is that it
+  mints nothing (cJSON and sqlite-vector mint zero). Where none is derived (C-135),
+  nothing is read from the index at all.
+- **Bites at:** hypersonic-rle-kit @ `0e61281`. Its graph named 2 of its 10 ISA kernels,
+  which failed gate 5 of the E3 draw (`calvin-experiments.md` §6). The C++ counterpart is
+  C-145.
+- **You find out:** **surfaced** — the file's `parse` record in `extraction_errors`
+  names C-172 and says a definition inside a region the parse could not read is not a
+  symbol (0.2.71-beta). Before that release the record said only that the sites it saw
+  were kept.
+- **Provider (P9):** tree-sitter-c **0.24.2**.
+- **Source:** `pipeline/tests/test_csource.py`
+  (`test_a_file_the_parse_cannot_read_at_top_level_says_its_definitions_are_lost`);
+  `~/.hobbes/bench/calvin-lattice/e3/draw/hypersonic-fixture/`.
+
 ## Folded entries in this segment
 
 An entry that concedes the same information as another, folded into it

@@ -168,3 +168,23 @@ def discover_modules(repo_root: Path) -> list[ModuleInfo]:
         for name, path, root_rel, kind in found
     ]
     return sorted(modules, key=lambda m: m.id)
+
+
+def too_deep(rel: str, language: str) -> dict:
+    """The degradation record for a file lane A could not walk (C-171).
+
+    A syntax tree nested deeper than a provider's walk reaches — a very long
+    builder chain, one expression thousands of calls deep — raises Python's
+    ``RecursionError``. Every lane A provider catches it per file, records
+    this, and goes on: one file's depth must never end a repo's ingest (the
+    E3 draw's moonlab ``build.rs``, 2026-09-26). The file keeps its module
+    node and loses what lane A would have read in it.
+    """
+    return {
+        "path": rel,
+        "stage": "parse",
+        "message": (
+            f"{rel} is nested deeper than {language} lane A's walk reaches; "
+            "the file's symbols and call sites are not read (C-171)"
+        ),
+    }

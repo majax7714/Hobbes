@@ -6,6 +6,14 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-171 and C-172 registered, 2026-09-26 (0.2.71-beta; D-8, Max: "good to proceed with recommended"):
+- **C-171 added (surfaced).** A file nested deeper than lane A's walk reaches is read
+  as empty and named in `extraction_errors`; the Rust, Go, Java and Terraform walks are
+  now iterative, and Python's visitor is the residual (about 600 levels).
+- **C-172 added (surfaced).** A C definition inside a region the parse cannot read is
+  not a symbol; the file's parse record now says so. 172 entries, 126 active (98
+  surfaced).
+
 C-170 registered, 2026-09-24 (0.2.70-beta; ADR-150, Max: route a):
 - **C-170 added (surfaced).** scip-python gives same-named defs nested in sibling methods
   one moniker; a Python moniker one file defines at several lines is now no lane B

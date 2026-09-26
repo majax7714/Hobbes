@@ -154,9 +154,16 @@ def _string_label(string_lit: Node) -> str:
 
 
 def _walk(node: Node):
-    yield node
-    for child in node.children:
-        yield from _walk(child)
+    """*node* and everything under it in pre-order — the node, then its
+    children left to right, depth first. An explicit stack, as
+    ``csource._walk``: a recursive generator overflowed Python's stack on
+    a 537-call builder chain and ended the whole ingest (moonlab's
+    ``build.rs``, the E3 draw, 2026-09-26)."""
+    stack = [node]
+    while stack:
+        current = stack.pop()
+        yield current
+        stack.extend(reversed(current.children))
 
 
 def _traversals(block: Node):

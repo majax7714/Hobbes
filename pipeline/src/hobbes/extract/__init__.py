@@ -43,7 +43,7 @@ from hobbes.extract import (
 )
 from hobbes.extract.cppsource import collect_cpp_tests, extract_cpp
 from hobbes.extract.csource import collect_c_tests, extract_c
-from hobbes.extract.discover import discover_modules, linked_copies
+from hobbes.extract.discover import discover_modules, linked_copies, too_deep
 from hobbes.extract.emit import ensure_hobbes_ignored, repo_stamp, write_artifacts
 from hobbes.extract.gosource import collect_go_tests, extract_go
 from hobbes.extract.javasource import collect_java_tests, extract_java
@@ -123,10 +123,16 @@ def extract_repo(
     repo_root = Path(repo_root).resolve()
     with timings.step("discover [python]"):
         modules = discover_modules(repo_root)
+    too_deep_python: list[dict] = []
     with timings.step("parse [python]"):
-        parsed = {
-            m.id: parse_source((repo_root / m.path).read_bytes()) for m in modules
-        }
+        parsed = {}
+        for m in modules:
+            try:
+                parsed[m.id] = parse_source((repo_root / m.path).read_bytes())
+            except RecursionError:
+                # C-171: the module stays a node and is read as empty.
+                parsed[m.id] = parse_source(b"")
+                too_deep_python.append(too_deep(m.path, "Python"))
     with timings.step("graph [python]"):
         graph = build_graph(modules, parsed)
     degraded: list[dict] = [
@@ -144,6 +150,7 @@ def extract_repo(
         }
         for link, target in linked_copies(repo_root)
     ]
+    degraded += too_deep_python
 
     # Languages reflect what the repo actually contains — a TS-only repo
     # (M6) must not claim python.

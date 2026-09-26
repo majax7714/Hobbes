@@ -49,7 +49,7 @@ from pathlib import Path, PurePosixPath
 import tree_sitter_java
 from tree_sitter import Language, Node, Parser
 
-from hobbes.extract.discover import SKIPPED_DIR_NAMES, is_linked_copy
+from hobbes.extract.discover import SKIPPED_DIR_NAMES, is_linked_copy, too_deep
 from hobbes.extract.graph import _edge_list
 
 _PARSER = Parser(Language(tree_sitter_java.language()))
@@ -137,16 +137,24 @@ def extract_java(repo_root: Path) -> dict | None:
     """
     repo_root = Path(repo_root).resolve()
     files: list[JavaFile] = []
+    errors: list[dict] = []
     for absolute in iter_java_files(repo_root):
         rel = absolute.relative_to(repo_root).as_posix()
         try:
             source = absolute.read_bytes()
         except OSError:
             continue
-        files.append(_parse_file(rel, source))
+        try:
+            files.append(_parse_file(rel, source))
+        except RecursionError:
+            # C-171: the file stays a module and is read as empty.
+            files.append(_parse_file(rel, b""))
+            errors.append(too_deep(rel, "Java"))
     if not files:
         return None
-    return _join(files)
+    bundle = _join(files)
+    bundle["errors"] = list(bundle["errors"]) + errors
+    return bundle
 
 
 # ---------------------------------------------------------------- parsing
@@ -394,9 +402,16 @@ def _is_test_method(method: Node) -> bool:
 
 
 def _walk(node: Node):
-    yield node
-    for child in node.children:
-        yield from _walk(child)
+    """*node* and everything under it in pre-order — the node, then its
+    children left to right, depth first. An explicit stack, as
+    ``csource._walk``: a recursive generator overflowed Python's stack on
+    a 537-call builder chain and ended the whole ingest (moonlab's
+    ``build.rs``, the E3 draw, 2026-09-26)."""
+    stack = [node]
+    while stack:
+        current = stack.pop()
+        yield current
+        stack.extend(reversed(current.children))
 
 
 def _enclosing(symbols: list[dict], line: int) -> str | None:

@@ -269,7 +269,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-24) — Hobbes 0.2.70-beta
+## Status (2026-09-26) — Hobbes 0.2.71-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -292,7 +292,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   precision (C-60); flask's key found 3 Hobbes-wrong `semantic` edges
   and click's 1 more, all scip-python's one moniker for a method's
   same-named nested defs, refused since 0.2.70-beta (ADR-150, C-170).
-  **Register:** 170 entries; 124 active (96 surfaced, 24 partial, 3
+  **Register:** 172 entries; 126 active (98 surfaced, 24 partial, 3
   unsurfaced, 1 n/a), 29 lifted; the tally is
   held by `test_register_tally.py`, its dated notes are
   `docs/constraints/HISTORY.md`.

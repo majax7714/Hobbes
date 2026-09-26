@@ -194,7 +194,7 @@ from tree_sitter import Language, Node, Parser
 
 from hobbes.extract import csource, laneacache
 from hobbes.extract.csource import _text, _walk
-from hobbes.extract.discover import SKIPPED_DIR_NAMES, is_linked_copy
+from hobbes.extract.discover import SKIPPED_DIR_NAMES, is_linked_copy, too_deep
 from hobbes.extract.graph import _edge_list
 
 _PARSER = Parser(Language(tree_sitter_cpp.language()))
@@ -593,9 +593,14 @@ def _read_and_parse(
         return [{"path": rel, "stage": "discover", "message": f"could not read {rel}: {exc}"}]
     # An unchanged file is read back rather than walked again (ADR-128 §4);
     # the cache is a pure wrapper of `_parse_file` and returns its triple.
-    parsed, had_error, duplicated = laneacache.cached_parse(rel, source, _parse_file)
-    files.append(parsed)
     errors: list[dict] = []
+    try:
+        parsed, had_error, duplicated = laneacache.cached_parse(rel, source, _parse_file)
+    except RecursionError:
+        # C-171: the file stays a module and is read as empty.
+        parsed, had_error, duplicated = _parse_file(rel, b"")
+        errors.append(too_deep(rel, "C++"))
+    files.append(parsed)
     if had_error:
         if lossy is not None:
             lossy.add(rel)
