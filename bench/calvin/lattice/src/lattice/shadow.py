@@ -57,6 +57,7 @@ function to delete when they take a rename of their own.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import shutil
@@ -81,8 +82,11 @@ __all__ = [
     "identifiers",
     "leaks",
     "load",
+    "map_digest",
     "plan",
+    "read_map",
     "self_referential",
+    "tree_digest",
     "write",
 ]
 
@@ -764,10 +768,44 @@ def leaks(plan: Plan, dest: Path | str) -> list[dict]:
     return found
 
 
+def read_map(where: Path | str) -> dict:
+    """A written `shadow-map.json`, whole: the style, the map, `kept`, `prefixed`, the counts, the leaks."""
+    return json.loads(Path(where).read_text(encoding="utf-8"))
+
+
 def load(where: Path | str) -> dict[str, str]:
     """The new-to-original map from a `shadow-map.json` — what `--rename` hands the other verbs."""
-    payload = json.loads(Path(where).read_text(encoding="utf-8"))
-    return {new: old for old, new in (payload.get("renames") or {}).items()}
+    return {new: old for old, new in (read_map(where).get("renames") or {}).items()}
+
+
+# MARK: - what identifies a shadow -
+
+
+def map_digest(where: Path | str) -> str:
+    """The SHA-256 of a `shadow-map.json`'s own bytes: which rename a run was planned through.
+
+    The file's bytes and not the map's contents, because that is what a reader can check by hand
+    against the shadow on disk.
+    """
+    return hashlib.sha256(Path(where).read_bytes()).hexdigest()
+
+
+def tree_digest(root: Path | str) -> str:
+    """One SHA-256 over the renamed files of a shadow: what `_same_target` checks in place of a SHA.
+
+    A written shadow is not a checkout, so `e1`'s `target_sha` is `None` there and the plan would have
+    nothing to hold a run to. The digest covers :data:`RENAMED`'s globs in :func:`_files`' fixed order,
+    each file's repo-relative path and then its bytes, so a renamed file that changed — the one thing
+    that would make the run's prompts another tree's bytes — moves it.
+    """
+    root = Path(root)
+    digest = hashlib.sha256()
+    for file in _files(root):
+        digest.update(file.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update((root / file).read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 @contextmanager

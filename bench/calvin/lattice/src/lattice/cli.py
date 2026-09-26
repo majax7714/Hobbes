@@ -13,6 +13,7 @@
     lattice e1 plan    <target> <run-dir>       E1's requests: (cell, arm, sample) and the G-mem probes
     lattice e1 run     <run-dir> <target>       answer and grade them, round by round, under a ceiling
     lattice e1 report  <run-dir>                the readings: pass@1, pass@1(sampled), pass@k, per round
+    lattice e2 compare <run-dir> <shadow-run>…  E2: each shadow's deltas and flips against the original
     lattice grade      <target> <manifest.json> grade every entry in the manifest; one JSON line each
     lattice selftest   <target> [--cells …]     the gate on the instruments (§5.5)
 
@@ -43,6 +44,16 @@ empty**. `mem-probes` and `prompts` write text only — this CLI never calls a m
 
 `map`, `task` and `grade` take `--rename <shadow-map.json>`: the lattice is then read through that
 shadow's reverse map, so the grid is the target's and the names are the shadow's.
+
+**`e1 plan --rename` plans a run over a shadow** (E2). The target is then the shadow's own root, every
+prompt is its bytes, and `meta.json` carries a `shadow` block — the style, the map's digest, a digest
+over the renamed files, the SHA it was written from, and the names the shadow kept. A facts arm over a
+shadow also needs **`--original <target-root>`**: the ledger is the target's, read at the target's own
+lattice and written forward through the map (`facts.Translated`), because the graph matches by name and
+the clang key by path, line and column. A facts arm with `--rename` and no `--original` is refused. The
+plan is refused outright — `ShadowLeak`, nothing written — if any request writes a name the shadow
+renamed away. `e1 run` takes no new flag: it reads the shadow out of `meta.json`, holds the tree to its
+digest, and grades in the image through `lattice grade --rename /target/shadow-map.json`.
 """
 
 from __future__ import annotations
@@ -55,6 +66,7 @@ import tempfile
 from pathlib import Path
 
 from . import ages as ages_of
+from . import compare as compare_of
 from . import e1 as e1_of
 from . import facts as facts_of
 from . import graphgrade as graph_of
@@ -133,6 +145,9 @@ def main(argv: list[str] | None = None) -> int:
     runner = verbs.add_parser("e1", help="E1's runner: plan the requests, answer and grade them, report")
     _e1_verbs(runner)
 
+    comparer = verbs.add_parser("e2", help="E2's reading: a shadow run's deltas against the original")
+    _e2_verbs(comparer)
+
     grader = verbs.add_parser("grade", help="grade a manifest of bodies")
     grader.add_argument("target", type=Path)
     grader.add_argument("manifest", type=Path, help="a JSON list of {id, cell, body} entries")
@@ -170,7 +185,9 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
     if args.verb == "e1":
-        return _e1(args)
+        return _e1(args, rename)
+    if args.verb == "e2":
+        return _e2(args)
     if args.verb == "intrinsics":
         return _intrinsics(args)
     if args.verb == "ages":
@@ -355,7 +372,14 @@ def _e1_verbs(verb: argparse.ArgumentParser) -> None:
     planner.add_argument("--cells", help="a comma-separated list of cell ids (default: every native cell)")
     planner.add_argument("--arms", help=f"a comma-separated list of arms (default: {','.join(prompts_of.ARMS)})")
     planner.add_argument("--k", type=int, default=e1_of.K, help=f"samples beside greedy (default: {e1_of.K})")
+    planner.add_argument(
+        "--original",
+        type=Path,
+        help="with --rename, the target the shadow was written from: the ledger is read there and "
+        "written forward through the map (required for a facts arm over a shadow)",
+    )
     _ledger(planner)
+    _renamed(planner)
 
     doer = steps.add_parser("run", help="answer and grade the run's requests, round by round")
     doer.add_argument("run_dir", type=Path)
@@ -379,17 +403,43 @@ def _e1_verbs(verb: argparse.ArgumentParser) -> None:
     reporter.add_argument("--json", action="store_true", help="the report as JSON rather than a table")
 
 
-def _e1(args) -> int:
+def _e2_verbs(verb: argparse.ArgumentParser) -> None:
+    """`compare` — the only step: one original run against one or more shadow runs of it."""
+    steps = verb.add_subparsers(dest="step", required=True)
+
+    comparer = steps.add_parser("compare", help="a shadow run's per-arm deltas and per-cell flips")
+    comparer.add_argument("original", type=Path, help="the run over the target itself")
+    comparer.add_argument("shadows", type=Path, nargs="+", help="one or more runs over its rename shadows")
+    comparer.add_argument("--json", action="store_true", help="the comparison as JSON rather than a table")
+
+
+def _e2(args) -> int:
+    """The deltas, from the runs' own rows. Two runs that differ in more than the names are refused."""
+    try:
+        found = compare_of.compare(args.original, args.shadows)
+    except compare_of.NotComparable as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    print(json.dumps(found, indent=2, sort_keys=True) if args.json else compare_of.render(found))
+    return 0
+
+
+def _e1(args, rename) -> int:
     if args.step == "plan":
-        return _e1_plan(args)
+        return _e1_plan(args, rename)
     if args.step == "run":
         return _e1_run(args)
     return _e1_report(args)
 
 
-def _e1_plan(args) -> int:
-    """One request per (cell, arm, sample), plus the G-mem probes. A facts arm with no ledger is skipped."""
-    lattice = build(args.target)
+def _e1_plan(args, rename) -> int:
+    """One request per (cell, arm, sample), plus the G-mem probes. A facts arm with no ledger is skipped.
+
+    With `--rename` the target is a shadow: the lattice is read through the reverse map so the prompts
+    are the shadow's bytes, a facts arm reads the original's ledger written forward (E2-b), `meta.json`
+    carries the shadow's identity (E2-c), and a prompt holding a renamed original is a refusal.
+    """
+    lattice = build(args.target, rename=rename)
     try:
         arms = _arms(args.arms)
         cells = _chosen(lattice, args.cells)
@@ -413,25 +463,70 @@ def _e1_plan(args) -> int:
             "(--graph, --key, --intrinsics); it is never filled empty",
             file=sys.stderr,
         )
+
+    if rename is not None and given is not None and any(arm in prompts_of.FACTS_ARMS for arm in asked):
+        if args.original is None:
+            print(
+                "lattice: a facts arm over a shadow needs --original <target-root> — the ledger names the "
+                "target's symbols and its sites by path, line and column, so it is read at the target's "
+                "own lattice and written forward through the map; it is never read at the shadow",
+                file=sys.stderr,
+            )
+            return 2
+        given = facts_of.Translated(
+            ledger=given,
+            lattice=build(args.original),
+            # `--rename` loads new-to-original; `shadow.apply` writes forward, so it is turned round here
+            renames={old: new for new, old in rename.items()},
+            map_sha256=shadow_of.map_digest(args.rename),
+        )
+
     requests = e1_of.plan(lattice, cells, asked, args.model, given, k=args.k)
-    record = e1_of.meta(args.model, arms=asked, cells=cells, k=args.k, target=args.target, facts=given)
+
+    shadow_block = None
+    if rename is not None:
+        try:
+            e1_of.check_leaks(requests, set(rename.values()))
+        except e1_of.ShadowLeak as refusal:
+            print(f"lattice: {refusal}", file=sys.stderr)
+            return 2
+        shadow_block = e1_of.shadow_meta(args.rename, args.target, args.original)
+
+    record = e1_of.meta(
+        args.model, arms=asked, cells=cells, k=args.k, target=args.target, facts=given, shadow=shadow_block
+    )
     e1_of.write_plan(args.run_dir, requests, record)
     chats = sum(1 for request in requests if request["mode"] == "chat")
     print(
         f"e1 plan: {len(requests)} request(s) — {chats} chat over {len(cells)} cell(s) × {len(asked)} arm(s) "
         f"× {args.k + 1} sample(s), {len(requests) - chats} G-mem → {args.run_dir}"
     )
+    if shadow_block is not None:
+        print(
+            f"  over the {shadow_block['style']} shadow (tree {shadow_block['tree_sha256'][:12]}, "
+            f"map {shadow_block['map_sha256'][:12]}); {len(shadow_block['kept'])} name(s) kept, and on the record"
+        )
     return 0
 
 
 def _e1_run(args) -> int:
-    """The loop. The generator is named on the command line, and the grader is the image's."""
+    """The loop. The generator is named on the command line, and the grader is the image's.
+
+    A run planned over a shadow says so in its own `meta.json`, and nothing on the command line repeats
+    it: the grader is handed the map at the shadow's root, which the image mounts with the target.
+    """
     try:
-        generate = _generator(args)
+        record = json.loads((args.run_dir / e1_of.META).read_text(encoding="utf-8"))
+    except OSError as missing:
+        print(f"lattice: the run's {e1_of.META} could not be read ({missing})", file=sys.stderr)
+        return 2
+    try:
+        generate = _generator(args, record)
     except (OSError, ValueError) as refusal:
         print(f"lattice: the generator could not be built ({refusal})", file=sys.stderr)
         return 2
-    grade = e1_of.default_grade(args.target, args.image)
+    rename_in_target = e1_of.SHADOW_MAP_IN_TARGET if record.get("shadow") else None
+    grade = e1_of.default_grade(args.target, args.image, rename_in_target)
     try:
         summary = e1_of.run(
             args.run_dir, args.target, generate, grade, ceiling_usd=args.ceiling_usd, rounds=args.rounds
@@ -446,14 +541,23 @@ def _e1_run(args) -> int:
     return 0
 
 
-def _generator(args):
-    """`replay:<file>`, which answers from a recorded run, or `modal`, which is the only one that spends."""
+def _generator(args, record: dict):
+    """`replay:<file>`, which answers from a recorded run, or `modal`, which is the only one that spends.
+
+    The Modal one is given the run directory and the ceiling as well, so each call carries the money
+    left as its own timeout and cannot bill past the cap even when the estimate was wrong (E2-d).
+    """
     if args.generator.startswith("replay:"):
         return e1_of.replay_generator(Path(args.generator.split(":", 1)[1]))
     if args.generator != "modal":
         raise ValueError(f"no generator {args.generator!r}; it is modal or replay:<completions.jsonl>")
-    record = json.loads((args.run_dir / e1_of.META).read_text(encoding="utf-8"))
-    return e1_of.modal_generator(record["model"], MODAL_SCRIPT, keep=args.run_dir / "modal-calls")
+    return e1_of.modal_generator(
+        record["model"],
+        MODAL_SCRIPT,
+        keep=args.run_dir / "modal-calls",
+        run_dir=args.run_dir,
+        ceiling_usd=args.ceiling_usd,
+    )
 
 
 def _e1_report(args) -> int:

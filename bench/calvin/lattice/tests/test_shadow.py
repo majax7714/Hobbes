@@ -4,6 +4,7 @@ Everything here is over the real-source fixture and its own Hobbes ingest, so th
 renames is the graph's answer about this tree and not a list written by hand.
 """
 
+import hashlib
 import json
 import re
 import shutil
@@ -235,6 +236,36 @@ def test_the_prose_that_still_names_the_originals_is_measured_not_ignored(plans,
         assert json.loads((shadows[style] / "shadow-map.json").read_text())["leaks"] == shadow.leaks(
             plan, shadows[style]
         )
+
+
+# MARK: - what identifies a written shadow (E2-c) -
+
+
+def test_the_tree_digest_is_the_renamed_files_and_moves_only_with_them(plans, shadows, tmp_path):
+    """A shadow is not a checkout, so this is what an `e1 run` is held to in place of a SHA."""
+    written = shutil.copytree(shadows["descriptive"], tmp_path / "copy")
+    assert shadow.tree_digest(written) == shadow.tree_digest(shadows["descriptive"])
+    assert shadow.tree_digest(written) != shadow.tree_digest(shadows["opaque"])
+
+    (written / "README-ish.md").write_text("prose the rename never touched\n")
+    assert shadow.tree_digest(written) == shadow.tree_digest(shadows["descriptive"])
+
+    kernel = written / "src" / "distance-avx2.c"
+    kernel.write_text(kernel.read_text() + "\n/* one more line */\n")
+    assert shadow.tree_digest(written) != shadow.tree_digest(shadows["descriptive"])
+
+
+def test_the_map_digest_is_the_maps_own_bytes_and_the_map_reads_back_whole(plans, shadows):
+    for style, written in shadows.items():
+        payload = shadow.read_map(written / "shadow-map.json")
+        assert payload["style"] == style
+        assert payload["kept"] == [dict(row) for row in plans[style].kept]
+        assert shadow.map_digest(written / "shadow-map.json") == hashlib.sha256(
+            (written / "shadow-map.json").read_bytes()
+        ).hexdigest()
+    assert shadow.map_digest(shadows["descriptive"] / "shadow-map.json") != shadow.map_digest(
+        shadows["opaque"] / "shadow-map.json"
+    )
 
 
 # MARK: - the lattice of a shadow -

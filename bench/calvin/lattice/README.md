@@ -161,6 +161,20 @@ when its `pos.path` *and* its line inside the body span say so: the key's `calle
 tier, and records the agreement as `"also": "clang-key"`. `Facts` is the ledger (graph, key, intrinsic
 index; any of the three may be absent), and `Facts.source()` is its provenance.
 
+**A shadow's facts are the target's, written forward** (E2-b). Neither instrument answers a rename
+shadow: the graph matches a symbol by name, and the key matches a site by path, line **and column** —
+a shadow changes the first and shifts the last two, so the target's ledger simply does not answer the
+shadow's cells. `Translated(ledger, lattice, renames, map_sha256)` therefore asks the **original**
+lattice's cell of the same grid id — a cell id is `<isa>/<type>/<metric>` and is the same in the target
+and in every shadow — and rewrites the answer's code-naming fields (`name` and `signature` on a callee
+row, `name` and `wrote` on a dropped one) with `shadow.apply`, the same renamer that wrote the shadow's
+files. This is **exact by construction**, because a plan is a bijection or it is `Collision`. What is
+not a name in the tree is carried as it is: the tier, the mode, the kind, the drop's reason. `missing`
+and `dropped` are carried too — a gap in the target's ledger is a gap in the shadow's — and `source()`
+is the wrapped ledger's with `translated_through`, the map's digest, beside it. The alternative,
+re-deriving a ledger on the shadow, means a Hobbes ingest and a clang key per shadow and buys nothing
+this reading needs.
+
 **A header macro is named as the source wrote it** (session `189e`'s review of part 3). A key site in
 mode `macro` names what the macro *expands to*, and that is two facts wearing one shape. Where the macro
 is the repo's own, the expansion is the answer — `MM256_FMA_PS` really does fuse-multiply-add, and
@@ -253,6 +267,13 @@ the functions they document (L3 reads `API.md`). Both go into `shadow-map.json` 
 map, `kept` and the counts. **`.git`, `.hobbes/`, `build/` and `derived/` are not copied** — a history,
 a build tree and an ingest each belong to the tree they came from, and an ingest of the *original* names
 inside a shadow would hand every one of them back.
+
+**What identifies a written shadow** (E2-c), and what an `e1` run is held to. A shadow is a copy and not
+a checkout, so it has no commit: `tree_digest(root)` is one SHA-256 over the renamed files — `RENAMED`'s
+globs in a fixed order, each path and then its bytes — and `map_digest(path)` is the SHA-256 of a
+`shadow-map.json`'s own bytes, which is what a facts arm records as `translated_through`. `read_map`
+reads the map back whole (the style, the renames, `kept`, the counts, the leaks); `load` is still just
+its reverse map, which is what `--rename` hands the verbs.
 
 `grading(rename)` is the **one named seam** that lets the existing graders read a shadow: it rebinds
 `grade.build_lattice` (so the grid is read through the reverse map) and `diff.driver_source` (so the
@@ -397,6 +418,33 @@ the spend already in `calls.jsonl` plus that estimate passes the ceiling, `Ceili
 is raised and nothing is sent. **A generator that reports no cost has its estimate recorded as the cost**,
 with `cost_source` saying which it is: a run whose generator is silent must not read as free.
 
+**The cap now holds on both sides of a call** (E2-d), because E1 found two holes on the far side of that
+check. *One:* nothing bounded what a call billed once it was running — Olmo's round 1 was estimated at
+$1.57, cost $2.56, and carried its run $0.39 past a $4 cap. So `modal_generator(…, run_dir=…,
+ceiling_usd=…)` passes **`--max-usd` = ceiling − `spent()`** on every call, and the script turns that
+into the remote function's own `timeout`; the `generate(requests)` protocol is unchanged, so the replay
+generator and the tests' fakes are untouched, and a caller that passes neither gets what it always got.
+*Two:* a call that **failed** wrote no `calls.jsonl` row at all, so `spent()` read it as free and Olmo's
+lost call ($0.03) had to be added up by hand. Now `GenerateFailed` carries the failed call's own record
+where the script wrote one, `_call` writes the row — `answered: 0`, the error, the cost — **before** the
+refusal goes up, and where there was no record the row carries the call's *estimate* with
+`cost_source: "estimate (the call failed and reported nothing)"`. A timeout still loses its batch; the
+estimate check refuses first, so the timeout only acts when the estimate was wrong.
+
+**A run over a rename shadow** (E2) is the same run under other names, and three things carry it.
+`meta.json` gains a **`shadow` block** — `style`, `map_sha256`, `tree_sha256`, `from_sha` (the original's
+commit, where one was named) and `kept`, the names the shadow left alone, which leak by design and are
+therefore on the record rather than in a footnote. `_same_target` holds a shadow run to `tree_sha256`,
+since a written shadow has no commit for `target_sha` to hold: a renamed file that changed is
+`TargetMoved`, exactly as a moved commit is. And **the leak gate**: before a plan is written, every
+request's text — each message's content, and a G-mem probe's raw prompt — is tokenised as identifiers,
+and a token that is a *renamed original* is `ShadowLeak`, its own type, with nothing written. The gate
+tokenises because that is the grain `shadow.apply` renames at: `my_hsum256_ps` is not a leak and a name
+in a comment is. A name the shadow **kept** is not a leak either — it is in the block above, with its
+reason. Grading a shadow run goes into the image with `--rename /target/shadow-map.json`
+(`default_grade(…, rename_in_target=…)`), the map riding at the shadow's own root, which the image
+already mounts.
+
 **`report`** — the readings, and only what a row holds. Per arm: **pass@1** from greedy, **pass@1(sampled)**
 over the *k* draws, **pass@k** as the unbiased `1 − C(n−c, k)/C(n, k)` per cell then averaged (at `n = k` it
 is any-pass, and under *k* samples it is `None` rather than any-pass wearing the wrong name), and for the
@@ -412,6 +460,20 @@ are a section of their own and are never pooled with real bodies.** Tokens, seco
 `calls.jsonl`'s own, and **`max_tokens` is `meta.json`'s**, stated beside the figures it produced, since a
 completion that stopped at the limit is a fact about the limit. **A missing file is named in `missing`, never read as zero**: a run whose grading never
 happened and a run in which nothing passed are two different results.
+
+**`compare`** — **E2's reading**: an original run against its shadows, from the runs' own rows and
+nothing else. Per arm the two runs share, each run's pass@1, pass@1(sampled) and pass@k with the
+shadow's **delta** against the original; per cell, the **greedy flips** each way — passed then failed,
+and failed then passed. The figures come from `report.report`, which computes nothing a row does not
+hold, and the flips from `rows.jsonl`; neither the target nor the shadow is opened, because by the time
+a run is compared the only evidence left is what it wrote down. Real bodies and wrappers stay in their
+own sections, as the report keeps them. **Two runs that differ in more than the names are refused** —
+`NotComparable`, its own type — when the model, `k`, the sampling parameters or the cells differ: the
+gap is read as *what renaming cost*, and it only reads that way when renaming is the one thing that
+moved. The arms deliberately need not match, so E2-a's two-arm shadow run is compared with E1's
+five-arm original on the two they share. A shadow is named by its `meta.json`'s `shadow.style`, which
+is also the order the two gaps are read in: descriptive − original is the memorised share, and
+opaque − descriptive is what meaning in the names was worth.
 
 **`cli`** — `lattice map <target> [--json]`, `lattice task <target> <cell-id>`,
 `lattice punch <target> <cell-id>`, `lattice grade <target> <manifest.json> [--out results.jsonl]`,
@@ -429,7 +491,19 @@ The two grading verbs take `--here` (this process is contained already) or `--im
 report <run-dir> [--json]`. **`e1 run` is the one verb that would call a model**, and only through the
 generator named on the line: `replay:` answers from a recorded file and spends nothing, `modal` shells out
 to `scripts/modal_e1.py`. `--ceiling-usd` is **required and has no default** (§8), and `e1 plan` skips a
-facts arm with no ledger exactly as `prompts` does. Everything else here still writes text only. Before
+facts arm with no ledger exactly as `prompts` does. Everything else here still writes text only.
+
+**This unit adds two flags and one verb, all E2's.** `e1 plan --rename <shadow-map.json>` plans over a
+shadow: the target named on the line is then the shadow's own root, the lattice is read through the
+reverse map so every prompt is the shadow's bytes, and `meta.json` carries the shadow block. A facts arm
+over a shadow also takes **`--original <target-root>`** — the ledger is the target's, read at the
+target's own lattice and written forward through the map — and a facts arm with `--rename` and no
+`--original` is **refused, exit 2**, never read at the shadow. A plan any of whose prompts writes a
+renamed original is refused too, and nothing is written. `e1 run` takes **no new flag**: it reads the
+shadow out of `meta.json`, checks the tree digest, and passes `--rename /target/shadow-map.json` to the
+image's `lattice grade`. Then `lattice e2 compare <original-run> <shadow-run> [<shadow-run> …]
+[--json]`, which prints the per-arm deltas and the per-cell flips, and exits 2 when the runs differ in
+more than their names. Before
 them, one verb: `lattice
 prompts <target> [--arms C-0,C-2,…] [--cells id,id,…] [--graph G --key K --intrinsics I] [--rename M]
 [--out prompts.jsonl]`, which writes one JSON row per (cell, arm) — `{"cell", "arm", "messages", "shots",
@@ -486,6 +560,15 @@ lattice e1 report runs/qwen-avx2                    # or --json
 # the same run again with no model at all, from a recorded batch
 lattice e1 run runs/qwen-avx2 /path/to/sqlite-vector \
   --ceiling-usd 0.01 --generator replay:completions.jsonl
+
+# E2: the same plan over a shadow — the shadow's bytes, E1's own ids and seeds, the target's ledger
+# written forward through the map. `--original` is required for a facts arm and nothing else.
+lattice e1 plan /tmp/shadow-descriptive runs/qwen-descriptive \
+  --model Qwen/Qwen2.5-Coder-7B-Instruct --arms C-2,C-3 --k 5 \
+  --rename /tmp/shadow-descriptive/shadow-map.json --original /path/to/sqlite-vector \
+  --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
+lattice e1 run runs/qwen-descriptive /tmp/shadow-descriptive --ceiling-usd 1.50 --generator modal
+lattice e2 compare runs/qwen-avx2 runs/qwen-descriptive runs/qwen-opaque   # or --json
 ```
 
 ## E1's runner — the order of work
@@ -518,3 +601,15 @@ a run at an unpinned model is not the run the record describes. One offline batc
 on, one `SamplingParams` per request so the seed is per request; `llm.chat` for the arms and `llm.generate`
 for the G-mem probes, which are continuations a chat template would turn into questions. The GPU rate in
 it is a constant to check against Modal's pricing page, not a quote.
+
+**`--max-usd`, and the record a failed call leaves** (E2-d). The script turns the money left into the
+remote function's own `timeout` — `timeout_for(max_usd, gpu)` is `min(4 h, max_usd / $·s⁻¹ − 120 s)`,
+the 120 s being the boot and model load Modal bills before the GPU does any work of ours — and
+`with_options(gpu=…, timeout=…)` carries it. A budget that buys under 60 s is refused, exit 2, with
+nothing called. The call record is written in a `finally` around the remote call, so a timeout or a
+remote error still leaves `call.json` with `answered: 0`, the error and the host-wall cost, and the
+script then exits non-zero; `lattice.e1` reads that record off `GenerateFailed` into `calls.jsonl`.
+**The arithmetic stays in the script**, beside the price table it reads — one place to change when a
+card's price does — and the test loads the script's source with `modal` stubbed to reach it, because
+this package may not import `modal` and a dispatched session has no route to it. The alternative, a
+copy of the arithmetic in the package where the tests could import it, is two places for one number.

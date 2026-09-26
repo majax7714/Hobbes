@@ -1,11 +1,13 @@
 """The CLI: the map names every ISA, the per-cell verbs answer, and the graders say where they may run."""
 
 import json
+import re
 import shutil
 from pathlib import Path
 
 import pytest
 import test_ages
+import test_compare
 import test_intrinsics
 
 from lattice import cli, e1, prompts, run, shadow
@@ -436,8 +438,11 @@ def test_e1_run_replays_a_file_and_grades_what_it_extracted(tmp_path, capsys, mo
     recorded = completions_for(run_dir, f"```c\n{prompts.definition(lattice, cell)}\n```")
 
     graded = []
+    renames = []
 
-    def fake_default_grade(target, image=run.IMAGE):
+    def fake_default_grade(target, image=run.IMAGE, rename_in_target=None):
+        renames.append(rename_in_target)
+
         def grade(entries):
             graded.extend(entry["id"] for entry in entries)
             return [{"id": entry["id"], "cell": entry["cell"], "class": "pass", "reg": True} for entry in entries]
@@ -450,6 +455,7 @@ def test_e1_run_replays_a_file_and_grades_what_it_extracted(tmp_path, capsys, mo
     ]) == 0
     assert json.loads(capsys.readouterr().out) == {"rows": 2, "gmem": 1, "calls": 1, "spent_usd": 0.0}
     assert len(graded) == 2
+    assert renames == [None]  # not a shadow run, so the graders read the target's own names
     rows = [json.loads(line) for line in (run_dir / e1.ROWS).read_text().splitlines()]
     assert [row["class"] for row in rows] == ["pass", "pass"]
 
@@ -478,6 +484,217 @@ def test_e1_run_prints_the_ceiling_refusal_and_exits_two(tmp_path, capsys):
     assert not (run_dir / e1.ROWS).exists()
 
 
+# MARK: - E2: a run planned over a rename shadow -
+
+
+@pytest.fixture(scope="module")
+def graph():
+    return json.loads((DERIVED / "graph.json").read_text())
+
+
+@pytest.fixture(scope="module")
+def plans(graph):
+    return {style: shadow.plan(FIXTURE, graph, style) for style in shadow.STYLES}
+
+
+@pytest.fixture(scope="module")
+def shadows(plans, tmp_path_factory):
+    """Both shadows of the fixture, written once: E2 plans over these, never over the target."""
+    root = tmp_path_factory.mktemp("e2-shadows")
+    return {style: shadow.write(plan, root / style) for style, plan in plans.items()}
+
+
+def plan_over(run_dir, root, *, rename=None, original=None, cells="avx2/float32/dot", arms="C-2,C-3", k=1):
+    """`lattice e1 plan` over a target or a shadow, with the fixture's own ledger."""
+    argv = [
+        "e1", "plan", str(root), str(run_dir), "--model", "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "--cells", cells, "--arms", arms, "--k", str(k),
+        "--graph", str(DERIVED / "graph.json"), "--key", str(DERIVED / "oracle.json"),
+    ]
+    if rename is not None:
+        argv += ["--rename", str(rename)]
+    if original is not None:
+        argv += ["--original", str(original)]
+    return cli.main(argv)
+
+
+def requests_in(run_dir):
+    return [json.loads(line) for line in (run_dir / e1.REQUESTS).read_text().splitlines() if line.strip()]
+
+
+def user_turn(requests, cell, arm):
+    """The one user turn of a (cell, arm) request's greedy sample."""
+    request = next(r for r in requests if r["id"] == e1.request_id(cell, arm, 0, 0))
+    return request["messages"][1]["content"]
+
+
+def test_a_plan_over_a_shadow_writes_no_renamed_original_anywhere(tmp_path, capsys, plans, shadows):
+    run_dir = tmp_path / "descriptive-run"
+    assert plan_over(run_dir, shadows["descriptive"], rename=shadows["descriptive"] / "shadow-map.json",
+                     original=FIXTURE) == 0
+    capsys.readouterr()
+
+    originals = set(plans["descriptive"].renames)
+    for request in requests_in(run_dir):
+        for text in ([turn["content"] for turn in request.get("messages") or ()] + [request.get("prompt") or ""]):
+            written = set(re.findall(r"[A-Za-z_]\w*", text)) & originals
+            assert written == set(), (request["id"], sorted(written)[:5])
+
+
+def test_a_shadow_asks_with_e1s_own_ids_and_e1s_own_seeds(tmp_path, capsys, shadows):
+    """A cell id is its grid position, so only the bytes differ: the samples are the original's."""
+    here, there = tmp_path / "target-run", tmp_path / "shadow-run"
+    assert plan_over(here, FIXTURE) == 0
+    assert plan_over(there, shadows["descriptive"], rename=shadows["descriptive"] / "shadow-map.json",
+                     original=FIXTURE) == 0
+    capsys.readouterr()
+
+    target, shadowed = requests_in(here), requests_in(there)
+    assert [r["id"] for r in shadowed] == [r["id"] for r in target]
+    assert [r["params"]["seed"] for r in shadowed] == [r["params"]["seed"] for r in target]
+    assert [r["messages"][1]["content"] for r in shadowed if r["mode"] == "chat"] != [
+        r["messages"][1]["content"] for r in target if r["mode"] == "chat"
+    ]
+
+
+def test_a_shadows_facts_arm_names_the_shadows_callees_and_leaves_an_intrinsic_alone(tmp_path, capsys, shadows):
+    here, there = tmp_path / "target-run", tmp_path / "shadow-run"
+    assert plan_over(here, FIXTURE) == 0
+    assert plan_over(there, shadows["descriptive"], rename=shadows["descriptive"] / "shadow-map.json",
+                     original=FIXTURE) == 0
+    capsys.readouterr()
+
+    target = user_turn(requests_in(here), "avx2/float32/dot", "C-3")
+    shadowed = user_turn(requests_in(there), "avx2/float32/dot", "C-3")
+    # the two in-repo callees the target's own C-3 prompt names, under the shadow's names
+    assert "- MM256_FMA_PS:" in target and "- hsum256_ps:" in target
+    assert "- VECOP256_FUSEDMUL_F32LANE:" in shadowed and "- hadd256_f32lane:" in shadowed
+    # the signature on the row is the defining line, and it names things too
+    assert "#define MM256_FMA_PS(_acc, _x, _y)" in target
+    assert "#define VECOP256_FUSEDMUL_F32LANE(_acc, _x, _y)" in shadowed
+    assert "static inline float hadd256_f32lane (__m256 v)" in shadowed
+    # an intrinsic is the language and not the repo: it is renamed in neither
+    assert "- _mm256_fmadd_ps:" in target and "- _mm256_fmadd_ps:" in shadowed
+    assert "hobbes:semantic" in shadowed and "clang-key:static" in shadowed
+
+
+def test_the_meta_of_a_shadow_run_records_the_shadow_and_the_translation(tmp_path, capsys, plans, shadows):
+    run_dir = tmp_path / "run"
+    map_file = shadows["descriptive"] / "shadow-map.json"
+    assert plan_over(run_dir, shadows["descriptive"], rename=map_file, original=FIXTURE) == 0
+    printed = capsys.readouterr().out
+    assert "over the descriptive shadow" in printed
+
+    record = json.loads((run_dir / e1.META).read_text())
+    assert record["shadow"]["style"] == "descriptive"
+    assert record["shadow"]["map_sha256"] == shadow.map_digest(map_file)
+    assert record["shadow"]["tree_sha256"] == shadow.tree_digest(shadows["descriptive"])
+    assert record["shadow"]["from_sha"] == e1.head(FIXTURE)  # the fixture rides in a checkout
+    # the names the shadow kept leak by design, so the run says which they are
+    assert {"name": "sqlite3_vector_init", "reason": "entry-point"} in record["shadow"]["kept"]
+    assert record["shadow"]["kept"] == [dict(row) for row in plans["descriptive"].kept]
+    assert record["ledger"]["translated_through"] == shadow.map_digest(map_file)
+    assert record["ledger"]["graph"]["version"] == "0.2.70-beta"  # the target's own ledger, unchanged
+
+
+def test_the_opaque_shadow_plans_the_same_way(tmp_path, capsys, plans, shadows):
+    run_dir = tmp_path / "run"
+    assert plan_over(run_dir, shadows["opaque"], rename=shadows["opaque"] / "shadow-map.json",
+                     original=FIXTURE) == 0
+    capsys.readouterr()
+
+    renames = plans["opaque"].renames
+    prompt = user_turn(requests_in(run_dir), "avx2/float32/dot", "C-3")
+    assert f"- {renames['MM256_FMA_PS']}:" in prompt and f"- {renames['hsum256_ps']}:" in prompt
+    assert "- _mm256_fmadd_ps:" in prompt
+    assert "float32_distance_dot_avx2" not in prompt and "hsum256_ps" not in prompt
+    assert json.loads((run_dir / e1.META).read_text())["shadow"]["style"] == "opaque"
+
+
+def one_shadow(tmp_path, graph, style="descriptive"):
+    """A shadow of the fixture written where a test may edit it."""
+    return shadow.write(shadow.plan(FIXTURE, graph, style), tmp_path / "shadow")
+
+
+def test_a_planted_original_name_refuses_the_plan_and_writes_nothing(tmp_path, capsys, graph):
+    root = one_shadow(tmp_path, graph)
+    file = root / "src" / "distance-avx2.c"
+    file.write_text("/* this was float32_distance_dot_avx2 */\n" + file.read_text())
+    run_dir = tmp_path / "run"
+
+    assert plan_over(run_dir, root, rename=root / "shadow-map.json", original=FIXTURE, arms="C-2") == 2
+    err = capsys.readouterr().err
+    assert "float32_distance_dot_avx2" in err and "renamed away" in err
+    assert not run_dir.exists()
+
+
+def test_a_name_the_shadow_kept_is_not_a_leak(tmp_path, capsys, graph):
+    root = one_shadow(tmp_path, graph)
+    file = root / "src" / "distance-avx2.c"
+    file.write_text("/* sqlite3_vector_init installs VECTOR_TYPE_F32 */\n" + file.read_text())
+    run_dir = tmp_path / "run"
+
+    assert plan_over(run_dir, root, rename=root / "shadow-map.json", original=FIXTURE, arms="C-2") == 0
+    capsys.readouterr()
+    assert "sqlite3_vector_init" in user_turn(requests_in(run_dir), "avx2/float32/dot", "C-2")
+
+
+def test_a_facts_arm_over_a_shadow_without_the_original_is_refused(tmp_path, capsys, shadows):
+    run_dir = tmp_path / "run"
+    assert plan_over(run_dir, shadows["descriptive"], rename=shadows["descriptive"] / "shadow-map.json",
+                     arms="C-1") == 2
+    assert "--original" in capsys.readouterr().err
+    assert not run_dir.exists()
+
+
+def test_a_shadow_plan_with_no_facts_arm_needs_no_original(tmp_path, capsys, shadows):
+    run_dir = tmp_path / "run"
+    assert plan_over(run_dir, shadows["descriptive"], rename=shadows["descriptive"] / "shadow-map.json",
+                     arms="C-2") == 0
+    capsys.readouterr()
+    record = json.loads((run_dir / e1.META).read_text())
+    assert record["shadow"]["from_sha"] is None  # nothing said which tree it came from, so it says nothing
+
+
+def test_e1_run_over_a_shadow_grades_through_the_map(tmp_path, capsys, monkeypatch, shadows):
+    root = shadows["descriptive"]
+    run_dir = tmp_path / "run"
+    assert plan_over(run_dir, root, rename=root / "shadow-map.json", original=FIXTURE, arms="C-2") == 0
+    capsys.readouterr()
+    recorded = completions_for(run_dir, "```c\nnot a body\n```")
+
+    renames = []
+    monkeypatch.setattr(
+        e1,
+        "default_grade",
+        lambda target, image=run.IMAGE, rename_in_target=None: renames.append(rename_in_target)
+        or (lambda entries: [{"id": e["id"], "cell": e["cell"], "class": "wrong", "reg": False} for e in entries]),
+    )
+    assert cli.main([
+        "e1", "run", str(run_dir), str(root), "--ceiling-usd", "10", "--generator", f"replay:{recorded}",
+        "--rounds", "0",
+    ]) == 0
+    assert renames == ["/target/shadow-map.json"]
+
+
+def test_e2_compare_prints_the_deltas_and_refuses_two_runs_that_differ_in_more(tmp_path, capsys):
+    cells = test_compare.CELLS
+    original = test_compare.write_run(tmp_path / "target-run", {("C-2", cells[0]): True, ("C-2", cells[1]): True})
+    shadowed = test_compare.write_run(tmp_path / "shadow-run", {("C-2", cells[0]): True}, style="descriptive")
+
+    assert cli.main(["e2", "compare", str(original), str(shadowed)]) == 0
+    table = capsys.readouterr().out
+    assert "descriptive (shadow-run)" in table and "-0.50" in table
+
+    assert cli.main(["e2", "compare", str(original), str(shadowed), "--json"]) == 0
+    found = json.loads(capsys.readouterr().out)
+    assert found["shadows"][0]["sections"]["bodies"]["C-2"]["delta"]["pass_at_1"] == -0.5
+
+    other = test_compare.write_run(tmp_path / "k5-run", {}, k=5, style="opaque")
+    assert cli.main(["e2", "compare", str(original), str(other)]) == 2
+    assert "one variable" in capsys.readouterr().err
+
+
 def test_e1_report_prints_the_table_and_the_json(tmp_path, capsys, monkeypatch):
     lattice = build_lattice(FIXTURE)
     cell = lattice.get("avx2/int8/dot")
@@ -486,7 +703,7 @@ def test_e1_report_prints_the_table_and_the_json(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(
         e1,
         "default_grade",
-        lambda target, image=run.IMAGE: (
+        lambda target, image=run.IMAGE, rename_in_target=None: (
             lambda entries: [{"id": e["id"], "cell": e["cell"], "class": "pass", "reg": True} for e in entries]
         ),
     )

@@ -45,6 +45,31 @@ mapped back and re-graded in the image, none of the 53 remappable rows passed. A
 :data:`SIGNATURE` names the target's signature, because telling a model only that `v1` resolves nowhere
 is not a fair turn.
 
+**A run over a rename shadow is the same run under other names** (E2, `calvin-experiments.md` §6,
+routes E2-b and E2-c). A cell id is its grid position, so a shadow's requests carry E1's own ids and
+E1's own seeds and only the bytes differ. Three things this module adds for it:
+
+- **`meta.json` gains `shadow`** — the style, the map's digest, a digest over the renamed files, the SHA
+  the shadow was written from, and the names the shadow `kept`, which leak by design and are therefore
+  on the record. A written shadow is not a checkout, so `target_sha` is `None` there and
+  :func:`_same_target` holds the run to `tree_sha256` instead: a renamed file that changed is
+  :class:`TargetMoved`, exactly as a moved commit is.
+- **The leak gate.** Before a plan is written, every request's text is tokenised and any token that is a
+  *renamed original* raises :class:`ShadowLeak` and nothing is written. A name the shadow `kept` is not
+  a leak — it is in the record above, with its reason.
+- **Grading goes through the map.** `default_grade(…, rename_in_target=…)` passes `--rename` into the
+  image, where the shadow's own root is mounted at `/target` (:data:`SHADOW_MAP_IN_TARGET`).
+
+**The run cap holds on both sides of a call** (E2-d). The estimate is checked *before* a call, and a
+call that is sent carries the money left as a **timeout**: `modal_generator(…, run_dir=…,
+ceiling_usd=…)` passes `--max-usd` = ceiling − :func:`spent`, and `scripts/modal_e1.py` turns that into
+the remote function's `timeout`. Olmo's round 1 was estimated at $1.57, cost $2.56, and carried its run
+$0.39 past a $4 cap; nothing but a timeout bounds what a call bills once it is running. And **a call
+that fails is priced**: :class:`GenerateFailed` carries the failed call's own record where the generator
+wrote one, `_call` writes its `calls.jsonl` row before the exception goes up, and where there was no
+record the row carries the *estimate* with :data:`FAILED_COST` saying so. Olmo's lost call ($0.03) was
+added up by hand because `spent()` read it as free.
+
 **P12.** This is `arm=model+prompt` (ADR-082): one single-use agent per cell, not a decomposed Hobbes test.
 `meta.json` records it, so no report of this run can be read as a Hobbes-test result.
 """
@@ -53,15 +78,17 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Container, Iterable, Sequence
 
 from . import extract, feedback, gmem, prompts
 from . import run as sandbox
+from . import shadow as shadow_of
 from .cells import Cell, Lattice
 from .facts import Facts
 
@@ -70,6 +97,7 @@ __all__ = [
     "CHARS_PER_TOKEN",
     "COLD_START_SECONDS",
     "COMPLETIONS",
+    "FAILED_COST",
     "GMEM",
     "GMEM_MAX_TOKENS",
     "ITERATE",
@@ -81,12 +109,15 @@ __all__ = [
     "REQUESTS",
     "ROUNDS",
     "ROWS",
+    "SHADOW_MAP_IN_TARGET",
     "SIGNATURE",
     "CeilingReached",
     "GenerateFailed",
     "GradeFailed",
     "MissingCompletion",
+    "ShadowLeak",
     "TargetMoved",
+    "check_leaks",
     "default_grade",
     "estimate",
     "head",
@@ -97,6 +128,7 @@ __all__ = [
     "request_id",
     "run",
     "seed",
+    "shadow_meta",
     "spent",
     "write_plan",
 ]
@@ -164,6 +196,15 @@ PRICING = {
 }
 DEFAULT_PRICE = {"prompt_tps": 8000.0, "completion_tps": 950.0, "usd_per_second": 1.10 / 3600}
 
+#: What a failed call's row says its cost is, when the generator wrote no record to price it from. It is
+#: the call's own estimate, which is deliberately high — a lost call must not read as free, and a run
+#: that cannot say what it spent should stop early rather than late.
+FAILED_COST = "estimate (the call failed and reported nothing)"
+
+#: Where a shadow's map is, seen from inside the image: `run.image_plan` mounts the target — which for a
+#: shadow run *is* the shadow — read-only at `/target`, and `shadow.write` puts the map at its root.
+SHADOW_MAP_IN_TARGET = "/target/shadow-map.json"
+
 #: What every call pays before it answers anything: the container's cold start and the model load, two
 #: to three minutes on E1-g's four calls. It is per call, not per token, and on a small round it is most
 #: of the bill — each of E1-g's iterate rounds cost $0.10 to $0.17, mostly this.
@@ -187,7 +228,26 @@ class GradeFailed(Exception):
 
 
 class GenerateFailed(Exception):
-    """The generator did not finish. A fact about the harness or the provider, never about a body."""
+    """The generator did not finish. A fact about the harness or the provider, never about a body.
+
+    *call* is the failed call's own record, where the generator wrote one before it failed. A call that
+    ran, billed and then timed out is not free, and :func:`_call` prices its `calls.jsonl` row from this
+    rather than from the estimate. `None` is "the generator reported nothing", not "it cost nothing".
+    """
+
+    def __init__(self, message: str, call: dict | None = None):
+        super().__init__(message)
+        self.call = call
+
+
+class ShadowLeak(Exception):
+    """A planned request writes a name the shadow renamed away, so nothing was written.
+
+    Its own type (P10, ADR-036) and a refusal rather than a warning: E2 reads the gap between the
+    original and the shadow as what the names were worth, and one original name in one prompt makes
+    that row a different arm without saying so. A name the shadow **kept** is not this — those are
+    listed in the plan's own `meta.json` with their reasons.
+    """
 
 
 class TargetMoved(Exception):
@@ -318,11 +378,13 @@ def meta(
     max_tokens: int = MAX_TOKENS,
     target: Path | str | None = None,
     facts: Facts | None = None,
+    shadow: dict | None = None,
 ) -> dict:
     """The run's `meta.json`: what was asked for, at which SHA, from which ledger, under which P12 arm.
 
     The target is named by its commit and **never by its path** — a path is a fact about this box, and the
-    same run planned on another box has to read as the same run.
+    same run planned on another box has to read as the same run. *shadow* is :func:`shadow_meta`'s block
+    for a run over a rename shadow, and `None` for a run over the target itself.
     """
     return {
         "model": model,
@@ -334,8 +396,64 @@ def meta(
         "iterate": list(iterate),
         "target_sha": None if target is None else head(target),
         "ledger": None if facts is None else facts.source(),
+        "shadow": None if shadow is None else dict(shadow),
         "p12": P12,
     }
+
+
+def shadow_meta(map_file: Path | str, root: Path | str, original: Path | str | None = None) -> dict:
+    """The `shadow` block of a plan over a rename shadow (E2-c).
+
+    `style` and `kept` are the map's own — `kept` as written, because those names are in the shadow's
+    prompts by design and the record is where a reader meets that. `map_sha256` identifies the rename,
+    `tree_sha256` identifies the bytes it was applied to (what :func:`_same_target` holds a run to), and
+    `from_sha` is the **original** target's commit where one was given: a shadow is not a checkout and
+    cannot say by itself which tree it is a shadow of.
+    """
+    payload = shadow_of.read_map(map_file)
+    return {
+        "style": payload.get("style"),
+        "map_sha256": shadow_of.map_digest(map_file),
+        "tree_sha256": shadow_of.tree_digest(root),
+        "from_sha": None if original is None else head(original),
+        "kept": [dict(row) for row in payload.get("kept") or ()],
+    }
+
+
+# MARK: - the leak gate -
+
+#: An identifier token, for the leak gate. The same shape `shadow.apply` rewrites by.
+_IDENT = re.compile(r"[A-Za-z_]\w*")
+
+
+def check_leaks(requests: Sequence[dict], originals: Container[str]) -> None:
+    """Refuse a plan any of whose requests writes a renamed original (E2-c), naming the first one.
+
+    *originals* is the shadow map's `renames` — its **keys** are the target's own names, the ones the
+    shadow removed. Every message's content and a G-mem probe's raw `prompt` are tokenised as
+    identifiers, because that is the grain a rename works at: a substring of a longer name is not a
+    leak, and a name inside a comment is, which is exactly `shadow.apply`'s own rule.
+
+    A plan that renamed `A` to `B` *and* `B` to something else would have `B` read here as a leak. It
+    is the safe direction of a refusal, and neither style writes such a map — `descriptive` maps into
+    another vocabulary and `opaque` into `fn_0001` — so it has never fired.
+    """
+    for request in requests:
+        for text in _sent(request):
+            for token in _IDENT.finditer(text):
+                if token.group(0) in originals:
+                    raise ShadowLeak(
+                        f"request {request.get('id')!r} writes {token.group(0)!r}, which this shadow "
+                        "renamed away; the plan was not written"
+                    )
+
+
+def _sent(request: dict) -> Iterable[str]:
+    """Every piece of text a request would send: a chat's turns, or a raw continuation's prompt."""
+    for turn in request.get("messages") or ():
+        yield turn.get("content") or ""
+    if request.get("prompt"):
+        yield request["prompt"]
 
 
 def head(target: Path | str) -> str | None:
@@ -448,7 +566,21 @@ def run(
 
 
 def _same_target(record: dict, target: Path | str) -> None:
-    """Refuse a run whose target has moved since its plan. A plan with no SHA has nothing to check."""
+    """Refuse a run whose target has moved since its plan. A plan with no SHA has nothing to check.
+
+    A shadow run is held to its `tree_sha256` instead, since a written shadow is not a checkout: the
+    question — are these prompts this tree's bytes? — is the same one, asked of the renamed files.
+    """
+    shadow = record.get("shadow") or {}
+    digest = shadow.get("tree_sha256")
+    if digest is not None:
+        now = shadow_of.tree_digest(target)
+        if now != digest:
+            raise TargetMoved(
+                f"the run was planned over a shadow whose renamed files digest {digest[:12]} and they "
+                f"now digest {now[:12]}; its prompts are the other tree's bytes, so nothing was sent"
+            )
+
     planned = record.get("target_sha")
     if planned is None:
         return
@@ -488,7 +620,13 @@ def _call(
             )
 
         started = time.time()
-        answer = generate(to_send)
+        try:
+            answer = generate(to_send)
+        except GenerateFailed as failure:
+            # a call that failed still ran, and a run that cannot say what it spent must stop early
+            # rather than late: the row goes down before the refusal goes up (E2-d)
+            _append(run_dir / CALLS, [_failed_call_row(round_, to_send, guess, failure)])
+            raise
         wall = round(time.time() - started, 3)
         answered = _completions(answer)
         reported = answer if isinstance(answer, dict) else {}
@@ -697,6 +835,30 @@ def _call_row(round_: int, pending: list[dict], completions: dict[str, dict], re
     }
 
 
+def _failed_call_row(round_: int, pending: list[dict], guess: dict, failure: GenerateFailed) -> dict:
+    """The record of a call that did not answer: what it was asked for, why it failed, and its price.
+
+    The price is the failed call's own record where the generator wrote one — `modal_e1.py` writes
+    `call.json` in a `finally`, so a timeout leaves the host wall behind it — and the call's estimate
+    where it did not, with :data:`FAILED_COST` saying which. A lost call read as free is how a run
+    passes its ceiling without anyone seeing it (Olmo's, E1's record).
+    """
+    record = getattr(failure, "call", None) or {}
+    cost = record.get("cost")
+    return {
+        "round": round_,
+        "requests": len(pending),
+        "answered": 0,
+        "error": str(failure),
+        "tokens_in": record.get("tokens_in") or 0,
+        "tokens_out": record.get("tokens_out") or 0,
+        "seconds": record.get("wall_seconds") or record.get("seconds") or 0.0,
+        "cost": guess["usd"] if cost is None else float(cost),
+        "cost_source": FAILED_COST if cost is None else "reported",
+        "estimate": guess,
+    }
+
+
 def _completions(answer: object) -> dict[str, dict]:
     """A generator's answer as `{id: completion}`.
 
@@ -711,11 +873,18 @@ def _completions(answer: object) -> dict[str, dict]:
 # MARK: - the graders and the generators a caller can inject -
 
 
-def default_grade(target: Path | str, image: str = sandbox.IMAGE) -> Callable[[list[dict]], list[dict]]:
+def default_grade(
+    target: Path | str, image: str = sandbox.IMAGE, rename_in_target: str | None = None
+) -> Callable[[list[dict]], list[dict]]:
     """The grader the runner uses: one round's bodies through `lattice grade` **in the image**.
 
     Grading compiles and runs the target's code, so it never happens on the host (ADR-092, C-64). This is
     `cli._grade`'s own plan, once per round rather than once per body.
+
+    *rename_in_target* is a shadow map's path **as the container sees it** — normally
+    :data:`SHADOW_MAP_IN_TARGET`, since the shadow is what rides at `/target` and `shadow.write` puts
+    its map at the root. Without it the graders read the grid off the target's own names, which a
+    shadow does not write, and every body would grade against an empty lattice.
     """
 
     def grade(entries: list[dict]) -> list[dict]:
@@ -724,12 +893,10 @@ def default_grade(target: Path | str, image: str = sandbox.IMAGE) -> Callable[[l
         workdir = Path(tempfile.mkdtemp(prefix="lattice-e1-"))
         try:
             (workdir / "manifest.json").write_text(json.dumps(entries), encoding="utf-8")
-            plan_argv = sandbox.image_plan(
-                image,
-                target,
-                workdir,
-                ["grade", "/target", "/work/manifest.json", "--out", "/work/results.jsonl", "--work", "/work/run"],
-            )
+            inner = ["grade", "/target", "/work/manifest.json", "--out", "/work/results.jsonl", "--work", "/work/run"]
+            if rename_in_target:
+                inner += ["--rename", rename_in_target]
+            plan_argv = sandbox.image_plan(image, target, workdir, inner)
             done = sandbox.run_plan(plan_argv)
             if done.returncode != 0:
                 raise GradeFailed(f"`lattice grade` in {image} exited {done.returncode}: {done.stderr[-2000:]}")
@@ -761,7 +928,14 @@ def replay_generator(path: Path | str) -> Callable[[list[dict]], dict]:
     return generate
 
 
-def modal_generator(model: str, script: Path | str, keep: Path | str | None = None) -> Callable[[list[dict]], dict]:
+def modal_generator(
+    model: str,
+    script: Path | str,
+    keep: Path | str | None = None,
+    *,
+    run_dir: Path | str | None = None,
+    ceiling_usd: float | None = None,
+) -> Callable[[list[dict]], dict]:
     """The host side of E1-f: shell out to `scripts/modal_e1.py` and read the batch back.
 
     This package never imports `modal` — the script is a `uv run` script with its own dependencies, and a
@@ -772,35 +946,51 @@ def modal_generator(model: str, script: Path | str, keep: Path | str | None = No
     are never deleted: the completions a call paid for are on disk before this function parses them. The
     first paid E1 call was lost to a parse error in exactly that gap (the review of E1-g's first run).
     The call record's own counts never overwrite the completions: those are set last.
+
+    **With both *run_dir* and *ceiling_usd*, each call carries the money left** as `--max-usd`, which the
+    script turns into the remote function's timeout (E2-d). The estimate check refuses first, so this
+    only acts when the estimate was wrong — which it was on Olmo's round 1, by $0.99. The
+    `generate(requests)` protocol is unchanged, so a caller that passes neither gets exactly what it got
+    before, and a failed call's own record rides up on :class:`GenerateFailed` to be priced.
     """
     script = Path(script)
 
     def generate(requests: list[dict]) -> dict:
         workdir = _call_dir(keep)
+        call_file = workdir / "call.json"
         try:
             requests_file, out_file = workdir / "requests.jsonl", workdir / "completions.jsonl"
-            call_file = workdir / "call.json"
             _append(requests_file, requests)
-            done = subprocess.run(
-                [
-                    "uv", "run", str(script),
-                    "--model", model,
-                    "--requests", str(requests_file),
-                    "--out", str(out_file),
-                    "--call", str(call_file),
-                ],
-                capture_output=True,
-                text=True,
-            )
+            argv = [
+                "uv", "run", str(script),
+                "--model", model,
+                "--requests", str(requests_file),
+                "--out", str(out_file),
+                "--call", str(call_file),
+            ]
+            if run_dir is not None and ceiling_usd is not None:
+                argv += ["--max-usd", f"{ceiling_usd - spent(run_dir):.6f}"]
+            done = subprocess.run(argv, capture_output=True, text=True)
             if done.returncode != 0:
-                raise GenerateFailed(f"{script.name} exited {done.returncode}: {done.stderr[-2000:]}")
-            call = json.loads(call_file.read_text(encoding="utf-8")) if call_file.exists() else {}
-            return {**call, "completions": _read(out_file)}
+                raise GenerateFailed(
+                    f"{script.name} exited {done.returncode}: {done.stderr[-2000:]}", call=_call_record(call_file)
+                )
+            return {**(_call_record(call_file) or {}), "completions": _read(out_file)}
         finally:
             if keep is None:
                 shutil.rmtree(workdir, ignore_errors=True)
 
     return generate
+
+
+def _call_record(call_file: Path) -> dict | None:
+    """A call's own record, or `None` where it wrote none — which is not the same as "it was free"."""
+    if not call_file.exists():
+        return None
+    try:
+        return json.loads(call_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
 
 
 def _call_dir(keep: Path | str | None) -> Path:

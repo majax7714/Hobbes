@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from lattice import facts, intrinsics
+from lattice import facts, intrinsics, shadow
 from lattice.cells import build
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
@@ -310,3 +310,75 @@ def test_the_rows_are_json_able_and_carry_no_absolute_path(lattice, graph, key):
     dumped = json.dumps(list(rows))
     assert json.loads(dumped) == list(rows)
     assert str(FIXTURE) not in dumped
+
+
+# MARK: - E2-b: the target's ledger, written forward into a shadow's names -
+
+
+@pytest.fixture(scope="module")
+def ledger():
+    return facts.load(graph=DERIVED / "graph.json", key=DERIVED / "oracle.json")
+
+
+@pytest.fixture(scope="module")
+def shadowed(graph, lattice, ledger, tmp_path_factory):
+    """The descriptive shadow of the fixture, its own lattice, and the ledger written forward into it."""
+    plan = shadow.plan(FIXTURE, graph, "descriptive")
+    root = shadow.write(plan, tmp_path_factory.mktemp("facts-shadow") / "descriptive")
+    translated = facts.Translated(
+        ledger=ledger, lattice=lattice, renames=plan.renames, map_sha256="d" * 64
+    )
+    return plan, build(root, rename=plan.reverse()), translated
+
+
+def test_a_shadow_cell_answers_with_the_original_cells_callees_under_the_new_names(shadowed, lattice, ledger):
+    plan, shadow_lattice, translated = shadowed
+    cell = shadow_lattice.get("avx2/float32/dot")
+    assert cell.name == plan.renames["float32_distance_dot_avx2"]  # the shadow's own name
+
+    rows = translated.callees(shadow_lattice, cell)
+    before = ledger.callees(lattice, lattice.get("avx2/float32/dot"))
+    assert [row["name"] for row in rows] == [
+        plan.renames.get(row["name"], row["name"]) for row in before
+    ]
+    assert [row["name"] for row in rows][:2] == ["VECOP256_FUSEDMUL_F32LANE", "hadd256_f32lane"]
+    # an intrinsic is the language and not the repo: the rename never touched it
+    assert "_mm256_fmadd_ps" in [row["name"] for row in rows]
+
+
+def test_the_signature_on_a_row_names_things_too_and_is_written_forward(shadowed):
+    _, shadow_lattice, translated = shadowed
+    rows = translated.callees(shadow_lattice, shadow_lattice.get("avx2/float32/dot"))
+    by_name = {row["name"]: row for row in rows}
+    assert by_name["VECOP256_FUSEDMUL_F32LANE"]["signature"].startswith(
+        "#define VECOP256_FUSEDMUL_F32LANE(_acc, _x, _y)"
+    )
+    assert by_name["hadd256_f32lane"]["signature"] == "static inline float hadd256_f32lane (__m256 v)"
+    # everything that is not a name in the tree is the row's own: the tier, the mode, the kind
+    assert by_name["hadd256_f32lane"]["provenance"] == "hobbes:semantic"
+    assert by_name["hadd256_f32lane"]["also"] == "clang-key"
+    assert by_name["_mm256_fmadd_ps"]["provenance"] == "clang-key:macro"
+
+
+def test_what_the_ledger_could_not_answer_is_carried_and_not_smoothed(shadowed):
+    _, shadow_lattice, translated = shadowed
+    rows = translated.callees(shadow_lattice, shadow_lattice.get("avx2/float32/dot"))
+    assert rows.missing == ["intrinsics"]  # the target's gap is the shadow's gap
+
+
+def test_a_dropped_expansion_is_carried_with_its_names_written_forward(lattice, ledger):
+    """The fixture's drops are clang's own names, which no shadow renames — so the map is made here."""
+    renames = {"_mm256_extracti128_si256": "zz_extract", "__builtin_ia32_extract128i256": "zz_builtin"}
+    translated = facts.Translated(ledger=ledger, lattice=lattice, renames=renames, map_sha256="d" * 64)
+    rows = translated.callees(lattice, lattice.get("avx2/bit1/hamming"))
+    dropped = {(row["name"], row["wrote"]) for row in rows.dropped}
+    assert ("zz_builtin", "zz_extract") in dropped
+    assert all(row["reason"] == facts.DROPPED for row in rows.dropped)  # the reason is prose, not a name
+
+
+def test_the_translated_ledger_says_which_map_every_name_went_through(shadowed, ledger):
+    _, _, translated = shadowed
+    source = translated.source()
+    assert source["translated_through"] == "d" * 64
+    assert source["graph"] == ledger.source()["graph"]  # the provenance is still the target's own
+    assert source["key"] == ledger.source()["key"]
