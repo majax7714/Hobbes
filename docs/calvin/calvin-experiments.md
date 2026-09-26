@@ -944,6 +944,33 @@ These are for Max (D-7, §9).
   `rustsource._walk`, a recursive generator, exceeds Python's recursion limit, and the `RecursionError`
   ends the ingest. `javasource._walk` has the same shape.
 
+#### E3's price on D-7's pool (2026-09-26; no spend)
+
+**The pool:** 24,222 unique tasks (D-7 a). **The model:** Qwen2.5-Coder-7B, E1's student. **The recipe:**
+ADR-099's (LoRA r=32 α=64, batch 16, ≤ 2k tokens, lr 2e-4 cosine). A 300-step adapter took **667 s of A100**
+there (`olmo3-ttt-results.md`), and the whole ADR-099 run was about 3 GPU-hours and $5.70. At that meter's rate
+(about $1.90 an hour):
+
+| line | what | estimate |
+|---|---|---|
+| training | the adapter and the shuffled-answers control, at 300 steps (4,800 examples, 0.2 epoch) and at 3,000 (48,000, 2 epochs) | 2 × $0.35 + 2 × $3.50 ≈ **$8** |
+| evaluation | base and four adapters × {C-0, C-2, C-3, C-4, stated-task opaque} × 93 cells × (greedy + k = 10), at E2's measured $0.2 an arm a model | 5 × 5 × $0.2 ≈ **$5** |
+| overhead | cold starts, data loading, LoRA serving, E2's 35% over-estimate | ≈ **$4** |
+| **total** | | **≈ $17**, inside the card's $25 |
+
+- **Order, each step priced against its estimate before the next.**
+  - The 300-step pair first (about $1 training plus its evaluation).
+  - The 3,000-step pair only after the 300-step reading. ADR-099 saw the effect leave as facts came in, so the
+    steps ablation is the reading, not a formality.
+- **Before any of it, the corpus** (a dispatched unit, no spend). It turns the draw's members into training
+  examples ("given the neighbours, write the member") with:
+  - sqlite-vector excluded by name and by near-copy (ratio ≥ 0.6 against the 93 golds);
+  - dedupe across repos by body hash, as the draw did;
+  - no dispatched session's text (`units_from_git`'s refusal and a test for it, §8);
+  - the prompt/answer token lengths measured, which replaces this table's ≤ 2k assumption;
+  - G-mem run on the base before training, at the 93 cells, as E1 did.
+- **For Max (D-9):** clear the corpus unit now, and E3's run at the $25 ceiling once the corpus is reviewed.
+
 ### E4 — the teacher and the student: rebuild a file (M-a or M-b, K-1, L1 then L3)
 
 - **Question:** given the graph's skeleton, does a teacher's spec (C-5) let a small student
@@ -1213,6 +1240,11 @@ Proposed routes, the recommended one first.
       so the change is that record saying the definitions inside were lost, plus a C-n in the C segment.
     - Whether ADR-129's read from the index (C++'s lost definitions) should reach C is measured before an ADR.
   - b: register both and fix neither yet.
+
+- **D-9 — E3's corpus, then its run** (2026-09-26, after D-7).
+  - **a (recommended):** dispatch the corpus unit now, with no spend, after E4's two runner units, one at a time.
+    Then run E3 at a **$25 ceiling**: the 300-step pair first, and the 3,000-step pair only after its reading.
+  - b: hold E3 until E4 has run, so the in-context route reads first.
 
 ---
 
