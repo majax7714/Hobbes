@@ -569,15 +569,21 @@ def _neighbours(read: _Read, member: dict, seed: int) -> tuple[dict | None, list
     """The first of the member's families that can show it neighbours, and up to `NEIGHBOURS` of them.
 
     A candidate is another member of that family which is **not** `near-target` — the target's code is
-    not in this corpus in any column — and whose definition the clone can be read for. Candidates are
+    not in this corpus in any column — whose body is **not the member's own** (the same
+    :func:`families.body_hash`: a copy in another file or `#if` arm, which the dedupe keeps out of the
+    tasks but which would otherwise show a member its own answer — 244 examples on the first real
+    build, 2026-09-26), and whose definition the clone can be read for. Candidates are
     taken in the clone's own `(path, line)` order from a start derived with SHA-256 from the seed and
     the member's own place, so a large family is spread over rather than read from its first row every
     time, and the same seed gives the same three every run.
     """
     for family in read.by_member.get(member["id"], []):
         candidates = []
+        own = families.body_hash(member["body"])
         for other in sorted(family["members"], key=lambda m: (m["path"], m["line"] or 0, m["id"])):
             if other["id"] == member["id"] or other["id"] in read.excluded:
+                continue
+            if families.body_hash(other["body"]) == own:
                 continue
             found = read.clone.definition(other["path"], other["line"], other["end_line"])
             if found is not None:

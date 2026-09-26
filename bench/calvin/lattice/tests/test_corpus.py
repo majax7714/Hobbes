@@ -251,6 +251,38 @@ int step_kernel_{isa}(const int *a, int n) {{
     assert len({record.neighbours for record in wide}) == 5
 
 
+def test_a_copy_of_the_members_own_body_is_never_its_neighbour(tmp_path, two):
+    # The first real build showed 244 members their own answer: a same-named copy of the member in
+    # another file sat in its family, and the dedupe keeps a copy out of the tasks but not out of the
+    # neighbours. The copy is not a neighbour now; the sibling that differs still is.
+    kernel = """
+int copy_kernel_{isa}(const int *a, int n) {{
+    int total = {at};
+    for (int i = 0; i < n; i++) {{
+        total += a[i] * {at};
+    }}
+    return total;
+}}
+"""
+    root = write_clone(
+        tmp_path / "copies",
+        {
+            "src/a.c": [("copy_kernel_sse2", kernel.format(isa="sse2", at=1))],
+            "src/b.c": [("copy_kernel_sse2", kernel.format(isa="sse2", at=1))],
+            "src/c.c": [("copy_kernel_avx2", kernel.format(isa="avx2", at=2))],
+        },
+    )
+    built = corpus.build_corpus(two + [("copies", root)], FIXTURE)
+    records = [record for record in built.records if record.repo == "copies"]
+    assert records, "the copies' family keeps at least one task"
+    for record in records:
+        assert all(not (record.name == "copy_kernel_sse2" and at.startswith(("src/a.c", "src/b.c")))
+                   for at in record.neighbours)
+        answer = record.messages()[-1]["content"]
+        code = answer.split("```")[1].split("\n", 1)[1].strip()
+        assert code not in record.messages()[1]["content"]
+
+
 # MARK: - the drops -
 
 
