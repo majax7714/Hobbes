@@ -35,11 +35,13 @@ drivers' paths below.
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Two tracks are open.**
-- **The Calvin experiments' E1:** the runner is built (units `8e50` and `66c5`), and the first unit (E1-g) has run.
-  It spent $0.74 of the $10 ceiling, $0.16 of that lost to a defect that is now fixed. The record and the readings
-  are `calvin-experiments.md` §6, "E1-g's record". **Waiting on Max:**
-  - the word to widen: Qwen's `sse2` and `avx512`, then Olmo's three ISAs, at about $2 to $3;
-  - three instrument calls the real rows raised (routes in standing item 1).
+- **The Calvin experiments' E1 is done: both models, all 93 cells, $6.59 of the $10 ceiling.** The record is
+  `calvin-experiments.md` §6, "E1's record". Qwen's pass@1 is C-2 0.29 and C-3 0.38, against C-0 0.03 and C-4 0.05:
+  pattern beats volume, and facts help only beside pattern. Olmo sits at the floor and mostly invents names. **For
+  Max:**
+  - E2's shadows on Qwen C-2/C-3, at about $1, before E3;
+  - the guard fix: Olmo passed its $4 run cap by $0.39, because the cap is checked before a call;
+  - whether Olmo stays an arm.
 - **Extraction:** the next candidate is **route c** (below), measured first.
 
 - **Done (ADR-146, 0.2.65-beta, unit `f751`, 45 turns, $2.49; Max: route a):** a
@@ -453,6 +455,8 @@ named below was removed unless it says otherwise.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
+   - **E1 is done (2026-09-25); the record is §6, "E1's record".** The three instrument calls below were taken
+     as recommended (unit `06e3`), and both models ran on all 93 cells. What follows is kept for its drivers.
    - **E1 after its first unit (2026-09-25, seventeenth session).** E1-g has run: Qwen2.5-Coder-7B, the 31 `avx2`
      cells, all five arms, $0.74 in all. The record is §6, "E1-g's record", and the run is
      `~/.hobbes/bench/calvin-lattice/e1/e1g-qwen-avx2/` (`lattice e1 report <dir>`). Before widening, three

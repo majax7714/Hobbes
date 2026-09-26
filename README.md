@@ -463,9 +463,11 @@ instruction sets, with the scalar file as the numeric oracle. E0, the
 instruments (`bench/calvin/lattice/`), was built and accepted on the
 real target on 2026-09-25: all 93 golds pass, and the two rename shadows
 pass the target's own suite. E1's runner was built the same day, and its
-first unit (Qwen2.5-Coder-7B on the `avx2` file, all five context arms)
-ran for $0.74 of a $10 ceiling. It is one unit's figures, not a finding:
-the record is in the experiments page.
+run, E1, covered both 7B bases over all 93 cells for $6.59 of a $10
+ceiling. On Qwen2.5-Coder, pattern examples in context raised pass@1 from
+0.05 (the same volume of unrelated code) to 0.29, and facts from the
+graph helped only beside them (0.38). The record is in the experiments
+page.
 
 The work built through it includes C's lane A and its oracle, the
 external veto (ADR-111), a session's records written by a sidecar

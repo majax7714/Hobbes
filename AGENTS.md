@@ -320,10 +320,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   a model that writes C, starting from sqlite-vector's kernel lattice.
   E0, the instruments (`bench/calvin/lattice/`), was built and accepted
   on the real target on 2026-09-25. E1's runner was built the same day
-  (units `8e50` and `66c5`), and its first unit, E1-g (Qwen, `avx2`),
-  ran for $0.74 of the $10 ceiling. Pattern beat the volume control
-  (pass@1 0.19 against 0.05), and facts alone did not help. Widening
-  waits on Max, and on three instrument calls in the handoff.
+  (units `8e50`, `66c5` and `06e3`), and E1 ran on both 7Bs over all
+  93 cells for $6.59 of the $10 ceiling. On Qwen, pass@1 is 0.29 with
+  pattern shots (C-2) and 0.38 with shots and facts (C-3), against 0.05
+  for the same volume of unrelated code (C-4). Facts alone did not help,
+  and Olmo sits at the floor. Next, for Max: E2's shadows, then E3.
 - **Open for Max:** the gate's false block on a new decorator naming a
   module-level value (sessions 9326 and c141; the handoff has it);
   ADR-126 §3 — whether to build a "may reach through dispatch (not

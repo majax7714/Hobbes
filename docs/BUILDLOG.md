@@ -14304,3 +14304,24 @@ went as two serial units, because E0's last unit had hit its turn cap:
   - G-mem on a wrapper is not evidence.
 
 The record is `calvin-experiments.md` §6, "E1-g's record". There is no version bump (ADR-103).
+
+**Later: E1 widened to both models (Max: "good to proceed with recommended"; then "good to stop olmo after this
+round").**
+- **The three instrument fixes, unit `06e3`** (91 turns, $8.95, gate clear): the `param` bucket, `max_tokens` 2,048,
+  the G-mem evidence floor, and the measured price. On E1-g's rows the rule moved exactly the 60 rows measured.
+- **Qwen, all 93 cells: $1.46.** Pass@1 on the 63 real bodies:
+  - C-0 0.03, C-1 0.00, C-2 0.29, C-3 0.38, C-4 0.05.
+  - No pass copies its ISA shot, and every pass uses the hole's own vector width.
+  - The gain is not only near-copying: C-3 passes 11 of the 28 cells whose nearest shot is more than 30% away.
+- **Olmo: $4.39.**
+  - Its first call failed. Olmo 3's 16k KV cache does not fit the A10G, and the Modal script ignored its per-model
+    GPU pin. Fixed in `3e64489`, with Olmo moved to the L40S.
+  - It then passed its $4 cap by $0.39, because the guard checks the estimate before a call and Olmo's long answers
+    ran over it.
+  - It was stopped after round 1 on Max's word, and round 1 was graded from the kept completions with a replay that
+    cannot spend.
+  - It sits at pass@1 0.00–0.05, and about 80% of its answers invent names.
+- **E1 in all: $6.59 of $10.**
+
+The record is `calvin-experiments.md` §6, "E1's record". What E1 selects is E2's shadows and then E3, for Max, beside
+the guard fix.

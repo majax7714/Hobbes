@@ -491,6 +491,87 @@ findings:
 3. **G-mem on a wrapper is not evidence.** With K = 2, a three-line wrapper's expected continuation is `}`, so all 10
    read `memorised`. The probe needs a floor on the expected tokens.
 
+#### E1's record — both models, all 93 native cells (2026-09-25; Max: "good to proceed with recommended")
+
+**Before the widening**, the three instrument calls were taken as recommended (unit `06e3`):
+- the `param` bucket;
+- `max_tokens` 2,048;
+- the G-mem evidence floor.
+
+`06e3` also set the measured price. Checked on E1-g's rows, the `param` rule moved exactly the 60 rows that were
+measured. The runs are in `~/.hobbes/bench/calvin-lattice/e1/e1-{qwen,olmo}-all/`, each with its report (`.txt`,
+`.json`); `nearest-shot-distance.json` is beside them.
+
+**Spend: $6.59 of the $10 ceiling.**
+- E1-g: $0.74.
+- Qwen: $1.46, in 4 calls.
+- Olmo: $4.39, in 2 calls plus one lost ($0.03). Olmo's first call failed because vLLM needs 8.01 GiB of KV cache for
+  its 16k window and the A10G has 5.65 GiB free. The Modal script had ignored its own per-model GPU pin. Olmo now
+  runs on the L40S (`3e64489`).
+- **Olmo passed its $4 run cap by $0.39.** The guard checks the estimate *before* a call ($1.83 spent + $1.57 = $3.40),
+  and round 1 cost $2.56: Olmo averages 847 tokens an answer and hit the 2,048 cap on 541 of 2,790 at round 0, and
+  its conversations grow. The cap bounds what is sent, not what a call costs. The fix is below.
+- **Olmo was stopped after round 1**, by Max's word: at 0.02 pass@1, rounds 2 and 3 would have added about $2 and
+  little reading. Round 1 was graded from the kept completions, with a replay generator that cannot spend.
+
+**Qwen2.5-Coder-7B, 63 real bodies** (pass@1 greedy / pass@5):
+
+| arm | pass@1 | pass@5 | by ISA, pass@1 (sse2 / avx2 / avx512) | low-bit pass@1 |
+|---|---|---|---|---|
+| C-0 skill | 0.03 | 0.05 | 0.00 / 0.10 / 0.00 | 0.00 |
+| C-1 facts | 0.00 | 0.02 | 0.00 / 0.00 / 0.00 | 0.00 |
+| C-2 pattern | 0.29 | 0.43 | 0.33 / 0.24 / 0.29 | 0.37 |
+| C-3 both | 0.38 | 0.54 | 0.52 / 0.24 / 0.38 | 0.52 |
+| C-4 volume | 0.05 | 0.10 | 0.05 / 0.05 / 0.05 | 0.00 |
+
+**Olmo-3-7B, 63 real bodies:**
+
+| arm | pass@1 | pass@5 |
+|---|---|---|
+| C-0 | 0.02 | 0.02 |
+| C-1 | 0.00 | 0.02 |
+| C-2 | 0.03 | 0.11 |
+| C-3 | 0.05 | 0.10 |
+| C-4 | 0.00 | 0.02 |
+
+About 80% of Olmo's answers are `invented`: `_mm256_fma_ps`, `_mm256_sqrps`, `float16_t`, `use_sqrt` in a body
+that has no such parameter. Its iterate round moved C-3 from 14 to 19 of 378 chains. G-mem reads `unseen` on all 63
+real bodies for both models, and `no-evidence` on the 30 wrappers.
+
+**The readings** (written before the run, §6's E1 card), now attributed:
+- **Pattern does work beyond volume.** For Qwen, C-2 − C-4 is +0.24 at pass@1 and +0.33 at pass@5. For Olmo it is +0.03
+  and +0.09, at the floor. This is the hypothesis in its purest form, and on this lattice it holds for the coder
+  model.
+- **It is not only near-copying.** Each real body's gold was measured against its nearest shot, as the token share
+  that differs. Of the 63 cells, 17 are within 10%, 18 within 10–30%, and 28 are further.
+
+  | Qwen greedy passes | within 10% | 10–30% | beyond 30% |
+  |---|---|---|---|
+  | C-2 | 6 of 17 | 4 of 18 | 8 of 28 |
+  | C-3 | 10 of 17 | 3 of 18 | 11 of 28 |
+  | C-0 | 0 of 17 | 2 of 18 | 0 of 28 |
+
+  On 12 cells Qwen wrote the target's gold exactly; the nearest shot there was 3–63 tokens away (mostly
+  `int8↔uint8` and `float16↔bfloat16`). No pass copies its ISA shot verbatim. Every pass uses the hole's own vector
+  width, which rules out the compile-flag superset: `avx2` intrinsics compile under AVX-512's flags.
+- **Facts alone did not help, and facts with pattern did.** C-1 − C-0 is −0.03 (Qwen) and −0.02 (Olmo). This is the
+  direction §12.3 warned of. C-3 − C-2 is +0.09 at pass@1 and +0.11 at pass@5 for Qwen. The facts arm names the
+  callees; what it lacks, alone, is how they compose.
+- **Invented intrinsics:** for Qwen, 108 of C-0's 378 round-0 rows are `invented`, 65 of C-1's and 48 of C-3's. The
+  ledger removes some of the sand, but not most of it.
+- **Iteration adds little:** Qwen's C-3 goes from 0.32 to 0.38 of chains over three rounds, and its C-0 from 0.01 to
+  0.03.
+- **The wrappers** are one call to the type's `_impl`. Qwen passes them at 1.00 on C-1, since the facts name the
+  callee, and Olmo at 0.03. Wrappers are reported apart, as designed.
+
+**What E1 selects** (§7): pattern does work in context, and facts help only beside it. §7's branch for that is **E3**
+(train the pattern in, then test transfer), **after E2's shadow**: E2 asks whether the pattern reading survives
+names the base has not read. The contamination facts make memory unlikely for these two bases, but name-reading is
+not ruled out. The candidates, for Max:
+- E2's two shadows on Qwen, C-2 and C-3 only, at about $1;
+- the guard fix: a Modal call's `timeout` derived from the budget left, so a cap bounds what a call costs;
+- whether Olmo stays an arm. On this lattice it does not write intrinsics.
+
 ### E2 — the rename shadow: memory or skill? (M-a, L0/L2, on the shadow)
 
 - **Question:** does E1's score survive when the in-repo names are ones the base has never
