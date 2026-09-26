@@ -876,6 +876,71 @@ specification, at about $0.5 a model, and replaces E2's optional $1 run.
 count spend nothing. The ceiling is re-priced with the pool's real size, since the steps ablation (300 and
 3,000) is sized by it.
 
+#### E3's pool — the C lattice draw's record (2026-09-26; D-5 a; no spend)
+
+The draw was run by the rule committed before it (`DRAW-RULE.md`, sha256 `f4b6e2abf25b2035…`, verified
+unchanged). A background fork executed it, and the headline figures, the lane A fixture and the crash were
+re-checked by hand. Everything is in `~/.hobbes/bench/calvin-lattice/e3/draw/` (`RESULTS.md`, `final.json`,
+`dedupe.json`, `precision-read*.jsonl`, `revise/`, the scripts).
+
+- **The pool.** 70 queries, none truncated, 1,421 repos.
+- **Gates 1–4 and 6:** 54 forks or archived, 6 sqlite-vector or sqliteai, 23 licence mismatches, 1,207 with
+  lattices too small, 67 C++ by majority. **64 passed.**
+- **Gate 5 (a contained ingest), in pool order:**
+  - **40 taken** at the cap, with 20 passers not reached.
+  - 4 failed: libvpx and awtk had 89% and 81% of ISA members named; hypersonic-rle-kit and moonlab failed on
+    the two Hobbes defects below.
+- **Tasks over the 40 taken:**
+  - 1,438 by the ISA rule, 33,634 by the body-shape rule, 33,902 in their union.
+  - **24,222 unique** across the pool. 28.6% were copies: riboseek vendors MMseqs2 (46 of its 5,623 are its
+    own), and miniaudio/dr_libs recur.
+  - **2,062 unique and validated:** 896 with a scalar-reference sibling, 1,520 reached by the repo's tests.
+    Five repos hold 1,469 of them.
+  - 988 tasks are in two-axis families, sqlite-vector's shape.
+- **The target's neighbour.** sqlite-ndvss, another SQLite vector extension, has no member within 0.6 of any of
+  sqlite-vector's 93 golds (maximum 0.46).
+
+**The body-shape rule's bars.**
+
+| rule | where measured | recall (bar ≥ 0.90) | coincidence (bar ≤ 20%) |
+|---|---|---|---|
+| registered | all 40 | **0.814, fails** | 16.1% (123 of 763 read), passes |
+| V3 (masking, threshold 0.5), the best revision | first half | 0.874 | — |
+| V3 | the held-out second half | **0.945** | **20.05%** (78 of 389), fails by one family |
+
+**No rule passed both bars on held-out repos.** Of the registered rule's first-half misses, 175 of 183 are
+ISA ports whose bodies genuinely differ, and 8 are tokenisation. So the recall bar partly graded the body
+rule against name families that are not body patterns. The rule's wording is at fault there, and so is mine.
+The pool's union takes those ports by name anyway.
+
+**The rule's wording, where it read wrong** (recorded, not re-run):
+- gate 6 counts `.h` as C, so two C++ repos passed (MMseqs2, The-Modern-Cpp-Challenge);
+- the scalar words omit `port` and `portable`;
+- gate 4 counts members before the thin filter.
+
+**The reading, against the one written before the draw.** The registered bands count *validated* tasks.
+**2,062 is in the 1,000–5,000 band:** "E3 priced at 300 steps only, with the pool's size stated as the limit,
+or a widening rule proposed to Max first." What the band does not settle:
+- **Does mined real code need validation?** The card requires it of *generated* siblings. A real member is the
+  repo's own shipped code, and its "validation" only says whether a model's rewrite of it could be checked,
+  which training does not need. Counted without that requirement, the pool is **24,222 unique tasks**, the
+  ≥ 5,000 band.
+- **Target-likeness is thin.** 988 two-axis tasks, and none of the pool is a type × metric × ISA lattice as
+  dense as sqlite-vector's.
+
+These are for Max (D-7, §9).
+
+**Two Hobbes defects the draw found**, each reproduced here:
+- **C lane A loses a whole file silently.** Two consecutive definitions, each preceded by an attribute
+  specifier inside an `#ifndef` guard (`hypersonic-fixture/FIXTURE.c`, 8 lines), parse as one top-level
+  ERROR node under tree-sitter-c 0.24.2. `csource._parse_file` then returns **no symbols and no note**, so the
+  loss is counted nowhere. 13 non-reproducing variants are kept beside it. IN/OUT parameter macros are not
+  the cause, contrary to the first reading. C-131 is the nearest register entry and does not name this loss.
+- **One deep Rust file aborts a repo's whole ingest.** moonlab @ `cd3b234`'s
+  `bindings/rust/moonlab-sys/build.rs` is a bindgen builder chain of 537 calls in one expression.
+  `rustsource._walk`, a recursive generator, exceeds Python's recursion limit, and the `RecursionError`
+  ends the ingest. `javasource._walk` has the same shape.
+
 ### E4 — the teacher and the student: rebuild a file (M-a or M-b, K-1, L1 then L3)
 
 - **Question:** given the graph's skeleton, does a teacher's spec (C-5) let a small student
@@ -1125,6 +1190,25 @@ Proposed routes, the recommended one first.
 
   One dispatched unit builds `lattice e4` first, with no spend. For Max: take the routes as recommended,
   or adjust them.
+
+- **D-7 — E3's pool: which count funds E3** (2026-09-26, after the draw).
+  - **a (recommended):** mined real members train without a validation route, since the card's validation is
+    for generated siblings. The pool is the **24,222 unique** tasks, deduplicated across repos, with the
+    registered body-shape rule's families plus the ISA families. E3 is priced on the steps ablation (300 and
+    3,000), and the body-shape rule's failed recall bar is stated beside it: it misses dissimilar ports, which
+    the union keeps by name. G-mem and the sqlite-vector exclusion hold as before.
+  - b: the registered band as worded. 2,062 validated tasks, E3 at 300 steps only, the pool's size stated as
+    the limit.
+  - c: widen before pricing. Take the 20 passers not reached and fix the rule's three wording faults first.
+    That is a second draw, with no spend.
+- **D-8 — the two Hobbes defects the draw found** (extraction; a patch each).
+  - **a (recommended):**
+    - **Rust and Java first.** Make `_walk` iterative, so no file's depth ends an ingest. The defect is a
+      crash, so it is contained first, with the build.rs shape as a test.
+    - **Then C.** A file whose top level is one ERROR node gets a counted `parse-lost` note, surfaced
+      through `list_blind_spots`, and a C-n registers the residual.
+    - Whether ADR-129's read from the index (C++'s lost definitions) should reach C is measured before an ADR.
+  - b: register both and fix neither yet.
 
 ---
 
