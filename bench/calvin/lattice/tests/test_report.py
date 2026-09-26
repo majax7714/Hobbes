@@ -1,7 +1,10 @@
-"""E1's readings, against hand-computed values on a hand-written run directory.
+"""E1's and E4's readings, against hand-computed values on a hand-written run directory.
 
 Nothing here runs the runner: the point of `report` is that it reads rows and computes nothing a row does
-not hold, so the rows are written by hand and every figure below is worked out on paper beside it.
+not hold, so the rows are written by hand and every figure below is worked out on paper beside it. The E4
+block at the end is the same discipline over an E4 run's files — its rows, its requests and its
+`file_level.jsonl` — and the two figures it exists for are **S-5 − S-3**, now a number, and S-2o's
+own-shot counts, which are read off the requests because no row holds what a prompt carried.
 """
 
 import json
@@ -10,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from lattice import e1, report
+from lattice import e1, e4, report
 
 #: The three cells the rows below are about: two real bodies and one wrapper, which is reported apart.
 A = "avx2/float32/dot"
@@ -292,6 +295,185 @@ def test_a_figure_with_nothing_to_compute_it_from_is_none_and_never_zero(run_dir
 
 
 # MARK: - the table -
+
+
+# MARK: - E4's readings: the second comparison, and S-2o beside it -
+
+#: Three units of one held-out file: two cells and one non-cell helper.
+U1, U2, H = "float32_distance_dot_avx2", "int8_distance_dot_avx2", "hsum256_ps"
+
+
+def e4_row(unit, arm, cls, *, kind="cell"):
+    """One E4 row. A unit stands where a cell does, which is what `cell` holds (`e4.plan`'s own key)."""
+    return {
+        "id": e1.request_id(unit, arm, 0, 0),
+        "cell": unit,
+        "name": unit,
+        "kind": kind,
+        "isa": "avx2",
+        "type": "float32" if unit == U1 else "int8",
+        "metric": "dot",
+        "arm": arm,
+        "sample": 0,
+        "round": 0,
+        "class": cls,
+        "reg": True,
+        "invented": [],
+    }
+
+
+def e4_request(unit, arm, sample, *, kind="cell", own=(), notes=(), wave=0):
+    """One request, carrying what its arm gave it — which is where the own-shot counts are read from."""
+    return {
+        "id": e1.request_id(unit, arm, sample, 0),
+        "cell": unit,
+        "unit": unit,
+        "name": unit,
+        "kind": kind,
+        "arm": arm,
+        "sample": sample,
+        "round": 0,
+        "wave": wave,
+        "mode": "chat",
+        "messages": [{"role": "user", "content": "…"}],
+        "own": [dict(row) for row in own],
+        "own_notes": [dict(note) for note in notes],
+        "params": {"temperature": 0.0, "top_p": 1.0, "max_tokens": 2048, "seed": 1},
+    }
+
+
+@pytest.fixture
+def e4_run_dir(tmp_path):
+    """An E4 run over three units and three arms, `k = 0`: greedy only, so pass@1 is the figure."""
+    made = tmp_path / "e4run"
+    made.mkdir()
+    (made / e1.META).write_text(
+        json.dumps(
+            {
+                "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+                "k": 0,
+                "params": {"temperature": 0.8, "top_p": 0.95, "max_tokens": 2048},
+                "rounds": 0,
+                "iterate": [],
+                "arms": ["S-2o", "S-3", "S-5"],
+                "cells": [U1, U2, H],
+                "units": [{"name": U1}, {"name": U2}, {"name": H}],
+                "rung": "L1",
+                "isa": "avx2",
+                "file": "src/distance-avx2.c",
+                "waves": [[U1, H], [U2]],
+                "parser": {
+                    "model": "Qwen/Qwen2.5-7B-Instruct",
+                    "models": ["Qwen/Qwen2.5-7B-Instruct"],
+                    "sha256": "abcdef0123456789" * 4,
+                    "units": 3,
+                    "parsed": 2,
+                },
+                "p12": "decomposed",
+                "decomposition": {
+                    "unit_count": 3,
+                    "largest_prompt_chars": 900,
+                    "file_chars": 20357,
+                    "every_window_smaller": True,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    # S-5 gains the one unit S-3 did not get: one cell moved, so the paired delta is 1 of 3 and p is 1.0
+    _write(
+        made / e1.ROWS,
+        [
+            e4_row(U1, "S-3", "pass"),
+            e4_row(U2, "S-3", "wrong"),
+            e4_row(H, "S-3", "pass", kind="helper"),
+            e4_row(U1, "S-5", "pass"),
+            e4_row(U2, "S-5", "pass"),
+            e4_row(H, "S-5", "pass", kind="helper"),
+            e4_row(U1, "S-2o", "pass"),
+            e4_row(U2, "S-2o", "wrong"),
+            e4_row(H, "S-2o", "pass", kind="helper"),
+        ],
+    )
+    _write(
+        made / e1.REQUESTS,
+        [
+            e4_request(
+                U1, "S-2o", 0,
+                notes=(
+                    {"axis": "type", "unit": None, "reason": e4.NO_NEIGHBOUR},
+                    {"axis": "metric", "unit": U2, "reason": e4.LATER},
+                ),
+            ),
+            e4_request(
+                U2, "S-2o", 0, wave=1,
+                own=({"axis": "type", "unit": U1},),
+                notes=({"axis": "metric", "unit": H, "reason": e4.NEIGHBOUR_FAILED},),
+            ),
+            # a drawn sample of the same unit: its shots are the unit's, so it is not counted twice
+            e4_request(U2, "S-2o", 1, wave=1, own=({"axis": "type", "unit": U1},)),
+            e4_request(H, "S-2o", 0, kind="helper", notes=({"axis": None, "unit": None, "reason": "helper"},)),
+            e4_request(U1, "S-3", 0),
+        ],
+    )
+    _write(
+        made / e4.FILE_LEVEL,
+        [{"arm": "S-5", "isa": "avx2", "file": "src/distance-avx2.c", "units": 3, "units_passed": 3,
+          "unit_names": [H, U1, U2], "class": "pass", "diff_pass": True, "reg": True, "written": "final/S-5/distance-avx2.c"}],
+    )
+    _write(made / e1.CALLS, [{"round": 0, "requests": 9, "cost": 0.1, "cost_source": "reported", "seconds": 3.0}])
+    return made
+
+
+def test_s5_minus_s3_is_a_number_paired_by_unit(e4_run_dir):
+    found = report.e4_report(e4_run_dir)
+    assert found["missing"] == []
+    tests = found["comparisons"]["S-5 − S-3"]
+    # of the three units, one moved and it moved the way S-5 is the escalation of: gained 1, lost 0
+    assert tests["pass_at_1"] == {
+        "cells": 3, "both": 2, "neither": 0, "lost": 0, "gained": 1,
+        "delta": round(1 / 3, 6), "p": 1.0,
+    }
+    assert tests["unpaired"] == 0
+    # S-2 − S-0 has no rows in this run, and says so rather than reading as zero
+    assert found["comparisons"]["S-2 − S-0"] == {"missing": "the run has no rows for S-0"}
+
+    table = report.e4_render(found)
+    assert "S-5 − S-3  (unpaired 0)" in table
+    assert "pass_at_1           +0.333  lost   0  gained   1  of   3" in table
+
+
+def test_s2o_is_shown_with_its_own_shot_counts_and_why_each_missing_one_was_missing(e4_run_dir):
+    own = report.e4_report(e4_run_dir)["own_shots"]
+    # the greedy requests only: three units, two of them cells
+    assert own == {
+        "units": 3,
+        "cells": 2,
+        "carried": {"0": 1, "1": 1, "2": 0},
+        "missing": {"helper": 1, "later-in-order": 1, "neighbour-failed": 1, "no-neighbour": 1},
+    }
+
+    table = report.e4_render(report.e4_report(e4_run_dir))
+    assert "S-2o, described and not tested" in table and "over 2 cell(s) in 2 wave(s)" in table
+    assert "cells carrying 1 own shot(s): 1" in table
+    assert "no own shot, by reason: helper 1, later-in-order 1, neighbour-failed 1, no-neighbour 1" in table
+    # described, not tested: it is in no registered comparison
+    assert all("S-2o" not in label for label in report.e4_report(e4_run_dir)["comparisons"])
+
+
+def test_the_e4_table_names_the_parser_and_the_window(e4_run_dir):
+    table = report.e4_render(report.e4_report(e4_run_dir))
+    assert "parser: 2 of 3 unit(s) parsed by Qwen/Qwen2.5-7B-Instruct (abcdef012345)" in table
+    assert "largest prompt 900 chars against the file's 20357 (every window smaller)" in table
+    assert "file level (greedy bodies where the unit passed, gold elsewhere):" in table
+
+
+def test_an_e4_run_with_no_requests_file_names_it_rather_than_reading_no_shots(tmp_path, e4_run_dir):
+    (e4_run_dir / e1.REQUESTS).unlink()
+    found = report.e4_report(e4_run_dir)
+    assert found["missing"] == [e1.REQUESTS]
+    assert found["own_shots"] is None
+    assert found["comparisons"]["S-5 − S-3"]["pass_at_1"]["cells"] == 3  # the rows still read
 
 
 def test_the_table_names_both_sections_the_figures_and_the_spend(run_dir):

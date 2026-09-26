@@ -519,15 +519,53 @@ signature with **every other body replaced by `;`** — stricter than C-0's `tas
 the non-cell helpers' bodies: at L1 those helpers are holes too, so their bodies would be gold in a prompt,
 and **a body reaches a prompt only as an arm's shot.**
 
-**Three arms, one variable apart, and two named seams.** **S-0** is the skeleton and the hole. **S-2** adds
+**Five arms, one variable apart.** **S-0** is the skeleton and the hole. **S-2** adds
 the graph-served **ISA-axis** shots — the same `(type, metric)` cell in each other *native* file (`sse2` and
 `avx512` when `avx2` is held out, which is why E4-a holds out `avx2` first), the other files' init functions
 for the init unit, and **none for a helper**, which the prompt says as `shots: none (helper)` rather than
 reading as S-0. **S-3** adds the ledger's callees for a cell, in E1's own lines, and says
-`facts: none (helper)` or `(init)` where there are none. `S-5` (the parser's fields) and `S-2o` (the
-student's own passed bodies as shots) are **named and not built** — `NotBuilt`, saying they are the second
-unit's. From E1's rows the expectation is written down: 12 of Qwen's 18 C-2 greedy passes sat nearest the
-*type*-axis shot, and at L1 the type neighbours are holes, so S-2 is expected **below** E1's C-2.
+`facts: none (helper)` or `(init)` where there are none. **S-5** adds the parser's fields under one heading,
+"What this function must do:" — the contract, then the edge cases as a list. **S-2o** adds the student's own
+passed bodies on the type and metric axes; it is **described and not registered** (E4-c), so the report
+shows it beside S-2 with what it carried and the two registered comparisons stay E4-f's. From E1's rows the
+expectation is written down: 12 of Qwen's 18 C-2 greedy passes sat nearest the *type*-axis shot, and at L1
+the type neighbours are holes, so S-2 is expected **below** E1's C-2 — and S-2o is the arm that asks whether
+the student's own passes can stand in for those holes.
+
+**The parser is a step of its own, and it never sees a body.** `lattice e4 parse` (K-1, §5.2: a parser into
+the task format, *not* an author) asks one **greedy** question per unit and writes `parser.jsonl`, which
+every arm of the run then reads — one set of fields, not one per sample. It is shown `API.md`, the unit's
+name, kind and signature, its grid position where it is a cell, and the **names** of the callees S-3 would
+list. It is shown **no skeleton, no shot and no gold**, and the two checks on that are in the tests: no
+definition of any of the files appears as a token run, and the prompt carries **no `{` at all** — the
+JSON's shape is spelled out in words for exactly that reason, since every C body has one. A target with no
+`API.md` (this fixture) has the parser *told* so rather than shown another project's. The answer must be one
+JSON object with `contract` and `edge_cases`; the first fenced block is read where the model fenced it, as
+`extract` reads a body, and **nothing else is tried**. An answer that is not those two fields is kept whole
+in `raw` with `parsed: false` and a stated reason, and the unit's S-5 prompt then carries
+`no parser fields (the parse failed: <reason>)`: never repaired, never guessed at, never filled empty — an
+S-5 with no fields at all is `NoFields`, its own type, for the same reason `NoLedger` is. The step is priced
+and capped exactly as an E1 call is, its `calls.jsonl` rows marked `stage: "parse"` so `spent()` counts the
+parser's spend against the run's one ceiling, and **resume is `parser.jsonl`**: a unit already in it is
+neither asked nor paid for again. `meta.json`'s `parser` block names the model and the digest of the file
+the plan was built from, and `e4 plan --arms S-5` **exits 2, naming the file**, when it is missing or does
+not cover every unit.
+
+**S-2o runs in waves, because its shots are this run's own output.** Each cell's **designated neighbour** on
+an axis is the one E1's rule would pick, **kept only if it comes earlier in the units' order**; otherwise
+that axis carries no own shot and the request records `later-in-order`. That one condition breaks E1's
+symmetric pairs — the type pairing is `float32 ↔ int8` here, so without it each unit would be its own
+neighbour's neighbour and no wave could be first — and it is fixed before the run. The shot is that
+neighbour's **S-2o greedy body, and only where the graders passed it**; where they did not, the axis records
+`neighbour-failed`, because an unverified body is not a pattern. An axis E1's rule has no neighbour for at
+all records `no-neighbour`. **Gold is never a shot**: `_own_bodies` reads `rows.jsonl` and never the target.
+Helpers and the init have no grid position, so they carry S-2's ISA-axis shots only and say
+`own shots: none (helper)`. Wave(u) is 0 with no designated neighbour and 1 + the largest of theirs
+otherwise; `meta.json` lists the waves by name (on the fixture's `avx2` file: 18, 5, 3, 1). `plan` writes
+wave 0 and `e4 run` builds each later wave from the rows already graded, appends it to `requests.jsonl` and
+calls `e1.run` again — which sends only what has no row yet, so **a resume rebuilds and re-answers nothing**.
+`meta.json`'s P12 window record is restated as each wave lands, since the plan could not hold prompts whose
+shots nobody had written.
 
 **A failed unit does not cascade** (E4-d). E1's loop runs with `rounds=0` and each unit is graded against
 the **gold** file with that one definition punched, so a wrong `hsum256_ps` fails on its own row and every
@@ -582,20 +620,30 @@ which writes one row per body it carried and one per body it did not, with the r
 for `grade`, rides into the image in the work dir, since `--rename` may point anywhere on this box).
 
 **This unit adds three more, all E4's:** `lattice e4 plan <target> <run-dir> --model M [--isa avx2]
-[--arms S-0,S-2,S-3] [--k 10] [--graph G --key K --intrinsics I]`, `lattice e4 run <run-dir> <target>
---ceiling-usd X [--generator modal|replay:<completions.jsonl>] [--image NAME]` and `lattice e4 report
-<run-dir> [--json]`. `plan` prints the P12 window line and refuses, exit 2, an ISA the target has not and
-an arm the second unit builds (`S-5`, `S-2o`), naming it; `S-3` with no ledger is skipped and named, as
+[--arms S-0,S-2,S-2o,S-3,S-5] [--k 10] [--graph G --key K --intrinsics I]`, `lattice e4 run <run-dir>
+<target> --ceiling-usd X [--generator modal|replay:<completions.jsonl>] [--image NAME]` and `lattice e4
+report <run-dir> [--json]`. `plan` prints the P12 window line and refuses, exit 2, an ISA the target has
+not and an arm that is not E4's, naming it; `S-3` or `S-5` with no ledger is skipped and named, as
 `prompts` does. `run` takes no `--rounds`: E4 does not iterate. `report` prints one block per arm **per unit
 kind** — cell, helper, init, with the `unexercised` helpers counted apart and never averaged in — the
-file-level rows, and the two comparisons E4-f registered, paired by unit: `S-2 − S-0` now, and `S-5 − S-3`
-reading **not built** until the second unit lands.
+file-level rows, and the two comparisons E4-f registered, paired by unit: `S-2 − S-0` and `S-5 − S-3`.
+
+**And E4's second half adds one verb and one flag.** `lattice e4 parse <run-dir> <target> --parser-model M
+--ceiling-usd X [--isa avx2] [--generator modal|replay:…] [--graph G --key K --intrinsics I]` writes
+`parser.jsonl` — S-5's fields — and runs **before** `plan`, which then carries the parser's model and that
+file's digest in `meta.json` and **exits 2, naming the file**, if `--arms` asks for `S-5` and the parse is
+missing or short of a unit. It prints what it kept raw and why, and says on stderr where a target has no
+`API.md`. `e4 run` needs no new flag for **S-2o**: it reads the waves off the file, builds each later wave
+from the rows it has, and answers it with another `e1.run` over the same directory — so the ceiling is
+checked again before each wave and a resume sends nothing twice. `report` gains S-2o's own-shot counts —
+how many cells carried 0, 1 or 2, and **why each missing one was missing** (`later-in-order`,
+`neighbour-failed`, `no-neighbour`, or the unit having no axis at all) — read off `requests.jsonl`, because
+what a prompt carried is not on any row.
 
 Everything that compiles or runs the target's code runs in the image (ADR-092, C-64) — and so does the
 intrinsic index, whose headers are the image's clang's. `graph-grade` is the exception and says why: it
 runs a Hobbes ingest, which contains its own lane B. Still to come: G-test, `grade` and `diff` taking a
-rename of their own instead of `shadow.grading`, E4's second half (**S-5**, the parser's fields, and
-**S-2o**, the own-pass shots in waves), and the first run that actually calls a model.
+rename of their own instead of `shadow.grading`, and the first run that actually calls a model.
 
 ```sh
 # on this box, in the image
@@ -648,8 +696,12 @@ lattice e1 run runs/qwen-descriptive /tmp/shadow-descriptive --ceiling-usd 1.50 
 lattice e2 compare runs/qwen-avx2 runs/qwen-descriptive runs/qwen-opaque   # or --json
 
 # E4: one whole file at L1, every definition a unit, leaves first, one call each
+# the parse comes first: S-5's fields, one greedy call per unit, cached in the run's parser.jsonl
+lattice e4 parse runs/qwen-avx2-l1 /path/to/sqlite-vector \
+  --parser-model Qwen/Qwen2.5-7B-Instruct --isa avx2 --ceiling-usd 1 --generator modal \
+  --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
 lattice e4 plan /path/to/sqlite-vector runs/qwen-avx2-l1 \
-  --model Qwen/Qwen2.5-Coder-7B-Instruct --isa avx2 --arms S-0,S-2,S-3 --k 10 \
+  --model Qwen/Qwen2.5-Coder-7B-Instruct --isa avx2 --arms S-0,S-2,S-2o,S-3,S-5 --k 10 \
   --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
 lattice e4 run runs/qwen-avx2-l1 /path/to/sqlite-vector --ceiling-usd 8 --generator modal
 lattice e4 report runs/qwen-avx2-l1                 # or --json
@@ -700,22 +752,25 @@ copy of the arithmetic in the package where the tests could import it, is two pl
 
 ## E4's runner — the order of work
 
-**Nothing has run.** The instruments are built and no model has been called; §6's estimate is **$3–5 with
-a ceiling of $8** for the `avx2` file, and only Max names a run and its ceiling (§8). The order:
+**Nothing has run.** The instruments are built — both halves — and no model has been called; §6's estimate
+is **$3–5 with a ceiling of $8** for the `avx2` file, and only Max names a run and its ceiling (§8). The
+order:
 
-1. **`lattice e4 plan --isa avx2`** — the requests only, on the host, costing nothing. Read the P12 line it
-   prints and the prompt sizes off `requests.jsonl` before anything is sent: 27 units × 3 arms × 11 samples
-   is 891 requests, and every window must be smaller than the file.
-2. **The first call**, priced against `e1.estimate` before the rest is sent, as E1-g's was. `e4 run` grades
-   in the image between nothing — there are no rounds — so one call answers every unit of every arm.
-3. **Read the per-unit figures first, then the file level.** The per-unit rates are what S-2 − S-0 is read
-   on; the file level says how much of the file the student wrote, and it is a second reading, not a
-   headline. `S-5 − S-3` has no number until the second unit lands.
-4. **Max's word**, before the other two native files (E4-a's `b`), before the 32B ceiling arm and before
+1. **`lattice e4 parse --isa avx2`** — the parser's fields, one greedy call per unit, and the **first thing
+   that spends**: it needs its own `--ceiling-usd` and its rows are counted against the run's spend. It is
+   cached in `parser.jsonl`, so it is run once and every arm reads it.
+2. **`lattice e4 plan --isa avx2`** — the requests only, on the host, costing nothing. Read the P12 line it
+   prints and the prompt sizes off `requests.jsonl` before anything is sent: on the real file, 45 units × 5
+   arms × 11 samples less S-2o's later waves, and every window must be smaller than the file.
+3. **The first call**, priced against `e1.estimate` before the rest is sent, as E1-g's was. There are no
+   rounds, so one call answers every unit of every arm but S-2o's later waves, which are one call each.
+4. **Read the per-unit figures first, then the file level.** The per-unit rates are what S-2 − S-0 and
+   S-5 − S-3 are read on; the file level says how much of the file the student wrote, and it is a second
+   reading, not a headline. S-2o is described beside S-2 — its own-shot counts — and is in no comparison.
+5. **Max's word**, before the other two native files (E4-a's `b`), before the 32B ceiling arm and before
    the descriptive shadow (E4-g).
 
-**This unit is the first of two.** The second builds **S-5** — the parser's fields (§5.2's `contract` and
-`edge_cases`, filled once per unit by an open 7B from `API.md` and the unit's task record, cached so every
-arm reads the same fields) — and **S-2o**, whose shots are the student's *own* passed bodies from earlier
-units of the same file and never gold, which makes the run waves rather than one call. Both are in
-`e4.PLANNED`, and asking `plan` for either exits 2 saying so.
+**The parser's model is a run parameter, not the instrument's.** `modal_e1.py` pins
+`Qwen/Qwen2.5-7B-Instruct` for it (E4-e: an open instruct 7B, a parser and not an author) — Qwen2.5-Coder's
+own base at the same size, so the same card and the same 16k window the student runs under, and
+`e1.PRICING`'s fall-back is the A10G's rate it bills at.

@@ -4,14 +4,18 @@ No model appears anywhere here. The generator and the grader are injected, as in
 whole loop is driven by fakes over the fixture's own bytes; the one test that really compiles asks the
 real grader with `allow_host=True` — this package's fixture, which is not a target checkout (`run.py`).
 
-The property with the most riding on it is the third one down: **no held-out unit's gold body reaches any
-prompt**. At L1 every definition of the file is a hole, so a single sibling body left in a skeleton would
-hand the student the pattern S-2 exists to measure, and the run would read as S-2 under S-0's name.
+Two properties have the most riding on them. **No held-out unit's gold body reaches any prompt**: at L1
+every definition of the file is a hole, so a single sibling body left in a skeleton would hand the student
+the pattern S-2 exists to measure, and the run would read as S-2 under S-0's name. And **S-2o carries the
+student's own bodies and never gold**: its shots come off `rows.jsonl`, so the test that matters is the one
+that reads a later unit's prompt back against the *replay's* text and not against the target's.
 """
 
+import hashlib
 import json
 import re
 import shutil
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -111,11 +115,82 @@ def real_grade(target, workdir):
     return grade
 
 
-def make_run(tmp_path, lattice, arms=("S-0",), *, isa="avx2", k=0, ledger=None, model="M"):
+def make_run(tmp_path, lattice, arms=("S-0",), *, isa="avx2", k=0, ledger=None, model="M", fields=None):
     """`e4.plan` plus `e4.meta`, written into a fresh run directory."""
-    requests = e4.plan(lattice, isa, arms, model, ledger, k=k)
-    record = e4.meta(lattice, isa, requests, model, arms=arms, k=k, target=FIXTURE, facts=ledger)
+    requests = e4.plan(lattice, isa, arms, model, ledger, k=k, fields=fields)
+    record = e4.meta(
+        lattice, isa, requests, model, arms=arms, k=k, target=FIXTURE, facts=ledger,
+        parser=e4.parser_meta(tmp_path / "run"),
+    )
     return e1.write_plan(tmp_path / "run", requests, record)
+
+
+def marked(body, name):
+    """A body that is the gold's text with one statement of the student's own put into it.
+
+    It is balanced braces, so `extract` and `holes` take it; it carries a **token** the gold does not, so
+    "this is the student's text" and "this is the target's" can be told apart; and it is not a comment,
+    which `mask` would blank and the token check would then miss.
+    """
+    return body.replace("{", "{\n    /* mine */\n    (void)mine_" + name + ";", 1)
+
+
+def own_replay(tmp_path, lattice, isa, arm, k, bodies):
+    """A completions file for **every** (unit, sample) of one arm, whether the plan has written it yet.
+
+    S-2o's later waves are requests `run` builds as the rows come in, so a replay cannot be made from
+    `requests.jsonl`. It does not need to be: a request id is `<unit>|<arm>|<sample>|0` and the ids are
+    therefore known before the waves are.
+    """
+    recorded = tmp_path / f"{arm}-completions.jsonl"
+    rows = []
+    for unit in e4.units(lattice, isa):
+        text = f"```c\n{unit.signature}\n{bodies[unit.name]}\n```"
+        for sample in range(0, k + 1):
+            rows.append({"id": e1.request_id(unit.name, arm, sample, 0), "text": text})
+    recorded.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    return recorded
+
+
+def pass_grade(failing=()):
+    """A grader that passes every entry of either E4 form but the units named, which read `wrong`."""
+    failing = set(failing)
+
+    def grade(entries):
+        return [
+            {
+                "id": entry["id"],
+                "class": "wrong" if entry.get("unit") in failing else "pass",
+                "reg": True,
+            }
+            for entry in entries
+        ]
+
+    return grade
+
+
+def parse_replay(tmp_path, lattice, answers=None, *, isa="avx2", model="P"):
+    """A completions file answering every parse request, `answers` overriding a unit's raw text."""
+    answers = dict(answers or {})
+    recorded = tmp_path / "parse-completions.jsonl"
+    rows = []
+    for request in e4.parse_requests(lattice, isa, model):
+        unit = request["unit"]
+        text = answers.get(
+            unit,
+            json.dumps({"contract": f"{unit} answers its own question.", "edge_cases": ["n is 0."]}),
+        )
+        rows.append({"id": request["id"], "text": text})
+    recorded.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    return recorded
+
+
+def parse_into(tmp_path, run_dir, lattice, answers=None, *, ledger=None, ceiling=1.0, cost=None):
+    """Run the parse step over a replay, and return `read_fields`'s map. Nothing is spent unless *cost*."""
+    replay = e1.replay_generator(parse_replay(tmp_path, lattice, answers))
+    generate = replay if cost is None else (lambda requests: {**replay(requests), "cost": cost})
+    e4.parse(run_dir, lattice, "avx2", generate, "P", ceiling_usd=ceiling, facts=ledger)
+    return e4.read_fields(run_dir)
 
 
 def rows_of(run_dir):
@@ -235,12 +310,43 @@ def test_the_skeleton_is_barer_than_c_zeros_prelude(lattice):
 # MARK: - the arms -
 
 
+def fields_for(lattice, isa="avx2", answers=None):
+    """A parser row per unit, as `read_fields` returns them, with no run directory in the way."""
+    answers = dict(answers or {})
+    rows = {}
+    for unit in e4.units(lattice, isa):
+        if unit.name in answers:
+            rows[unit.name] = {"unit": unit.name, "parsed": False, "raw": answers[unit.name],
+                               "contract": None, "edge_cases": None, "reason": answers[unit.name]}
+            continue
+        rows[unit.name] = {
+            "unit": unit.name,
+            "parsed": True,
+            "contract": f"{unit.name} answers its own question.",
+            "edge_cases": ["n is 0.", "the pointers may be unaligned."],
+            "raw": "{}",
+            "reason": None,
+        }
+    return rows
+
+
 def test_no_held_out_gold_reaches_any_prompt(lattice, ledger):
+    """Every arm, with S-2o carrying what the run carries at the start: nothing written yet.
+
+    S-2o's own shots come off `rows.jsonl`, so its own no-gold property is the one two tests below —
+    the shot is read back against the *replay's* text. This one holds the skeleton and the served shots.
+    """
     units = e4.units(lattice, "avx2")
+    fields = fields_for(lattice)
     bodies = {unit.name: tokens(holes.gold_body(lattice.sources["avx2"].text, unit)) for unit in units}
     for unit in units:
         for arm in e4.ARMS:
-            written = tokens("".join(turn["content"] for turn in e4.messages(lattice, "avx2", unit, arm, ledger)))
+            written = tokens(
+                "".join(
+                    turn["content"]
+                    for turn in e4.messages(lattice, "avx2", unit, arm, ledger, fields)
+                )
+            )
             for other in units:
                 if other.name == unit.name:
                     continue
@@ -253,8 +359,9 @@ def test_no_held_out_gold_reaches_any_prompt(lattice, ledger):
 
 def test_the_arms_differ_in_one_thing_each(lattice, ledger):
     unit = next(u for u in e4.units(lattice, "avx2") if u.name == "float32_distance_dot_avx2")
+    fields = fields_for(lattice)
     said = {
-        arm: e4.messages(lattice, "avx2", unit, arm, ledger)[1]["content"] for arm in e4.ARMS
+        arm: e4.messages(lattice, "avx2", unit, arm, ledger, fields)[1]["content"] for arm in e4.ARMS
     }
     skeleton = e4.skeleton(lattice, "avx2", unit)
     assert all(skeleton in text for text in said.values())
@@ -262,6 +369,14 @@ def test_the_arms_differ_in_one_thing_each(lattice, ledger):
     for arm, text in said.items():
         assert ("The same function in the instruction sets that stay" in text) == (arm in e4.SHOT_ARMS)
         assert ("read from the project's graph and the compiler's own key" in text) == (arm in e4.FACTS_ARMS)
+        assert ("What this function must do:" in text) == (arm in e4.FIELD_ARMS)
+        assert ("own shots" in text or "as you wrote it" in text) == (arm in e4.OWN_ARMS)
+    # S-5 is S-3 and the parser's words, and nothing else: the one is the other plus one section
+    row = fields[unit.name]
+    section = "What this function must do:\n\n" + "\n".join(
+        [row["contract"], *(f"- {case}" for case in row["edge_cases"])]
+    )
+    assert said["S-5"].replace(f"{section}\n\n", "") == said["S-3"]
     assert [turn["role"] for turn in e4.messages(lattice, "avx2", unit, "S-0")] == ["system", "user"]
 
 
@@ -304,16 +419,325 @@ def test_a_facts_arm_with_no_ledger_is_refused_and_never_filled_empty(lattice):
         e4.messages(lattice, "avx2", unit, "S-3")
 
 
-def test_asking_for_an_arm_of_the_second_unit_is_refused_by_name(lattice, ledger):
+def test_an_arm_that_is_not_e4s_is_refused_as_a_typo(lattice, ledger):
     unit = next(u for u in e4.units(lattice, "avx2") if u.kind == "cell")
-    for arm in e4.PLANNED:
-        with pytest.raises(e4.NotBuilt) as refused:
-            e4.context(lattice, "avx2", unit, arm, ledger)
-        assert arm in str(refused.value) and "second unit" in str(refused.value)
-    with pytest.raises(e4.NotBuilt):
-        e4.plan(lattice, "avx2", ("S-0", "S-5"), "M", ledger, k=0)
+    assert e4.ARMS == ("S-0", "S-2", "S-2o", "S-3", "S-5")
     with pytest.raises(prompts.UnknownArm):
         e4.context(lattice, "avx2", unit, "C-2", ledger)
+
+
+def test_s5_with_no_parser_fields_is_refused_and_never_filled_empty(lattice, ledger):
+    """An S-5 with no fields is S-3 wearing S-5's name, exactly as an empty S-3 would be S-2's."""
+    unit = next(u for u in e4.units(lattice, "avx2") if u.kind == "cell")
+    with pytest.raises(e4.NoFields) as refused:
+        e4.context(lattice, "avx2", unit, "S-5", ledger)
+    assert "never filled empty" in str(refused.value)
+    # and a set of fields that does not cover this unit is the same refusal, naming it
+    without = {name: row for name, row in fields_for(lattice).items() if name != unit.name}
+    with pytest.raises(e4.NoFields) as uncovered:
+        e4.context(lattice, "avx2", unit, "S-5", ledger, without)
+    assert unit.name in str(uncovered.value)
+    with pytest.raises(e4.NoFields):
+        e4.plan(lattice, "avx2", ("S-5",), "M", ledger, k=0, fields=without)
+
+
+# MARK: - the parser's fields (S-5) -
+
+
+def test_the_parser_is_shown_no_body_of_any_definition_and_no_brace(lattice, ledger):
+    """The one thing the parse step must never do (§5.2): the fields are words about a task, not a body.
+
+    Two checks, one cheap and one exact. The cheap one is the brace: every C body has a `{`, and nothing
+    this module writes into a parse prompt does — the JSON's shape is spelled out in words for that
+    reason. The exact one is the token run: no definition of **any** of the lattice's files appears.
+    """
+    made = e4.parse_requests(lattice, "avx2", "P", ledger, api=None)
+    assert [request["unit"] for request in made] == [u.name for u in e4.units(lattice, "avx2")]
+
+    bodies = []
+    for source in lattice.sources.values():
+        for fn in source.scanned.functions:
+            bodies.append((fn.name, tokens(holes.gold_body(source.text, fn))))
+    for request in made:
+        text = "".join(turn["content"] for turn in request["messages"])
+        assert "{" not in text and "}" not in text, request["unit"]
+        written = tokens(text)
+        for name, gold in bodies:
+            run = len(gold)
+            assert not any(written[at : at + run] == gold for at in range(len(written) - run + 1)), (
+                f"the parse request for {request['unit']} carries {name}'s body"
+            )
+    # and it is greedy, once per unit, at a limit with no room for a body in it
+    assert {request["params"]["temperature"] for request in made} == {0.0}
+    assert {request["params"]["max_tokens"] for request in made} == {e4.PARSE_MAX_TOKENS}
+
+
+def test_the_parser_is_shown_the_api_doc_where_there_is_one_and_told_where_there_is_not(tmp_path, lattice):
+    unit = next(u for u in e4.units(lattice, "avx2") if u.kind == "cell")
+    assert e4.read_api(FIXTURE) is None  # the fixture is kernels only; the target carries API.md
+    told = e4.parse_turns(e4.parse_context(lattice, "avx2", unit))[1]["content"]
+    assert f"the project has no {e4.API_DOC} at its root, so none is shown" in told
+
+    root = tmp_path / "with-doc"
+    root.mkdir()
+    (root / e4.API_DOC).write_text("vector_distance(a, b) returns the distance.\n", encoding="utf-8")
+    shown = e4.parse_turns(e4.parse_context(lattice, "avx2", unit, api=e4.read_api(root)))[1]["content"]
+    assert "vector_distance(a, b) returns the distance." in shown
+
+
+def test_the_parser_sees_the_callees_by_name_only(lattice, ledger):
+    unit = next(u for u in e4.units(lattice, "avx2") if u.name == "float32_distance_dot_avx2")
+    data = e4.parse_context(lattice, "avx2", unit, ledger)
+    assert "hsum256_ps" in data["callees"]
+    text = e4.parse_turns(data)[1]["content"]
+    assert "- what it calls, by name: " in text
+    # the names, and not the ledger's signatures — those are S-3's answer to the student
+    assert "__m256" not in text.split("- what it calls, by name: ")[1]
+    assert "- element type: float32" in text and "- distance metric: dot" in text
+
+
+def test_an_unparseable_answer_is_kept_raw_and_its_s5_prompt_says_the_parse_failed(tmp_path, lattice, ledger):
+    run_dir = tmp_path / "run"
+    raw = "I think it sums the lanes of a vector."
+    fields = parse_into(tmp_path, run_dir, lattice, {"hsum256_ps": raw}, ledger=ledger)
+
+    failed = fields["hsum256_ps"]
+    assert failed["parsed"] is False and failed["raw"] == raw
+    assert failed["contract"] is None and failed["edge_cases"] is None
+    assert "not JSON" in failed["reason"]
+    assert fields["popcount_avx2"]["parsed"] is True  # every other unit is untouched
+
+    unit = next(u for u in e4.units(lattice, "avx2") if u.name == "hsum256_ps")
+    data = e4.context(lattice, "avx2", unit, "S-5", ledger, fields)
+    assert data["fields"] is None
+    assert data["fields_note"] == e4.NO_FIELDS.format(reason=failed["reason"])
+    text = e4.messages(lattice, "avx2", unit, "S-5", ledger, fields)[1]["content"]
+    assert f"no parser fields (the parse failed: {failed['reason']})" in text
+    assert "What this function must do:" not in text  # never filled empty, and never guessed at
+
+
+def test_an_answer_that_is_not_the_two_fields_is_never_repaired(tmp_path, lattice):
+    run_dir = tmp_path / "run"
+    answers = {
+        "hsum256_ps": '{"contract": "It sums the lanes."}',
+        "popcount_avx2": '{"contract": "", "edge_cases": []}',
+        "hsum256d": '["it sums the lanes"]',
+        "dot_epi8": 'Sure:\n```json\n{"contract": "It multiplies.", "edge_cases": ["n is 0."]}\n```\n',
+    }
+    fields = parse_into(tmp_path, run_dir, lattice, answers)
+    assert "edge_cases" in fields["hsum256_ps"]["reason"] and not fields["hsum256_ps"]["parsed"]
+    assert "contract" in fields["popcount_avx2"]["reason"] and not fields["popcount_avx2"]["parsed"]
+    assert "not an object" in fields["hsum256d"]["reason"] and not fields["hsum256d"]["parsed"]
+    # a fenced answer is read, as `extract` reads a fenced body: that is a rule, not a repair
+    assert fields["dot_epi8"]["parsed"] is True
+    assert fields["dot_epi8"]["contract"] == "It multiplies."
+
+
+def test_the_parse_step_is_priced_capped_and_resumed(tmp_path, lattice):
+    run_dir = tmp_path / "run"
+    with pytest.raises(e1.CeilingReached) as refused:
+        parse_into(tmp_path, run_dir, lattice, ceiling=0.0)
+    assert "nothing was sent" in str(refused.value)
+    assert not (run_dir / e4.PARSER).exists()
+
+    fields = parse_into(tmp_path, run_dir, lattice, cost=0.02)
+    assert len(fields) == 27
+    calls = [json.loads(line) for line in (run_dir / e1.CALLS).read_text().splitlines() if line.strip()]
+    assert [call["stage"] for call in calls] == [e4.PARSE_STAGE]
+    assert e1.spent(run_dir) == 0.02  # the parser's spend is the run's, against the run's own ceiling
+
+    # a second parse over the same directory asks for nothing and pays for nothing
+    again = parse_into(tmp_path, run_dir, lattice, cost=0.02)
+    assert len(again) == 27 and e1.spent(run_dir) == 0.02
+    assert len((run_dir / e4.PARSER).read_text().splitlines()) == 27
+
+
+def test_a_parse_call_that_failed_is_priced_and_nothing_is_written(tmp_path, lattice):
+    """A lost call read as free is how a run passes its ceiling with nobody seeing it (E1's own record)."""
+    run_dir = tmp_path / "run"
+
+    def generate(requests):
+        raise e1.GenerateFailed("the parser's call did not finish", call={"cost": 0.04, "wall_seconds": 12.0})
+
+    with pytest.raises(e1.GenerateFailed):
+        e4.parse(run_dir, lattice, "avx2", generate, "P", ceiling_usd=1.0)
+    assert not (run_dir / e4.PARSER).exists()
+    row = json.loads((run_dir / e1.CALLS).read_text().splitlines()[0])
+    assert row["stage"] == e4.PARSE_STAGE and row["answered"] == 0 and row["cost"] == 0.04
+    assert e1.spent(run_dir) == 0.04
+
+
+def test_the_plan_records_which_parser_filled_the_fields(tmp_path, lattice, ledger):
+    run_dir = tmp_path / "run"
+    fields = parse_into(tmp_path, run_dir, lattice, {"hsum256_ps": "not json"}, ledger=ledger)
+    block = e4.parser_meta(run_dir)
+    assert block["model"] == "P" and block["units"] == 27 and block["parsed"] == 26
+    assert block["sha256"] == hashlib.sha256((run_dir / e4.PARSER).read_bytes()).hexdigest()
+
+    requests = e4.plan(lattice, "avx2", ("S-5",), "M", ledger, k=0, fields=fields)
+    record = e4.meta(
+        lattice, "avx2", requests, "M", arms=("S-5",), k=0, target=FIXTURE, facts=ledger, parser=block
+    )
+    assert record["parser"] == block
+
+
+# MARK: - S-2o: the student's own passed bodies as shots -
+
+
+def test_the_designated_neighbours_break_e1s_symmetric_pairs(lattice):
+    """E1's type pairing is `float32 ↔ int8` here, so "earlier in the order" is what makes a first wave."""
+    ordered = e4.units(lattice, "avx2")
+    at = {unit.name: index for index, unit in enumerate(ordered)}
+    designated = {
+        unit.name: [row for row in e4.designated(lattice, "avx2", unit, ordered) if row.reason is None]
+        for unit in ordered
+    }
+    for name, rows in designated.items():
+        for row in rows:
+            assert at[row.unit] < at[name], (name, row)
+            # and therefore no unit is its own neighbour's designated neighbour, on any axis
+            assert name not in [other.unit for other in designated[row.unit]]
+    # the pairing it comes from really is symmetric, which is the thing the order breaks
+    assert prompts.TYPE_PAIR["float32"] == "float16" and prompts.TYPE_PAIR["int8"] == "uint8"
+    served = e4.designated(
+        lattice, "avx2", next(u for u in ordered if u.name == "int8_distance_dot_avx2"), ordered
+    )
+    assert served[0] == e4.Designated("type", "float32_distance_dot_avx2", None)
+    assert served[1] == e4.Designated("metric", "int8_distance_cosine_avx2", e4.LATER)
+
+
+def test_the_waves_are_consistent_with_the_designated_neighbours(lattice):
+    ordered = e4.units(lattice, "avx2")
+    waved = e4.waves(lattice, "avx2")
+    assert set(waved) == {unit.name for unit in ordered}
+    assert min(waved.values()) == 0
+    for unit in ordered:
+        rows = [row for row in e4.designated(lattice, "avx2", unit, ordered) if row.reason is None]
+        assert waved[unit.name] == (1 + max(waved[row.unit] for row in rows) if rows else 0)
+        for row in rows:
+            assert waved[row.unit] < waved[unit.name]
+    # a helper and the init have no axis at all, so they are always wave 0
+    assert all(waved[unit.name] == 0 for unit in ordered if unit.kind != "cell")
+
+
+def test_the_plan_writes_wave_zero_only_and_the_meta_names_every_wave(lattice):
+    ordered = e4.units(lattice, "avx2")
+    waved = e4.waves(lattice, "avx2")
+    made = e4.plan(lattice, "avx2", ("S-2o",), "M", k=0)
+    assert {request["unit"] for request in made} == {n for n, wave in waved.items() if wave == 0}
+    assert {request["wave"] for request in made} == {0}
+
+    record = e4.meta(lattice, "avx2", made, "M", arms=("S-2o",), k=0)
+    assert [len(wave) for wave in record["waves"]] == [18, 5, 3, 1]
+    assert sum(len(wave) for wave in record["waves"]) == len(ordered)
+    assert record["waves"][0] == [n for n in (u.name for u in ordered) if waved[n] == 0]
+
+
+def test_a_helper_carries_s2s_shots_only_and_says_so(lattice):
+    unit = next(u for u in e4.units(lattice, "avx2") if u.name == "popcount_avx2")
+    data = e4.context(lattice, "avx2", unit, "S-2o")
+    assert data["own"] == [] and data["own_notes"] == [{"axis": None, "unit": None, "reason": "helper"}]
+    text = e4.messages(lattice, "avx2", unit, "S-2o")[1]["content"]
+    assert e4.NO_OWN["helper"] in text
+    assert e4.NO_SHOTS["helper"] in text  # the ISA-axis shots are S-2's, and a helper has none of those
+
+
+def test_s2o_carries_the_students_own_passed_body_and_never_the_targets(tmp_path, lattice):
+    """The shot text is checked against the **replay's** bytes, never against the target's own."""
+    run_dir = make_run(tmp_path, lattice, ("S-2o",))
+    gold = golds(lattice, "avx2")
+    mine = {name: marked(body, name) for name, body in gold.items()}
+    generate = e1.replay_generator(own_replay(tmp_path, lattice, "avx2", "S-2o", 0, mine))
+
+    summary = e4.run(run_dir, FIXTURE, generate, pass_grade(), ceiling_usd=1.0)
+    assert summary["rows"] == 27 and summary["waves"] == 4
+
+    requests = {
+        request["id"]: request
+        for request in [
+            json.loads(line)
+            for line in (run_dir / e1.REQUESTS).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    }
+    later = requests[e1.request_id("int8_distance_dot_avx2", "S-2o", 0, 0)]
+    assert later["wave"] == 1
+    assert later["own"] == [{"axis": "type", "unit": "float32_distance_dot_avx2"}]
+    text = "".join(turn["content"] for turn in later["messages"])
+    # the neighbour's own body, as the replay wrote it — and the target's own body nowhere in the prompt
+    assert mine["float32_distance_dot_avx2"] in text
+    assert gold["float32_distance_dot_avx2"] not in text
+    assert "(void)mine_float32_distance_dot_avx2;" in text
+    assert "your own body, which passed" in text
+    # every later wave was built from rows the earlier ones wrote, so wave 3's unit carries two shots
+    deepest = requests[e1.request_id("int8_distance_l2_impl_avx2", "S-2o", 0, 0)]
+    assert deepest["wave"] == 3 and len(deepest["own"]) == 2
+
+
+def test_a_neighbour_that_failed_leaves_its_axis_with_no_own_shot(tmp_path, lattice):
+    run_dir = make_run(tmp_path, lattice, ("S-2o",))
+    mine = {name: marked(body, name) for name, body in golds(lattice, "avx2").items()}
+    generate = e1.replay_generator(own_replay(tmp_path, lattice, "avx2", "S-2o", 0, mine))
+
+    e4.run(run_dir, FIXTURE, generate, pass_grade(failing=("float32_distance_dot_avx2",)), ceiling_usd=1.0)
+    requests = {
+        json.loads(line)["id"]: json.loads(line)
+        for line in (run_dir / e1.REQUESTS).read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    }
+    later = requests[e1.request_id("int8_distance_dot_avx2", "S-2o", 0, 0)]
+    assert later["own"] == []
+    assert later["own_notes"] == [
+        {"axis": "type", "unit": "float32_distance_dot_avx2", "reason": e4.NEIGHBOUR_FAILED},
+        {"axis": "metric", "unit": "int8_distance_cosine_avx2", "reason": e4.LATER},
+    ]
+    text = "".join(turn["content"] for turn in later["messages"])
+    assert "own shots: none on the type axis (neighbour-failed)" in text
+    assert mine["float32_distance_dot_avx2"] not in text  # an unverified body is not a pattern
+
+
+def test_a_resumed_run_answers_no_request_twice(tmp_path, lattice):
+    run_dir = make_run(tmp_path, lattice, ("S-0", "S-2o"))
+    bodies = {name: marked(body, name) for name, body in golds(lattice, "avx2").items()}
+    asked = Counter()
+    both = tmp_path / "both-completions.jsonl"
+    # S-0's requests are in the plan, S-2o's later waves are not: the two files' ids together answer
+    # every request either call can make, and the S-2o rows come second, so they are the ones that win
+    both.write_text(
+        replay_file(tmp_path, run_dir, lattice, "avx2").read_text(encoding="utf-8")
+        + own_replay(tmp_path, lattice, "avx2", "S-2o", 0, bodies).read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    replay = e1.replay_generator(both)
+
+    def generate(requests):
+        asked.update(request["id"] for request in requests)
+        return replay(requests)
+
+    first = e4.run(run_dir, FIXTURE, generate, pass_grade(), ceiling_usd=1.0)
+    assert first["rows"] == 27 * 2
+    again = e4.run(run_dir, FIXTURE, generate, pass_grade(), ceiling_usd=1.0)
+    assert again["rows"] == first["rows"]
+    assert asked and max(asked.values()) == 1
+    assert sum(asked.values()) == 27 * 2
+
+
+def test_the_window_record_is_restated_as_a_wave_adds_requests(tmp_path, lattice):
+    run_dir = make_run(tmp_path, lattice, ("S-2o",))
+    planned = json.loads((run_dir / e1.META).read_text(encoding="utf-8"))["decomposition"]
+    bodies = {name: marked(body, name) for name, body in golds(lattice, "avx2").items()}
+    e4.run(
+        run_dir,
+        FIXTURE,
+        e1.replay_generator(own_replay(tmp_path, lattice, "avx2", "S-2o", 0, bodies)),
+        pass_grade(),
+        ceiling_usd=1.0,
+    )
+    window = json.loads((run_dir / e1.META).read_text(encoding="utf-8"))["decomposition"]
+    # the own shots make the later waves' prompts the largest the run sent, and the record says so
+    assert window["largest_prompt_chars"] > planned["largest_prompt_chars"]
+    assert window["file_chars"] == planned["file_chars"]
+    assert window["every_window_smaller"] is True
 
 
 # MARK: - the plan -

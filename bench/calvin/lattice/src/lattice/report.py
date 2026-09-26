@@ -34,14 +34,20 @@ Tokens, seconds and cost are the run's own `calls.jsonl` and are not re-derived 
 not about the model, so the number the run asked at stands beside the figures it produced.
 
 **E4's readings sit beside E1's** (:func:`e4_report`), because an E4 run's rows are E1's rows: a unit
-stands where a cell does. Three things differ, and each is a section of its own rather than a pooling.
+stands where a cell does. Four things differ, and each is a section of its own rather than a pooling.
 The rows are split **by unit kind** — cell, helper, init — since a `static inline` helper and a kernel are
 not the same task, exactly as E1 keeps wrappers apart. A helper **no cell's gold body reaches** is
 reported apart as :data:`UNEXERCISED`: it compiled and no slot ran it, so it has no pass rate to average
 into the others, and a unit is counted there whenever *any* of its rows says so — the empty slot union is
-a fact about the unit, not about a body. And the **file-level** rows (`file_level.jsonl`) are printed as
-they are, with the two comparisons E4-f registered — `S-2 − S-0` and `S-5 − S-3` — paired by unit, the
-second reading **not built** until this unit's second half lands.
+a fact about the unit, not about a body. The **file-level** rows (`file_level.jsonl`) are printed as they
+are, with the two comparisons E4-f registered — `S-2 − S-0` and `S-5 − S-3` — paired by unit, both now
+computed from the rows.
+
+And **S-2o is described, not tested** (E4-c): it is in no registered comparison, so what the report owes a
+reader is what the arm actually carried. :func:`_own_shots` counts it off the run's own
+`requests.jsonl` — how many cells carried 0, 1 or 2 own-pass shots, and **why each missing one was
+missing** (`later-in-order`, `neighbour-failed`, `no-neighbour`, or the unit having no axis at all). It is
+printed beside the arms and never turned into a p.
 """
 
 from __future__ import annotations
@@ -52,7 +58,7 @@ from collections import Counter
 from pathlib import Path
 
 from . import e4 as e4_of
-from .e1 import CALLS, GMEM, ITERATE, META, ROWS
+from .e1 import CALLS, GMEM, ITERATE, META, REQUESTS, ROWS
 
 __all__ = [
     "BODY_KINDS",
@@ -324,7 +330,7 @@ def e4_report(run_dir: Path | str) -> dict:
 
     A reader and nothing else, as :func:`report` is: a file that is not there is named in `missing` and
     never read as a zero. The registered comparisons are paired **by unit** — `paired.paired` takes a
-    unit where it takes a cell — and one whose second arm this unit does not build reads `not_built`.
+    unit where it takes a cell — and one whose arms a run has no rows for reads `missing`.
     """
     run_dir = Path(run_dir)
     missing: list[str] = []
@@ -332,6 +338,10 @@ def e4_report(run_dir: Path | str) -> dict:
     rows = _jsonl(run_dir / ROWS, missing)
     calls = _jsonl(run_dir / CALLS, missing)
     levels = _jsonl(run_dir / e4_of.FILE_LEVEL, missing)
+    # the requests, because S-2o's own-shot counts are a fact about what was *sent* and no row holds it.
+    # `parser.jsonl` is not read here: `meta.json`'s own `parser` block names the model and the digest of
+    # the fields the plan was built from, and a run that asked for no S-5 is missing nothing by not having one
+    requests = _jsonl(run_dir / REQUESTS, missing)
 
     k = int(record.get("k") or 0)
     arms = list(record.get("arms") or sorted({row["arm"] for row in rows if row.get("arm")}))
@@ -348,6 +358,8 @@ def e4_report(run_dir: Path | str) -> dict:
         "p12": record.get("p12"),
         "decomposition": record.get("decomposition"),
         "cycles": record.get("cycles") or [],
+        "waves": record.get("waves") or [],
+        "parser": record.get("parser"),
         "units": len(record.get("units") or []),
         "target_sha": record.get("target_sha"),
         "missing": missing,
@@ -358,6 +370,7 @@ def e4_report(run_dir: Path | str) -> dict:
         },
         "file_level": levels,
         "comparisons": _e4_comparisons(first, k),
+        "own_shots": _own_shots(requests),
         "totals": _totals(calls),
     }
 
@@ -400,15 +413,39 @@ def _e4_comparisons(rows: list[dict], k: int) -> dict:
     found: dict[str, dict] = {}
     for first, second in e4_of.COMPARISONS:
         label = f"{second} − {first}"
-        if second in e4_of.PLANNED or first in e4_of.PLANNED:
-            planned = second if second in e4_of.PLANNED else first
-            found[label] = {"not_built": f"{planned} is built in the second unit"}
-            continue
         if first not in by_arm or second not in by_arm:
             found[label] = {"missing": f"the run has no rows for {first if first not in by_arm else second}"}
             continue
         found[label] = paired_of.paired(by_arm[first], by_arm[second], k)
     return found
+
+
+def _own_shots(requests: list[dict]) -> dict | None:
+    """What S-2o carried, off the run's own requests: the own-shot counts, and why each missing one was.
+
+    Greedy requests only, because every sample of one unit shares that unit's shots — the shot is the
+    neighbour's greedy body, not one per draw — so counting the drawn requests too would multiply every
+    figure here by `k + 1` and say nothing more. `None` where the run has no S-2o request at all: a run
+    that did not carry the arm has no counts to read, which is not the same as carrying none.
+    """
+    greedy = [
+        request
+        for request in requests
+        if request.get("arm") in e4_of.OWN_ARMS and request.get("sample") == 0 and request.get("round") == 0
+    ]
+    if not greedy:
+        return None
+    cells = [request for request in greedy if request.get("kind") == "cell"]
+    carried = Counter(len(request.get("own") or []) for request in cells)
+    reasons = Counter(
+        note.get("reason") for request in greedy for note in (request.get("own_notes") or [])
+    )
+    return {
+        "units": len(greedy),
+        "cells": len(cells),
+        "carried": {str(count): carried.get(count, 0) for count in range(0, len(e4_of.OWN_AXES) + 1)},
+        "missing": dict(sorted(reasons.items())),
+    }
 
 
 def e4_render(found: dict) -> str:
@@ -427,6 +464,12 @@ def e4_render(found: dict) -> str:
     ]
     if found.get("target_sha"):
         lines.append(f"target {found['target_sha'][:12]}")
+    if found.get("parser"):
+        block = found["parser"]
+        lines.append(
+            f"parser: {block['parsed']} of {block['units']} unit(s) parsed by "
+            f"{block.get('model') or ', '.join(block.get('models') or ())} ({(block.get('sha256') or '')[:12]})"
+        )
     for cycle in found.get("cycles") or []:
         lines.append(f"cycle, one group in file order: {', '.join(cycle)}")
     if found["missing"]:
@@ -457,11 +500,28 @@ def e4_render(found: dict) -> str:
                 f"  G-reg {'pass' if row.get('reg') else 'fail'}  → {row.get('written') or '-'}"
             )
 
+    own = found.get("own_shots")
+    if own:
+        lines.append("")
+        lines.append(
+            f"{', '.join(e4_of.OWN_ARMS)}, described and not tested — the student's own passed bodies as "
+            f"shots, over {own['cells']} cell(s)"
+            + (f" in {len(found.get('waves') or ())} wave(s)" if found.get("waves") else "")
+            + ":"
+        )
+        for count in sorted(own["carried"], reverse=True):
+            lines.append(f"  cells carrying {count} own shot(s): {own['carried'][count]}")
+        lines.append(
+            # by reason and not by axis, because one of the reasons is the unit having no axis at all
+            "  no own shot, by reason: "
+            + (", ".join(f"{reason} {n}" for reason, n in own["missing"].items()) or "none missing")
+        )
+
     lines.append("")
     lines.append("registered comparisons, paired by unit (exact, two-sided, uncorrected):")
     for label, tests in found["comparisons"].items():
-        if "not_built" in tests or "missing" in tests:
-            lines.append(f"    {label}  — {tests.get('not_built') or tests['missing']}")
+        if "missing" in tests:
+            lines.append(f"    {label}  — {tests['missing']}")
             continue
         lines += paired_of.render_pair(label, tests)
 

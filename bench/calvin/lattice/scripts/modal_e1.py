@@ -17,6 +17,8 @@ weaker than `SamplingParams(seed=…)` on an offline batch, which is what makes 
 0.27.1, `transformers>=5.8`, `VLLM_USE_FLASHINFER_SAMPLER=0`, an A10G at a 16k window, and the weights in
 the `hobbes-hf-cache` volume. :data:`MODELS` is the whole of what may run: a model this table does not name
 is refused rather than downloaded, because a run at an unpinned model is not the run the record describes.
+**E4's parser** (`lattice e4 parse --parser-model`) is one of them, and is asked for through this same
+script and the same seam: a parse is a batch of greedy chat requests like any other.
 
 **The lattice package never imports `modal`.** This is a `uv run` script with its own dependencies, and
 `lattice.e1.modal_generator` reaches it through a subprocess and two JSONL files. A dispatched session has
@@ -63,6 +65,12 @@ MODELS = {
     # the weights (vLLM 0.27.1's own figures, the first Olmo call, 2026-09-25). The window is kept, and
     # the card moves: the L40S (48 GB). Qwen2.5-Coder's grouped-query attention fits the A10G.
     "allenai/Olmo-3-7B-Instruct": {"gpu": "L40S", "max_model_len": 16384},
+    # **E4's parser** (E4-e: an open instruct model at 7B, a parser into the task format and not an
+    # author). Qwen2.5-7B-Instruct is Qwen2.5-Coder-7B's own base architecture — the same 28 layers, the
+    # same 4 key/value heads against 28 query heads, the same 7.6 B parameters — so its KV cache at a 16k
+    # window is the coder's, which has run on the A10G here. The card and the window are therefore the
+    # coder's too, and the estimate falls back to `e1.DEFAULT_PRICE`, which is the A10G's rate.
+    "Qwen/Qwen2.5-7B-Instruct": {"gpu": "A10G", "max_model_len": 16384},
 }
 
 #: Each GPU's price per second, for the call record only (Modal's pricing page, read 2026-09-25: the

@@ -890,7 +890,7 @@ def test_a_fenced_gold_grades_pass_end_to_end(tmp_path, lattice):
 # MARK: - the Modal script, read and never imported -
 
 
-def test_the_modal_script_pins_both_models_and_the_vllm_version():
+def test_the_modal_script_pins_every_model_and_the_vllm_version():
     tree = ast.parse(MODAL.read_text(encoding="utf-8"))
     values = {
         target.id: node.value
@@ -900,11 +900,18 @@ def test_the_modal_script_pins_both_models_and_the_vllm_version():
         if isinstance(target, ast.Name)
     }
     models = ast.literal_eval(values["MODELS"])
-    assert sorted(models) == ["Qwen/Qwen2.5-Coder-7B-Instruct", "allenai/Olmo-3-7B-Instruct"]
+    assert sorted(models) == [
+        # the two students, and E4's parser (E4-e), which is asked for through this same script
+        "Qwen/Qwen2.5-7B-Instruct",
+        "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "allenai/Olmo-3-7B-Instruct",
+    ]
     assert all(row["max_model_len"] == 16384 for row in models.values())
     # Olmo 3's KV cache does not fit a 16k window on the A10G; it runs on the L40S
     assert models["Qwen/Qwen2.5-Coder-7B-Instruct"]["gpu"] == "A10G"
     assert models["allenai/Olmo-3-7B-Instruct"]["gpu"] == "L40S"
+    # the parser is Qwen2.5-Coder's own base at the same size, so it takes the coder's card and window
+    assert models["Qwen/Qwen2.5-7B-Instruct"]["gpu"] == "A10G"
     assert ast.literal_eval(values["VLLM"]) == "0.27.1"
     assert ast.literal_eval(values["APP"]) == "hobbes-e1"
 
