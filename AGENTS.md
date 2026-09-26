@@ -328,7 +328,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   gap is not name-reading. The paired tests (2026-09-26) hold the
   pattern effect (p 0.0015) and leave facts-beside-pattern suggestive; E3's
   pool count found the card's family rule and the ingested permissive pool
-  unfit, so its card is revised. Next, for Max: D-5 (a C lattice draw first).
+  unfit, so its card is revised; a C lattice draw (40 repos) gives 24,222
+  unique tasks, 2,062 validated, and E4 is designed. Next, for Max: D-6
+  (E4), D-7 (which count funds E3), D-8 (two extraction defects it found).
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its

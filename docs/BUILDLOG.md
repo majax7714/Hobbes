@@ -14439,3 +14439,29 @@ Both records carry the readings as dated addenda. The outputs are in
 D-5 is for Max: that draw, with E4's design written in parallel (recommended), or E3 alone, or ScummVM's pool.
 
 There is no version bump: bench and records only. The image was not rebuilt.
+
+**D-5 taken (Max: "good to proceed with recommended"), later the same session.**
+- **The draw rule came first** (`b273b13`, sha256 `f4b6e2ab…`). It is a census of the permissively licensed
+  C repos GitHub returns for seven SIMD keywords, gated on an ISA lattice and a contained ingest, capped at 40,
+  with bars for the body-shape rule.
+- **E4's design** (`8efcc51`, D-6). Checked against E1's rows first: 12 of Qwen's 18 C-2 passes sat nearest
+  the type-axis shot, which is a hole at L1, so an own-pass arm (S-2o) was added. Every prompt reads the
+  file's other units bare.
+- **The draw ran in a background fork.** Its measuring step stalled for two hours on libxsmm (pairwise
+  difflib). I diagnosed it and it was fixed with exact `quick_ratio` prefilters, plus a counted `skipped_size`.
+  I re-checked the totals, the fixture and the crash by hand. The record is `ffa3e26`:
+  - 40 repos taken, 24,222 unique tasks, 2,062 validated;
+  - the body-shape rule fails its recall bar (0.814), and no revision passed both bars held out;
+  - sqlite-ndvss is not near the target.
+- **Two Hobbes defects, reproduced:**
+  - C lane A silently drops a file whose top level parses as one ERROR node (guarded attribute specifiers,
+    an 8-line fixture);
+  - moonlab's 537-call bindgen chain overflows `rustsource._walk` and aborts the ingest (`javasource` has
+    the same walk).
+- **For Max:**
+  - D-6, E4's routes;
+  - D-7, whether mined real code needs validation (2,062 against 24,222);
+  - D-8, the two defects: an iterative walk first, then a counted `parse-lost` for C.
+
+No product change was made and there is no version bump. The drivers are in
+`~/.hobbes/bench/calvin-lattice/e3/draw/`.

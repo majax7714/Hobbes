@@ -34,33 +34,34 @@ drivers' paths below.
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Two tracks are open.**
-- **The Calvin experiments: E3's card is revised and waits on D-5 (Max)** (nineteenth session, no spend).
-  - E1 cost $6.59 of $10 and E2 $1.89 of $3. The records, and their paired-test addenda, are in
-    `calvin-experiments.md` §6.
-  - **The noise floor** (`lattice e1 paired`, and `e2 compare`'s paired tests, `45963f9`):
-    - E1's pattern effect is firm (C-2 − C-4, p 0.0015 greedy).
-    - Facts beside pattern is suggestive (C-3 − C-2, p 0.18 greedy, 0.024 sampled).
-    - No descriptive-shadow delta on bodies reads.
-    - Renaming alone churns 12 to 17 greedy cells per arm, so a greedy gap needs about +0.14 to read.
-  - **E3's pool:**
-    - The card's family rule groups 18 of sqlite-vector's 63 bodies; a body-shape rule groups 63, but it was
-      fitted there.
-    - The permissively licensed ingested pool is 43 to 93 members, against ADR-099's 13,688 records.
-    - ScummVM is GPL-3.0 and unlike the target.
-  - **The revised card:**
-    - E3-use (C-2) and E3-weights (C-0), each against the shuffled adapter;
-    - pass@1(sampled) with the sign-flip test as the primary figure, at k = 10;
-    - the stated-task opaque arm folded in;
-    - the first step is a no-spend draw of permissively licensed C repos with kernel lattices.
-
-  **For Max: D-5** (§9). Recommended: that draw, with the body-shape rule tested on it, and E4's design written
-  in parallel. Or E3 alone, or ScummVM's pool. Olmo is out (E2-f).
+- **The Calvin experiments: three decisions wait for Max — D-6, D-7, D-8** (nineteenth session, no spend;
+  `calvin-experiments.md` §6 and §9).
+  - **Done:**
+    - the noise floor (`lattice e1 paired`, `45963f9`): E1's pattern effect is firm, and facts beside it
+      suggestive;
+    - E3's card revised;
+    - D-5 a taken, and the C lattice draw run by its committed rule (`b273b13`, record `ffa3e26`): 40 repos,
+      **24,222 unique tasks, 2,062 validated**. The body-shape rule fails its recall bar, and sqlite-ndvss is
+      clear of the target.
+    - E4's design (`8efcc51`): 12 of E1's 18 C-2 passes leaned on the type-axis shot, so the S-2o arm was
+      added.
+  - **D-6:** E4's routes (L1 on the avx2 file, decomposed, ≈ $3–5, a ceiling of $8, one dispatched unit to
+    build `lattice e4` first).
+  - **D-7:** which count funds E3. Recommended: mined real code needs no validation route, so the pool is
+    24,222 and the steps ablation is priced on it. Or the registered band, 2,062 at 300 steps, or a second
+    draw first.
+  - **D-8, two Hobbes extraction defects the draw found, reproduced.** Recommended: the iterative walk
+    first, then C's counted `parse-lost`.
+    - moonlab's `build.rs` (a 537-call bindgen chain) overflows `rustsource._walk` and aborts the whole
+      ingest. `javasource._walk` has the same shape.
+    - C lane A silently drops a file whose top level is one ERROR node (`e3/draw/hypersonic-fixture/`).
 
   Drivers:
-  - `~/.hobbes/bench/calvin-lattice/e3/noise-floor/`;
-  - `e3/family-count/` (`count.py`, `agree.py`, `RESULTS.md`);
-  - `e2/` (`qwen-{descriptive,opaque}/`, `compare.*`);
-  - `shadows/{descriptive,opaque}/`.
+  - `~/.hobbes/bench/calvin-lattice/e3/draw/` (`DRAW-RULE.md`, `RESULTS.md`, `final.json`, the scripts;
+    `crash/moonlab` is the crash's clone);
+  - `e3/noise-floor/`, `e3/family-count/`;
+  - `e4/shot_axis.py`;
+  - `e2/`, `shadows/`.
 - **The comparative programme reads JavaScript** (`fbf6198`, `8292c98`): CodeGraphContext and repowise on the five
   JS keys. repowise's converter@5 fixed a `__module__` drop that had cost every repowise cell its top-level calls,
   and all 22 published cells were regraded. C-94 has the chain-line residual. Drivers:
@@ -482,7 +483,7 @@ named below was removed unless it says otherwise.
    - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
      E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
-     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3's card revised on the noise floor and the pool count (nineteenth session); next: D-5 (START HERE). Drivers:
+     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3's card revised, its pool drawn and E4 designed (nineteenth session); next: D-6 to D-8 (START HERE). Drivers:
      `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
      <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
      history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its
