@@ -1,10 +1,8 @@
 # Session handoff — the single resume point
 
 **Reviewed 2026-09-26 (eighteenth session); Hobbes 0.2.70-beta on `main`.**
-Max pushed through the twelfth session's last commit (`57e4be2`,
-0.2.67-beta); what the thirteenth to fifteenth add (ADR-149, 0.2.68-beta;
-ADR-145 amended and the flask key, 0.2.69-beta; ADR-150, 0.2.70-beta) is on
-`main`, unpushed. The image and the proxy are at 0.2.70-beta and this repo
+Max pushed through the eighteenth session's last commit (`ea6cb28`,
+0.2.70-beta); nothing on `main` is unpushed. The image and the proxy are at 0.2.70-beta and this repo
 is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
