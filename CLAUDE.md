@@ -300,10 +300,10 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **79 of 40**
-  sessions that validate the harness: 4 areas, 3 false blocks (`f3c1`,
-  closed at 0.2.28-beta; `9326` and `c141`, the decorator case below,
-  open), 0 missed. It stays the way work is done.
+  drift test; re-render after filling a review block) reads **82 of 40**
+  sessions that validate the harness: 4 areas, 4 false blocks (`f3c1`,
+  closed at 0.2.28-beta; `9326`, `c141` and `66c5`, the decorator case
+  below, open), 0 missed. It stays the way work is done.
 - **Latest — 0.2.70-beta, extraction first** (Max, 2026-09-20: "the
   most annoying work to do but the most important"; "we never sacrifice
   honesty for higher recall"). **ADR-150** (unit `4732`): scip-python
@@ -326,7 +326,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   for the same volume of unrelated code (C-4). Facts alone did not help,
   and Olmo sits at the floor. Next, for Max: E2's shadows, then E3.
 - **Open for Max:** the gate's false block on a new decorator naming a
-  module-level value (sessions 9326 and c141; the handoff has it);
+  module-level value (sessions 9326, c141 and 66c5; the handoff has it);
   ADR-126 §3 — whether to build a "may reach through dispatch (not
   traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

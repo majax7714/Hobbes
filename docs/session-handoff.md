@@ -455,43 +455,16 @@ named below was removed unless it says otherwise.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
-   - **E1 is done (2026-09-25); the record is §6, "E1's record".** The three instrument calls below were taken
-     as recommended (unit `06e3`), and both models ran on all 93 cells. What follows is kept for its drivers.
-   - **E1 after its first unit (2026-09-25, seventeenth session).** E1-g has run: Qwen2.5-Coder-7B, the 31 `avx2`
-     cells, all five arms, $0.74 in all. The record is §6, "E1-g's record", and the run is
-     `~/.hobbes/bench/calvin-lattice/e1/e1g-qwen-avx2/` (`lattice e1 report <dir>`). Before widening, three
-     instrument calls, each measured on the real rows (recommended first):
-     - **(1) Parameter names:** 60 rows are `invented` because the model renamed the target's parameters.
-       Re-graded with the names mapped back, none passes. **a:** keep grafting the body under the target's
-       signature, and count a name that is the model's own parameter as its own G-hsr bucket (`param`), not
-       as invented. b: grade the model's whole definition when its name and types match. c: leave as is.
-     - **(2) `max_tokens`:** 112 completions stopped at 1,024, 95 of them in the iterate rounds. **a:** 2,048 in
-       every round (the cost is small). b: raise it in the iterate rounds only.
-     - **(3) G-mem evidence:** a wrapper's expected continuation is `}`, and all 10 read `memorised`. **a:** set
-       `evidence: False` below 8 expected tokens.
-
-     Then widen: Qwen `sse2` and `avx512` in one call, then Olmo's three ISAs, at about $2 to $3 against the
-     remaining ceiling.
-   - **The Calvin experiments programme** (proposed 2026-09-24, sixteenth
-     session; [`calvin/calvin-experiments.md`](calvin/calvin-experiments.md)):
-     a model that writes C, starting from sqlite-vector's SIMD kernel
-     lattice (31 names × 6 ISAs, the scalar file as the numeric oracle).
-     **D-1 to D-4 taken** (Max, 2026-09-24): Calvin under "skill in the
-     weights, facts in the ledger"; an open model at inference, the
-     general model a parser into a task format; E0 with no spend, then
-     E1 at a $10 ceiling; NEON/RVV left. ADR-151 accepted; the charter
-     amended. **E0 built and accepted** (2026-09-25; units `2fd4`,
-     `9326`, `f50c`, `189e`, `c141`; `bench/calvin/lattice/`; the record
-     is §6's "E0's record"). **Next: E1's runner** (the prompts per arm
-     from `lattice task`, the iterate loop from `lattice grade`'s
-     feedback, vLLM on Modal for Qwen2.5-Coder-7B and Olmo-3-7B),
-     built with no spend. Then its first unit is priced against the
-     $10 ceiling (D-3), and Max's word comes before it widens. Drivers:
-     `~/.hobbes/bench/calvin-lattice/` (`units/`, `selftest/`,
-     `shadows/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
-     history clone `sqlite-vector-full/`). The target was re-ingested at
-     0.2.70-beta.
-   - **A gate false block, twice (`9326`, `c141`): a newly added
+   - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
+     ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
+     E0 built and accepted (units `2fd4`, `9326`, `f50c`, `189e`, `c141`); E1's runner built (`8e50`, `66c5`),
+     its three instrument calls from E1-g taken as recommended (`06e3`: the `param` bucket, `max_tokens`
+     2,048, no G-mem evidence below 8 expected tokens); **E1 run on both models, all 93 cells, $6.59 of $10**
+     (§6, "E1-g's record" and "E1's record"). Next: E2's shadows on Qwen C-2/C-3, the run-cap guard fix, and
+     whether Olmo stays an arm (START HERE). Drivers: `~/.hobbes/bench/calvin-lattice/` (`e1/` the runs —
+     `lattice e1 report <dir>` — `units/`, `selftest/`, `shadows/`, `facts/intrinsics-clang18.json`,
+     `ages.py`, the full history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta.
+   - **A gate false block, three times (`9326`, `c141`, `66c5`): a newly added
      decorator that names a module-level value (`@needs_x` where
      `needs_x = pytest.mark.skipif(...)`) reads `invented`.** Since
      ADR-146, lane A reads a decorator as a call, and the grounder
@@ -546,8 +519,9 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 74 of 40, 4
-     areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
+   - **The validating 40 are done:** the tracker reads 82 of 40, 4
+     areas, 4 false blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141`,
+     `66c5`, the decorator case, open), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
      --poison` against the cell's saved `oracle.json` (as the C++
@@ -617,7 +591,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Seventy-four log files under `docs/calvin/sessions/`; the tracker reads 74 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
+  is a tmpfs. Eighty-two log files under `docs/calvin/sessions/`; the tracker reads 82 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 96 cells (22 same-key rows, C++'s two among them; flask's new
   cell at 0.2.68-beta's figures); `render.py
@@ -661,7 +635,7 @@ min each.
 **Held, with all spend:** the Atlas-0 T items; the TTT adapter points;
 the removal A/B re-run on the 7B; a second unseen repo through the cell;
 DeepSWE's decomposed protocol; `hobbes narrate` on this repo; the Calvin
-experiments' E1–E5 (`calvin-experiments.md`, proposed). The keyed Calvin runs are closed, not
+experiments past E1 (`calvin-experiments.md`; E1 is run, each next run on Max's word and ceiling). The keyed Calvin runs are closed, not
 held.
 
 ## STANDING POLICY (Max) — read before doing anything
