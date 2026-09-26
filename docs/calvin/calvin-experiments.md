@@ -992,7 +992,12 @@ Proposed routes, the recommended one first.
   image), or leave them until L1 needs a sixth file? **Recommended: leave them**, since the
   three native ISAs give 93 cells.
 
-- **D-5 — E3's pool, and E4 beside it** (2026-09-26, after E3's revised card).
+- **D-5 — E3's pool, and E4 beside it** (2026-09-26, after E3's revised card). **Taken: a** (Max,
+  2026-09-26: "good to proceed with recommended"). The draw rule was written before the draw:
+  `~/.hobbes/bench/calvin-lattice/e3/draw/DRAW-RULE.md`, sha256 `f4b6e2abf25b2035…`. It is a census of the
+  permissively licensed C repos GitHub's search returns for seven SIMD keywords, gated on an ISA lattice
+  (≥ 3 families, ≥ 8 members) and a contained ingest, capped at 40. Its pre-registered bars for the
+  body-shape rule are recall ≥ 0.90 on the ISA families and coincidence ≤ 20% on a read sample.
   - **a (recommended):** E3's first step is a no-spend draw of permissively licensed C repos with kernel
     lattices, by a written rule, with the body-shape rule tested on it. **E4's design** (the graph serves the
     shots and the facts to a student, P12) is written in parallel: E1's firm result is pattern in context,
