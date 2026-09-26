@@ -125,6 +125,20 @@ scalar disagree (`GoldReference`; `grade_with_references` hands them back for th
 gold that does not build, does not link or dies in the differential is `GoldUnavailable` — its own type,
 because unlike everything else here it is not a fact about a body.
 
+**Two more entry forms, both E4's, and the cell form unchanged beside them.** At rung L1 the whole file is
+held out, so a hole is any of its definitions. `{"id", "unit", "isa", "body"}` is one definition: a **cell**
+is graded exactly as the cell form grades it, with `unit` and `graded_over` beside the result; a **helper**
+over the union of the `graded_via` slots of every cell whose gold body reaches it — `hsum256_ps` over the
+float32 row and nothing else — and one no cell reaches is `UNEXERCISED`, compile-only, a class of its own
+beside `hsr.CLASSES` because the empty union is a fact about the *unit* and not a verdict on its body;
+the **init** over every slot the file installs, which is the one unit whose own job is to install them.
+`{"id", "isa", "bodies": {name: body}}` is E4's **file-level** build: several bodies filled at once, graded
+over every installed slot, with `filled_sha256` on the result so the bytes graded and the bytes written to
+`final/` are one thing. Every form fills into the **gold** file and puts it back, so a wrong helper fails
+on its own row and the cells that call it are still graded against the target's own (E4-d). The file's
+definitions and the calls between them are read through `e4`, imported on use — the token rule is written
+once, there, and most grading runs carry no unit entry.
+
 **`feedback`** — the ≤1,500 characters a model is shown on a retry, built from the graded result's
 **structured fields only**: the first compile errors with target-relative paths, or the first failing case
 with its `n`, expected and got, plus the invented names. Never raw compiler output, which carries this
@@ -487,6 +501,45 @@ answered is counted in `unpaired`, never read as a fail. A p is two-sided, per c
 `lattice e1 paired <run> <arm> <arm>` pairs two arms of one run (E1's C-2 against C-4), and `e2
 compare` carries the same three tests per arm against the original.
 
+**`e4`** — **E4's runner** (§6's card and "E4's design"; D-6 as recommended). E1 asked what context is
+worth on one body; E4 holds out a **whole file** at rung **L1** and asks whether the graph can serve a
+small student the pattern and the facts to write it back, one definition at a time. It is the first run on
+that page that **decomposes** (P12, ADR-082): `meta.json` records `p12: decomposed` with the unit count,
+the largest prompt and the file's own length, so ADR-086's check can read that every implementer's window
+was smaller than the task (on the fixture's `distance-avx2.c`: 9,718 chars against 20,357).
+
+**A unit is a definition, not a cell.** `units(lattice, isa)` reads every definition of the held-out file —
+the 13 lattice cells, the 13 non-cell helpers and `init_distance_functions_avx2` — and orders them **leaves
+first** by the calls in the *gold* bodies: an identifier token in a body's masked text naming another
+definition of the same file is an edge, which is the one rule the order, a helper's graded slots and the
+reach are all read by. A **cycle** is emitted as one group in file order and `cycles()` names it, which the
+plan records; a file that defines one name twice (every `#if` arm is read) is `DuplicateDefinition` rather
+than two units under one name. `skeleton(lattice, isa, unit)` is the file down to the end of that unit's
+signature with **every other body replaced by `;`** — stricter than C-0's `task.prelude_bare`, which keeps
+the non-cell helpers' bodies: at L1 those helpers are holes too, so their bodies would be gold in a prompt,
+and **a body reaches a prompt only as an arm's shot.**
+
+**Three arms, one variable apart, and two named seams.** **S-0** is the skeleton and the hole. **S-2** adds
+the graph-served **ISA-axis** shots — the same `(type, metric)` cell in each other *native* file (`sse2` and
+`avx512` when `avx2` is held out, which is why E4-a holds out `avx2` first), the other files' init functions
+for the init unit, and **none for a helper**, which the prompt says as `shots: none (helper)` rather than
+reading as S-0. **S-3** adds the ledger's callees for a cell, in E1's own lines, and says
+`facts: none (helper)` or `(init)` where there are none. `S-5` (the parser's fields) and `S-2o` (the
+student's own passed bodies as shots) are **named and not built** — `NotBuilt`, saying they are the second
+unit's. From E1's rows the expectation is written down: 12 of Qwen's 18 C-2 greedy passes sat nearest the
+*type*-axis shot, and at L1 the type neighbours are holes, so S-2 is expected **below** E1's C-2.
+
+**A failed unit does not cascade** (E4-d). E1's loop runs with `rounds=0` and each unit is graded against
+the **gold** file with that one definition punched, so a wrong `hsum256_ps` fails on its own row and every
+cell that calls it is still graded against the target's own helper. Beside that per-unit reading,
+`file_level` builds the file the student *actually wrote* — every unit's **greedy** body where that unit
+passed, gold elsewhere — writes it to `final/<arm>/<file>` with a unified diff against the target's in
+`.patch`, grades it once over every installed slot, and records `units_passed`, `units`, `diff_pass` and
+`reg` in `file_level.jsonl`. An arm already in that file is not built again. The file-level build reaches
+the image through **a manifest form and not a `grade-file` verb** — `{"id", "isa", "bodies"}` beside the
+unit form, which is the smaller of the two: no new argparse, no new container plumbing, and `e1.default_grade`
+carries it unchanged. Both sides fill with `fill_units`, and `filled_sha256` is on the row from each.
+
 **`cli`** — `lattice map <target> [--json]`, `lattice task <target> <cell-id>`,
 `lattice punch <target> <cell-id>`, `lattice grade <target> <manifest.json> [--out results.jsonl]`,
 `lattice selftest <target> [--cells id,id,…] [--out report.json]`, plus the reading verbs of this unit:
@@ -528,10 +581,21 @@ which writes one row per body it carried and one per body it did not, with the r
 <shadow-map.json>` on `map`, `task` and `grade`, which reads the lattice through a shadow's map (and,
 for `grade`, rides into the image in the work dir, since `--rename` may point anywhere on this box).
 
+**This unit adds three more, all E4's:** `lattice e4 plan <target> <run-dir> --model M [--isa avx2]
+[--arms S-0,S-2,S-3] [--k 10] [--graph G --key K --intrinsics I]`, `lattice e4 run <run-dir> <target>
+--ceiling-usd X [--generator modal|replay:<completions.jsonl>] [--image NAME]` and `lattice e4 report
+<run-dir> [--json]`. `plan` prints the P12 window line and refuses, exit 2, an ISA the target has not and
+an arm the second unit builds (`S-5`, `S-2o`), naming it; `S-3` with no ledger is skipped and named, as
+`prompts` does. `run` takes no `--rounds`: E4 does not iterate. `report` prints one block per arm **per unit
+kind** — cell, helper, init, with the `unexercised` helpers counted apart and never averaged in — the
+file-level rows, and the two comparisons E4-f registered, paired by unit: `S-2 − S-0` now, and `S-5 − S-3`
+reading **not built** until the second unit lands.
+
 Everything that compiles or runs the target's code runs in the image (ADR-092, C-64) — and so does the
 intrinsic index, whose headers are the image's clang's. `graph-grade` is the exception and says why: it
 runs a Hobbes ingest, which contains its own lane B. Still to come: G-test, `grade` and `diff` taking a
-rename of their own instead of `shadow.grading`, and the first run that actually calls a model.
+rename of their own instead of `shadow.grading`, E4's second half (**S-5**, the parser's fields, and
+**S-2o**, the own-pass shots in waves), and the first run that actually calls a model.
 
 ```sh
 # on this box, in the image
@@ -582,6 +646,13 @@ lattice e1 plan /tmp/shadow-descriptive runs/qwen-descriptive \
   --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
 lattice e1 run runs/qwen-descriptive /tmp/shadow-descriptive --ceiling-usd 1.50 --generator modal
 lattice e2 compare runs/qwen-avx2 runs/qwen-descriptive runs/qwen-opaque   # or --json
+
+# E4: one whole file at L1, every definition a unit, leaves first, one call each
+lattice e4 plan /path/to/sqlite-vector runs/qwen-avx2-l1 \
+  --model Qwen/Qwen2.5-Coder-7B-Instruct --isa avx2 --arms S-0,S-2,S-3 --k 10 \
+  --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
+lattice e4 run runs/qwen-avx2-l1 /path/to/sqlite-vector --ceiling-usd 8 --generator modal
+lattice e4 report runs/qwen-avx2-l1                 # or --json
 ```
 
 ## E1's runner — the order of work
@@ -626,3 +697,25 @@ script then exits non-zero; `lattice.e1` reads that record off `GenerateFailed` 
 card's price does — and the test loads the script's source with `modal` stubbed to reach it, because
 this package may not import `modal` and a dispatched session has no route to it. The alternative, a
 copy of the arithmetic in the package where the tests could import it, is two places for one number.
+
+## E4's runner — the order of work
+
+**Nothing has run.** The instruments are built and no model has been called; §6's estimate is **$3–5 with
+a ceiling of $8** for the `avx2` file, and only Max names a run and its ceiling (§8). The order:
+
+1. **`lattice e4 plan --isa avx2`** — the requests only, on the host, costing nothing. Read the P12 line it
+   prints and the prompt sizes off `requests.jsonl` before anything is sent: 27 units × 3 arms × 11 samples
+   is 891 requests, and every window must be smaller than the file.
+2. **The first call**, priced against `e1.estimate` before the rest is sent, as E1-g's was. `e4 run` grades
+   in the image between nothing — there are no rounds — so one call answers every unit of every arm.
+3. **Read the per-unit figures first, then the file level.** The per-unit rates are what S-2 − S-0 is read
+   on; the file level says how much of the file the student wrote, and it is a second reading, not a
+   headline. `S-5 − S-3` has no number until the second unit lands.
+4. **Max's word**, before the other two native files (E4-a's `b`), before the 32B ceiling arm and before
+   the descriptive shadow (E4-g).
+
+**This unit is the first of two.** The second builds **S-5** — the parser's fields (§5.2's `contract` and
+`edge_cases`, filled once per unit by an open 7B from `API.md` and the unit's task record, cached so every
+arm reads the same fields) — and **S-2o**, whose shots are the student's *own* passed bodies from earlier
+units of the same file and never gold, which makes the run waves rather than one call. Both are in
+`e4.PLANNED`, and asking `plan` for either exits 2 saying so.

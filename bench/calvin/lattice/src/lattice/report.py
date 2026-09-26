@@ -32,6 +32,16 @@ A probe under `gmem`'s evidence floor reads `no-evidence` in that split, never `
 Tokens, seconds and cost are the run's own `calls.jsonl` and are not re-derived from the rows, and
 `max_tokens` is `meta.json`'s: a completion that stopped at the limit is a `no-body` about the limit and
 not about the model, so the number the run asked at stands beside the figures it produced.
+
+**E4's readings sit beside E1's** (:func:`e4_report`), because an E4 run's rows are E1's rows: a unit
+stands where a cell does. Three things differ, and each is a section of its own rather than a pooling.
+The rows are split **by unit kind** — cell, helper, init — since a `static inline` helper and a kernel are
+not the same task, exactly as E1 keeps wrappers apart. A helper **no cell's gold body reaches** is
+reported apart as :data:`UNEXERCISED`: it compiled and no slot ran it, so it has no pass rate to average
+into the others, and a unit is counted there whenever *any* of its rows says so — the empty slot union is
+a fact about the unit, not about a body. And the **file-level** rows (`file_level.jsonl`) are printed as
+they are, with the two comparisons E4-f registered — `S-2 − S-0` and `S-5 − S-3` — paired by unit, the
+second reading **not built** until this unit's second half lands.
 """
 
 from __future__ import annotations
@@ -41,9 +51,21 @@ import math
 from collections import Counter
 from pathlib import Path
 
+from . import e4 as e4_of
 from .e1 import CALLS, GMEM, ITERATE, META, ROWS
 
-__all__ = ["BODY_KINDS", "COMPILED", "LOW_BIT", "figures", "pass_at_k", "render", "report"]
+__all__ = [
+    "BODY_KINDS",
+    "COMPILED",
+    "LOW_BIT",
+    "UNEXERCISED",
+    "e4_render",
+    "e4_report",
+    "figures",
+    "pass_at_k",
+    "render",
+    "report",
+]
 
 #: The kinds that are the experiment's result, and the kind reported apart.
 BODY_KINDS = ("body", "impl")
@@ -59,6 +81,11 @@ COMPILED = ("not-installed", "wrong", "edge", "pass")
 #: The label a cell whose probe had nothing to continue carries: not a G-mem reading, and never folded
 #: into `unseen` (`gmem.run` marks those rows `evidence: False`).
 NO_EVIDENCE = "no-evidence"
+
+#: `grade.UNEXERCISED`, repeated rather than imported: `grade` pulls in the compiler and the differential,
+#: and a report is read on a box that has neither. The string is the seam, and `test_grade.py` holds the
+#: two together.
+UNEXERCISED = "unexercised"
 
 
 def pass_at_k(n: int, c: int, k: int) -> float | None:
@@ -287,6 +314,166 @@ def _jsonl(path: Path, missing: list[str]) -> list[dict]:
         missing.append(path.name)
         return []
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+# MARK: - E4's readings -
+
+
+def e4_report(run_dir: Path | str) -> dict:
+    """Every figure an E4 run's rows support: per arm, per unit kind, the file level, the comparisons.
+
+    A reader and nothing else, as :func:`report` is: a file that is not there is named in `missing` and
+    never read as a zero. The registered comparisons are paired **by unit** — `paired.paired` takes a
+    unit where it takes a cell — and one whose second arm this unit does not build reads `not_built`.
+    """
+    run_dir = Path(run_dir)
+    missing: list[str] = []
+    record = _json(run_dir / META, missing) or {}
+    rows = _jsonl(run_dir / ROWS, missing)
+    calls = _jsonl(run_dir / CALLS, missing)
+    levels = _jsonl(run_dir / e4_of.FILE_LEVEL, missing)
+
+    k = int(record.get("k") or 0)
+    arms = list(record.get("arms") or sorted({row["arm"] for row in rows if row.get("arm")}))
+    first = [row for row in rows if row.get("round") == 0 and row.get("arm")]
+
+    return {
+        "run": run_dir.name,
+        "model": record.get("model"),
+        "k": k,
+        "max_tokens": (record.get("params") or {}).get("max_tokens"),
+        "rung": record.get("rung"),
+        "isa": record.get("isa"),
+        "file": record.get("file"),
+        "p12": record.get("p12"),
+        "decomposition": record.get("decomposition"),
+        "cycles": record.get("cycles") or [],
+        "units": len(record.get("units") or []),
+        "target_sha": record.get("target_sha"),
+        "missing": missing,
+        "arms": {
+            arm: _e4_arm([row for row in first if row["arm"] == arm], k)
+            for arm in arms
+            if any(row["arm"] == arm for row in first)
+        },
+        "file_level": levels,
+        "comparisons": _e4_comparisons(first, k),
+        "totals": _totals(calls),
+    }
+
+
+def _e4_arm(rows: list[dict], k: int) -> dict:
+    """One arm: the units it answered, split by kind, with the unexercised ones counted apart."""
+    apart = {row["cell"] for row in rows if row.get("class") == UNEXERCISED}
+    graded = [row for row in rows if row["cell"] not in apart]
+    kinds = {
+        kind: figures([row for row in graded if row.get("kind") == kind], k, {})
+        for kind in e4_of.KINDS
+        if any(row.get("kind") == kind for row in graded)
+    }
+    return {
+        "units": len({row["cell"] for row in rows}),
+        "by_kind": kinds,
+        "unexercised": {
+            "units": len(apart),
+            "names": sorted(apart),
+            "rows": sum(1 for row in rows if row["cell"] in apart),
+            "classes": dict(sorted(Counter(row.get("class") or "ungraded" for row in rows if row["cell"] in apart).items())),
+        },
+    }
+
+
+def _e4_comparisons(rows: list[dict], k: int) -> dict:
+    """E4-f's two registered comparisons, each paired by unit, or the reason there is no number yet."""
+    # `paired` reads this module's section kinds, so the two may not import each other at the top
+    from . import paired as paired_of
+
+    by_arm: dict[str, dict[str, dict]] = {}
+    for row in rows:
+        unit = by_arm.setdefault(row["arm"], {}).setdefault(row["cell"], {"greedy": None, "drawn": []})
+        passed = row.get("class") == "pass"
+        if row.get("sample") == 0:
+            unit["greedy"] = passed
+        else:
+            unit["drawn"].append(passed)
+
+    found: dict[str, dict] = {}
+    for first, second in e4_of.COMPARISONS:
+        label = f"{second} − {first}"
+        if second in e4_of.PLANNED or first in e4_of.PLANNED:
+            planned = second if second in e4_of.PLANNED else first
+            found[label] = {"not_built": f"{planned} is built in the second unit"}
+            continue
+        if first not in by_arm or second not in by_arm:
+            found[label] = {"missing": f"the run has no rows for {first if first not in by_arm else second}"}
+            continue
+        found[label] = paired_of.paired(by_arm[first], by_arm[second], k)
+    return found
+
+
+def e4_render(found: dict) -> str:
+    """E4's report as a table: one block per arm, the file level, then the registered comparisons."""
+    # the same import rule as above, and for the same reason
+    from . import paired as paired_of
+
+    decomposition = found.get("decomposition") or {}
+    lines = [
+        f"E4 {found['run']} — {found.get('model') or 'no model recorded'} "
+        f"({found.get('rung')} on {found.get('file') or found.get('isa')}, k={found.get('k')}, "
+        f"max_tokens={found.get('max_tokens') or '?'}, P12 {found.get('p12')})",
+        f"units: {found.get('units')}; largest prompt {decomposition.get('largest_prompt_chars')} chars "
+        f"against the file's {decomposition.get('file_chars')} "
+        f"({'every window smaller' if decomposition.get('every_window_smaller') else 'NOT every window smaller'})",
+    ]
+    if found.get("target_sha"):
+        lines.append(f"target {found['target_sha'][:12]}")
+    for cycle in found.get("cycles") or []:
+        lines.append(f"cycle, one group in file order: {', '.join(cycle)}")
+    if found["missing"]:
+        lines.append(f"missing, not read as zero: {', '.join(found['missing'])}")
+
+    lines.append("")
+    if not found["arms"]:
+        lines.append("(no rows)")
+    else:
+        lines.append(f"  {'arm':<8}{'kind':<14}{'units':>6}{'pass@1':>9}{'pass@1(s)':>11}{'pass@k':>9}  classes")
+    for arm, data in found["arms"].items():
+        for kind, figure in data["by_kind"].items():
+            lines.append(_figure_line(arm, kind, figure))
+        apart = data["unexercised"]
+        if apart["units"]:
+            lines.append(
+                f"  {'':<8}{UNEXERCISED:<14}{apart['units']:>6}"
+                f"{'-':>9}{'-':>11}{'-':>9}  apart: {', '.join(apart['names'])}"
+            )
+
+    if found["file_level"]:
+        lines.append("")
+        lines.append("file level (greedy bodies where the unit passed, gold elsewhere):")
+        for row in found["file_level"]:
+            lines.append(
+                f"  {row['arm']:<8}{row['units_passed']:>3} of {row['units']:<4}"
+                f"  {row.get('class') or '-':<14}G-diff {'pass' if row.get('diff_pass') else 'fail'}"
+                f"  G-reg {'pass' if row.get('reg') else 'fail'}  → {row.get('written') or '-'}"
+            )
+
+    lines.append("")
+    lines.append("registered comparisons, paired by unit (exact, two-sided, uncorrected):")
+    for label, tests in found["comparisons"].items():
+        if "not_built" in tests or "missing" in tests:
+            lines.append(f"    {label}  — {tests.get('not_built') or tests['missing']}")
+            continue
+        lines += paired_of.render_pair(label, tests)
+
+    if found["totals"]:
+        totals = found["totals"]
+        lines.append("")
+        lines.append(
+            f"spend: {totals['calls']} call(s), {totals['requests']} request(s), "
+            f"{totals['tokens_in']} in / {totals['tokens_out']} out, {totals['seconds']}s, "
+            f"${totals['cost']:.4f}" + (f" ({totals['estimated']} estimated)" if totals["estimated"] else "")
+        )
+    return "\n".join(lines)
 
 
 # MARK: - the table -
