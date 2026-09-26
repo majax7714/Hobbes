@@ -654,6 +654,87 @@ identity and leak gate, and E2-d in `e1.py` and `modal_e1.py`. Tests on the fixt
 planted leak refused and a failed call priced. `e1 report` reads the shadow runs unchanged. A small
 `e2 compare <original-run> <shadow-run>…` gives the per-cell and per-arm deltas, from the rows alone.
 
+#### E2's record — Qwen on both shadows (2026-09-26; ceiling $3, Max: "All as recommended")
+
+**Built and checked first, with no spend.** Unit `157a` built the runner (104 turns, $15.15 of subscription
+usage). The opaque shadow was then written and accepted in the image (E2-e):
+- 493 names renamed and 106 kept;
+- `make unittest` 1,447 of 1,447, and `make unittest-simd` 1,447 of 1,447 on the AVX-512 backend;
+- all 93 golds `pass`.
+
+Three checks on the real target, before any call:
+- **Every shadow prompt is E1's under the rename.** On each shadow, all 1,209 prompts equal E1's round-0 prompt
+  with `shadow.apply` of that shadow's map, at E1's ids, seeds and params. E1's own C-2/C-3 plan, re-made with the
+  same ledger paths, reproduced E1's requests 1,116 of 1,116.
+- The leak gate passed on both shadows.
+- The shadow golds, replayed through each shadow's run path, grade 93 of 93 `pass`.
+
+So the names are the only variable, and E1's Qwen rows are the original. The runs and reports are in
+`~/.hobbes/bench/calvin-lattice/e2/` (`qwen-{descriptive,opaque}/`, `*.report.{txt,json}`, `compare.{txt,json}`).
+
+**Spend: $1.89 of the $3 ceiling.** The descriptive run cost $0.88 and the opaque run $1.01, 4 calls each. I had
+estimated ≈ $1.4, so the runs came in 35% over it. The runner's own pre-call estimates ran high, as designed:
+round 0 was estimated at $0.92 and cost $0.22. No call came near its `--max-usd` timeout.
+
+**Qwen2.5-Coder-7B, 63 real bodies** (pass@1 greedy / pass@1 over the five samples / pass@5):
+
+| arm | original (E1) | descriptive | opaque |
+|---|---|---|---|
+| C-2 pattern | 0.29 / 0.19 / 0.43 | 0.21 / 0.21 / 0.44 | 0.05 / 0.05 / 0.19 |
+| C-3 both | 0.38 / 0.30 / 0.54 | 0.41 / 0.33 / 0.59 | 0.24 / 0.20 / 0.37 |
+
+For reference, E1's C-0 is 0.03 / 0.01 / 0.05 and its C-4 (volume) 0.05 / 0.03 / 0.10.
+
+**The 30 wrappers**, same measures:
+
+| arm | original (E1) | descriptive | opaque |
+|---|---|---|---|
+| C-2 | 0.83 / 0.77 / 0.97 | 0.60 / 0.53 / 0.80 | 0.40 / 0.32 / 0.63 |
+| C-3 | 1.00 / 0.97 / 1.00 | 1.00 / 0.95 / 1.00 | 0.73 / 0.69 / 0.93 |
+
+Iterate chains on C-3 bodies went 0.35 → 0.40 over three rounds on the descriptive shadow, and 0.21 → 0.24 on the
+opaque. G-mem reads `unseen` on the real bodies of both shadows.
+
+**The readings, attributed:**
+- **Descriptive names keep the pattern effect on bodies.**
+  - On C-3, all three measures rise: +0.03, +0.03 and +0.05.
+  - On C-2, the sampled pass@1 and pass@5 rise by +0.02 each. Greedy falls by 0.08, and across all 93 cells, wrappers
+    included, the greedy flips are 17 lost and 5 gained. The five-sample figures do not fall, so the greedy drop
+    reads as single-sample variance.
+  - Both bases predate the target (E0), so memory was already ruled out. This says the gain does not depend on the
+    target's own spelling either.
+- **The descriptive drop on C-2's wrappers is the synonym table's wording.** A wrapper is one call to its type's
+  `_impl`. Read in the failing rows:
+  - The table spells the ISAs `x86v1`, `x86v2` and `x86v4`. An `sse2` hole's greedy answer called
+    `f32_dist_euclid_core_x86v2`, the avx2 name copied from its `isa′` shot.
+  - `l2_impl` → `core` hides that an impl exists to call, and some wrapper holes got a whole kernel instead.
+  - C-3, whose facts name the callee, keeps 1.00.
+
+  This is a fact about these substitutions, not about memory.
+- **The opaque shadow removes the task statement, not only the names.**
+  - The hole reads `float fn_0042 (const void *a, const void *b, int n)`, where the original reads
+    `int8_distance_cosine_avx2`. Nothing else in the prompt names the metric or the type, and every shot is `fn_…`
+    too.
+  - The extra failures are `wrong` (compiles, numbers wrong), not `invented`: C-2 has 269 wrong rows against E1's
+    162, and fewer invented.
+  - Of the greedy C-2 bodies graded `wrong`, the share nearest to a **sibling metric's** gold (the same ISA and type,
+    by token similarity with the names mapped back) is 7 of 23 in the original, 9 of 27 in the descriptive shadow,
+    and **30 of 49 in the opaque shadow**. Without the name, the model writes the neighbouring metric.
+  - So opaque − descriptive measures the loss of the specification. The E2 card's reading, "how much the model
+    reads names", **does not hold as worded** for this shadow. The card should have seen that the name is the only
+    place the task is stated.
+  - C-3 keeps 0.24 because its facts name the callees, which partly restates the task.
+
+**What E2 selects** (§7): pattern does work in context, and the descriptive shadow keeps it. §7's branch for that
+is **E3**, training the pattern in and testing whether it transfers. For Max:
+- **E3's design**, with no spend, on the card's $25 proposal. Its training families come from other repos under
+  their own names, so the descriptive result is the relevant control.
+- **Optionally, a stated-task opaque arm**, at about $1: the opaque prompt plus one fixed sentence naming the metric,
+  the type and the ISA. It would measure name-reading beyond the specification. It could instead fold into E3's
+  evaluation as a control.
+- The descriptive table's ISA words (`x86vN`) and `core` are E0's choices. They stay as run, and the record says
+  what they cost.
+
 ### E3 — pattern training that transfers (M-b, L0/L1)
 
 - **Question:** a LoRA trained on C pattern families from *other* repos, sqlite-vector
