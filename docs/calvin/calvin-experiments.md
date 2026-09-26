@@ -896,6 +896,113 @@ count spend nothing. The ceiling is re-priced with the pool's real size, since t
   frontier-parser arm if cleared.
   L1 first (≈ 31 units). **Ceiling proposed $15** for L1.
 
+#### E4's design (2026-09-26; no spend; D-5 a, written beside E3's draw)
+
+E1's firm result is **pattern in context** (C-2 − C-4, p 0.0015). In E4, the graph serves that pattern
+and the facts to a small student, one unit at a time, so E4 needs no training pool. It is the first run on
+this page that decomposes (P12), and so the first that is a Hobbes test. These facts were read from the
+tree on 2026-09-26:
+- E1 records `p12 = arm=model+prompt`.
+- `holes.punch` takes one lattice cell, so a helper (a `static inline` such as `hsum256_ps`) or the init
+  function is not a cell and cannot be punched yet.
+- `hobbes gate` grounds a file by `tail.language_of`, which names C, so a C file is gated as any
+  grounded file is.
+- **Which shot E1's passes leaned on.** Of Qwen's 18 C-2 greedy passes on bodies, the answer is nearest
+  (token distance) the **type-axis** shot in 12, the ISA shot in 5 and the metric shot in 1. By gold
+  distance alone, the three axes are about even over all 63 bodies (ISA 21, type 22, metric 20;
+  `~/.hobbes/bench/calvin-lattice/e4/shot_axis.py`). At L1 the type and
+  metric neighbours are inside the held-out file, so they are holes.
+
+Routes (recommended first):
+
+- **E4-a — the rung and the file.** **Recommended:** L1 on **`distance-avx2.c`**, then the other two native
+  files once the first is priced and read. E1's avx2 row sits between the others (C-2 0.24), and avx2 has
+  both neighbours native (sse2 and avx512), so every held-out cell has two ISA-axis shots from the files
+  that stay. **b:** all three native files in one run. That triples the first unit for nothing learned
+  sooner.
+- **E4-b — the units and their order.** **Recommended:**
+  - Every definition in the held-out file is a unit: the lattice cells, the non-cell helpers and
+    `init_distance_functions_avx2`.
+  - They are ordered leaves first by the graph's own call edges in the file (`graph.json`, the target's
+    ingest). A cycle, if any, is one unit, and the record names it.
+  - The file's includes, macros, types and every signature stay. That is the **skeleton**, the "graph's
+    skeleton" the card names. **In every prompt, every other unit of the file reads as a prototype**, as
+    C-0's `prelude_bare` does, whatever has been filled for grading. A body reaches a prompt only as an
+    arm's shot.
+  - One fresh call per unit, a single-use agent, whose window holds that unit's context only. The run
+    records `p12 = decomposed` with the unit count and the largest window against the file's size, so
+    ADR-086's check can hold it.
+- **E4-c — what a unit carries.** **Recommended:** four arms, one variable apart:
+  - **S-0:** the skeleton down to the hole, and the signature. This is E1's C-0 at L1.
+  - **S-2:** S-0 plus the **graph-served shots**: the same `(type, metric)` cell in the files that stay
+    (sse2, avx512), chosen by the lattice's rule, not a model. The within-file neighbours are holes at
+    L1, so this is E1's C-2 on the ISA axis only. **Expected, from the fact above:** below E1's C-2,
+    since the type-axis shot carried most of E1's passes.
+  - **S-2o** (described, not registered): S-2 plus type- and metric-axis shots taken from the student's
+    **own bodies that passed** in earlier units of the file, and never from gold. It asks whether a
+    student can grow a file from its own verified work, which is the file-scale form of E1's result. The
+    unit order puts each metric's first type early, so later units have an own shot to use; the order is
+    fixed before the run.
+  - **S-3:** S-2 plus the ledger's facts (C-1's: the callees with signatures, and the callers).
+  - **S-5:** S-3 plus the **parser's fields** (§5.2: `contract`, `edge_cases`; `like` is already the
+    lattice's). An open model fills them once per unit, from `API.md` and the unit's task record, and
+    never sees a gold body.
+
+  **b:** add a scalar-reference arm, the `distance-cpu.c` body of the same `(type, metric)` in the
+  prompt. It is the most direct statement of the task (E2's opaque finding), and it is in the tree a
+  developer has. It is held for a second run, because it also carries the metric's arithmetic, and the
+  first run should say what the graph and the parser add without it.
+- **E4-d — a failed unit.** **Recommended:**
+  - Each unit is graded (L0's graders) before the next.
+  - A unit that fails is **replaced by its gold in the file that is compiled** for the units after it,
+    so each unit's result is its own and a failure does not cascade. That is the per-unit reading. The
+    gold never enters a prompt (E4-b), and the shots S-2o takes are the student's passes only.
+  - The **file-level** figure is read only over the units that passed on the student's own bodies: how
+    many of the file's units the student wrote, and whether G-reg and `hobbes gate` pass on the file with
+    every passing unit the student's.
+  - **b:** a cascade arm, where the student's failed bodies stay. It answers "can it rebuild the file",
+    and is held until the per-unit reading says it is near.
+- **E4-e — the models.** **Recommended:**
+  - **Student:** Qwen2.5-Coder-7B, E1's, at E1's params, greedy plus k = 10 (E3's revised floor).
+  - **Parser:** an open instruct model at 7B (D-2: a parser into the task format, not an author), one
+    greedy call per unit, cached, so every arm reads the same fields.
+  - **Ceiling:** a larger open coder (Qwen2.5-Coder-32B) on S-3, the one arm that prices model size.
+  - **The frontier-parser arm** is run only if Max clears it (D-2), to price what the open parser loses.
+- **E4-f — the registered comparisons.** Each is paired by unit, with the sampled pass rate as the primary
+  figure and the sign-flip test:
+  - **S-2 − S-0:** the graph's ISA-axis shots at L1;
+  - **S-5 − S-3:** the parser's words.
+
+  The rest are described. The readings, written now:
+  - S-2 holds E1's gap at L1: the graph can serve pattern to a student at file scale;
+  - S-5 adds beyond S-3: the parser's words carry what the ledger does not;
+  - S-5 does not add: the ledger is the spec, and the parser is overhead;
+  - S-2 does not hold at L1: ISA-axis shots alone do not carry the effect, as E1's passes suggest (12 of
+    18 nearest the type shot). S-2o then says whether the student's own passes can stand in for the
+    type-axis shots.
+- **E4-g — the shadow.** **Recommended:** the **descriptive** shadow on S-5 only, as a second run. The
+  opaque shadow removes the task statement (E2), so it waits for E3's stated-task arm to say what it
+  reads.
+- **E4-h — the price and the ceiling.** From E1's calls: Qwen's round 0 over five arms and 93 cells cost
+  $0.38 at k = 5. L1 on avx2 is about 31 cell units plus helpers and init, five arms (S-2o included),
+  k = 10, with no iterate rounds. The parser is one call per unit. The 32B arm is the largest line. **Estimate ≈ $3 to $5
+  for avx2's file; recommended ceiling $8**, with the first call priced against the estimate before the
+  rest is sent.
+
+**The unit that builds it** (one dispatch, no spend):
+- `lattice e4 plan|run|report`: L1's hold-out over every definition in a file, extending `holes` beyond
+  cells, with the round-trip property held for the whole file;
+- the leaves-first order from `graph.json`;
+- the five arms' prompts, the bare skeleton in each, and S-2o's own-pass shots;
+- the parser's fields, cached;
+- gold substitution between units;
+- the file-level G-reg and `hobbes gate`;
+- `p12 = decomposed` with the window record.
+
+It is tested on the fixture's trimmed avx2 file. The tests include a planted wrong unit shown not to
+cascade, and a gold-substituted unit shown to be absent from every later prompt. The
+parser's model and the ceiling arm's are the run's parameters, not the unit's.
+
 ### E5 — the pattern world: the science track (M-c)
 
 - **Question:** Atlas-0's method on a synthetic lattice. Functions generated along named axes
@@ -1005,6 +1112,19 @@ Proposed routes, the recommended one first.
   - b: E3 only, E4 after it, as §7 orders.
   - c: take ScummVM's GPL-3.0 pool as training data for a bench adapter, never distributed. This is a licence
     call, and its families are unlike the target (no type×ISA shape, 37% near-copies).
+
+- **D-6 — E4's design** (2026-09-26, §6 "E4's design"). The routes E4-a to E4-h, recommended first:
+  - L1 on `distance-avx2.c`;
+  - every definition a unit, leaves first, with a bare skeleton in every prompt;
+  - S-0, S-2 and S-3, S-2o described and S-5 the parser's;
+  - gold substitution in the compiled file only;
+  - Qwen 7B student, a 7B open parser, the 32B ceiling arm;
+  - S-2 − S-0 and S-5 − S-3 registered;
+  - the descriptive shadow second;
+  - ≈ $3–5, a ceiling of $8.
+
+  One dispatched unit builds `lattice e4` first, with no spend. For Max: take the routes as recommended,
+  or adjust them.
 
 ---
 
