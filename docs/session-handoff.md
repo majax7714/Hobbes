@@ -543,7 +543,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 85 of 40, 4
+   - **The validating 40 are done:** the tracker reads 86 of 40, 4
      areas, 4 false blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141`,
      `66c5`, the decorator case, open), 0 missed.
 3. **A regrade against stored keys:**
@@ -616,7 +616,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Eighty-five log files under `docs/calvin/sessions/`; the tracker reads 85 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
+  is a tmpfs. Eighty-six log files under `docs/calvin/sessions/`; the tracker reads 86 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 96 cells (22 same-key rows, C++'s two among them; flask's new
   cell at 0.2.68-beta's figures); `render.py
