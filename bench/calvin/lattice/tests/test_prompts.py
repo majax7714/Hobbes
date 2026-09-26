@@ -1,11 +1,12 @@
 """The five context arms: the shot rule, the volume control, and what each prompt carries and does not."""
 
 import json
+import re
 from pathlib import Path
 
 import pytest
 
-from lattice import facts, holes, prompts, task
+from lattice import cells, facts, holes, prompts, task
 from lattice.cells import build
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
@@ -252,3 +253,78 @@ def test_the_same_inputs_give_the_same_bytes_and_none_of_them_is_the_targets_pat
             dumped = json.dumps(first)
             assert str(FIXTURE) not in dumped, (cell.id, arm)
             assert str(FIXTURE.resolve()) not in dumped, (cell.id, arm)
+
+
+# MARK: - E3's stated-task sentence -
+
+
+def test_the_sentence_names_the_metric_the_type_and_the_isa_in_plain_english(lattice):
+    """The card's own example, word for word: the opaque hole's name said this and nothing else did."""
+    assert prompts.stated_task(lattice.get("avx2/int8/cosine")) == (
+        "It computes the cosine distance between two vectors of 8-bit signed integers, "
+        "using AVX2 instructions."
+    )
+
+
+def test_an_impl_and_a_wrapper_each_say_what_they_are_beside_what_they_compute(lattice):
+    """An `_impl` has no table slot and a wrapper is its one call, which no grid position says."""
+    impl = prompts.stated_task(lattice.get("avx2/float32/l2_impl"))
+    assert impl.startswith("It computes the Euclidean distance between two vectors of 32-bit floats")
+    assert impl.endswith(prompts.KIND_PHRASE["impl"]) and "shared helper" in impl
+
+    wrapper = prompts.stated_task(lattice.get("avx2/float32/l2_squared"))
+    assert wrapper.startswith("It computes the squared Euclidean distance")
+    assert wrapper.endswith(prompts.KIND_PHRASE["wrapper"])
+
+    # a plain body fills its own slot and takes no second sentence
+    assert prompts.stated_task(lattice.get("avx2/int8/dot")).endswith("instructions.")
+
+
+def test_the_table_covers_every_metric_type_isa_and_kind_the_lattice_has(lattice):
+    assert sorted(prompts.METRIC_PHRASE) == sorted(cells.METRICS)
+    assert sorted(prompts.TYPE_PHRASE) == sorted(cells.TYPES)
+    assert sorted(prompts.ISA_PHRASE) == sorted(cells.ISAS)
+    assert sorted(prompts.KIND_PHRASE) == ["body", "impl", "wrapper"]
+    # and so every cell of every ISA has a sentence, the non-native ones included
+    for cell in lattice.cells.values():
+        assert prompts.stated_task(cell).startswith("It computes ")
+
+
+def test_an_axis_the_table_has_no_phrase_for_is_refused_rather_than_left_blank(monkeypatch, lattice):
+    monkeypatch.delitem(prompts.TYPE_PHRASE, "int8")
+    with pytest.raises(prompts.NoPhrase) as refusal:
+        prompts.stated_task(lattice.get("avx2/int8/dot"))
+    assert "type" in str(refusal.value) and "int8" in str(refusal.value)
+
+
+def test_the_sentence_sits_between_the_signature_and_the_instruction(lattice):
+    cell = lattice.get("avx2/int8/dot")
+    stated = prompts.messages(lattice, cell, "C-2", stated=True)
+    assert stated[1]["content"].endswith(
+        f"```c\n{cell.signature}\n```\n\n{prompts.stated_task(cell)}\n\n{prompts.INSTRUCTION}"
+    )
+    # and the flag is the only difference: the same prompt with the sentence taken out again
+    plain = prompts.messages(lattice, cell, "C-2")
+    assert stated[0] == plain[0]
+    assert stated[1]["content"].replace(f"{prompts.stated_task(cell)}\n\n", "") == plain[1]["content"]
+
+
+def test_the_table_digest_is_the_wordings_and_moves_with_it(monkeypatch):
+    first = prompts.stated_task_digest()
+    assert first == prompts.stated_task_digest()
+    assert prompts.stated_task_table()["sentence"] == prompts.STATED_TASK
+    monkeypatch.setitem(prompts.METRIC_PHRASE, "dot", "the inner product of two vectors")
+    assert prompts.stated_task_digest() != first
+
+
+def test_the_sentence_writes_no_identifier_of_the_target(lattice):
+    """It is a task statement, not a name: E1's leak gate reads it like any other prompt text."""
+    written = {
+        name
+        for cell in lattice.cells.values()
+        for name in re.findall(r"[A-Za-z_]\w*", prompts.stated_task(cell))
+    }
+    defined = {cell.name for cell in lattice.cells.values()} | {
+        fn.name for source in lattice.sources.values() for fn in source.scanned.functions
+    }
+    assert written & defined == set()

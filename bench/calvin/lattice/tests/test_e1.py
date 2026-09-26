@@ -980,19 +980,31 @@ def test_the_script_refuses_a_budget_that_buys_nothing_and_calls_nothing(monkeyp
 
 
 class FakeRemote:
-    """The script's `generate`, with the GPU and the timeout it was given recorded and no Modal at all."""
+    """The script's `generate`, with the GPU, the timeout and the adapter it was given recorded.
+
+    No Modal at all: the script's namespace is built with the module stubbed, and this stands in for the
+    decorated function, so what the entrypoint hands the GPU is readable without one.
+    """
 
     def __init__(self, answer=None, failure=None):
         self.answer, self.failure, self.options = answer, failure, {}
+        self.served = "not asked"
 
     def with_options(self, **options):
         self.options = options
         return self
 
-    def remote(self, model, requests):
+    def remote(self, model, requests, adapter=None):
+        self.served = adapter
         if self.failure is not None:
             raise self.failure
-        return {"model": model, "completions": self.answer, "seconds": 12.5, "requests": len(requests)}
+        return {
+            "model": model,
+            "adapter": adapter,
+            "completions": self.answer,
+            "seconds": 12.5,
+            "requests": len(requests),
+        }
 
 
 def a_request_file(tmp_path):
@@ -1036,6 +1048,191 @@ def test_a_call_that_did_not_finish_still_leaves_its_record_and_exits_non_zero(m
     assert record["answered"] == 0 and "timed out" in record["error"]
     assert record["cost"] == round(record["wall_seconds"] * script.GPU_USD_PER_SECOND["L40S"], 6)
     assert record["seconds"] is None  # the function never said, and the host's wall is not its seconds
+
+
+# MARK: - E3: an adapter through the runner, read off the script and never run -
+
+
+def script_constants():
+    """The Modal script's module-level literals. Read from its source: it is never imported here."""
+    found = {}
+    for node in ast.parse(MODAL.read_text(encoding="utf-8")).body:
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                try:
+                    found[target.id] = ast.literal_eval(node.value)
+                except ValueError:
+                    pass  # the image, the volumes and the app are not literals and are not read here
+    return found
+
+
+def script_function(name):
+    """One of the script's top-level functions as `(node, source)`, decorators and all."""
+    node = next(
+        found
+        for found in ast.parse(MODAL.read_text(encoding="utf-8")).body
+        if isinstance(found, ast.FunctionDef) and found.name == name
+    )
+    return node, ast.unparse(node)
+
+
+def test_the_scripts_generate_takes_an_adapter_and_serves_it_read_only():
+    source = MODAL.read_text(encoding="utf-8")
+    node, unparsed = script_function("generate")
+    assert [arg.arg for arg in node.args.args] == ["model", "requests", "adapter"]
+
+    constants = script_constants()
+    assert (constants["ADAPTER_MOUNT"], constants["MAX_LORA_RANK"]) == ("/ttt", 32)
+    # the volume `modal_ttt.train_adapter` wrote the weights to, mounted **read-only**: an evaluation
+    # has no business writing to the directory its own adapter came from
+    assert 'modal.Volume.from_name("hobbes-ttt", create_if_missing=True).read_only()' in source
+    assert "volumes={\"/root/.cache/huggingface\": weights, ADAPTER_MOUNT: adapters}" in source
+
+    # the LoRA branch: the engine built for it at the trainer's rank, and both entry points carrying it
+    assert "enable_lora=True" in unparsed and "max_lora_rank=MAX_LORA_RANK" in unparsed
+    assert "LoRARequest(LORA_NAME, 1," in unparsed and "ADAPTER_MOUNT" in unparsed
+    assert unparsed.count("lora_request=lora") == 2
+    # and without one, the engine is the one E1 has already run under
+    assert "llm = LLM(model, max_model_len=pinned['max_model_len'], enable_prefix_caching=True, seed=0)" in unparsed
+
+
+def test_the_scripts_main_takes_an_adapter_and_hands_it_to_the_function():
+    _, unparsed = script_function("main")
+    assert "'--adapter'" in unparsed
+    assert "remote(args.model, requests, args.adapter)" in unparsed
+
+
+def test_a_call_serves_the_adapter_it_was_given_and_the_record_says_which(monkeypatch, tmp_path):
+    script = modal_script(monkeypatch)
+    remote = FakeRemote(answer=[{"id": "a|C-0|0|0", "text": "hello"}])
+    monkeypatch.setattr(script, "generate", remote)
+
+    call = tmp_path / "call.json"
+    adapter = "adapters/qwen-qwen2-5-coder-7b-instruct/e3-c-lattice/0123456789ab/fedcba987654"
+    assert script.main([
+        "modal_e1.py", "--model", "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "--requests", str(a_request_file(tmp_path)), "--out", str(tmp_path / "out.jsonl"),
+        "--call", str(call), "--adapter", adapter,
+    ]) == 0
+    assert remote.served == adapter
+    assert json.loads(call.read_text())["adapter"] == adapter
+
+    # and with no flag the base model answers, which the record says just as plainly
+    plain = FakeRemote(answer=[{"id": "a|C-0|0|0", "text": "hello"}])
+    monkeypatch.setattr(script, "generate", plain)
+    assert script.main([
+        "modal_e1.py", "--model", "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "--requests", str(a_request_file(tmp_path)), "--out", str(tmp_path / "out.jsonl"),
+        "--call", str(call),
+    ]) == 0
+    assert plain.served is None and json.loads(call.read_text())["adapter"] is None
+
+
+def test_the_modal_generator_passes_the_adapter_and_leaves_the_argv_alone_without_one(tmp_path, monkeypatch):
+    seen = []
+
+    def fake_run(argv, capture_output, text):
+        seen.append(argv)
+        Path(argv[argv.index("--out") + 1]).write_text(json.dumps({"id": "a|C-0|0|0", "text": "x"}) + "\n")
+        Path(argv[argv.index("--call") + 1]).write_text(json.dumps({"cost": 0.25}))
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    monkeypatch.setattr(e1.subprocess, "run", fake_run)
+    adapter = "adapters/qwen-qwen2-5-coder-7b-instruct/e3-c-lattice/0123456789ab/fedcba987654"
+    served = e1.modal_generator(
+        "Qwen/Qwen2.5-Coder-7B-Instruct", tmp_path / "modal_e1.py", keep=tmp_path / "calls", adapter=adapter
+    )
+    served([{"id": "a|C-0|0|0"}])
+    assert seen[0][seen[0].index("--adapter") + 1] == adapter
+
+    base = e1.modal_generator("Qwen/Qwen2.5-Coder-7B-Instruct", tmp_path / "modal_e1.py", keep=tmp_path / "calls")
+    base([{"id": "a|C-0|0|0"}])
+    assert "--adapter" not in seen[1]
+
+
+def adapter_manifest(tmp_path, **changed):
+    """A copy of what `modal_ttt.train_adapter` writes beside an adapter's weights."""
+    path = "adapters/qwen-qwen2-5-coder-7b-instruct/e3-c-lattice/0123456789ab/fedcba987654"
+    record = {
+        "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "corpus": "corpora/e3-pattern",
+        "corpus_hash": "c" * 64,
+        "repo": "e3-c-lattice",
+        "sha": "a" * 40,
+        "recipe_hash": "fedcba987654",
+        "steps": 300,
+        "seed": 0,
+        "records": 21290,
+        "truncated": 0,
+        "epochs": 0.225,
+        "path": path,
+        **changed,
+    }
+    file = tmp_path / f"manifest-{len(list(tmp_path.glob('manifest-*.json')))}.json"
+    file.write_text(json.dumps(record), encoding="utf-8")
+    return record["path"], file
+
+
+def test_the_adapter_block_is_the_manifests_own_five_fields_and_the_path(tmp_path):
+    path, manifest = adapter_manifest(tmp_path)
+    block = e1.adapter_meta(path, manifest, "Qwen/Qwen2.5-Coder-7B-Instruct")
+    assert block == {
+        "path": path,
+        "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "repo": "e3-c-lattice",
+        "corpus_hash": "c" * 64,
+        "recipe_hash": "fedcba987654",
+        "steps": 300,
+    }
+    assert sorted(block) == sorted(("path", *e1.ADAPTER_FIELDS))
+
+
+def test_a_manifest_for_another_model_or_another_path_is_refused_by_its_own_type(tmp_path):
+    path, manifest = adapter_manifest(tmp_path)
+    with pytest.raises(e1.AdapterMismatch) as refusal:
+        e1.adapter_meta(path, manifest, "allenai/Olmo-3-7B-Instruct")
+    assert "Olmo-3-7B-Instruct" in str(refusal.value) and "one model's weights" in str(refusal.value)
+
+    _, elsewhere = adapter_manifest(tmp_path, path="adapters/somewhere/else")
+    with pytest.raises(e1.AdapterMismatch) as refusal:
+        e1.adapter_meta(path, elsewhere, "Qwen/Qwen2.5-Coder-7B-Instruct")
+    assert "adapters/somewhere/else" in str(refusal.value)
+
+
+def test_the_meta_records_the_adapter_and_the_stated_task_table(tmp_path):
+    path, manifest = adapter_manifest(tmp_path)
+    block = e1.adapter_meta(path, manifest, "Qwen/Qwen2.5-Coder-7B-Instruct")
+    record = e1.meta(
+        "Qwen/Qwen2.5-Coder-7B-Instruct",
+        arms=("C-2",),
+        cells=["avx2/int8/dot"],
+        adapter=block,
+        stated_task=prompts.stated_task_digest(),
+    )
+    assert record["adapter"] == block
+    assert (record["stated_task"], record["stated_task_sha256"]) == (True, prompts.stated_task_digest())
+
+    plain = e1.meta("M", arms=("C-2",), cells=["avx2/int8/dot"])
+    assert plain["adapter"] is None
+    assert (plain["stated_task"], plain["stated_task_sha256"]) == (False, None)
+
+
+def test_the_stated_task_flag_changes_the_bytes_and_neither_the_ids_nor_the_seeds(lattice):
+    cells = list(lattice.by_isa("avx2"))
+    plain = e1.plan(lattice, cells, ("C-2",), "M", k=2)
+    stated = e1.plan(lattice, cells, ("C-2",), "M", k=2, stated_task=True)
+
+    assert [r["id"] for r in stated] == [r["id"] for r in plain]
+    assert [r["params"] for r in stated] == [r["params"] for r in plain]
+    for chat in (r for r in stated if r["mode"] == "chat"):
+        sentence = prompts.stated_task(lattice.get(chat["cell"]))
+        assert f"\n\n{sentence}\n\n{prompts.INSTRUCTION}" in chat["messages"][1]["content"]
+    # a G-mem probe is a raw continuation and not a user turn: nothing is added to it
+    assert [r["prompt"] for r in stated if r["mode"] == "complete"] == [
+        r["prompt"] for r in plain if r["mode"] == "complete"
+    ]
 
 
 def test_the_package_never_imports_modal():

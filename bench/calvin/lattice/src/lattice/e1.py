@@ -70,6 +70,23 @@ wrote one, `_call` writes its `calls.jsonl` row before the exception goes up, an
 record the row carries the *estimate* with :data:`FAILED_COST` saying so. Olmo's lost call ($0.03) was
 added up by hand because `spent()` read it as free.
 
+**A run may be served through a LoRA** (E3, `calvin-experiments.md` §6, "E3's card, revised"). E3 reads
+an adapter against a shuffled-answers adapter on E1's own arms, so the adapter is a property of the
+*plan* and not of the command line: `meta.json` gains an **`adapter` block** — the path on the
+`hobbes-ttt` volume and the manifest's `corpus_hash`, `recipe_hash`, `steps`, `repo` and `model`
+(:func:`adapter_meta`, and :class:`AdapterMismatch` where the manifest describes another model or
+another path) — and `e1 run` reads it back and hands it to the generator. A resumed run therefore cannot
+switch adapters, which is the same reason `_same_target` holds a resume to one tree.
+:func:`modal_generator` passes it on as `--adapter`, and `scripts/modal_e1.py` serves the weights
+read-only from the volume the trainer wrote them to.
+
+**And a run may state its task** (E3's card, point 4). `prompts.messages(…, stated=True)` puts one fixed
+English sentence — the metric, the element type and the instruction set — before the instruction, which
+is the arm that separates "the opaque shadow removed the names" from "the opaque shadow removed the task
+statement with them" (E2's record). `meta.json` records `stated_task` and the table's digest, because a
+sentence that changed is a prompt that changed. It is `prompts`' text like any other, so the leak gate
+reads it like any other: the tables are English words, not the target's identifiers.
+
 **P12.** This is `arm=model+prompt` (ADR-082): one single-use agent per cell, not a decomposed Hobbes test.
 `meta.json` records it, so no report of this run can be read as a Hobbes-test result.
 """
@@ -93,6 +110,7 @@ from .cells import Cell, Lattice
 from .facts import Facts
 
 __all__ = [
+    "ADAPTER_FIELDS",
     "CALLS",
     "CHARS_PER_TOKEN",
     "COLD_START_SECONDS",
@@ -111,12 +129,14 @@ __all__ = [
     "ROWS",
     "SHADOW_MAP_IN_TARGET",
     "SIGNATURE",
+    "AdapterMismatch",
     "CeilingReached",
     "GenerateFailed",
     "GradeFailed",
     "MissingCompletion",
     "ShadowLeak",
     "TargetMoved",
+    "adapter_meta",
     "check_leaks",
     "default_grade",
     "estimate",
@@ -250,6 +270,16 @@ class ShadowLeak(Exception):
     """
 
 
+class AdapterMismatch(Exception):
+    """The adapter's own manifest describes another model or another path, so no plan was written.
+
+    Its own type (P10, ADR-036) and a refusal rather than a warning: E3's two registered readings are an
+    adapter against a shuffled adapter *at one model*, and a plan whose `--model` is not the model the
+    LoRA was trained for would record a comparison nobody made. The manifest is the trainer's own
+    record (`pipeline/scripts/modal_ttt.py`), so it is the side that is believed.
+    """
+
+
 class TargetMoved(Exception):
     """The target is not at the commit the run was planned against, so nothing was answered or graded.
 
@@ -287,6 +317,7 @@ def plan(
     temperature: float = TEMPERATURE,
     top_p: float = TOP_P,
     max_tokens: int = MAX_TOKENS,
+    stated_task: bool = False,
 ) -> list[dict]:
     """Round 0's requests: one chat request per (cell, arm, sample), and one G-mem probe per cell.
 
@@ -295,12 +326,16 @@ def plan(
 
     Each request carries the cell's grid position and kind, so the runner and the report can do their work
     from the rows alone and never re-read the target.
+
+    *stated_task* adds `prompts.stated_task`'s one sentence to every user turn (E3). It changes the bytes
+    sent and nothing else: the ids and the seeds are the same plan's, so a stated-task run and the run
+    beside it draw the same samples.
     """
     chosen = [cell if isinstance(cell, Cell) else lattice.get(cell) for cell in cells]
     made: list[dict] = []
     for cell in chosen:
         for arm in arms:
-            messages = prompts.messages(lattice, cell, arm, facts)
+            messages = prompts.messages(lattice, cell, arm, facts, stated=stated_task)
             for sample in range(0, k + 1):
                 greedy = sample == 0
                 made.append(
@@ -379,12 +414,19 @@ def meta(
     target: Path | str | None = None,
     facts: Facts | None = None,
     shadow: dict | None = None,
+    adapter: dict | None = None,
+    stated_task: str | None = None,
 ) -> dict:
     """The run's `meta.json`: what was asked for, at which SHA, from which ledger, under which P12 arm.
 
     The target is named by its commit and **never by its path** — a path is a fact about this box, and the
     same run planned on another box has to read as the same run. *shadow* is :func:`shadow_meta`'s block
     for a run over a rename shadow, and `None` for a run over the target itself.
+
+    *adapter* is :func:`adapter_meta`'s block for a run served through a LoRA, and `None` for the base
+    model; `e1 run` reads it back rather than taking it on the command line, so a resume cannot switch
+    adapters. *stated_task* is `prompts.stated_task_digest()` where E3's sentence was carried and `None`
+    where it was not — the flag and the wording that produced it, on one record.
     """
     return {
         "model": model,
@@ -397,8 +439,38 @@ def meta(
         "target_sha": None if target is None else head(target),
         "ledger": None if facts is None else facts.source(),
         "shadow": None if shadow is None else dict(shadow),
+        "adapter": None if adapter is None else dict(adapter),
+        "stated_task": stated_task is not None,
+        "stated_task_sha256": stated_task,
         "p12": P12,
     }
+
+
+#: What a plan records of an adapter's own manifest, beside the path it was served from. The trainer
+#: writes all five (`pipeline/scripts/modal_ttt.py`), and `model` is checked against the plan's.
+ADAPTER_FIELDS = ("model", "repo", "corpus_hash", "recipe_hash", "steps")
+
+
+def adapter_meta(path: str, manifest: Path | str, model: str) -> dict:
+    """The `adapter` block of a plan served through a LoRA, read from the adapter's own `manifest.json`.
+
+    *path* is the adapter's directory **on the `hobbes-ttt` volume** — what `--adapter` hands the script —
+    and *manifest* is a local copy of the `manifest.json` the trainer wrote beside the weights. Nothing
+    is inferred from either: a manifest naming another `model`, or another `path` than the one being
+    served, is :class:`AdapterMismatch` and no plan is written.
+    """
+    payload = json.loads(Path(manifest).read_text(encoding="utf-8"))
+    if payload.get("model") != model:
+        raise AdapterMismatch(
+            f"the adapter's manifest was trained for {payload.get('model')!r} and this plan is for "
+            f"{model!r}; a LoRA is one model's weights, so nothing was written"
+        )
+    if payload.get("path") != path:
+        raise AdapterMismatch(
+            f"the adapter's manifest says it lives at {payload.get('path')!r} and --adapter names "
+            f"{path!r}; the manifest is the trainer's own record, so nothing was written"
+        )
+    return {"path": path, **{field: payload.get(field) for field in ADAPTER_FIELDS}}
 
 
 def shadow_meta(map_file: Path | str, root: Path | str, original: Path | str | None = None) -> dict:
@@ -935,6 +1007,7 @@ def modal_generator(
     *,
     run_dir: Path | str | None = None,
     ceiling_usd: float | None = None,
+    adapter: str | None = None,
 ) -> Callable[[list[dict]], dict]:
     """The host side of E1-f: shell out to `scripts/modal_e1.py` and read the batch back.
 
@@ -952,6 +1025,10 @@ def modal_generator(
     only acts when the estimate was wrong — which it was on Olmo's round 1, by $0.99. The
     `generate(requests)` protocol is unchanged, so a caller that passes neither gets exactly what it got
     before, and a failed call's own record rides up on :class:`GenerateFailed` to be priced.
+
+    **With *adapter*, every call is served through that LoRA** (E3): the path is one on the `hobbes-ttt`
+    volume, passed on as `--adapter`, and it comes from the plan's `meta.json` rather than from a caller,
+    so the rows of one run are all one adapter's. Without it the argv is what it was.
     """
     script = Path(script)
 
@@ -970,6 +1047,8 @@ def modal_generator(
             ]
             if run_dir is not None and ceiling_usd is not None:
                 argv += ["--max-usd", f"{ceiling_usd - spent(run_dir):.6f}"]
+            if adapter is not None:
+                argv += ["--adapter", adapter]
             done = subprocess.run(argv, capture_output=True, text=True)
             if done.returncode != 0:
                 raise GenerateFailed(
