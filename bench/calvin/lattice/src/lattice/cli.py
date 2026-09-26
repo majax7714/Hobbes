@@ -15,6 +15,7 @@
     lattice e1 report  <run-dir>                the readings: pass@1, pass@1(sampled), pass@k, per round
     lattice e1 paired  <run-dir> <arm> <arm>    the second arm against the first, paired by cell, exact p
     lattice e2 compare <run-dir> <shadow-run>…  E2: each shadow's deltas and flips against the original
+    lattice e3 corpus  --repos L --target T --out D  E3: the draw's families as a training corpus, and its control
     lattice e4 parse   <run-dir> <target>       E4: the parser's fields for every unit, one call each (S-5)
     lattice e4 plan    <target> <run-dir>       E4: L1's units of one file, leaves first, one arm each
     lattice e4 run     <run-dir> <target>       answer and grade them, then build the file per arm
@@ -43,6 +44,12 @@ A manifest is a JSON list of `{"id", "cell", "body"}` entries, or an object with
 a non-cell helper or the init — and `{"id", "isa", "bodies": {name: body}}` is E4's file-level build, every
 named body filled into the gold file at once. `graph-grade` reads the cell rows with a grading run's
 `class` beside them, and says which it did not carry and why.
+
+**`e3 corpus` writes text and calls nothing** (§6's "E3's price on D-7's pool": the corpus is a
+dispatched unit, and no spend). `--repos` is a file of `<name>=<root>` lines in the draw's taken order,
+`--target` is the checkout E3 must not train on, and `--out` gets `e3-pattern/`, `e3-shuffled/` and
+`corpus-report.json`. An input root holding a dispatched session's text is **refused, exit 2** (ADR-107,
+§8), as is a corpus one family holds half of, which has no derangement to be a control.
 
 **`e4` is E1's steps over a file instead of a cell** (`calvin-experiments.md` §6). `e4 plan --isa avx2`
 writes one request per (unit, arm, sample) in the units' **leaves-first** order, with a bare
@@ -93,6 +100,7 @@ from pathlib import Path
 
 from . import ages as ages_of
 from . import compare as compare_of
+from . import corpus as corpus_of
 from . import paired as paired_of
 from . import e1 as e1_of
 from . import e4 as e4_of
@@ -176,6 +184,9 @@ def main(argv: list[str] | None = None) -> int:
     comparer = verbs.add_parser("e2", help="E2's reading: a shadow run's deltas against the original")
     _e2_verbs(comparer)
 
+    corpuser = verbs.add_parser("e3", help="E3's corpus: the draw's families as training examples")
+    _e3_verbs(corpuser)
+
     rebuilder = verbs.add_parser("e4", help="E4's runner: one file's units at L1, the bare skeleton, the arms")
     _e4_verbs(rebuilder)
 
@@ -219,6 +230,8 @@ def main(argv: list[str] | None = None) -> int:
         return _e1(args, rename)
     if args.verb == "e2":
         return _e2(args)
+    if args.verb == "e3":
+        return _e3(args)
     if args.verb == "e4":
         return _e4(args)
     if args.verb == "intrinsics":
@@ -627,6 +640,64 @@ def _e1_paired(args) -> int:
     for name, tests in found.items():
         print(f"  {name}:")
         print("\n".join(paired_of.render_pair(f"{args.second} − {args.first}", tests)))
+    return 0
+
+
+# MARK: - E3's corpus -
+
+
+def _e3_verbs(verb: argparse.ArgumentParser) -> None:
+    """`corpus` — the only step: the draw's members as training examples, and their shuffled control."""
+    steps = verb.add_subparsers(dest="step", required=True)
+
+    builder = steps.add_parser("corpus", help="the draw's families as a training corpus, and its control")
+    builder.add_argument("--repos", type=Path, required=True, help="a file of <name>=<root> lines, in the taken order")
+    builder.add_argument("--target", type=Path, required=True, help="the sqlite-vector checkout E3 must not train on")
+    builder.add_argument("--out", type=Path, required=True, help="the directory the two corpora and the report go in")
+    builder.add_argument("--seed", type=int, default=corpus_of.SEED, help=f"default: {corpus_of.SEED}, the draw's")
+
+
+def _e3(args) -> int:
+    """Read the clones, write the two corpora, print what was kept and what was dropped and why."""
+    try:
+        repos = corpus_of.read_list(args.repos)
+    except (OSError, ValueError) as refusal:
+        print(f"lattice: the repos list could not be read ({refusal})", file=sys.stderr)
+        return 2
+    if not repos:
+        print(f"lattice: {args.repos} names no repo", file=sys.stderr)
+        return 2
+    try:
+        built = corpus_of.build_corpus(repos, args.target, seed=args.seed)
+    except corpus_of.SessionText as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    except corpus_of.NoDerangement as refusal:
+        print(f"lattice: no shuffled control — {refusal}", file=sys.stderr)
+        return 2
+    except OSError as missing:
+        print(f"lattice: a clone could not be read ({missing})", file=sys.stderr)
+        return 2
+    found = corpus_of.write(built, args.out)
+
+    totals = built.report["totals"]
+    lengths = built.report["lengths"]["example_chars"]
+    print(
+        f"e3 corpus: {totals['kept']} example(s) from {len(repos)} repo(s) — {totals['union']} union, "
+        f"{totals['unique']} unique, {totals['duplicate']} duplicate → {args.out}"
+    )
+    print(
+        "  dropped: "
+        + ", ".join(f"{reason} {totals['dropped'][reason]}" for reason in corpus_of.REASONS)
+        + f"; the target's {built.report['target']['gold_bodies']} gold bodies read at "
+        f"{built.report['target']['head'][:12]}"
+    )
+    print(
+        f"  chars: median {lengths['median']}, q3 {lengths['q3']}, max {lengths['max']} of "
+        f"{corpus_of.MAX_CHARS}; nothing cut"
+    )
+    for manifest in (found["pattern"], found["shuffled"]):
+        print(f"  {manifest['repo']}: corpus_hash {manifest['corpus_hash'][:12]}, sha {manifest['sha'][:12]}")
     return 0
 
 
