@@ -1241,7 +1241,7 @@ Proposed routes, the recommended one first.
     - Whether ADR-129's read from the index (C++'s lost definitions) should reach C is measured before an ADR.
   - b: register both and fix neither yet.
 
-- **D-9 — E3's corpus, then its run** (2026-09-26, after D-7).
+- **D-9 — E3's corpus, then its run** (2026-09-26, after D-7). **Taken: a** (Max, 2026-09-26: "good to proceed"). The ceiling is **$25**.
   - **a (recommended):** dispatch the corpus unit now, with no spend, after E4's two runner units, one at a time.
     Then run E3 at a **$25 ceiling**: the 300-step pair first, and the 3,000-step pair only after its reading.
   - b: hold E3 until E4 has run, so the in-context route reads first.
