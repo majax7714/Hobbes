@@ -14391,3 +14391,51 @@ repowise").** One background agent, on the Hobbes cells' own keys and commits. E
     export, and cue's `window.ICONS` calls. Two CodeGraphContext records were corrected for them.
 
 There is no version bump (ADR-103): bench and records only. The image was not rebuilt.
+
+## 2026-09-26 (nineteenth session) — the top-level docs reviewed, three stale lines fixed; the noise floor built and read over E1 and E2; E3's pool counted and its card revised
+
+**The review.** The top-level docs agreed with the tree but for three figures, fixed in `655a4e4`:
+- the handoff still said 0.2.68–0.2.70-beta were unpushed, but `origin/main` was at `ea6cb28`;
+- README counted seventy-nine session logs, not 83;
+- architecture §8's Calvin row read 74 of 40.
+
+**Max asked whether to proceed to E3 or re-evaluate first.** My answer: proceed to E3's design, after three
+no-spend checks. Max: "good to proceed with that recommended".
+
+**The noise floor** (`45963f9`, bench, no bump). A new `paired` module in `bench/calvin/lattice`, paired by
+cell and exact, with no seed:
+- McNemar on the greedy pass and on any-pass at n = k;
+- a sign-flip test over the per-cell sampled rates.
+
+`lattice e1 paired <run> <arm> <arm>` reads it for two arms of one run, and `e2 compare` carries it per arm.
+I built it directly rather than through a dispatch, because it is ~150 lines of bench reading tooling. On
+the real runs:
+- **E1's pattern effect is firm:** Qwen C-2 − C-4 is +0.24, 3 lost and 18 gained, p 0.0015.
+- **"Facts help beside pattern" is suggestive:** C-3 − C-2 is p 0.18 greedy and 0.024 sampled.
+- **No descriptive-shadow delta on bodies is distinguishable from zero** (p ≥ 0.27). The opaque C-2 loss and
+  the descriptive C-2 wrapper drop are real.
+- Renaming alone churned 12 to 17 greedy bodies per arm. At that churn a greedy gap needs about +0.14 (9 net
+  cells) to read.
+
+Both records carry the readings as dated addenda. The outputs are in
+`~/.hobbes/bench/calvin-lattice/e3/noise-floor/`.
+
+**E3's pool, counted** by a background fork. The driver is `~/.hobbes/bench/calvin-lattice/e3/family-count/`
+(`count.py`, `agree.py`, `RESULTS.md`).
+- **The card's family rule fails its own calibration.** On sqlite-vector it groups 18 of the 63 real bodies,
+  since intrinsics are not repo edges and the helpers are spelled differently along the axes (`f16_` against
+  `bfloat16_`).
+- A body-shape rule groups 63 of 63, but it was fitted on the target, so that figure is a fit, not a test.
+- The permissively licensed pool (cJSON, fmt, args) is 43 to 93 members, against ADR-099's 13,688 records.
+- ScummVM reaches the scale but is GPL-3.0, untested and unlike the target.
+- I checked the calibration figure and ADR-099's count myself.
+
+**E3's card, revised** (`calvin-experiments.md` §6):
+- two registered comparisons against the shuffled adapter, E3-use (C-2) and E3-weights (C-0);
+- pass@1(sampled) with the sign-flip test as the primary figure, at k = 10;
+- the stated-task opaque arm folded in;
+- **the first step is a no-spend draw of permissively licensed C repos with kernel lattices**, not training.
+
+D-5 is for Max: that draw, with E4's design written in parallel (recommended), or E3 alone, or ScummVM's pool.
+
+There is no version bump: bench and records only. The image was not rebuilt.

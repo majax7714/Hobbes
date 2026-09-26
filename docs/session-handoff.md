@@ -1,8 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-26 (eighteenth session); Hobbes 0.2.70-beta on `main`.**
+**Reviewed 2026-09-26 (nineteenth session); Hobbes 0.2.70-beta on `main`.**
 Max pushed through the eighteenth session's last commit (`ea6cb28`,
-0.2.70-beta); nothing on `main` is unpushed. The image and the proxy are at 0.2.70-beta and this repo
+0.2.70-beta); the nineteenth session's commits (docs and bench, no version bump) are on
+`main`, unpushed. The image and the proxy are at 0.2.70-beta and this repo
 is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -27,23 +28,39 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-26, eighteenth session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-26, nineteenth session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Two tracks are open.**
-- **The Calvin experiments' E2 is done: Qwen on both rename shadows, $1.89 of the $3 ceiling** (E1 was $6.59 of
-  $10). The record is `calvin-experiments.md` §6, "E2's record".
-  - Descriptive names keep the pattern effect (C-3 0.41 / 0.33 / 0.59 against E1's 0.38 / 0.30 / 0.54).
-  - The opaque shadow removes the task statement: the hole's name was the only place the metric and type were said,
-    so its gap is not name-reading.
-  - The guard fix is built and was live on both runs (unit `157a`).
+- **The Calvin experiments: E3's card is revised and waits on D-5 (Max)** (nineteenth session, no spend).
+  - E1 cost $6.59 of $10 and E2 $1.89 of $3. The records, and their paired-test addenda, are in
+    `calvin-experiments.md` §6.
+  - **The noise floor** (`lattice e1 paired`, and `e2 compare`'s paired tests, `45963f9`):
+    - E1's pattern effect is firm (C-2 − C-4, p 0.0015 greedy).
+    - Facts beside pattern is suggestive (C-3 − C-2, p 0.18 greedy, 0.024 sampled).
+    - No descriptive-shadow delta on bodies reads.
+    - Renaming alone churns 12 to 17 greedy cells per arm, so a greedy gap needs about +0.14 to read.
+  - **E3's pool:**
+    - The card's family rule groups 18 of sqlite-vector's 63 bodies; a body-shape rule groups 63, but it was
+      fitted there.
+    - The permissively licensed ingested pool is 43 to 93 members, against ADR-099's 13,688 records.
+    - ScummVM is GPL-3.0 and unlike the target.
+  - **The revised card:**
+    - E3-use (C-2) and E3-weights (C-0), each against the shuffled adapter;
+    - pass@1(sampled) with the sign-flip test as the primary figure, at k = 10;
+    - the stated-task opaque arm folded in;
+    - the first step is a no-spend draw of permissively licensed C repos with kernel lattices.
 
-  **For Max:** E3's design, with no spend, against the card's $25 proposal; optionally a stated-task opaque arm at
-  about $1, or folded into E3 as a control. Olmo is out from E2 on (E2-f). Runs and drivers:
-  `~/.hobbes/bench/calvin-lattice/e2/` (`qwen-{descriptive,opaque}/`, `compare.{txt,json}`, `check-*` the no-spend
-  checks), `shadows/{descriptive,opaque}/` (both accepted; `accept-opaque/` holds the acceptance), `units/u5a.*`.
+  **For Max: D-5** (§9). Recommended: that draw, with the body-shape rule tested on it, and E4's design written
+  in parallel. Or E3 alone, or ScummVM's pool. Olmo is out (E2-f).
+
+  Drivers:
+  - `~/.hobbes/bench/calvin-lattice/e3/noise-floor/`;
+  - `e3/family-count/` (`count.py`, `agree.py`, `RESULTS.md`);
+  - `e2/` (`qwen-{descriptive,opaque}/`, `compare.*`);
+  - `shadows/{descriptive,opaque}/`.
 - **The comparative programme reads JavaScript** (`fbf6198`, `8292c98`): CodeGraphContext and repowise on the five
   JS keys. repowise's converter@5 fixed a `__module__` drop that had cost every repowise cell its top-level calls,
   and all 22 published cells were regraded. C-94 has the chain-line residual. Drivers:
@@ -465,7 +482,7 @@ named below was removed unless it says otherwise.
    - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
      E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
-     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. Next: E3's design (START HERE). Drivers:
+     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3's card revised on the noise floor and the pool count (nineteenth session); next: D-5 (START HERE). Drivers:
      `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
      <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
      history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its

@@ -564,6 +564,25 @@ real bodies for both models, and `no-evidence` on the 30 wrappers.
 - **The wrappers** are one call to the type's `_impl`. Qwen passes them at 1.00 on C-1, since the facts name the
   callee, and Olmo at 0.03. Wrappers are reported apart, as designed.
 
+**The noise floor, read after (2026-09-26, `lattice e1 paired`; no spend).** Both arms grade the same 63
+bodies, so each gap was tested paired by cell (`bench/calvin/lattice/README.md`, `paired`: McNemar on the
+greedy pass and on any-pass at n = k, and an exact sign-flip test on the per-cell sampled rates;
+two-sided, uncorrected). Outputs are in `~/.hobbes/bench/calvin-lattice/e3/noise-floor/`.
+
+| Qwen, bodies | pass@1 (lost / gained, p) | pass@5 (p) | pass@1 sampled (p) |
+|---|---|---|---|
+| C-2 − C-4, pattern beyond volume | +0.24 (3 / 18, **0.0015**) | +0.33 (**< 0.0001**) | +0.16 (**0.0001**) |
+| C-2 − C-0 | +0.25 (2 / 18, 0.0004) | +0.38 (< 0.0001) | +0.18 (< 0.0001) |
+| C-3 − C-2, facts beside pattern | +0.10 (4 / 10, **0.18**) | +0.11 (0.17) | +0.11 (**0.024**) |
+| C-1 − C-0, facts alone | −0.03 (2 / 0, 0.50) | −0.03 (0.63) | −0.00 (1.0) |
+
+- **The pattern effect is firm.** It is the result E3's branch rests on.
+- **"Facts help beside pattern" is suggestive, not established.** Its greedy and pass@5 gaps are p ≈ 0.17,
+  and only the sampled rate is under 0.05. It is read as a direction until a run registered for it
+  says more.
+- **"Facts alone did not help" is a null, not a harm.** −0.03 is two cells.
+- **Olmo:** C-2 − C-4 is +0.03 greedy (p 0.50) and +0.035 sampled (p 0.039), at the floor, as read.
+
 **What E1 selects** (§7): pattern does work in context, and facts help only beside it. §7's branch for that is **E3**
 (train the pattern in, then test transfer), **after E2's shadow**: E2 asks whether the pattern reading survives
 names the base has not read. The contamination facts make memory unlikely for these two bases, but name-reading is
@@ -725,6 +744,23 @@ opaque. G-mem reads `unseen` on the real bodies of both shadows.
     place the task is stated.
   - C-3 keeps 0.24 because its facts name the callees, which partly restates the task.
 
+**The noise floor, read after (2026-09-26, `e2 compare`'s paired tests; no spend).** Shadow − original,
+paired by cell, bodies:
+
+| arm | descriptive: pass@1 (lost / gained, p) · sampled p | opaque: pass@1 (lost / gained, p) · sampled p |
+|---|---|---|
+| C-2 | −0.08 (9 / 4, 0.27) · 0.63 | −0.24 (17 / 2, **0.0007**) · 0.0001 |
+| C-3 | +0.03 (5 / 7, 0.77) · 0.47 | −0.14 (14 / 5, 0.064) · 0.027 |
+
+- **No descriptive delta on bodies is distinguishable from zero.** "The descriptive shadow keeps the effect"
+  stands as *no measurable cost*. The rises on C-3 (+0.03 to +0.05) are not read as gains, and C-2's greedy
+  drop is noise, as the record said.
+- **The same prompts under equally meaningful names moved 12 to 17 greedy bodies per arm**, with the net
+  near zero. That churn is the floor any comparison at this scale sits on (E3's card, below).
+- **The descriptive wrapper drop on C-2 is real** (−0.23, 8 / 1, p 0.039; sampled p 0.0003), and its cause is
+  the one the record reads: the synonym table's words.
+- **The opaque loss on C-2 bodies is real.** Its cause is the task statement's loss, as read above.
+
 **What E2 selects** (§7): pattern does work in context, and the descriptive shadow keeps it. §7's branch for that
 is **E3**, training the pattern in and testing whether it transfers. For Max:
 - **E3's design**, with no spend, on the card's $25 proposal. Its training families come from other repos under
@@ -757,6 +793,88 @@ is **E3**, training the pattern in and testing whether it transfers. For Max:
 - **Cost:** ADR-099-scale per adapter, ≈ $5–10 each, two or three adapters. **Ceiling
   proposed $25.** Held until E1 says pattern does work in context (C-2 − C-4 > 0). If it does
   not, there is nothing to train toward.
+
+#### E3's card, revised (2026-09-26; no spend; Max: "good to proceed with that recommended")
+
+Three no-spend checks were made before E3's design is priced: the noise floor (E1's and E2's addenda
+above), a count of the training pool, and a reading of what the card measures. Together they change the
+card in four places. **E3 does not train until the pool below exists.**
+
+**1. What is measured: two registered comparisons, not one.** The training task is "given the neighbours,
+write the member", but C-0 carries no neighbours. So an adapter trained on that task is likelier to lift
+C-2 (using shots) than C-0 (the pattern moved into the weights). Both readings are registered before the
+run, each against the **shuffled-answers adapter** (the same tokens, the family pairing broken), never
+against the base alone:
+- **E3-use:** adapter C-2 − shuffled C-2. Does training make the model better at using examples?
+- **E3-weights:** adapter C-0 − shuffled C-0. Did the pattern move into the weights?
+
+The readings, written now:
+- use lifts and weights does not: training teaches the use of examples, and E4's graph-served shots are
+  the route;
+- weights lifts: the charter's §3 reading holds, with skill in the weights;
+- neither lifts beyond the shuffled adapter: the gain is the format, not the pattern;
+- the adapter lifts and so does the shuffled one: the same.
+
+C-3 and C-4 are run beside them, described and not tested.
+
+**2. The noise floor sets the evaluation.**
+- At 63 bodies, renaming alone moved 12 to 17 greedy cells per arm (E2).
+- At that churn, a greedy gap needs a net of about **9 cells (+0.14)** to reach p < 0.05; at 6 cells moved, all
+  one way, the floor is +0.10.
+- The sampled rate is the more sensitive figure: it found C-3 − C-2 at p 0.024 where the greedy pass read
+  0.18.
+- So **each registered comparison's primary figure is pass@1(sampled), with the paired sign-flip test**, and
+  the evaluation draws **k = 10** rather than 5, to steady each cell's rate. E2's round 0 cost $0.22 for two
+  arms at k = 5, so at the base model's rates this is about $0.2 an arm, with no iterate rounds. An adapter
+  served on Modal is re-priced on its first unit.
+- The two tests are the only ones read as findings, and everything else is described.
+- On E3-weights, C-0's base is 0.03, so the figure can only rise, and the floor is the one to beat.
+
+**3. The pool: the card's family rule fails its own calibration, and the ingested pool is far too small.**
+The count (`~/.hobbes/bench/calvin-lattice/e3/family-count/`, `RESULTS.md`, `count.py`) read every C
+and C++ graph on this box: cJSON, fmt, args, bpftop and ScummVM. sqlite-vector was excluded and used only
+as the calibration.
+- **Calibration.** On sqlite-vector itself, the card's rule (names differing in one token, callee multisets
+  equal up to it) groups **18 of the 63 real bodies** into families of two or more, and 9 into families of
+  three or more. It does catch all 30 wrappers. There are two causes:
+  - Intrinsics resolve to system headers, so they are not repo edges, and a kernel's callee multiset is
+    only its helpers and macros.
+  - The helpers are spelled differently along the lattice's own axes (`f16_is_inf` against
+    `bfloat16_is_inf`), so masking the member's token does not reach them.
+- **A body-shape rule** groups 63 of 63: body tokens with the varying token masked, similarity ≥ 0.6. It
+  was fitted on this target, though, so that figure is a fit, not a test. It needs a second lattice repo
+  before it mines anything.
+- **The permissively licensed pool** (cJSON, fmt, args), after removing wrappers and thin bodies:
+
+  | rule | families / members, size ≥ 2 | size ≥ 3 |
+  |---|---|---|
+  | the card's | 15 / 43 | 4 / 21 |
+  | body-shape | 38 / 93 | 8 / 41 |
+
+  ADR-099 trained on 13,688 records, so this pool is **two to three orders of magnitude short**.
+- **ScummVM reaches the scale**, with 16k to 20k tasks, but E3 cannot use it as is:
+  - it is GPL-3.0;
+  - its tests reach none of the families;
+  - 37% of the families are near-copies (lastexpress's generated `CONS_*` handlers);
+  - 22% are name coincidences;
+  - none has a type×ISA shape.
+- **Validation.** None of the pool repos has a numeric reference for a differential. Test reach varies:
+  cJSON's tests reach 31 of its 31 strict members, fmt's 0 of 8, and args and ScummVM none. The card's "only
+  examples that compile and pass their own differential train" has no instrument yet for mined members.
+
+So **E3's first step is a draw of permissively licensed C repos with real kernel lattices**, not a
+training run. These are SIMD or numeric libraries with a scalar reference, or tests that reach their
+families, drawn by a written rule as the JavaScript cells were. The step also tests the body-shape rule
+on the first draw that has a known lattice, and counts what the pool reaches before any adapter is priced.
+
+**4. The stated-task control folds in.** E2's opaque shadow removed the task statement with the names. So
+E3's evaluation carries one **stated-task opaque arm** (the opaque prompt plus one fixed sentence naming
+the metric, the type and the ISA) on the base and on the adapter. It reads name-reading beyond the
+specification, at about $0.5 a model, and replaces E2's optional $1 run.
+
+**The ceiling.** The card's $25 stands for the training runs only once the pool exists. The draw and the
+count spend nothing. The ceiling is re-priced with the pool's real size, since the steps ablation (300 and
+3,000) is sized by it.
 
 ### E4 — the teacher and the student: rebuild a file (M-a or M-b, K-1, L1 then L3)
 
@@ -873,6 +991,15 @@ Proposed routes, the recommended one first.
 - **D-4 — the NEON and RVV arms.** **Taken: leave them** (Max, 2026-09-24). Add qemu-user to the image now (+ some size to a 3.3 GB
   image), or leave them until L1 needs a sixth file? **Recommended: leave them**, since the
   three native ISAs give 93 cells.
+
+- **D-5 — E3's pool, and E4 beside it** (2026-09-26, after E3's revised card).
+  - **a (recommended):** E3's first step is a no-spend draw of permissively licensed C repos with kernel
+    lattices, by a written rule, with the body-shape rule tested on it. **E4's design** (the graph serves the
+    shots and the facts to a student, P12) is written in parallel: E1's firm result is pattern in context,
+    which is E4's shape, and E4 needs no training pool.
+  - b: E3 only, E4 after it, as §7 orders.
+  - c: take ScummVM's GPL-3.0 pool as training data for a bench adapter, never distributed. This is a licence
+    call, and its families are unlike the target (no type×ISA shape, 37% near-copies).
 
 ---
 

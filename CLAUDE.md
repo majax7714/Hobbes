@@ -325,7 +325,10 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   of unrelated code (C-4). E2 (2026-09-26, unit `157a`, $1.89 of $3) ran
   Qwen on two rename shadows: descriptive names keep the pattern effect;
   the opaque shadow removes the task statement with the names, so its
-  gap is not name-reading. Next, for Max: E3's design.
+  gap is not name-reading. The paired tests (2026-09-26) hold the
+  pattern effect (p 0.0015) and leave facts-beside-pattern suggestive; E3's
+  pool count found the card's family rule and the ingested permissive pool
+  unfit, so its card is revised. Next, for Max: D-5 (a C lattice draw first).
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its
