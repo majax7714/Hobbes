@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-25 (seventeenth session); Hobbes 0.2.70-beta on `main`.**
+**Reviewed 2026-09-26 (eighteenth session); Hobbes 0.2.70-beta on `main`.**
 Max pushed through the twelfth session's last commit (`57e4be2`,
 0.2.67-beta); what the thirteenth to fifteenth add (ADR-149, 0.2.68-beta;
 ADR-145 amended and the flask key, 0.2.69-beta; ADR-150, 0.2.70-beta) is on
@@ -29,19 +29,28 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-25, seventeenth session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-26, eighteenth session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Two tracks are open.**
-- **The Calvin experiments' E1 is done: both models, all 93 cells, $6.59 of the $10 ceiling.** The record is
-  `calvin-experiments.md` §6, "E1's record". Qwen's pass@1 is C-2 0.29 and C-3 0.38, against C-0 0.03 and C-4 0.05:
-  pattern beats volume, and facts help only beside pattern. Olmo sits at the floor and mostly invents names. **For
-  Max:**
-  - E2's shadows on Qwen C-2/C-3, at about $1, before E3;
-  - the guard fix: Olmo passed its $4 run cap by $0.39, because the cap is checked before a call;
-  - whether Olmo stays an arm.
+- **The Calvin experiments' E2 is done: Qwen on both rename shadows, $1.89 of the $3 ceiling** (E1 was $6.59 of
+  $10). The record is `calvin-experiments.md` §6, "E2's record".
+  - Descriptive names keep the pattern effect (C-3 0.41 / 0.33 / 0.59 against E1's 0.38 / 0.30 / 0.54).
+  - The opaque shadow removes the task statement: the hole's name was the only place the metric and type were said,
+    so its gap is not name-reading.
+  - The guard fix is built and was live on both runs (unit `157a`).
+
+  **For Max:** E3's design, with no spend, against the card's $25 proposal; optionally a stated-task opaque arm at
+  about $1, or folded into E3 as a control. Olmo is out from E2 on (E2-f). Runs and drivers:
+  `~/.hobbes/bench/calvin-lattice/e2/` (`qwen-{descriptive,opaque}/`, `compare.{txt,json}`, `check-*` the no-spend
+  checks), `shadows/{descriptive,opaque}/` (both accepted; `accept-opaque/` holds the acceptance), `units/u5a.*`.
+- **The comparative programme reads JavaScript** (`fbf6198`, `8292c98`): CodeGraphContext and repowise on the five
+  JS keys. repowise's converter@5 fixed a `__module__` drop that had cost every repowise cell its top-level calls,
+  and all 22 published cells were regraded. C-94 has the chain-line residual. Drivers:
+  `~/.hobbes/bench/comparative/run-js-cell.sh`, `<tool>-<repo>/`, `at5/` in each repowise cell. repowise 0.53.0 is
+  out; the cells stay on 0.49.0 until Max says otherwise.
 - **Extraction:** the next candidate is **route c** (below), measured first.
 
 - **Done (ADR-146, 0.2.65-beta, unit `f751`, 45 turns, $2.49; Max: route a):** a
@@ -457,13 +466,12 @@ named below was removed unless it says otherwise.
 1. **Open for Max (no spend):**
    - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
-     E0 built and accepted (units `2fd4`, `9326`, `f50c`, `189e`, `c141`); E1's runner built (`8e50`, `66c5`),
-     its three instrument calls from E1-g taken as recommended (`06e3`: the `param` bucket, `max_tokens`
-     2,048, no G-mem evidence below 8 expected tokens); **E1 run on both models, all 93 cells, $6.59 of $10**
-     (§6, "E1-g's record" and "E1's record"). Next: E2's shadows on Qwen C-2/C-3, the run-cap guard fix, and
-     whether Olmo stays an arm (START HERE). Drivers: `~/.hobbes/bench/calvin-lattice/` (`e1/` the runs —
-     `lattice e1 report <dir>` — `units/`, `selftest/`, `shadows/`, `facts/intrinsics-clang18.json`,
-     `ages.py`, the full history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta.
+     E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
+     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. Next: E3's design (START HERE). Drivers:
+     `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
+     <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
+     history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its
+     `.hobbes/derived/graph.json`, `~/.hobbes/bench/oracle/sqlite-vector-c/oracle.json` and the intrinsics index.
    - **A gate false block, three times (`9326`, `c141`, `66c5`): a newly added
      decorator that names a module-level value (`@needs_x` where
      `needs_x = pytest.mark.skipif(...)`) reads `invented`.** Since
@@ -519,7 +527,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 82 of 40, 4
+   - **The validating 40 are done:** the tracker reads 83 of 40, 4
      areas, 4 false blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141`,
      `66c5`, the decorator case, open), 0 missed.
 3. **A regrade against stored keys:**
@@ -539,7 +547,8 @@ named below was removed unless it says otherwise.
      and H-23; ADR-105/P13; the C-98 residuals.
    - **The comparative queue:** the two SQLite tools in `field.md`
      (converters first); syft's keys on a bigger box. The foreign C++
-     cells are done.
+     cells are done, and the JS cells (2026-09-26). repowise's chain-line
+     residual (C-94) would need a source-reading heuristic: not built.
    - **C's residue:** C-134's remainder, C-135's autotools, Meson and
      Bazel roots, C-133's unit 2 and its macro half; the macro gap is
      parked (C-131).
@@ -591,7 +600,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Eighty-two log files under `docs/calvin/sessions/`; the tracker reads 82 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
+  is a tmpfs. Eighty-three log files under `docs/calvin/sessions/`; the tracker reads 83 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 96 cells (22 same-key rows, C++'s two among them; flask's new
   cell at 0.2.68-beta's figures); `render.py
@@ -635,7 +644,7 @@ min each.
 **Held, with all spend:** the Atlas-0 T items; the TTT adapter points;
 the removal A/B re-run on the 7B; a second unseen repo through the cell;
 DeepSWE's decomposed protocol; `hobbes narrate` on this repo; the Calvin
-experiments past E1 (`calvin-experiments.md`; E1 is run, each next run on Max's word and ceiling). The keyed Calvin runs are closed, not
+experiments past E2 (`calvin-experiments.md`; E1 and E2 are run, each next run on Max's word and ceiling). The keyed Calvin runs are closed, not
 held.
 
 ## STANDING POLICY (Max) — read before doing anything

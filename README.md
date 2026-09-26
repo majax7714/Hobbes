@@ -449,10 +449,10 @@ tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
 2026-09-13); it passed that mark on 2026-09-17 with one false block
-(closed) and none missed, and it stays the way work is done. Two more
-false blocks have been recorded since, both the same open case: the
+(closed) and none missed, and it stays the way work is done. Three more
+false blocks have been recorded since, all the same open case: the
 gate reads a newly added decorator that names a module-level value as
-invented (sessions `9326` and `c141`).
+invented (sessions `9326`, `c141` and `66c5`).
 
 **The Calvin experiments** (ADR-151,
 [`docs/calvin/calvin-experiments.md`](docs/calvin/calvin-experiments.md))
@@ -466,8 +466,11 @@ pass the target's own suite. E1's runner was built the same day, and its
 run, E1, covered both 7B bases over all 93 cells for $6.59 of a $10
 ceiling. On Qwen2.5-Coder, pattern examples in context raised pass@1 from
 0.05 (the same volume of unrelated code) to 0.29, and facts from the
-graph helped only beside them (0.38). The record is in the experiments
-page.
+graph helped only beside them (0.38). E2 (2026-09-26, $1.89 of $3) ran
+the same prompts on two rename shadows: equally meaningful names kept
+the effect, while meaningless names also removed the only statement of
+what each function computes, so that gap is not read as name-reading.
+The records are in the experiments page.
 
 The work built through it includes C's lane A and its oracle, the
 external veto (ADR-111), a session's records written by a sidecar
@@ -508,7 +511,7 @@ point); the session-by-session record is
 | [`docs/ttt/olmo3-ttt-results.md`](docs/ttt/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
 | [`docs/calvin/calvin-harness.md`](docs/calvin/calvin-harness.md) | **Calvin as a harness (ADR-107):** `hobbes dispatch`, the egress allowlist, the doer in the session, the gate on its diff, and how the harness is validated. The per-session logs are in `docs/calvin/sessions/`; the charter is `docs/calvin/calvin-charter.md` |
 | [`docs/calvin/`](docs/calvin/) — the keyed rounds, closed | M0 ([`calvin-potential.md`](docs/calvin/calvin-potential.md)), M0-Go ([`calvin-m0-go.md`](docs/calvin/calvin-m0-go.md), [round 2](docs/calvin/calvin-m0-go-r2.md)) and M0-Gate ([`calvin-m0-gate.md`](docs/calvin/calvin-m0-gate.md)). Each record keeps its design, §10 results and gate record, and each cell page is under `docs/calvin/cells/`. History since 2026-09-12 |
-| [`docs/calvin/calvin-experiments.md`](docs/calvin/calvin-experiments.md) | The Calvin experiments programme (ADR-151): a model that writes one language (C), starting from sqlite-vector's SIMD kernel lattice. The design space, experiments E0–E7, and the decisions taken. E0, the instruments, built and accepted 2026-09-25; E1 run on both 7Bs over all 93 cells (2026-09-25, $6.59 of $10); E2 next, on the lead's word |
+| [`docs/calvin/calvin-experiments.md`](docs/calvin/calvin-experiments.md) | The Calvin experiments programme (ADR-151): a model that writes one language (C), starting from sqlite-vector's SIMD kernel lattice. The design space, experiments E0–E7, and the decisions taken. E0, the instruments, built and accepted 2026-09-25; E1 run on both 7Bs over all 93 cells (2026-09-25, $6.59 of $10); E2 run on two rename shadows (2026-09-26, $1.89 of $3); E3 next, on the lead's word |
 | [`docs/atlas0/atlas-0.md`](docs/atlas0/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
 | [`docs/reviews/`](docs/reviews/) | Dated agent reviews of the tree against its records (the 2026-09-10 baseline) |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |

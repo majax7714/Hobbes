@@ -300,7 +300,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **82 of 40**
+  drift test; re-render after filling a review block) reads **83 of 40**
   sessions that validate the harness: 4 areas, 4 false blocks (`f3c1`,
   closed at 0.2.28-beta; `9326`, `c141` and `66c5`, the decorator case
   below, open), 0 missed. It stays the way work is done.
@@ -319,12 +319,17 @@ the resume point, with everything held, is `docs/session-handoff.md`.
 - **Calvin experiments** (ADR-151, `docs/calvin/calvin-experiments.md`):
   a model that writes C, starting from sqlite-vector's kernel lattice.
   E0, the instruments (`bench/calvin/lattice/`), was built and accepted
-  on the real target on 2026-09-25. E1's runner was built the same day
-  (units `8e50`, `66c5` and `06e3`), and E1 ran on both 7Bs over all
-  93 cells for $6.59 of the $10 ceiling. On Qwen, pass@1 is 0.29 with
-  pattern shots (C-2) and 0.38 with shots and facts (C-3), against 0.05
-  for the same volume of unrelated code (C-4). Facts alone did not help,
-  and Olmo sits at the floor. Next, for Max: E2's shadows, then E3.
+  on the real target on 2026-09-25. E1 ran on both 7Bs over all 93
+  cells for $6.59 of $10: on Qwen, pass@1 0.29 with pattern shots (C-2)
+  and 0.38 with shots and facts (C-3), against 0.05 for the same volume
+  of unrelated code (C-4). E2 (2026-09-26, unit `157a`, $1.89 of $3) ran
+  Qwen on two rename shadows: descriptive names keep the pattern effect;
+  the opaque shadow removes the task statement with the names, so its
+  gap is not name-reading. Next, for Max: E3's design.
+- **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
+  the five JavaScript keys too (2026-09-26); repowise's converter@5
+  fixed a `__module__` drop that had cost every repowise cell its
+  top-level calls, and the 22 published cells were regraded.
 - **Open for Max:** the gate's false block on a new decorator naming a
   module-level value (sessions 9326, c141 and 66c5; the handoff has it);
   ADR-126 §3 — whether to build a "may reach through dispatch (not

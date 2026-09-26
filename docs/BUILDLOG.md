@@ -14325,3 +14325,69 @@ round").**
 
 The record is `calvin-experiments.md` §6, "E1's record". What E1 selects is E2's shadows and then E3, for Max, beside
 the guard fix.
+
+## 2026-09-26 (eighteenth session) — the top-level docs caught up again; E2 designed, built and run on both shadows (ADR-151); CodeGraphContext and repowise on the five JavaScript cells, and repowise's `__module__` converter defect fixed
+
+**The docs (Max: "review top level documentation").** The tracker read 82 of 40 with 4 false blocks (`66c5` the
+decorator case's third), where CLAUDE.md and AGENTS.md said 79 and 3 and the handoff 74 and 1. The handoff still
+carried E1-g's three instrument calls as open, and README's experiments row said "E1 next". Fixed (`db50822`).
+
+**E2's runner, designed on the tree (Max: "All as recommended", ceiling $3).** Routes E2-a to E2-g are under the E2
+card (`ff83060`). The facts that shaped them:
+- `e1` took no `--rename`;
+- a cell id is its grid position, so a shadow run asks with E1's own seeds;
+- a written shadow is no checkout, so the plan's SHA check would check nothing;
+- the facts arm matches by name and by column, and a shadow moves both;
+- the run cap had a second hole: a failed call wrote no `calls.jsonl` row, so it read as free.
+
+**The build, unit `157a`** (104 of 160 turns, $15.15, gate clear, verify pass): `e1 plan --rename --original`, the
+ledger written forward through the map (`facts.Translated`), the shadow's digests in `meta.json`, the leak gate
+(`ShadowLeak`), the Modal call's timeout from the money left, a failed call priced before its refusal, and `e2
+compare`. On the real target, before merging:
+- **the opaque shadow written and accepted in the image**: 493 renamed, 106 kept, `make unittest` and `make
+  unittest-simd` (AVX-512) 1,447 of 1,447 each, all 93 golds `pass`;
+- **both shadows planned**: the leak gate passed, and every prompt equals E1's round-0 prompt under that shadow's
+  rename, 1,209 of 1,209 each, at E1's ids, seeds and params. E1's own plan, re-made with the same ledger paths,
+  reproduced E1's requests 1,116 of 1,116;
+- **the run path end to end with no spend**: the shadow golds replayed and graded in the image through `--rename`,
+  93 of 93 `pass` on each.
+
+The package's suite in the image was 427 passed and 1 failed. The failure was a fixture-is-a-checkout assertion,
+because my mount left out the worktree's `.git`; it passes on the host.
+
+**E2's run: $1.89 of $3** (descriptive $0.88, opaque $1.01; estimated ≈ $1.4). Qwen, 63 real bodies, pass@1 greedy /
+sampled / pass@5:
+- C-2: E1 0.29 / 0.19 / 0.43; descriptive 0.21 / 0.21 / 0.44; opaque 0.05 / 0.05 / 0.19.
+- C-3: E1 0.38 / 0.30 / 0.54; descriptive 0.41 / 0.33 / 0.59; opaque 0.24 / 0.20 / 0.37.
+
+Attributed:
+- Descriptive names keep the pattern effect. Its C-2 wrappers (0.83 → 0.60) lose to the synonym table's `x86vN` ISA
+  words and `core` for `l2_impl`: an sse2 hole called the avx2 name its shot carried.
+- **The opaque shadow removes the task statement.** The hole's name was the only place the metric and the type were
+  said (`float fn_0042 (const void *a, const void *b, int n)`). The extra failures are `wrong`, not `invented`, and
+  30 of 49 greedy wrong bodies sit nearest a sibling metric's gold, against 7 of 23 in the original. The card's
+  "how much the model reads names" does not hold as worded, and the record says so.
+
+The record is `calvin-experiments.md` §6, "E2's record" (`f46ee1c`). What E2 selects is E3's design, with a
+stated-task opaque arm as an option, for Max.
+
+**The comparative programme on JavaScript (Max: "send an agent out to grade java script for codegraphcontext and
+repowise").** One background agent, on the Hobbes cells' own keys and commits. Each tool indexed a `cp -a` copy under
+`unshare -rn`, and each key re-graded Hobbes to its standing numbers first.
+- **CodeGraphContext 0.6.13** (`fbf6198`): Express 97.5%, Preact 40.3%, xmpp.js 82.6%, github-action 92.6%, cue
+  96.2% precision, each with its strict figure beside it.
+- **repowise was held on a converter defect it found.** `adapter.py` dropped every call whose caller is repowise's
+  per-file `<file>::__module__` node, which is where it files top-level calls. Express lost 356 of its 358 call
+  lines, and the published TS cells had lost most of theirs (zod 6,402 of 9,186). I checked Express's stored rows
+  myself before routing it.
+- **Max: "proceed with the repowise proposed fix"** (`8292c98`):
+  - converter@5 reads a `__module__` caller as a site in its file, with a real-row fixture;
+  - all 22 published repowise cells regraded from their stored rows with signed direction lines: 14 unchanged, and
+    cheerio 90.8% → 97.8% (recall 2.8% → 23.2%), zod 92.4% → 94.6% (10.0% → 33.6%);
+  - the five repowise JS cells added: Express 99.7%, Preact 41.8%, xmpp.js 90.1%, github-action 100%, cue 98.5% with
+    recall 76.1%, above Hobbes' 61.8%;
+  - a C-94 note (a residual: a chain written over several lines is filed at its first line), and ADR-101 amended.
+  - The hand reads also found key-grain rows on the JS keys: Preact's `.d.ts` declarations, xmpp's `jid.bind()`
+    export, and cue's `window.ICONS` calls. Two CodeGraphContext records were corrected for them.
+
+There is no version bump (ADR-103): bench and records only. The image was not rebuilt.
