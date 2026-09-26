@@ -15,17 +15,19 @@
     lattice e1 report  <run-dir>                the readings: pass@1, pass@1(sampled), pass@k, per round
     lattice e1 paired  <run-dir> <arm> <arm>    the second arm against the first, paired by cell, exact p
     lattice e2 compare <run-dir> <shadow-run>…  E2: each shadow's deltas and flips against the original
+    lattice e4 parse   <run-dir> <target>       E4: the parser's fields for every unit, one call each (S-5)
     lattice e4 plan    <target> <run-dir>       E4: L1's units of one file, leaves first, one arm each
     lattice e4 run     <run-dir> <target>       answer and grade them, then build the file per arm
     lattice e4 report  <run-dir>                per arm and unit kind, the file level, the comparisons
     lattice grade      <target> <manifest.json> grade every entry in the manifest; one JSON line each
     lattice selftest   <target> [--cells …]     the gate on the instruments (§5.5)
 
-**`e1 run` is the one verb that would call a model**, and only through the generator it is given:
-`--generator replay:<completions.jsonl>` replays a file and spends nothing, and `--generator modal` shells
-out to `scripts/modal_e1.py`. `--ceiling-usd` is **required and has no default** (§8: spend is held until
-Max names the run and its ceiling); the estimate of every call is checked against it before anything is
-sent. Grading between rounds goes into the image, as `grade` does.
+**`e1 run`, `e4 run` and `e4 parse` are the only verbs that would call a model**, and only through the
+generator they are given: `--generator replay:<completions.jsonl>` replays a file and spends nothing, and
+`--generator modal` shells out to `scripts/modal_e1.py`. `--ceiling-usd` is **required and has no default**
+(§8: spend is held until Max names the run and its ceiling); the estimate of every call is checked against
+it before anything is sent, and the parse step's calls are counted against the same ceiling as the
+student's (`calls.jsonl`, `stage: "parse"`). Grading between rounds goes into the image, as `grade` does.
 
 Everything but the last three reads text — files, a git history, the derived artifacts — and runs
 nowhere in particular. **`grade` and `selftest` compile and run the target's code**, so they take
@@ -42,15 +44,22 @@ a non-cell helper or the init — and `{"id", "isa", "bodies": {name: body}}` is
 named body filled into the gold file at once. `graph-grade` reads the cell rows with a grading run's
 `class` beside them, and says which it did not carry and why.
 
-**`e4` is E1's three steps over a file instead of a cell** (`calvin-experiments.md` §6). `e4 plan
---isa avx2` writes one request per (unit, arm, sample) in the units' **leaves-first** order, with a bare
+**`e4` is E1's steps over a file instead of a cell** (`calvin-experiments.md` §6). `e4 plan --isa avx2`
+writes one request per (unit, arm, sample) in the units' **leaves-first** order, with a bare
 skeleton — every other definition of the file a prototype — in each; `meta.json` carries the order, the
 rung and `p12: decomposed` with the largest prompt against the file's own length. The arms are
-`S-0,S-2,S-3`; **`S-5` and `S-2o` are named and not built** — asking for one exits 2 saying they are the
-second unit's — and `S-3` with no ledger is skipped and named, as `prompts` does. `e4 run` answers and
-grades every unit against the *gold* file with that one definition punched, so a failure does not
-cascade, and then builds the file the student wrote: every passing unit's greedy body, gold elsewhere,
+`S-0,S-2,S-2o,S-3,S-5`, and `S-3` or `S-5` with no ledger is skipped and named, as `prompts` does. `e4 run`
+answers and grades every unit against the *gold* file with that one definition punched, so a failure does
+not cascade, and then builds the file the student wrote: every passing unit's greedy body, gold elsewhere,
 into `final/<arm>/` with a patch, graded once over every slot the file installs.
+
+**S-5's fields come from `e4 parse`, which runs first.** It asks one greedy question per unit — `API.md`,
+the unit's name, kind and signature, its grid position, and the *names* of its callees, and **no body of
+any kind** — and writes `parser.jsonl`: the two fields where the answer was that JSON, and the whole text
+kept raw with `parsed: false` and a stated reason where it was not. `e4 plan --arms S-5` **exits 2, naming
+the file**, when `parser.jsonl` is missing or does not cover every unit; `meta.json` then carries the
+parser's model and that file's digest. **S-2o makes the run waves**: its own-pass shots are the student's
+earlier bodies, so `plan` writes wave 0 and `e4 run` builds each later wave from the rows already graded.
 
 `facts`, `task` and `prompts` take the ledger as `--graph derived/graph.json`, `--key
 derived/oracle.json` and `--intrinsics index.json`. None of the three is required, and one left out is
@@ -553,7 +562,7 @@ def _e1_run(args) -> int:
         print(f"lattice: the run's {e1_of.META} could not be read ({missing})", file=sys.stderr)
         return 2
     try:
-        generate = _generator(args, record)
+        generate = _generator(args, record["model"])
     except (OSError, ValueError) as refusal:
         print(f"lattice: the generator could not be built ({refusal})", file=sys.stderr)
         return 2
@@ -573,18 +582,19 @@ def _e1_run(args) -> int:
     return 0
 
 
-def _generator(args, record: dict):
+def _generator(args, model: str):
     """`replay:<file>`, which answers from a recorded run, or `modal`, which is the only one that spends.
 
     The Modal one is given the run directory and the ceiling as well, so each call carries the money
-    left as its own timeout and cannot bill past the cap even when the estimate was wrong (E2-d).
+    left as its own timeout and cannot bill past the cap even when the estimate was wrong (E2-d). *model*
+    is the run's own for a student call and `--parser-model` for a parse: one seam, two models.
     """
     if args.generator.startswith("replay:"):
         return e1_of.replay_generator(Path(args.generator.split(":", 1)[1]))
     if args.generator != "modal":
         raise ValueError(f"no generator {args.generator!r}; it is modal or replay:<completions.jsonl>")
     return e1_of.modal_generator(
-        record["model"],
+        model,
         MODAL_SCRIPT,
         keep=args.run_dir / "modal-calls",
         run_dir=args.run_dir,
@@ -624,8 +634,26 @@ def _e1_paired(args) -> int:
 
 
 def _e4_verbs(verb: argparse.ArgumentParser) -> None:
-    """`plan`, `run` and `report` — E1's three steps over one held-out file rather than one cell."""
+    """`parse`, `plan`, `run` and `report` — E1's steps over one held-out file rather than one cell."""
     steps = verb.add_subparsers(dest="step", required=True)
+
+    parser = steps.add_parser("parse", help="the parser's fields for every unit, one greedy call each (S-5)")
+    parser.add_argument("run_dir", type=Path, help="the run directory; parser.jsonl goes in it")
+    parser.add_argument("target", type=Path)
+    parser.add_argument("--parser-model", required=True, help="the model the fields, the seeds and the prices are for")
+    parser.add_argument("--isa", default="avx2", help="the ISA whose file is held out (default: avx2, E4-a)")
+    parser.add_argument(
+        "--ceiling-usd",
+        type=float,
+        required=True,
+        help="refuse before the call if its estimate would carry the run past this; there is no default",
+    )
+    parser.add_argument(
+        "--generator",
+        default="modal",
+        help="modal (scripts/modal_e1.py) or replay:<completions.jsonl>, which spends nothing",
+    )
+    _ledger(parser)
 
     planner = steps.add_parser("plan", help="write meta.json and requests.jsonl for one file's units")
     planner.add_argument("target", type=Path)
@@ -658,6 +686,8 @@ def _e4_verbs(verb: argparse.ArgumentParser) -> None:
 
 
 def _e4(args) -> int:
+    if args.step == "parse":
+        return _e4_parse(args)
     if args.step == "plan":
         return _e4_plan(args)
     if args.step == "run":
@@ -666,22 +696,80 @@ def _e4(args) -> int:
 
 
 def _e4_arms(given: str | None) -> list[str]:
-    """The arms asked for, in the order asked. A planned one is `NotBuilt`, not an unknown arm."""
+    """The arms asked for, in the order asked, each one of `e4.ARMS`."""
     if not given:
         return list(e4_of.ARMS)
     asked: list[str] = []
     for arm in [part.strip() for part in given.split(",") if part.strip()]:
-        if arm in e4_of.PLANNED:
-            raise e4_of.NotBuilt(
-                f"{arm} is built in the second unit; this one builds {', '.join(e4_of.ARMS)}"
-            )
         if arm not in e4_of.ARMS:
-            raise prompts_of.UnknownArm(
-                f"no arm {arm!r}; the arms are {', '.join(e4_of.ARMS)} ({', '.join(e4_of.PLANNED)} are planned)"
-            )
+            raise prompts_of.UnknownArm(f"no arm {arm!r}; the arms are {', '.join(e4_of.ARMS)}")
         if arm not in asked:
             asked.append(arm)
     return asked
+
+
+def _e4_parse(args) -> int:
+    """S-5's fields: one greedy call per unit, from `API.md` and the unit's place — and no body at all.
+
+    A target with no `API.md` is named on stderr and the parser is *told* it has none, rather than being
+    shown one from somewhere else; the same rule the ledger's `missing` keeps.
+    """
+    lattice = build(args.target)
+    if args.isa not in lattice.sources:
+        print(
+            f"lattice: no file for ISA {args.isa!r} in {args.target}; try `lattice map {args.target}`",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        ledger = facts_of.load(args.graph, args.key, args.intrinsics)
+    except OSError as missing:
+        print(f"lattice: the ledger could not be read ({missing})", file=sys.stderr)
+        return 2
+    try:
+        generate = _generator(args, args.parser_model)
+    except (OSError, ValueError) as refusal:
+        print(f"lattice: the generator could not be built ({refusal})", file=sys.stderr)
+        return 2
+
+    given = ledger if (args.graph or args.key or args.intrinsics) else None
+    api = e4_of.read_api(args.target)
+    if api is None:
+        print(
+            f"lattice: {args.target} has no {e4_of.API_DOC}; the parser is told so rather than shown "
+            "another project's documentation",
+            file=sys.stderr,
+        )
+    try:
+        rows = e4_of.parse(
+            args.run_dir,
+            lattice,
+            args.isa,
+            generate,
+            args.parser_model,
+            ceiling_usd=args.ceiling_usd,
+            facts=given,
+            api=api,
+        )
+    except e4_of.DuplicateDefinition as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    except e1_of.CeilingReached as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    except (e1_of.MissingCompletion, e1_of.GenerateFailed) as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+
+    parsed = sum(1 for row in rows if row["parsed"])
+    print(
+        f"e4 parse: {len(rows)} unit(s) — {parsed} parsed, {len(rows) - parsed} kept raw "
+        f"→ {args.run_dir / e4_of.PARSER} ({args.parser_model})"
+    )
+    for row in rows:
+        if not row["parsed"]:
+            print(f"  {row['unit']}: not the two fields, kept raw — {row['reason']}")
+    return 0
 
 
 def _e4_plan(args) -> int:
@@ -695,9 +783,25 @@ def _e4_plan(args) -> int:
         return 2
     try:
         arms = _e4_arms(args.arms)
-    except (e4_of.NotBuilt, prompts_of.UnknownArm) as refusal:
+    except prompts_of.UnknownArm as refusal:
         print(f"lattice: {refusal}", file=sys.stderr)
         return 2
+    try:
+        ordered = e4_of.units(lattice, args.isa)
+    except e4_of.DuplicateDefinition as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+
+    # the parser gate is checked on the arms **as asked**, before the ledger skip below: a plan that asks
+    # for S-5 with no parse is missing an input, not missing an arm, and the two read differently
+    fields = None
+    if any(arm in e4_of.FIELD_ARMS for arm in arms):
+        fields = e4_of.read_fields(args.run_dir)
+        uncovered = [unit.name for unit in ordered if unit.name not in fields]
+        if uncovered:
+            print(_e4_no_fields(args, ordered, fields, uncovered), file=sys.stderr)
+            return 2
+
     try:
         ledger = facts_of.load(args.graph, args.key, args.intrinsics)
     except OSError as missing:
@@ -714,12 +818,20 @@ def _e4_plan(args) -> int:
         )
 
     try:
-        requests = e4_of.plan(lattice, args.isa, asked, args.model, given, k=args.k)
-    except e4_of.DuplicateDefinition as refusal:
+        requests = e4_of.plan(lattice, args.isa, asked, args.model, given, k=args.k, fields=fields)
+    except (e4_of.DuplicateDefinition, e4_of.NoFields) as refusal:
         print(f"lattice: {refusal}", file=sys.stderr)
         return 2
     record = e4_of.meta(
-        lattice, args.isa, requests, args.model, arms=asked, k=args.k, target=args.target, facts=given
+        lattice,
+        args.isa,
+        requests,
+        args.model,
+        arms=asked,
+        k=args.k,
+        target=args.target,
+        facts=given,
+        parser=e4_of.parser_meta(args.run_dir),
     )
     e1_of.write_plan(args.run_dir, requests, record)
     window = record["decomposition"]
@@ -731,20 +843,52 @@ def _e4_plan(args) -> int:
         f"  P12 {record['p12']}: largest prompt {window['largest_prompt_chars']} chars against the file's "
         f"{window['file_chars']} — {'every window smaller' if window['every_window_smaller'] else 'NOT every window smaller'}"
     )
+    if record["parser"]:
+        block = record["parser"]
+        print(
+            f"  the parser's fields: {block['parsed']} of {block['units']} unit(s) parsed, "
+            f"{block['model'] or ', '.join(block['models'])} ({block['sha256'][:12]})"
+        )
+    if any(arm in e4_of.OWN_ARMS for arm in asked):
+        sizes = ", ".join(str(len(wave)) for wave in record["waves"])
+        print(
+            f"  {', '.join(e4_of.OWN_ARMS)} in {len(record['waves'])} wave(s) of {sizes} unit(s); "
+            "wave 0 is planned here and each later one is built by `e4 run` from the rows it has"
+        )
     for cycle in record["cycles"]:
         print(f"  cycle, emitted as one group in file order: {', '.join(cycle)}")
     return 0
 
 
+def _e4_no_fields(args, ordered, fields: dict, uncovered: list[str]) -> str:
+    """The refusal `plan --arms S-5` prints: which file is missing, or which units it does not answer."""
+    where = args.run_dir / e4_of.PARSER
+    how = (
+        f"run `lattice e4 parse {args.run_dir} <target> --parser-model M --ceiling-usd X` first; "
+        "the arm is never filled empty"
+    )
+    if not fields:
+        return f"lattice: {', '.join(e4_of.FIELD_ARMS)} carries the parser's fields and {where} is not there — {how}"
+    return (
+        f"lattice: {', '.join(e4_of.FIELD_ARMS)} carries the parser's fields and {where} covers "
+        f"{len(ordered) - len(uncovered)} of {len(ordered)} unit(s) — it does not answer "
+        f"{', '.join(uncovered)}; {how}"
+    )
+
+
 def _e4_run(args) -> int:
-    """E1's loop with no iterate rounds, then the file-level build. The grader is the image's."""
+    """E1's loop with no iterate rounds, S-2o's waves after it, then the file-level build.
+
+    The grader is the image's. A wave is another `e1.run` over the same directory, so the ceiling is
+    checked again before each one and a resume answers only what has no row.
+    """
     try:
         record = json.loads((args.run_dir / e1_of.META).read_text(encoding="utf-8"))
     except OSError as missing:
         print(f"lattice: the run's {e1_of.META} could not be read ({missing})", file=sys.stderr)
         return 2
     try:
-        generate = _generator(args, record)
+        generate = _generator(args, record["model"])
     except (OSError, ValueError) as refusal:
         print(f"lattice: the generator could not be built ({refusal})", file=sys.stderr)
         return 2

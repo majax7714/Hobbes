@@ -739,19 +739,33 @@ def plan_an_e4_run(tmp_path, capsys, *, arms="S-0", k=0, ledger=False, isa="avx2
     return run_dir
 
 
-def e4_completions_for(run_dir, isa="avx2"):
-    """A replay file answering every request with that unit's own gold definition."""
+def e4_completions_for(run_dir, isa="avx2", arms=None, k=0):
+    """A replay file answering every request with that unit's own gold definition.
+
+    With *arms* the ids are generated rather than read from `requests.jsonl`: S-2o's later waves are
+    requests `e4 run` builds as the rows come in, so they are not in the plan for a replay to read.
+    """
     lattice = build_lattice(FIXTURE)
     source = lattice.sources[isa]
     units = {unit.name: unit for unit in e4.units(lattice, isa)}
+    if arms is None:
+        wanted = [
+            (json.loads(line)["id"], json.loads(line)["unit"])
+            for line in (run_dir / e1.REQUESTS).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    else:
+        wanted = [
+            (e1.request_id(name, arm, sample, 0), name)
+            for name in units
+            for arm in arms
+            for sample in range(0, k + 1)
+        ]
     rows = []
-    for line in (run_dir / e1.REQUESTS).read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        request = json.loads(line)
-        unit = units[request["unit"]]
+    for request_id, name in wanted:
+        unit = units[name]
         written = source.text[unit.signature_span.start : unit.body_span.end]
-        rows.append({"id": request["id"], "text": f"```c\n{written}\n```"})
+        rows.append({"id": request_id, "text": f"```c\n{written}\n```"})
     recorded = run_dir.parent / "e4-completions.jsonl"
     recorded.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     return recorded
@@ -785,16 +799,94 @@ def test_e4_plan_writes_the_units_the_order_and_the_window(tmp_path, capsys):
     assert len(requests) == 27 * 2 * 2 and all(r["mode"] == "chat" for r in requests)
 
 
-def test_e4_plan_refuses_an_arm_of_the_second_unit_and_writes_nothing(tmp_path, capsys):
-    run_dir = tmp_path / "e4"
-    for arm in ("S-5", "S-2o"):
-        assert cli.main(["e4", "plan", str(FIXTURE), str(run_dir), "--model", "M", "--arms", f"S-0,{arm}"]) == 2
-        refusal = capsys.readouterr().err
-        assert f"{arm} is built in the second unit" in refusal
-    assert not run_dir.exists()
+def parse_an_e4_run(tmp_path, capsys, run_dir, *, answers=None, isa="avx2"):
+    """`lattice e4 parse` over a replay of the parser's answers, and the completions file it read."""
+    lattice = build_lattice(FIXTURE)
+    answers = dict(answers or {})
+    rows = []
+    for request in e4.parse_requests(lattice, isa, "Qwen/Qwen2.5-7B-Instruct"):
+        unit = request["unit"]
+        text = answers.get(
+            unit, json.dumps({"contract": f"{unit} answers its own question.", "edge_cases": ["n is 0."]})
+        )
+        rows.append({"id": request["id"], "text": text})
+    recorded = tmp_path / "parse-completions.jsonl"
+    recorded.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    assert cli.main([
+        "e4", "parse", str(run_dir), str(FIXTURE), "--parser-model", "Qwen/Qwen2.5-7B-Instruct",
+        "--isa", isa, "--ceiling-usd", "1", "--generator", f"replay:{recorded}",
+        "--graph", str(DERIVED / "graph.json"), "--key", str(DERIVED / "oracle.json"),
+    ]) == 0
+    return recorded
 
+
+def test_e4_plan_refuses_an_arm_that_is_not_e4s_and_writes_nothing(tmp_path, capsys):
+    run_dir = tmp_path / "e4"
     assert cli.main(["e4", "plan", str(FIXTURE), str(run_dir), "--model", "M", "--arms", "C-2"]) == 2
     assert "no arm 'C-2'" in capsys.readouterr().err
+    assert not run_dir.exists()
+
+
+def test_e4_parse_writes_the_fields_and_names_what_it_kept_raw(tmp_path, capsys):
+    run_dir = tmp_path / "e4"
+    parse_an_e4_run(tmp_path, capsys, run_dir, answers={"hsum256_ps": "I think it sums the lanes."})
+    printed = capsys.readouterr()
+    assert "e4 parse: 27 unit(s) — 26 parsed, 1 kept raw" in printed.out
+    assert "hsum256_ps: not the two fields, kept raw" in printed.out
+    assert f"has no {e4.API_DOC}" in printed.err  # the fixture is kernels only, and the parser is told so
+
+    rows = {json.loads(line)["unit"]: json.loads(line) for line in (run_dir / e4.PARSER).read_text().splitlines()}
+    assert len(rows) == 27 and rows["hsum256_ps"]["parsed"] is False
+    assert rows["popcount_avx2"]["model"] == "Qwen/Qwen2.5-7B-Instruct"
+    calls = [json.loads(line) for line in (run_dir / e1.CALLS).read_text().splitlines()]
+    assert [call["stage"] for call in calls] == ["parse"]
+
+
+def test_e4_plan_refuses_s5_without_the_parsers_fields_naming_the_file(tmp_path, capsys):
+    run_dir = tmp_path / "e4"
+    argv = [
+        "e4", "plan", str(FIXTURE), str(run_dir), "--model", "M", "--arms", "S-3,S-5", "--k", "0",
+        "--graph", str(DERIVED / "graph.json"), "--key", str(DERIVED / "oracle.json"),
+    ]
+    assert cli.main(argv) == 2
+    refusal = capsys.readouterr().err
+    assert str(run_dir / e4.PARSER) in refusal and "is not there" in refusal
+    assert "lattice e4 parse" in refusal and "never filled empty" in refusal
+    assert not (run_dir / e1.META).exists()
+
+    # a parse that covers only some of the units is the same refusal, naming the ones it does not answer
+    parse_an_e4_run(tmp_path, capsys, run_dir)
+    kept = [line for line in (run_dir / e4.PARSER).read_text().splitlines()][:-2]
+    (run_dir / e4.PARSER).write_text("".join(f"{line}\n" for line in kept), encoding="utf-8")
+    assert cli.main(argv) == 2
+    partial = capsys.readouterr().err
+    assert "covers 25 of 27 unit(s)" in partial and "it does not answer" in partial
+    assert not (run_dir / e1.META).exists()
+
+
+def test_e4_plan_carries_the_parsers_fields_and_s2os_waves(tmp_path, capsys):
+    run_dir = tmp_path / "e4"
+    parse_an_e4_run(tmp_path, capsys, run_dir)
+    capsys.readouterr()
+    assert cli.main([
+        "e4", "plan", str(FIXTURE), str(run_dir), "--model", "M", "--arms", "S-2o,S-5", "--k", "0",
+        "--graph", str(DERIVED / "graph.json"), "--key", str(DERIVED / "oracle.json"),
+    ]) == 0
+    printed = capsys.readouterr().out
+    assert "the parser's fields: 27 of 27 unit(s) parsed, Qwen/Qwen2.5-7B-Instruct" in printed
+    assert "S-2o in 4 wave(s) of 18, 5, 3, 1 unit(s)" in printed
+
+    record = json.loads((run_dir / e1.META).read_text())
+    assert record["parser"]["model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert record["parser"]["sha256"] == e4.parser_meta(run_dir)["sha256"]
+    assert [len(wave) for wave in record["waves"]] == [18, 5, 3, 1]
+    requests = [json.loads(line) for line in (run_dir / e1.REQUESTS).read_text().splitlines()]
+    # S-5 for every unit, S-2o for wave 0 only; the later waves are `e4 run`'s to build
+    assert sum(1 for r in requests if r["arm"] == "S-5") == 27
+    assert sum(1 for r in requests if r["arm"] == "S-2o") == 18
+    fields = e4.read_fields(run_dir)
+    said = next(r for r in requests if r["arm"] == "S-5" and r["unit"] == "popcount_avx2")
+    assert fields["popcount_avx2"]["contract"] in said["messages"][1]["content"]
 
 
 def test_e4_plan_refuses_an_isa_the_target_has_not(tmp_path, capsys):
@@ -834,7 +926,7 @@ def test_e4_run_grades_every_unit_then_builds_the_file_and_reports(tmp_path, cap
     assert "E4 e4 — Qwen/Qwen2.5-Coder-7B-Instruct (L1 on src/distance-avx2.c" in table
     assert "every window smaller" in table
     assert "file level (greedy bodies where the unit passed, gold elsewhere):" in table
-    assert "S-2 − S-0" in table and "S-5 − S-3  — S-5 is built in the second unit" in table
+    assert "S-2 − S-0" in table and "S-5 − S-3  — the run has no rows for S-3" in table
 
     assert cli.main(["e4", "report", str(run_dir), "--json"]) == 0
     found = json.loads(capsys.readouterr().out)
@@ -845,7 +937,46 @@ def test_e4_run_grades_every_unit_then_builds_the_file_and_reports(tmp_path, cap
     assert found["comparisons"]["S-2 − S-0"]["pass_at_1"] == {
         "cells": 27, "both": 27, "neither": 0, "lost": 0, "gained": 0, "delta": 0.0, "p": 1.0,
     }
-    assert found["comparisons"]["S-5 − S-3"] == {"not_built": "S-5 is built in the second unit"}
+    assert found["comparisons"]["S-5 − S-3"] == {"missing": "the run has no rows for S-3"}
+    assert found["own_shots"] is None  # the run carried no S-2o, which is not the same as carrying none
+
+
+def test_e4_run_answers_s2o_in_waves_and_reports_both_comparisons(tmp_path, capsys, monkeypatch):
+    run_dir = tmp_path / "e4"
+    parse_an_e4_run(tmp_path, capsys, run_dir)
+    assert cli.main([
+        "e4", "plan", str(FIXTURE), str(run_dir), "--model", "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "--arms", "S-0,S-2o,S-3,S-5", "--k", "0",
+        "--graph", str(DERIVED / "graph.json"), "--key", str(DERIVED / "oracle.json"),
+    ]) == 0
+    capsys.readouterr()
+    recorded = e4_completions_for(run_dir, arms=("S-0", "S-2o", "S-3", "S-5"), k=0)
+    fake_e4_grade(monkeypatch)
+
+    assert cli.main([
+        "e4", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "10", "--generator", f"replay:{recorded}",
+    ]) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["rows"] == 27 * 4 and summary["waves"] == 4
+
+    assert cli.main(["e4", "report", str(run_dir), "--json"]) == 0
+    found = json.loads(capsys.readouterr().out)
+    assert found["missing"] == []
+    # both registered comparisons are now numbers, S-5 − S-3 among them
+    assert found["comparisons"]["S-5 − S-3"]["pass_at_1"]["cells"] == 27
+    assert found["comparisons"]["S-5 − S-3"]["pass_at_1"]["p"] == 1.0
+    # and S-2o is described beside them: the own-shot counts, and why each missing one was missing
+    own = found["own_shots"]
+    assert own["units"] == 27 and own["cells"] == 13
+    assert sum(own["carried"].values()) == 13
+    assert own["missing"]["later-in-order"] > 0 and own["missing"]["helper"] == 13
+
+    assert cli.main(["e4", "report", str(run_dir)]) == 0
+    table = capsys.readouterr().out
+    assert "parser: 27 of 27 unit(s) parsed by Qwen/Qwen2.5-7B-Instruct" in table
+    assert "S-2o, described and not tested" in table and "in 4 wave(s)" in table
+    assert "cells carrying 2 own shot(s):" in table and "no own shot, by reason:" in table
+    assert "S-5 − S-3" in table and "not built" not in table
 
 
 def test_e4_run_without_a_ceiling_exits_two(tmp_path, capsys):
