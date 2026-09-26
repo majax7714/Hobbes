@@ -300,7 +300,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **83 of 40**
+  drift test; re-render after filling a review block) reads **84 of 40**
   sessions that validate the harness: 4 areas, 4 false blocks (`f3c1`,
   closed at 0.2.28-beta; `9326`, `c141` and `66c5`, the decorator case
   below, open), 0 missed. It stays the way work is done.
