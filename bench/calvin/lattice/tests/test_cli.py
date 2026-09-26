@@ -8,9 +8,10 @@ from pathlib import Path
 import pytest
 import test_ages
 import test_compare
+import test_corpus
 import test_intrinsics
 
-from lattice import cli, e1, e4, prompts, run, shadow
+from lattice import cli, corpus, e1, e4, prompts, run, shadow
 from lattice.cells import build as build_lattice
 from lattice.holes import HOLE
 
@@ -693,6 +694,74 @@ def test_e2_compare_prints_the_deltas_and_refuses_two_runs_that_differ_in_more(t
     other = test_compare.write_run(tmp_path / "k5-run", {}, k=5, style="opaque")
     assert cli.main(["e2", "compare", str(original), str(other)]) == 2
     assert "one variable" in capsys.readouterr().err
+
+
+# MARK: - E3's corpus -
+
+
+def repos_list(tmp_path, repos):
+    """The `--repos` file: one `<name>=<root>` a line, in the taken order."""
+    listed = tmp_path / "repos.txt"
+    listed.write_text("".join(f"{name}={root}\n" for name, root in repos), encoding="utf-8")
+    return listed
+
+
+def test_e3_corpus_writes_both_corpora_the_report_and_says_what_it_dropped(tmp_path, capsys):
+    repos = [("alpha", test_corpus.alpha(tmp_path / "alpha")), ("beta", test_corpus.beta(tmp_path / "beta")),
+             ("delta", test_corpus.delta(tmp_path / "delta"))]
+    out = tmp_path / "out"
+    assert cli.main([
+        "e3", "corpus", "--repos", str(repos_list(tmp_path, repos)), "--target", str(FIXTURE), "--out", str(out),
+    ]) == 0
+    printed = capsys.readouterr().out
+    assert "e3 corpus: 6 example(s) from 3 repo(s) — 10 union, 8 unique, 2 duplicate" in printed
+    assert "near-target 1" in printed and "alone 1" in printed and "nothing cut" in printed
+    assert "e3-c-lattice:" in printed and "e3-c-lattice-shuffled:" in printed
+
+    for where in ("e3-pattern", "e3-shuffled"):
+        manifest = json.loads((out / where / "manifest.json").read_text(encoding="utf-8"))
+        payload = (out / where / "train.jsonl").read_bytes()
+        assert manifest["records"] == len(payload.decode().splitlines()) == 6
+        assert manifest["seed"] == corpus.SEED
+    report = json.loads((out / "corpus-report.json").read_text(encoding="utf-8"))
+    assert [row["repo"] for row in report["repos"]] == ["alpha", "beta", "delta"]
+    assert [entry["repo"] for entry in report["corpora"]] == ["e3-c-lattice", "e3-c-lattice-shuffled"]
+
+
+def test_e3_corpus_run_twice_writes_the_same_bytes(tmp_path, capsys):
+    repos = [("alpha", test_corpus.alpha(tmp_path / "alpha")), ("beta", test_corpus.beta(tmp_path / "beta"))]
+    listed = repos_list(tmp_path, repos)
+    for where in ("first", "second"):
+        assert cli.main(["e3", "corpus", "--repos", str(listed), "--target", str(FIXTURE),
+                         "--out", str(tmp_path / where), "--seed", "7"]) == 0
+    capsys.readouterr()
+    for name in ("e3-pattern/train.jsonl", "e3-shuffled/train.jsonl", "e3-shuffled/manifest.json"):
+        assert (tmp_path / "first" / name).read_bytes() == (tmp_path / "second" / name).read_bytes(), name
+
+
+def test_e3_corpus_refuses_hobbes_itself_and_writes_nothing(tmp_path, capsys):
+    out = tmp_path / "out"
+    listed = repos_list(tmp_path, [("hobbes", test_corpus.HOBBES)])
+    assert cli.main(["e3", "corpus", "--repos", str(listed), "--target", str(FIXTURE), "--out", str(out)]) == 2
+    assert "ADR-107" in capsys.readouterr().err
+    assert not out.exists()
+
+
+def test_e3_corpus_refuses_a_list_it_cannot_read_and_a_corpus_with_no_control(tmp_path, capsys):
+    empty = tmp_path / "empty.txt"
+    empty.write_text("# nothing but a comment\n", encoding="utf-8")
+    assert cli.main(["e3", "corpus", "--repos", str(empty), "--target", str(FIXTURE),
+                     "--out", str(tmp_path / "out")]) == 2
+    assert "names no repo" in capsys.readouterr().err
+
+    assert cli.main(["e3", "corpus", "--repos", str(tmp_path / "gone.txt"), "--target", str(FIXTURE),
+                     "--out", str(tmp_path / "out")]) == 2
+    assert "the repos list could not be read" in capsys.readouterr().err
+
+    one = repos_list(tmp_path, [("one", test_corpus.only_hash(tmp_path / "one"))])
+    assert cli.main(["e3", "corpus", "--repos", str(one), "--target", str(FIXTURE),
+                     "--out", str(tmp_path / "out")]) == 2
+    assert "no shuffled control" in capsys.readouterr().err
 
 
 def test_e1_report_prints_the_table_and_the_json(tmp_path, capsys, monkeypatch):

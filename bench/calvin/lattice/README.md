@@ -578,6 +578,69 @@ the image through **a manifest form and not a `grade-file` verb** — `{"id", "i
 unit form, which is the smaller of the two: no new argparse, no new container plumbing, and `e1.default_grade`
 carries it unchanged. Both sides fill with `fill_units`, and `filled_sha256` is on the row from each.
 
+**`families`** — **E3's draw rules, ported verbatim** from `bench/calvin/e3-draw/`, the draw's scripts as
+they ran (2026-09-26). The recorded pool — 33,902 union tasks over the 40 taken repos, **24,222 unique**
+(§6, "E3's pool") — was read by those scripts, so the corpus has to select the same members, and the
+rules therefore live in one place rather than being restated. From `count.py`: the member set off
+`graph.json` and `tests.json` (a function or method symbol, in a C or C++ file by extension, outside a
+test or vendored path, with at least two name tokens), each member's comment-stripped body, the **thin
+filter** (a body of at most two non-blank lines, or one statement with at most one call), `loose_groups`
+and `body_tokens`. From `measure.py`: `isa_families`, `body_families` — single linkage at ratio ≥ 0.6
+with both exact prefilters, groups over 64 members not compared, and a pair over `PAIR_CAP` 20,000 body
+tokens counted rather than computed — and `scalar_ref`. From `gate.py`: the `ISA` list and **its own
+tokeniser**, `isa_tokens`, which splits on `_` and camelCase only so `avx512vnni` stays one token, which
+is *not* `count.py`'s `tokens`, which splits a letter run off the digits before it (`hsum256d` →
+`hsum256`, `d`); both are ported because the draw used both. From `dedupe.py`: `body_hash`, the sha1 of a
+whitespace-normalised body. The two deliberate differences are that the drivers' paths and their output
+are gone, and that the census helpers (`summarise`, `sample`, `strict_families`, `two_axis`, …) are not
+ported — the corpus reads the union, not the count. `tests/test_families.py` imports `count.py` and
+`measure.py` **by path** and asserts the same union ids and the same unique count on the same synthetic
+clones, which is the only test of a port that means anything.
+
+**`corpus`** — **E3's corpus** (§6, "E3's price on D-7's pool": a dispatched unit, no spend). One
+training example per kept member, in **E1's evaluated format**, because the adapter is read on E1's arms:
+`prompts.SYSTEM`, then a user turn carrying up to three other members of the member's own family as
+whole definitions, the prototypes of the in-repo callees its body makes, its own signature and
+`prompts.INSTRUCTION` word for word, then an assistant turn holding its whole definition in one
+```` ```c ```` block. The neighbours come from the **first of the member's families that can show it
+any**, in a fixed order, taken in the clone's own `(path, line)` order from a start derived with SHA-256
+from the seed and the member's place — never Python's `hash()` — so a large family is spread over and the
+same seed gives the same three every run. The members are the draw's union, deduplicated across repos in
+the taken order exactly as `dedupe.py` did.
+
+**Five things are refused or dropped, each with its own name.** **No dispatched session's text ever
+trains** (ADR-107, §8): an input root holding `docs/calvin/sessions/` or `pipeline/src/hobbes/` is
+Hobbes itself and is refused with `SessionText`, its own type, before anything is read. **No
+sqlite-vector code**: every member's body is compared with each of the target's **native** gold bodies —
+the 93 the card names, the ones E3 is evaluated on — on `families`' own tokens, and one at ratio ≥ 0.6 is
+`near-target`, dropped, listed with the ratio, and **never carried as another member's neighbour
+either**, since a gold body in a prompt is the target in the corpus whichever column it sits in. What
+that ratio does not claim is the target's non-native files (`cpu`, `neon`, `rvv`): a member matching one
+of those is the target's code too, and it is the draw's gate 2 **by name** that keeps it out. Run against
+the target itself — which the draw never does — the rule catches 35 of its 46 pool members at ratio 1.0,
+and the rest are the ISAs no gold covers, which is the shape of both instruments in one reading. **No example depends on a fact its prompt does not carry** (§12.5:
+training on unfamiliar facts teaches guessing): a member one of whose in-repo callees has no readable
+signature in the clone is `unstated-callee`, and one left with no neighbour to show is `alone`. **No
+example is truncated**: the trainer cuts at 2,048 tokens, so an example over `MAX_CHARS` 7,600 characters
+— about 1,900 tokens at four characters a token — is `too-long`, dropped and never cut. And
+**`unreadable`**, which is the format rule read back: `extract` is run over the record's own answer, and
+a member whose definition the evaluator would not read as that definition (a K&R declarator, which
+`scan` reads wrongly rather than refuses) is not an example.
+
+**The control is ADR-099's shuffled answers**: the same records, every prompt byte for byte, the answers
+permuted so the token multiset is unchanged and only the pairing is broken. The permutation is a seeded
+derangement in which **no record keeps its own answer or one from its own family** — a same-family answer
+would leave a pattern arm wearing the control's name. It is built by laying the families out largest
+first and rotating by the largest family's size, which is exactly why a corpus one family holds half or
+more of has **no** control and raises `NoDerangement` rather than a weaker one. Each corpus directory
+holds `train.jsonl` (one `{"messages": […]}` a line, the loss on the assistant turn) and a
+`manifest.json` with the three fields `modal_ttt.train_adapter` reads — `corpus_hash` (that file's
+sha256), `repo` (`e3-c-lattice` or `e3-c-lattice-shuffled`) and `sha` (over the repos list, the target's
+HEAD and the seed) — plus the records, the drops by reason and every record's family key and source
+`path:line`. `corpus-report.json` is per repo the union, the unique, the duplicates, the drops and the
+kept, with the **character lengths' quartiles**, which is the measurement that replaces the price table's
+"≤ 2k tokens" assumption. Nothing here calls a model and nothing trains.
+
 **`cli`** — `lattice map <target> [--json]`, `lattice task <target> <cell-id>`,
 `lattice punch <target> <cell-id>`, `lattice grade <target> <manifest.json> [--out results.jsonl]`,
 `lattice selftest <target> [--cells id,id,…] [--out report.json]`, plus the reading verbs of this unit:
@@ -639,6 +702,13 @@ checked again before each wave and a resume sends nothing twice. `report` gains 
 how many cells carried 0, 1 or 2, and **why each missing one was missing** (`later-in-order`,
 `neighbour-failed`, `no-neighbour`, or the unit having no axis at all) — read off `requests.jsonl`, because
 what a prompt carried is not on any row.
+
+**And this unit adds one verb, E3's:** `lattice e3 corpus --repos <list> --target <sqlite-vector root>
+--out <dir> [--seed 20260926]`, where `<list>` is a file of `<name>=<root>` lines in the draw's taken
+order. It writes `e3-pattern/`, `e3-shuffled/` and `corpus-report.json`, prints the union, the unique, the
+duplicates, every drop with its reason and both corpora's digests, and **exits 2 with nothing written** on
+a repos list it cannot read, an input root holding a dispatched session's text, and a corpus one family
+holds half of, which has no derangement to be a control. It reads files only and calls no model.
 
 Everything that compiles or runs the target's code runs in the image (ADR-092, C-64) — and so does the
 intrinsic index, whose headers are the image's clang's. `graph-grade` is the exception and says why: it
@@ -705,6 +775,10 @@ lattice e4 plan /path/to/sqlite-vector runs/qwen-avx2-l1 \
   --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
 lattice e4 run runs/qwen-avx2-l1 /path/to/sqlite-vector --ceiling-usd 8 --generator modal
 lattice e4 report runs/qwen-avx2-l1                 # or --json
+
+# E3: the draw's 40 clones as a training corpus and its shuffled control, on the host, spending nothing
+# repos.txt is one <name>=<root> a line, in the draw's taken order (its dedupe depends on that order)
+lattice e3 corpus --repos repos.txt --target /path/to/sqlite-vector --out corpora/e3
 ```
 
 ## E1's runner — the order of work
@@ -774,3 +848,26 @@ order:
 `Qwen/Qwen2.5-7B-Instruct` for it (E4-e: an open instruct 7B, a parser and not an author) — Qwen2.5-Coder's
 own base at the same size, so the same card and the same 16k window the student runs under, and
 `e1.PRICING`'s fall-back is the A10G's rate it bills at.
+
+## E3's corpus — the order of work
+
+**Nothing has been built and nothing has been trained.** The corpus is the step before E3 spends
+anything (§6, "E3's price on D-7's pool"), and it runs on the host against the draw's own clones, which
+live in the driver directory and not in this repo. The order:
+
+1. **`lattice e3 corpus`** over the 40 taken repos, in the draw's order, with the target named. It reads
+   files and costs nothing. Read `corpus-report.json` first: the kept count against the draw's 24,222,
+   every drop with its reason, and the **character quartiles** — the figure the $17 estimate's "≤ 2k
+   tokens" was an assumption about, and the one that says whether the trainer would have cut anything.
+2. **Read the drops, not just the total.** `near-target` at anything but zero is the one that matters:
+   the draw gated the target out by name, so a hit here is a repo that ships the target's code under
+   another one.
+3. **G-mem on the base at the 93 cells, before any training**, as E1 did (`lattice mem-probes`): the
+   card binds every number to its G-mem reading, and the reading has to exist before the adapter does.
+4. **Max's word** (D-9): the corpus reviewed, then E3's run at the $25 ceiling — the 300-step pair
+   first, priced against its estimate, and the 3,000-step pair only after that reading.
+
+The corpus and its control are two directories a Modal volume can take as they are: `train_adapter`
+reads `<corpus>/train.jsonl` and `<corpus>/manifest.json` and keys the adapter on `repo`, `sha` and
+`corpus_hash`, which is why the control is a **second repo name** and not a flag — two adapters, two
+keys, no chance of one overwriting the other.
