@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from lattice import e1, extract, facts, feedback, gmem, holes, prompts
+from lattice import e1, extract, facts, feedback, gmem, holes, prompts, shadow
 from lattice.cells import build
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
@@ -605,6 +605,222 @@ def test_the_estimate_pays_the_cold_start_every_call_pays(lattice):
     assert e1.estimate(model, made[:1])["usd"] > 180.0 * 1.10 / 3600
 
 
+# MARK: - E2: a run over a rename shadow -
+
+
+@pytest.fixture(scope="module")
+def graph():
+    return json.loads((DERIVED / "graph.json").read_text())
+
+
+@pytest.fixture
+def written_shadow(graph, tmp_path_factory):
+    """A descriptive shadow of the fixture a test may edit, with its plan and its lattice."""
+    plan = shadow.plan(FIXTURE, graph, "descriptive")
+    root = shadow.write(plan, tmp_path_factory.mktemp("shadow") / "descriptive")
+    return plan, root, build(root, rename=plan.reverse())
+
+
+def shadow_run(tmp_path, root, lattice, cells, arms, k=1):
+    """A plan over a shadow: the shadow's bytes, E1's ids, and the shadow block `e1 run` reads."""
+    model = "Qwen/Qwen2.5-Coder-7B-Instruct"
+    requests = e1.plan(lattice, cells, arms, model, None, k=k)
+    record = e1.meta(
+        model,
+        arms=arms,
+        cells=cells,
+        k=k,
+        target=root,
+        shadow=e1.shadow_meta(root / "shadow-map.json", root, FIXTURE),
+    )
+    return e1.write_plan(tmp_path / "run", requests, record)
+
+
+def test_a_shadow_run_is_held_to_the_digest_of_its_renamed_files(tmp_path, written_shadow):
+    plan, root, lattice = written_shadow
+    cell = lattice.get("avx2/int8/dot")
+    run_dir = shadow_run(tmp_path, root, lattice, [cell], ("C-2",))
+    record = json.loads((run_dir / e1.META).read_text())
+    assert record["target_sha"] is None  # a written shadow is not a checkout, so there is no commit
+    assert record["shadow"]["tree_sha256"] == shadow.tree_digest(root)
+
+    file = root / "src" / "distance-avx2.c"
+    file.write_text(file.read_text() + "\n/* one more line, and these prompts are another tree's */\n")
+    generate = FakeGenerator(lambda request: fenced(prompts.definition(lattice, cell)))
+    with pytest.raises(e1.TargetMoved):
+        e1.run(run_dir, root, generate, fake_grade(golds(lattice)), ceiling_usd=10.0)
+    assert generate.calls == []
+
+
+def test_a_shadow_run_whose_tree_is_untouched_runs(tmp_path, written_shadow):
+    plan, root, lattice = written_shadow
+    cell = lattice.get("avx2/int8/dot")
+    run_dir = shadow_run(tmp_path, root, lattice, [cell], ("C-2",))
+    generate = FakeGenerator(lambda request: fenced(prompts.definition(lattice, cell)))
+    e1.run(run_dir, root, generate, fake_grade(golds(lattice)), ceiling_usd=10.0)
+    assert [row["class"] for row in rows(run_dir)] == ["pass", "pass"]
+    # the shadow's own names, not the target's, are what was asked and what was graded
+    assert all(row["name"] == plan.renames["int8_distance_dot_avx2"] for row in rows(run_dir))
+
+
+def test_the_kept_names_and_the_digests_are_the_maps_own(written_shadow):
+    plan, root, _ = written_shadow
+    block = e1.shadow_meta(root / "shadow-map.json", root, FIXTURE)
+    assert block["style"] == "descriptive"
+    assert block["map_sha256"] == shadow.map_digest(root / "shadow-map.json")
+    assert block["kept"] == [dict(row) for row in plan.kept]
+    assert block["from_sha"] == e1.head(FIXTURE)
+    assert e1.shadow_meta(root / "shadow-map.json", root)["from_sha"] is None
+
+
+def test_the_grader_of_a_shadow_run_is_handed_the_map_inside_the_image(monkeypatch):
+    from lattice import run as sandbox
+
+    seen = {}
+
+    def fake_run_plan(plan, **kwargs):
+        seen["plan"] = plan
+        raise e1.GradeFailed("stopped before podman")
+
+    monkeypatch.setattr(sandbox, "run_plan", fake_run_plan)
+    entry = [{"id": "x", "cell": "avx2/int8/dot", "body": "{}"}]
+    with pytest.raises(e1.GradeFailed):
+        e1.default_grade(FIXTURE, "hobbes-session:local", e1.SHADOW_MAP_IN_TARGET)(entry)
+    assert seen["plan"][-10:] == [
+        "grade", "/target", "/work/manifest.json", "--out", "/work/results.jsonl", "--work", "/work/run",
+        "--rename", "/target/shadow-map.json", "--here",
+    ]
+
+    with pytest.raises(e1.GradeFailed):
+        e1.default_grade(FIXTURE, "hobbes-session:local")(entry)
+    assert "--rename" not in seen["plan"]  # not a shadow run: the graders read the target's own names
+
+
+# MARK: - the leak gate -
+
+
+def test_a_request_writing_a_renamed_original_is_refused_by_its_own_type():
+    requests = [
+        {"id": "a|C-0|0|0", "messages": [{"role": "user", "content": "float x = hadd256_f32lane(v);"}]},
+        {"id": "b|C-0|0|0", "messages": [{"role": "user", "content": "/* was hsum256_ps */\nint y;"}]},
+    ]
+    with pytest.raises(e1.ShadowLeak) as refusal:
+        e1.check_leaks(requests, {"hsum256_ps": "hadd256_f32lane"})
+    assert "'b|C-0|0|0'" in str(refusal.value) and "hsum256_ps" in str(refusal.value)
+
+
+def test_a_gmem_probes_raw_prompt_is_read_too_and_a_kept_name_is_not_a_leak():
+    kept = [{"id": "a|gmem", "prompt": "sqlite3_vector_init(db); /* VECTOR_TYPE_F32 */"}]
+    e1.check_leaks(kept, {"hsum256_ps": "hadd256_f32lane"})  # a kept name is on the record, not a leak
+    with pytest.raises(e1.ShadowLeak):
+        e1.check_leaks([{"id": "a|gmem", "prompt": "hsum256_ps(v)"}], {"hsum256_ps": "x"})
+
+
+def test_a_longer_name_that_merely_contains_one_is_not_a_leak():
+    """The gate tokenises, because that is the grain `shadow.apply` renames at."""
+    e1.check_leaks([{"id": "a", "messages": [{"role": "user", "content": "my_hsum256_ps(v); hsum256_ps_x(v);"}]}],
+                   {"hsum256_ps": "hadd256_f32lane"})
+
+
+# MARK: - the cap's two holes (E2-d) -
+
+
+def calls_of(run_dir):
+    return [json.loads(line) for line in (run_dir / e1.CALLS).read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def failing(call=None):
+    """A generator that raises as `modal_generator` does, with or without the call's own record."""
+
+    def generate(requests):
+        raise e1.GenerateFailed("modal_e1.py exited 1: the call timed out", call=call)
+
+    return generate
+
+
+def test_a_failed_call_that_reported_its_cost_is_priced_from_the_record(tmp_path, lattice):
+    """Olmo's lost call was added up by hand: a call that failed still ran, and still billed."""
+    cell = lattice.get("avx2/int8/dot")
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-0",))
+    record = {"cost": 0.4, "answered": 0, "wall_seconds": 780.0, "error": "FunctionTimeoutError"}
+
+    with pytest.raises(e1.GenerateFailed):
+        e1.run(run_dir, FIXTURE, failing(record), fake_grade(golds(lattice)), ceiling_usd=10.0)
+
+    call = calls_of(run_dir)
+    assert len(call) == 1
+    assert (call[0]["answered"], call[0]["cost"], call[0]["cost_source"]) == (0, 0.4, "reported")
+    assert "timed out" in call[0]["error"] and call[0]["seconds"] == 780.0
+    assert e1.spent(run_dir) == 0.4
+    assert not (run_dir / e1.ROWS).exists()  # nothing was answered, so nothing is a row
+
+
+def test_a_failed_call_that_reported_nothing_is_priced_at_its_estimate(tmp_path, lattice):
+    cell = lattice.get("avx2/int8/dot")
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-0",))
+    with pytest.raises(e1.GenerateFailed):
+        e1.run(run_dir, FIXTURE, failing(), fake_grade(golds(lattice)), ceiling_usd=10.0)
+
+    call = calls_of(run_dir)[0]
+    assert call["cost"] == call["estimate"]["usd"] > 0
+    assert call["cost_source"] == e1.FAILED_COST == "estimate (the call failed and reported nothing)"
+    assert e1.spent(run_dir) == call["estimate"]["usd"]
+
+
+def test_a_second_run_under_a_ceiling_the_lost_call_already_passed_sends_nothing(tmp_path, lattice):
+    cell = lattice.get("avx2/int8/dot")
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-0",))
+    with pytest.raises(e1.GenerateFailed):
+        e1.run(run_dir, FIXTURE, failing({"cost": 0.4}), fake_grade(golds(lattice)), ceiling_usd=10.0)
+
+    again = FakeGenerator(lambda request: fenced(prompts.definition(lattice, cell)))
+    with pytest.raises(e1.CeilingReached):
+        e1.run(run_dir, FIXTURE, again, fake_grade(golds(lattice)), ceiling_usd=0.3)
+    assert again.calls == []  # the lost call is spend, and spend is checked before anything is sent
+
+
+def test_the_modal_generator_passes_the_money_left_as_the_calls_own_cap(tmp_path, monkeypatch):
+    """E2-d: `--max-usd` is ceiling − spent, so a call cannot bill past the cap the estimate missed."""
+    seen = {}
+
+    def fake_run(argv, capture_output, text):
+        seen["argv"] = argv
+        Path(argv[argv.index("--out") + 1]).write_text(json.dumps({"id": "a|C-0|0|0", "text": "x"}) + "\n")
+        Path(argv[argv.index("--call") + 1]).write_text(json.dumps({"cost": 0.25, "seconds": 3.0}))
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / e1.CALLS).write_text(json.dumps({"round": 0, "cost": 1.0}) + "\n")
+    monkeypatch.setattr(e1.subprocess, "run", fake_run)
+
+    generate = e1.modal_generator(
+        "Qwen/Qwen2.5-Coder-7B-Instruct", tmp_path / "modal_e1.py", keep=tmp_path / "calls",
+        run_dir=run_dir, ceiling_usd=2.5,
+    )
+    assert generate([{"id": "a|C-0|0|0"}])["cost"] == 0.25
+    assert seen["argv"][seen["argv"].index("--max-usd") + 1] == "1.500000"
+
+    # without the pair there is no budget to derive one from, and the protocol is unchanged
+    plain = e1.modal_generator("Qwen/Qwen2.5-Coder-7B-Instruct", tmp_path / "modal_e1.py", keep=tmp_path / "calls")
+    plain([{"id": "a|C-0|0|0"}])
+    assert "--max-usd" not in seen["argv"]
+
+
+def test_a_script_that_failed_hands_its_own_call_record_up(tmp_path, monkeypatch):
+    def fake_run(argv, capture_output, text):
+        Path(argv[argv.index("--call") + 1]).write_text(
+            json.dumps({"cost": 0.31, "answered": 0, "error": "FunctionTimeoutError"})
+        )
+        return subprocess.CompletedProcess(argv, 1, "", "modal_e1: the call did not finish")
+
+    monkeypatch.setattr(e1.subprocess, "run", fake_run)
+    generate = e1.modal_generator("Qwen/Qwen2.5-Coder-7B-Instruct", tmp_path / "modal_e1.py", keep=tmp_path / "calls")
+    with pytest.raises(e1.GenerateFailed) as failure:
+        generate([{"id": "a|C-0|0|0"}])
+    assert failure.value.call["cost"] == 0.31
+
+
 # MARK: - the generators a caller can inject -
 
 
@@ -691,6 +907,128 @@ def test_the_modal_script_pins_both_models_and_the_vllm_version():
     assert models["allenai/Olmo-3-7B-Instruct"]["gpu"] == "L40S"
     assert ast.literal_eval(values["VLLM"]) == "0.27.1"
     assert ast.literal_eval(values["APP"]) == "hobbes-e1"
+
+
+class _Whatever:
+    """A stand-in for anything `modal` offers: every attribute and every call is another one of these.
+
+    The script builds its image, its volume and its app at import time and decorates `generate`, none of
+    which the arithmetic under test needs. Stubbing the module is how :func:`timeout_for` is reached
+    **without installing modal**, which this package may not do (and a dispatched session could not).
+    """
+
+    def __getattr__(self, name):
+        return _Whatever()
+
+    def __call__(self, *args, **kwargs):
+        return _Whatever()
+
+    def __enter__(self):  # `with app.run():`
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+
+def modal_script(monkeypatch):
+    """The Modal script's namespace, executed with `modal` stubbed. The package still never imports it."""
+    import sys
+    import types
+
+    monkeypatch.setitem(sys.modules, "modal", _Whatever())
+    module = types.ModuleType("modal_e1_under_test")
+    exec(compile(MODAL.read_text(encoding="utf-8"), str(MODAL), "exec"), module.__dict__)
+    return module
+
+
+def test_the_calls_timeout_is_what_the_money_left_buys_on_that_card(monkeypatch):
+    """E2-d: the one piece of arithmetic that bounds what a call bills, tested with no modal and no GPU."""
+    script = modal_script(monkeypatch)
+    assert (script.BOOT_SECONDS, script.MIN_TIMEOUT_SECONDS, script.MAX_TIMEOUT_SECONDS) == (120, 60, 4 * 3600)
+
+    # $1.50 on the A10G at $0.000306/s is 4,901s of billing, less the boot the call pays before it works
+    assert script.timeout_for(1.50, "A10G") == int(1.50 / 0.000306 - 120)
+    assert script.timeout_for(1.50, "L40S") == int(1.50 / 0.000542 - 120)
+    # the L40S is dearer, so the same money buys less of it
+    assert script.timeout_for(1.50, "L40S") < script.timeout_for(1.50, "A10G")
+    # a large budget stops at the decorator's four hours, and no budget is that same ceiling
+    assert script.timeout_for(100.0, "A10G") == 4 * 3600
+    assert script.timeout_for(None, "A10G") == 4 * 3600
+    # and a budget too small to boot under buys a refusal, not a call
+    assert script.timeout_for(0.05, "A10G") < script.MIN_TIMEOUT_SECONDS
+    assert script.timeout_for(0.0, "A10G") < 0
+
+
+def test_the_script_refuses_a_budget_that_buys_nothing_and_calls_nothing(monkeypatch, tmp_path, capsys):
+    script = modal_script(monkeypatch)
+    requests = tmp_path / "requests.jsonl"
+    requests.write_text(json.dumps({"id": "a", "mode": "chat", "messages": []}) + "\n")
+    argv = [
+        "modal_e1.py", "--model", "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "--requests", str(requests), "--out", str(tmp_path / "out.jsonl"), "--max-usd", "0.02",
+    ]
+    assert script.main(argv) == 2
+    assert "nothing was called" in capsys.readouterr().err
+    assert not (tmp_path / "out.jsonl").exists() and not (tmp_path / "out.jsonl.call.json").exists()
+
+
+class FakeRemote:
+    """The script's `generate`, with the GPU and the timeout it was given recorded and no Modal at all."""
+
+    def __init__(self, answer=None, failure=None):
+        self.answer, self.failure, self.options = answer, failure, {}
+
+    def with_options(self, **options):
+        self.options = options
+        return self
+
+    def remote(self, model, requests):
+        if self.failure is not None:
+            raise self.failure
+        return {"model": model, "completions": self.answer, "seconds": 12.5, "requests": len(requests)}
+
+
+def a_request_file(tmp_path):
+    path = tmp_path / "requests.jsonl"
+    path.write_text(json.dumps({"id": "a|C-0|0|0", "mode": "chat", "messages": [{"role": "user", "content": "x"}]}) + "\n")
+    return path
+
+
+def test_the_call_record_states_the_cap_it_ran_under_and_the_timeout_it_became(monkeypatch, tmp_path):
+    script = modal_script(monkeypatch)
+    remote = FakeRemote(answer=[{"id": "a|C-0|0|0", "text": "hello"}])
+    monkeypatch.setattr(script, "generate", remote)
+
+    call = tmp_path / "call.json"
+    assert script.main([
+        "modal_e1.py", "--model", "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "--requests", str(a_request_file(tmp_path)), "--out", str(tmp_path / "out.jsonl"),
+        "--call", str(call), "--max-usd", "1.5",
+    ]) == 0
+
+    assert remote.options == {"gpu": "A10G", "timeout": script.timeout_for(1.5, "A10G")}
+    record = json.loads(call.read_text())
+    assert (record["max_usd"], record["timeout"]) == (1.5, remote.options["timeout"])
+    assert record["answered"] == 1 and record["error"] is None and record["gpu"] == "A10G"
+    assert json.loads((tmp_path / "out.jsonl").read_text())["text"] == "hello"
+
+
+def test_a_call_that_did_not_finish_still_leaves_its_record_and_exits_non_zero(monkeypatch, tmp_path, capsys):
+    """E2-d's second hole: a lost call that writes no record is a lost call that reads as free."""
+    script = modal_script(monkeypatch)
+    monkeypatch.setattr(script, "generate", FakeRemote(failure=TimeoutError("the function timed out")))
+
+    call = tmp_path / "call.json"
+    assert script.main([
+        "modal_e1.py", "--model", "allenai/Olmo-3-7B-Instruct",
+        "--requests", str(a_request_file(tmp_path)), "--out", str(tmp_path / "out.jsonl"), "--call", str(call),
+    ]) == 1
+    assert "did not finish" in capsys.readouterr().err
+
+    record = json.loads(call.read_text())
+    assert record["answered"] == 0 and "timed out" in record["error"]
+    assert record["cost"] == round(record["wall_seconds"] * script.GPU_USD_PER_SECOND["L40S"], 6)
+    assert record["seconds"] is None  # the function never said, and the host's wall is not its seconds
 
 
 def test_the_package_never_imports_modal():

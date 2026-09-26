@@ -47,6 +47,12 @@ are names the body really writes.
 **What is missing is said.** With no graph, or no key, or no intrinsic index, `callees` returns the rows
 it can and lists what was not there to ask (`Callees.missing`). It never fills a gap by inference: a
 callee this module did not read is a callee it does not name.
+
+**A shadow's facts are the target's, written forward** (E2-b). Neither instrument answers a rename
+shadow: the graph matches by name and the key by path, line and column, and a shadow changes the first
+and shifts the last two. :class:`Translated` therefore asks the **original** lattice's cell of the same
+grid id and rewrites the answer's code-naming fields with `shadow.apply` — exact, because a shadow's map
+is a bijection — recording the map's digest in `source()` as `translated_through`.
 """
 
 from __future__ import annotations
@@ -57,10 +63,11 @@ from pathlib import Path
 
 import re
 
+from . import shadow as shadow_of
 from .cells import Cell, Lattice
 from .scan import scan
 
-__all__ = ["Callees", "Facts", "callees", "module_paths", "symbol_for", "load"]
+__all__ = ["Callees", "Facts", "Translated", "callees", "module_paths", "symbol_for", "load"]
 
 _IDENT = re.compile(r"[A-Za-z_]\w*")
 
@@ -111,6 +118,62 @@ class Facts:
 def load(graph: Path | str | None = None, key: Path | str | None = None, intrinsics: Path | str | None = None) -> Facts:
     """A `Facts` from the JSON on disk: `derived/graph.json`, `derived/oracle.json`, an index file."""
     return Facts(graph=_read(graph), key=_read(key), intrinsics=_read(intrinsics))
+
+
+#: The fields of a callee row and of a dropped row that **name code**, and are therefore written forward
+#: into a shadow's names. `provenance`, `mode`, `kind` and `reason` are this package's own words about a
+#: row and name nothing in the tree, so they are carried as they are.
+CODE_FIELDS = ("name", "signature")
+DROPPED_CODE_FIELDS = ("name", "wrote")
+
+
+@dataclass(frozen=True)
+class Translated:
+    """**E2-b:** the target's own ledger, answered at the target and written forward into a shadow's names.
+
+    A shadow's lattice is the target's grid under new names, and the ledger is not: the graph names
+    symbols and the clang key names a site by path, line **and column**, all of which a rename moves. So
+    a facts arm over a shadow asks the **original** lattice's cell of the same id — a cell id is its grid
+    position and is the same in both — and rewrites the answer's code-naming fields with
+    :func:`shadow.apply`, the same renamer that wrote the shadow's files. **This is exact by
+    construction**: a plan is a bijection or it is `shadow.Collision`, so no two originals share a new
+    name and no name is rewritten twice.
+
+    `missing` and `dropped` are carried rather than dropped — a gap in the target's ledger is a gap in
+    the shadow's — and `source()` is the wrapped ledger's with `translated_through`, the shadow map's
+    digest, beside it: a row that went through a rename says which one.
+    """
+
+    ledger: Facts
+    lattice: Lattice  #: the **original** target's lattice, the one the ledger answers about
+    renames: dict[str, str]  #: original → new, a `shadow.Plan`'s own direction
+    map_sha256: str | None = None
+
+    def callees(self, lattice: Lattice, cell: Cell) -> Callees:
+        """The shadow cell's callees: the original cell's, under the shadow's names.
+
+        *lattice* is the shadow's and is not read — it is in the signature because this stands where a
+        :class:`Facts` does, and the cell's **id** is what carries across.
+        """
+        rows = self.ledger.callees(self.lattice, self.lattice.get(cell.id))
+        return Callees(
+            [self._forward(row, CODE_FIELDS) for row in rows],
+            rows.missing,
+            [self._forward(row, DROPPED_CODE_FIELDS) for row in rows.dropped],
+        )
+
+    def _forward(self, row: dict, fields: tuple[str, ...]) -> dict:
+        """One row with each code-naming field rewritten; everything else is the row's own."""
+        written = dict(row)
+        for field in fields:
+            value = written.get(field)
+            if isinstance(value, str):
+                written[field] = shadow_of.apply(self.renames, value)
+        return written
+
+    def source(self) -> dict:
+        """The wrapped ledger's provenance, and the digest of the map every name went through."""
+        return {**self.ledger.source(), "translated_through": self.map_sha256}
 
 
 def callees(
