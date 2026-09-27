@@ -971,6 +971,60 @@ there (`olmo3-ttt-results.md`), and the whole ADR-099 run was about 3 GPU-hours 
   - G-mem run on the base before training, at the 93 cells, as E1 did.
 - **For Max (D-9):** clear the corpus unit now, and E3's run at the $25 ceiling once the corpus is reviewed.
 
+#### E3's record — the 300-step pair on Qwen2.5-Coder-7B (2026-09-26; D-9, ceiling $25; spent ≈ $5.55)
+
+**What ran.**
+- **Corpus:** 21,290 examples from the draw's 40 repos (session `c4ef`, with the review's self-copy fix).
+- **Adapters:** a pattern adapter and its shuffled control, 300 steps each, ADR-099's recipe, A100-80GB.
+  - Pattern: 2,551 s, about $1.77. Shuffled: 2,413 s, about $1.68.
+  - **About 5× my estimate:** 8.5 s a step against ADR-099's 2.2.
+  - **728 pattern and 228 shuffled records were truncated at 2,048 tokens.** The corpus's 7,600-character cap
+    assumed four characters a token, and C is denser. The two corpora hold the same records, and the answers
+    moved between them changed which ones ran long.
+- **Evaluation:** base, pattern and shuffled, each over C-0, C-2, C-3 and C-4, 93 cells, k = 10, no iterate
+  rounds ($0.51, $0.62 and $0.48). Then C-2 on the opaque shadow with the stated-task sentence, for each model
+  (about $0.16 each).
+- Session `fe37` built the adapter serving, whose first live use was here.
+- The base reproduces E1: C-0 0.03 and C-2 0.30 greedy, against E1's 0.03 and 0.29.
+- **G-mem reads `unseen` on 62 bodies for all three models.** Neither adapter memorised the target.
+- Runs are in `~/.hobbes/bench/calvin-lattice/e3/runs/` (`spend.md`, `*.manifest.json`, `e3-use-weights.json`,
+  `base-vs-*.json`).
+
+**Real bodies, paired by cell, exact:**
+
+| comparison | C-2 sampled (primary) | C-2 greedy | C-0 sampled | C-0 greedy |
+|---|---|---|---|---|
+| **pattern − shuffled** (registered) | **+0.351, p < 0.0001** | +0.476 (30 / 0) | +0.006, p 0.25 | +0.032 |
+| pattern − base | **+0.148, p 0.0002** | +0.175 (17 / 6), p 0.035 | −0.006, p 0.44 | +0.000 |
+| shuffled − base | −0.203, p < 0.0001 | −0.302 (0 / 19) | −0.013, p 0.03 | −0.032 |
+| pattern − base, **opaque + stated task** | −0.025, p 0.45 | +0.000 (7 / 7) | — | — |
+
+C-3, described: pattern − base +0.224 sampled. C-4, the volume control, does not move with the pattern adapter
+(−0.027).
+
+**The readings, against the ones written before the run:**
+- **"Use lifts and weights does not" holds.** Training on the draw's families lifts the use of examples (C-2,
+  C-3) and leaves the no-example arm where it was. The pattern did not move into the weights at 300 steps.
+- **The registered figure is inflated by its control, and I record that as a design fault.**
+  - The shuffled adapter is **degenerate**. Against the base it loses 19 C-2 cells and gains none. On the opaque
+    shadow it answers every prompt with an unrelated function (1,023 of 1,023 `no-body`; GLEW code).
+  - The derangement moved **whole definitions**, names included, so the control taught the model to ignore the
+    signature it is asked for.
+  - The honest headline is **pattern − base: +0.148** on C-2.
+  - A fair control keeps each record's own signature and breaks only the body's pairing. It is not built.
+- **The adapter's gain depends on readable names.** With opaque names and the task stated, pattern − base is
+  nil. The draw's families are names differing in one token, and the adapter learned to read neighbours
+  **through their names**: which token differs, and what that implies. An opaque name gives it nothing to read.
+- **Names carry more than the task statement.** The stated-task sentence lifts the base's opaque C-2 from 0.05
+  (E2) to 0.21, against 0.29 with the target's own names. Most of E2's opaque gap was the missing task, and
+  about 0.08 remains that the names carry beyond it.
+
+**What E3 selects.** In context, pattern is where the gain is, and training sharpens the reading of named
+neighbours rather than installing skill. That is E4's route: the graph serves the named neighbours. **The
+3,000-step pair is not run.** At the measured rate it would cost about $36 alone, outside the ceiling, and the
+corpus needs a token-true cap first. That, a fair control, and whether to continue E3 at all are Max's
+(D-10, §9).
+
 ### E4 — the teacher and the student: rebuild a file (M-a or M-b, K-1, L1 then L3)
 
 - **Question:** given the graph's skeleton, does a teacher's spec (C-5) let a small student
@@ -1245,6 +1299,13 @@ Proposed routes, the recommended one first.
   - **a (recommended):** dispatch the corpus unit now, with no spend, after E4's two runner units, one at a time.
     Then run E3 at a **$25 ceiling**: the 300-step pair first, and the 3,000-step pair only after its reading.
   - b: hold E3 until E4 has run, so the in-context route reads first.
+
+- **D-10 — after E3's 300-step pair** (2026-09-26).
+  - **a (recommended):** run E4 now (D-6's plan, ceiling $8), since E3 points at the in-context route. Hold E3's
+    3,000-step pair. If it is ever run, it needs a token-true length cap and a fair control (the member's own
+    signature, only the body's pairing broken), and a new ceiling of about $45.
+  - b: fix the control and the cap, and re-run the 300-step pair first, for about $5, before E4.
+  - c: close E3 here, as recorded.
 
 ---
 
