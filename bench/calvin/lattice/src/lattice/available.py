@@ -32,7 +32,7 @@ the name **and is itself available** — `_mm256_loadu_si256` → `_mm_loadu_si1
 `_mm256_extractf128_ps` has no form there and is said to have none.
 
 **What this reads wrongly rather than refuses.** It is a line scanner over `clang -E -dD` output, not a
-second front end: a declaration whose name is more than one line below its attributes is missed; a name
+second front end: a declaration whose name is more than four lines below its head is missed; a name
 two headers declare keeps the **first** one's entry, in the output's own order; and a header whose
 functions carry two feature tuples in equal number gives its macros the lexicographically first, which is
 a tie-break and not a fact. None of the three can make an unavailable name read as available.
@@ -95,6 +95,10 @@ _DEFINE = re.compile(r"\A#\s*define\s+([A-Za-z_]\w*)")
 _TARGET = re.compile(r'__target__\s*\(\s*"([^"]*)"\s*\)')
 
 _ATTRIBUTE = re.compile(r"\b__attribute__\s*\(")
+
+#: How many lines one declaration's head may run over before its name, the head's own line counted:
+#: clang's longest form is `_mm_malloc`'s, four.
+_HEAD_LINES = 5
 
 #: The declarator: the first identifier that a `(` follows, once the attributes are gone.
 _DECLARATOR = re.compile(r"([A-Za-z_]\w*)\s*\(")
@@ -175,7 +179,8 @@ def _entries(preprocessed: str) -> tuple[list[tuple[str, tuple[str, ...] | None,
         if _is_head(stripped):
             name, used = _declarator(lines, index)
             if name is not None:
-                needs = _needs(stripped)
+                # the features are wherever the attribute is written: the head's line or any line below it
+                needs = _needs(" ".join(lines[index : used + 1]))
                 entries.append((name, needs, header))
                 per_header.setdefault(header, Counter())[needs] += 1
             index = used + 1
@@ -206,20 +211,31 @@ def _needs(head: str) -> tuple[str, ...]:
 
 
 def _declarator(lines: list[str], index: int) -> tuple[str | None, int]:
-    """The declared name, from the head's own line or the one below it, and the last line read.
+    """The declared name, read from the head's line and up to :data:`_HEAD_LINES` − 1 lines below it.
 
-    Two forms, both clang's: the declarator on the same line as the attributes, and the declarator alone on
-    the next. Nothing further down is tried — a name three lines below its attributes is a declaration this
-    module misses, which its docstring says rather than guessing at.
+    clang writes three forms, all three in its x86 headers: the declarator on the head's own line; alone on
+    the next (`static __inline__ __m128i __attribute__((…))` / `_mm_shuffle_epi8(…)`); and **two** below,
+    after an attribute line of its own (`static __inline __m512i` / `__attribute__((…))` /
+    `_mm512_max_epi32(…)`), with `_mm_malloc`'s attributes running over three lines. So the lines are joined
+    one at a time, the balanced attributes removed from the join, and the first identifier a `(` follows is
+    the name. The join stops at a line that starts another declaration or a directive, so a head with no
+    declarator of its own never borrows the next one's; a name further down than that is missed, which the
+    module docstring says.
     """
-    same = _DECLARATOR.search(_without_attributes(lines[index]))
-    if same is not None:
-        return same.group(1), index
-    if index + 1 < len(lines):
-        below = lines[index + 1].strip()
-        found = _DECLARATOR.match(below)
+    joined = lines[index]
+    for offset in range(_HEAD_LINES):
+        at = index + offset
+        if offset:
+            if at >= len(lines):
+                break
+            below = lines[at].strip()
+            if below.startswith(("static", "#")):
+                break
+            joined += " " + below
+        # an attribute still open is cut at its start, so the join reads on until its parens close
+        found = _DECLARATOR.search(_without_attributes(joined))
         if found is not None:
-            return found.group(1), index + 1
+            return found.group(1), at
     return None, index
 
 

@@ -251,3 +251,42 @@ def test_the_excerpts_are_the_whole_files_command():
     for isa in available.native():
         preprocessed, macros = excerpt(isa)
         assert preprocessed.strip() and re.search(r"^#define __\w+__", macros, re.M)
+
+
+def test_a_declarator_two_lines_below_its_head_is_read_as_clang_writes_it():
+    """clang's third form, verbatim from `avx512fintrin.h` and `mm_malloc.h` as the image preprocesses them.
+
+    The first build read only the head's line and the next, so these real, available intrinsics were
+    absent from the record and S-3h would have told a student `_mm512_max_epi32` is not available on
+    avx512 — false advice, found at the unit's review against the whole file's output.
+    """
+    text = "\n".join(
+        [
+            '# 1 "/usr/lib/llvm-18/lib/clang/18/include/avx512fintrin.h" 3',
+            "static __inline __m512i",
+            '__attribute__((__always_inline__, __nodebug__, __target__("avx512f,evex512"), __min_vector_width__(512)))',
+            "_mm512_max_epi32(__m512i __A, __m512i __B)",
+            "{",
+            "  return (__m512i)__builtin_elementwise_max((__v16si)__A, (__v16si)__B);",
+            "}",
+            '# 1 "/usr/lib/llvm-18/lib/clang/18/include/emmintrin.h" 3',
+            "static __inline__ void",
+            '    __attribute__((__always_inline__, __nodebug__, __target__("sse2")))',
+            "    _mm_stream_si32(void *__p, int __a) {",
+            "}",
+            '# 1 "/usr/lib/llvm-18/lib/clang/18/include/mm_malloc.h" 3',
+            "static __inline__ void *__attribute__((__always_inline__, __nodebug__,",
+            "                                       __malloc__, __alloc_size__(1),",
+            "                                       __alloc_align__(2)))",
+            "_mm_malloc(size_t __size, size_t __align) {",
+            "}",
+        ]
+    )
+    found = available.parse(text, "#define __AVX512F__ 1\n#define __EVEX512__ 1\n#define __SSE2__ 1\n")
+    assert found["_mm512_max_epi32"]["available"] and found["_mm512_max_epi32"]["needs"] == ["avx512f", "evex512"]
+    assert found["_mm_stream_si32"]["available"] and found["_mm_stream_si32"]["needs"] == ["sse2"]
+    assert found["_mm_malloc"]["available"] and found["_mm_malloc"]["needs"] == []
+    # and the features are read from the attribute's own line, not the head's: off where the flags are off
+    assert not available.parse(text, "#define __SSE2__ 1\n")["_mm512_max_epi32"]["available"]
+    # no attribute's own call (`__alloc_size__(1)`) is ever read as the declared name
+    assert not any(name.startswith("__") for name in found)
