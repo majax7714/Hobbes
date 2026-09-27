@@ -1,5 +1,6 @@
 """The CLI: the map names every ISA, the per-cell verbs answer, and the graders say where they may run."""
 
+import hashlib
 import json
 import re
 import shutil
@@ -13,7 +14,7 @@ import test_e1
 import test_e3
 import test_intrinsics
 
-from lattice import available, cli, corpus, e1, e4, prompts, run, shadow
+from lattice import available, cli, corpus, e1, e4, prompts, report, run, shadow
 from lattice.cells import build as build_lattice
 from lattice.holes import HOLE
 
@@ -1467,6 +1468,219 @@ def test_e4_pool_reads_d12s_pair_with_no_kind_as_registered(tmp_path, capsys, mo
     # and D-11's pair still defaults to its own kind, which is the helper units
     assert cli.main(["e4", "pool", str(avx2), "--pair", "S-2,S-2h", "--json"]) == 0
     assert json.loads(capsys.readouterr().out)["kind"] == "helper"
+
+
+# MARK: - D-13 at the CLI: `e4 loop`, and the two pooled readings -
+
+#: The one name the source run's grader invents, and the index that says this compiler declares it.
+LOOPED = "_mm512_setzero_si512"
+
+
+def failing_e4_grade(monkeypatch, classes, invented=(LOOPED,)):
+    """`e1.default_grade`, replaced by one that gives each named unit a class and everything else a pass."""
+
+    def graded(target, image=run.IMAGE, rename_in_target=None):
+        def grade(entries):
+            answered = []
+            for entry in entries:
+                cls = classes.get(entry.get("unit"), "pass")
+                answered.append(
+                    {
+                        "id": entry["id"],
+                        "unit": entry.get("unit"),
+                        "class": cls,
+                        "reg": True,
+                        "diagnostics": [],
+                        "invented": [
+                            {"name": name, "bucket": "intrinsic"}
+                            for name in (invented if cls == "invented" else ())
+                        ],
+                        "feedback": "" if cls == "pass" else "It did not compile.\nfoo.c:1:1: error: nope",
+                    }
+                )
+            return answered
+
+        return grade
+
+    monkeypatch.setattr(e1, "default_grade", graded)
+
+
+def loop_completions(run_dir, isa="avx2", arms=e4.LOOP_ARMS, k=0, rounds=(0, 1)):
+    """A replay answering every (unit, arm, sample, round) id a D-13 run can ask for.
+
+    Generated rather than read off `requests.jsonl`, for `e4_completions_for`'s own reason: a retry is a
+    request `e4 run` builds as the rows come in, so it is not in the plan for a replay to read.
+    """
+    lattice = build_lattice(FIXTURE)
+    source = lattice.sources[isa]
+    rows = []
+    for unit in e4.units(lattice, isa):
+        written = source.text[unit.signature_span.start : unit.body_span.end]
+        for arm in arms:
+            for sample in range(0, k + 1):
+                for at_round in rounds:
+                    rows.append(
+                        {
+                            "id": e1.request_id(unit.name, arm, sample, at_round),
+                            "text": f"```c\n{written}\n```",
+                        }
+                    )
+    recorded = run_dir.parent / "loop-completions.jsonl"
+    recorded.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    return recorded
+
+
+def loop_instruments(tmp_path):
+    """The availability record `lattice available` would write, and an intrinsic index beside it."""
+    record = hand_available(tmp_path)
+    index = tmp_path / "intrinsics.json"
+    index.write_text(json.dumps({LOOPED: {"header": "avx512fintrinsics.h"}}), encoding="utf-8")
+    return record, index
+
+
+def d13_run(tmp_path, capsys, monkeypatch):
+    """A source run whose `hsum256_ps` came back `invented`, and the D-13 run `e4 loop` wrote from it."""
+    record, index = loop_instruments(tmp_path)
+    source = tmp_path / "d12"
+    assert cli.main([
+        "e4", "plan", str(FIXTURE), str(source), "--model", "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "--arms", "S-3h", "--k", "0", "--available", str(record),
+    ]) == 0
+    capsys.readouterr()
+    failing_e4_grade(monkeypatch, {"hsum256_ps": "invented", "sqdiff_epu8": "compile"})
+    assert cli.main([
+        "e4", "run", str(source), str(FIXTURE), "--ceiling-usd", "10",
+        "--generator", f"replay:{e4_completions_for(source)}",
+    ]) == 0
+    capsys.readouterr()
+
+    run_dir = tmp_path / "d13"
+    assert cli.main([
+        "e4", "loop", str(source), str(run_dir), "--available", str(record), "--intrinsics", str(index),
+    ]) == 0
+    return source, run_dir, record, index
+
+
+def test_e4_loop_copies_the_source_round_and_names_both_instruments(tmp_path, capsys, monkeypatch):
+    source, run_dir, record, index = d13_run(tmp_path, capsys, monkeypatch)
+    printed = capsys.readouterr().out
+    assert "e4 loop: 54 request(s) and 54 copied row(s) — 27 S-3h chain(s) × 2 arm(s) (S-3hd, S-3hf)" in printed
+    assert f"round 0 is {source.name}'s, copied and not asked" in printed
+    assert "1 round to go, retried from invented, compile" in printed
+    assert "a retry with no fact line is one request" in printed
+    assert f"available: {record}" in printed and f"intrinsics: {index}" in printed
+
+    meta = json.loads((run_dir / e1.META).read_text())
+    assert meta["arms"] == ["S-3hd", "S-3hf"] and meta["rounds"] == 1
+    assert meta["loop"]["available"]["sha256"] == hashlib.sha256(record.read_bytes()).hexdigest()
+    assert not (run_dir / e1.CALLS).exists()  # nothing was called and nothing was spent
+
+    # an instrument that is not there is named, and no plan is written from a digest nobody could take
+    assert cli.main([
+        "e4", "loop", str(source), str(tmp_path / "again"), "--available", str(tmp_path / "nowhere.json"),
+        "--intrinsics", str(index),
+    ]) == 2
+    assert "could not be read" in capsys.readouterr().err
+
+
+def test_e4_loop_refuses_a_source_with_no_s3h(tmp_path, capsys, monkeypatch):
+    record, index = loop_instruments(tmp_path)
+    plain = plan_an_e4_run(tmp_path, capsys, arms="S-2h")
+    assert cli.main([
+        "e4", "loop", str(plain), str(tmp_path / "none"), "--available", str(record),
+        "--intrinsics", str(index),
+    ]) == 2
+    assert "has no S-3h request" in capsys.readouterr().err
+    assert not (tmp_path / "none").exists()
+
+
+def test_e4_run_answers_the_retry_round_and_the_report_reads_the_loop(tmp_path, capsys, monkeypatch):
+    source, run_dir, record, index = d13_run(tmp_path, capsys, monkeypatch)
+    capsys.readouterr()
+    fake_e4_grade(monkeypatch)  # the retry passes in both arms, so the rescue is what there is to read
+    assert cli.main([
+        "e4", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "10",
+        "--generator", f"replay:{loop_completions(run_dir)}",
+    ]) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["rows"] == 27 * 2 + 2 * 2  # the copied round 0, and the two retried chains in both arms
+
+    assert cli.main(["e4", "report", str(run_dir), "--json"]) == 0
+    found = json.loads(capsys.readouterr().out)
+    loop = found["loop"]
+    assert loop["rounds"] == 1 and loop["source"]["run"] == source.name
+    assert loop["by_arm"]["S-3hf"]["retried"] == loop["by_arm"]["S-3hd"]["retried"] == 2
+    assert loop["by_arm"]["S-3hf"]["rescued"] == {"compile": 1, "invented": 1}
+    # `hsum256_ps` invented a name the index declares and this file cannot use, so its retry carried a line
+    assert loop["lines"] == {e4.NOT_HERE: 1} and loop["by_arm"]["S-3hf"]["with_lines"] == 1
+    assert loop["identical_retries"] == 1  # the `compile` chain had no name, so both arms asked once
+    assert report.loop_label("S-3hd", "S-3hf", 1) in found["comparisons"]
+
+    assert cli.main(["e4", "report", str(run_dir)]) == 0
+    table = capsys.readouterr().out
+    assert "the loop, 1 round — retried from invented, compile" in table
+    assert "ruled-out reuse:" in table and "S-3hf − S-3hd (every unit, through round 1, registered)" in table
+
+    requests = [json.loads(line) for line in (run_dir / e1.REQUESTS).read_text().splitlines()]
+    facts = next(r for r in requests if r["round"] == 1 and r["arm"] == "S-3hf" and r["unit"] == "hsum256_ps")
+    said = facts["messages"][-1]["content"]
+    assert "What this file can use, of the names above" in said
+    assert f"`{LOOPED}` is not available in this file" in said
+    assert [row["status"] for row in facts["loop_facts"]] == [e4.NOT_HERE]
+    # and the control's own retry is the graders' text and nothing else
+    plain = next(r for r in requests if r["round"] == 1 and r["arm"] == "S-3hd" and r["unit"] == "hsum256_ps")
+    assert plain["messages"][-1]["content"] == "It did not compile.\nfoo.c:1:1: error: nope"
+    assert plain["loop_facts"] == []
+
+
+def test_e4_pool_reads_d13s_two_registered_readings(tmp_path, capsys, monkeypatch):
+    _, run_dir, _, _ = d13_run(tmp_path, capsys, monkeypatch)
+    capsys.readouterr()
+    fake_e4_grade(monkeypatch)
+    assert cli.main([
+        "e4", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "10",
+        "--generator", f"replay:{loop_completions(run_dir)}",
+    ]) == 0
+    capsys.readouterr()
+
+    assert cli.main(["e4", "pool", str(run_dir), "--pair", "S-3hd,S-3hf", "--through", "1", "--json"]) == 0
+    pair = json.loads(capsys.readouterr().out)
+    assert pair["registered"] is True and pair["through"] == 1 and pair["kind"] is None
+    assert pair["paired"]["pass_at_1"]["cells"] == 27
+
+    assert cli.main(["e4", "pool", str(run_dir), "--arm", "S-3hf", "--rounds", "0,1", "--json"]) == 0
+    rounds = json.loads(capsys.readouterr().out)
+    assert rounds["registered"] is True and rounds["rounds"] == [0, 1] and rounds["arm"] == "S-3hf"
+    assert rounds["paired"]["pass_at_1"]["gained"] == 2 and rounds["paired"]["pass_at_1"]["lost"] == 0
+    assert rounds["runs"][0]["retried"] == 2
+
+    assert cli.main(["e4", "pool", str(run_dir), "--arm", "S-3hf"]) == 0  # 0,1 is the default
+    table = capsys.readouterr().out
+    assert "E4 S-3hf round 1 − round 0 over 1 run(s)" in table
+    assert "cannot be negative by construction" in table
+
+    # two readings, so naming both is a refusal; and the rounds have to be a pair
+    assert cli.main(["e4", "pool", str(run_dir), "--arm", "S-3hf", "--pair", "S-3hd,S-3hf"]) == 2
+    assert "they are two readings" in capsys.readouterr().err
+    assert cli.main(["e4", "pool", str(run_dir), "--arm", "S-3hf", "--rounds", "1"]) == 2
+    assert "--rounds takes two whole rounds" in capsys.readouterr().err
+    assert cli.main(["e4", "pool", str(run_dir), "--arm", "C-2"]) == 2
+    assert "no arm 'C-2'" in capsys.readouterr().err
+
+
+def test_e4_run_refuses_a_moved_instrument_and_answers_nothing(tmp_path, capsys, monkeypatch):
+    _, run_dir, record, _ = d13_run(tmp_path, capsys, monkeypatch)
+    capsys.readouterr()
+    record.write_text("{}", encoding="utf-8")
+    fake_e4_grade(monkeypatch)
+    assert cli.main([
+        "e4", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "10",
+        "--generator", f"replay:{loop_completions(run_dir)}",
+    ]) == 2
+    err = capsys.readouterr().err
+    assert "now digests" in err and "nothing was sent" in err
+    rows = [json.loads(line) for line in (run_dir / e1.ROWS).read_text().splitlines()]
+    assert {row["round"] for row in rows} == {0}
 
 
 def test_e4_run_without_a_ceiling_exits_two(tmp_path, capsys):

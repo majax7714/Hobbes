@@ -34,6 +34,21 @@ user turn: the last result's `feedback` (≤1,500 characters, from the graded re
 for a `no-body`, the one fixed sentence in :data:`NO_BODY`. A chain stops at its first `pass`, and at
 `rounds`.
 
+**The loop is lent out, and E1's own use of it does not move** (D-13, ADR-151 §9). A caller that wants the
+same loop under another rule passes :func:`run` four hooks, and **each one defaulting to `None` is E1 byte
+for byte**: `retry_classes` limits which of the round before's classes are carried forward (E1 carries
+every class that is not a `pass`), `retry(request, row)` replaces :func:`_retry`'s text, `seed_arm(arm)`
+says which arm's name a round's seed is made from — two arms that share it ask one question — and
+`fields(request, row)` is the extra keys a fresh request records. The fourth exists because the third
+makes two requests identical: a caller that adds a section to a retry has to be able to record **what** it
+added, and `_next_round` is the one place a fresh request is built, so a record written anywhere else
+would be written after the request was sent. E4's D-13 run is the caller (`lattice.e4.loop`).
+
+**Two requests that are the same question are one call** (D-13). :func:`_call` sends one request per
+distinct (`messages`, `params`) and gives that one answer to every request sharing it, each still written
+and graded as its own row; the call's record says how many were `deduplicated`. In E1 the seed carries the
+arm, so no two requests are ever identical and nothing there changes.
+
 **A renamed parameter is not an invented API** (E1-g's record, limit 1). `grade` grafts the model's body
 under the **target's** signature, so a body that wrote `v1` where the target writes `va` fails with `use
 of undeclared identifier 'v1'`, and G-hsr — which reads exactly those messages and knows nothing of who
@@ -602,6 +617,10 @@ def run(
     ceiling_usd: float,
     rounds: int = ROUNDS,
     iterate: Sequence[str] = ITERATE,
+    retry_classes: Sequence[str] | None = None,
+    retry: Callable[[dict, dict], str] | None = None,
+    seed_arm: Callable[[str], str] | None = None,
+    fields: Callable[[dict, dict], dict] | None = None,
 ) -> dict:
     """Answer and grade every request in *run_dir*, round by round, and return what the run now holds.
 
@@ -609,6 +628,11 @@ def run(
     extracted bodies (`{"id", "cell", "body"}`) and grades them in one call. *target* is checked against
     the commit the plan was written at and otherwise belongs to the grader: the prompts were built from one
     tree's bytes, and answering them against another tree is :class:`TargetMoved`, not a resume.
+
+    The last four are the loop's hooks (the module docstring), each `None` by default and each `None`
+    meaning "as E1 does it": *retry_classes* the round-(r−1) classes a chain is carried forward from,
+    *retry* the text it is carried forward with, *seed_arm* the arm its seed is made from, and *fields*
+    the extra keys its fresh request records.
     """
     run_dir = Path(run_dir)
     record = json.loads((run_dir / META).read_text(encoding="utf-8"))
@@ -624,7 +648,10 @@ def run(
         _call(run_dir, model, pending, generate, grade, ceiling_usd, 0, rows)
 
     for round_ in range(1, rounds + 1):
-        made = _next_round(requests, rows, round_, iterate, model)
+        made = _next_round(
+            requests, rows, round_, iterate, model,
+            retry_classes=retry_classes, retry=retry, seed_arm=seed_arm, fields=fields,
+        )
         fresh = [request for request in made if request["id"] not in known]
         if fresh:
             _append(run_dir / REQUESTS, fresh)
@@ -683,34 +710,42 @@ def _call(
     """One round: check the ceiling, generate once, extract, grade once, and write what came back.
 
     A request already answered in :data:`COMPLETIONS` (a paid call whose grading failed) is answered from
-    there and is neither sent nor priced again.
+    there and is neither sent nor priced again. Two requests that are the same question — the same
+    `messages` under the same `params` — are **sent once** and share the one answer (:func:`_distinct`);
+    the estimate, the ceiling check and the call's token counts are all over what was sent.
     """
     held = {row["id"]: row for row in _read(run_dir / COMPLETIONS)}
     to_send = [request for request in pending if request["id"] not in held]
     completions = {request["id"]: held[request["id"]] for request in pending if request["id"] in held}
     if to_send:
-        guess = estimate(model, to_send)
+        asked, twins = _distinct(to_send)
+        guess = estimate(model, asked)
         already = spent(run_dir)
         if already + guess["usd"] > ceiling_usd:
             raise CeilingReached(
                 f"round {round_}: ${already:.4f} already spent plus an estimated ${guess['usd']:.4f} for "
-                f"{len(to_send)} request(s) passes the ${ceiling_usd:.4f} ceiling; nothing was sent"
+                f"{len(asked)} request(s) passes the ${ceiling_usd:.4f} ceiling; nothing was sent"
             )
 
         started = time.time()
         try:
-            answer = generate(to_send)
+            answer = generate(asked)
         except GenerateFailed as failure:
             # a call that failed still ran, and a run that cannot say what it spent must stop early
             # rather than late: the row goes down before the refusal goes up (E2-d)
-            _append(run_dir / CALLS, [_failed_call_row(round_, to_send, guess, failure)])
+            _append(run_dir / CALLS, [_failed_call_row(round_, asked, guess, failure)])
             raise
         wall = round(time.time() - started, 3)
-        answered = _completions(answer)
+        sent = _completions(answer)
         reported = answer if isinstance(answer, dict) else {}
-        # the paid part is on disk before anything else can fail: the completions, then the call's cost
+        answered = _shared(sent, twins)
+        # the paid part is on disk before anything else can fail: the completions, then the call's cost.
+        # The cost is priced from what was **sent**, so a shared answer is not billed twice
         _append(run_dir / COMPLETIONS, [answered[request["id"]] for request in to_send if request["id"] in answered])
-        _append(run_dir / CALLS, [_call_row(round_, to_send, answered, reported, guess, wall)])
+        _append(
+            run_dir / CALLS,
+            [_call_row(round_, asked, sent, reported, guess, wall, deduplicated=len(to_send) - len(asked))],
+        )
         completions.update(answered)
 
     new_rows: list[dict] = []
@@ -745,6 +780,51 @@ def _call(
         _append(run_dir / ROWS, new_rows)
     if probes:
         _append(run_dir / GMEM, probes)
+
+
+def _distinct(requests: list[dict]) -> tuple[list[dict], dict[str, list[str]]]:
+    """The requests to send, and which ids each of them answers for besides its own.
+
+    Two requests are the same question when they send the same bytes under the same parameters — the same
+    `messages` (or raw `prompt`) and the same `params`, the seed included. Sending both would buy one
+    answer twice: a sampler at one seed over one prompt is deterministic, so the second call is the first
+    call's price for the first call's text. The **first** request of a group is the one sent, so the order
+    a caller planned in is the order the ids are answered in.
+    """
+    asked: dict[str, dict] = {}
+    twins: dict[str, list[str]] = {}
+    for request in requests:
+        key = json.dumps(
+            {
+                "messages": request.get("messages"),
+                "prompt": request.get("prompt"),
+                "params": request.get("params"),
+            },
+            sort_keys=True,
+        )
+        first = asked.get(key)
+        if first is None:
+            asked[key] = request
+            twins[request["id"]] = []
+        else:
+            twins[first["id"]].append(request["id"])
+    return list(asked.values()), twins
+
+
+def _shared(sent: dict[str, dict], twins: dict[str, list[str]]) -> dict[str, dict]:
+    """The answers by id, each shared answer copied out under the id of every request that asked it.
+
+    The copy carries the sent request's own token counts and finish reason, because that is what the
+    provider reported and there is no second measurement to give: one call answered both rows.
+    """
+    found = dict(sent)
+    for first, others in twins.items():
+        got = sent.get(first)
+        if got is None:
+            continue
+        for other in others:
+            found[other] = {**got, "id": other}
+    return found
 
 
 def _row(request: dict, got: dict) -> dict:
@@ -856,11 +936,25 @@ def _probe_row(request: dict, got: dict) -> dict:
     }
 
 
-def _next_round(requests: list[dict], rows: dict[str, dict], round_: int, iterate: Sequence[str], model: str) -> list[dict]:
+def _next_round(
+    requests: list[dict],
+    rows: dict[str, dict],
+    round_: int,
+    iterate: Sequence[str],
+    model: str,
+    *,
+    retry_classes: Sequence[str] | None = None,
+    retry: Callable[[dict, dict], str] | None = None,
+    seed_arm: Callable[[str], str] | None = None,
+    fields: Callable[[dict, dict], dict] | None = None,
+) -> list[dict]:
     """The iterate arms' requests for *round_*: the conversation so far, the model's text, the feedback.
 
     A chain is one (cell, arm, sample). It is carried forward only from the round before, and only when
-    that round's row is not a `pass` — which is what makes a chain stop at its first pass.
+    that round's row is not a `pass` — which is what makes a chain stop at its first pass. *retry_classes*
+    narrows that further: with it, only a row whose class is one of them is carried forward, and every
+    other class keeps the row it has as its chain's last. The four hooks are the module docstring's, and
+    all four `None` is E1's own round byte for byte.
     """
     made: list[dict] = []
     for request in requests:
@@ -869,10 +963,14 @@ def _next_round(requests: list[dict], rows: dict[str, dict], round_: int, iterat
         row = rows.get(request["id"])
         if row is None or row.get("class") == "pass":
             continue
+        if retry_classes is not None and row.get("class") not in retry_classes:
+            continue
         messages = list(request["messages"]) + [
             {"role": "assistant", "content": row["text"]},
-            {"role": "user", "content": _retry(request, row)},
+            {"role": "user", "content": (retry or _retry)(request, row)},
         ]
+        # the arm the seed is made from, which is the arm itself unless a caller shares one across arms
+        named = seed_arm(request["arm"]) if seed_arm is not None else request["arm"]
         made.append(
             {
                 **request,
@@ -881,8 +979,9 @@ def _next_round(requests: list[dict], rows: dict[str, dict], round_: int, iterat
                 "messages": messages,
                 "params": {
                     **request["params"],
-                    "seed": seed(model, request["cell"], request["arm"], request["sample"], round_),
+                    "seed": seed(model, request["cell"], named, request["sample"], round_),
                 },
+                **(fields(request, row) if fields is not None else {}),
             }
         )
     return made
@@ -895,15 +994,27 @@ def _retry(request: dict, row: dict) -> str:
     return row.get("feedback") or FAILED
 
 
-def _call_row(round_: int, pending: list[dict], completions: dict[str, dict], reported: dict, guess: dict, wall: float) -> dict:
+def _call_row(
+    round_: int,
+    pending: list[dict],
+    completions: dict[str, dict],
+    reported: dict,
+    guess: dict,
+    wall: float,
+    deduplicated: int = 0,
+) -> dict:
     """The call's record. A generator that reports no cost has its estimate recorded, and `cost_source`
-    says which of the two the number is: a silent generator must not make a run read as free."""
+    says which of the two the number is: a silent generator must not make a run read as free.
+
+    `requests` is what was **sent** and `deduplicated` how many further ids that answer was shared with
+    (:func:`_distinct`), so a reader can tell a small call from a small round."""
     tokens_in = sum(int(c.get("tokens_in") or 0) for c in completions.values())
     tokens_out = sum(int(c.get("tokens_out") or 0) for c in completions.values())
     cost = reported.get("cost")
     return {
         "round": round_,
         "requests": len(pending),
+        "deduplicated": deduplicated,
         "tokens_in": tokens_in or reported.get("tokens_in") or guess["tokens_in"],
         "tokens_out": tokens_out or reported.get("tokens_out") or guess["tokens_out"],
         "seconds": reported.get("seconds", wall),

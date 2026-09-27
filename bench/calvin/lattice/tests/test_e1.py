@@ -377,6 +377,100 @@ def test_the_modal_generator_keeps_its_files_and_the_call_record_never_overwrite
     assert (tmp_path / "calls" / "call-0001" / "completions.jsonl").exists()
 
 
+# MARK: - the loop's hooks, and what they leave alone (D-13) -
+
+
+def _iterated(tmp_path, lattice, name, **hooks):
+    """One `C-0` chain that fails at round 0 and is carried to round 1, under whichever hooks were given."""
+    cell = lattice.get("avx2/int8/dot")
+    run_dir = make_run(tmp_path / name, lattice, [cell], ("C-0",), rounds=1)
+    generate = FakeGenerator(lambda request: fenced(_wrong(lattice, cell)))
+    e1.run(run_dir, FIXTURE, generate, fake_grade(golds(lattice)), ceiling_usd=10.0, rounds=1, **hooks)
+    return run_dir, generate
+
+
+def test_the_hooks_all_none_is_e1s_own_round_byte_for_byte(tmp_path, lattice):
+    """The default is not "nearly E1": the planned round 1 is the same request, field for field."""
+    plain, without = _iterated(tmp_path, lattice, "plain")
+    hooked, with_none = _iterated(
+        tmp_path, lattice, "hooked", retry_classes=None, retry=None, seed_arm=None, fields=None
+    )
+    assert requests_of(plain) == requests_of(hooked)
+    assert [row["class"] for row in rows(plain)] == [row["class"] for row in rows(hooked)]
+    assert without.calls == with_none.calls  # and it sent the same ids, in the same calls
+
+    later = [request for request in requests_of(plain) if request["round"] == 1]
+    assert len(later) == 2
+    for request in later:
+        assert "loop_facts" not in request and "unlined" not in request
+
+
+def test_retry_classes_narrows_which_chains_are_carried_forward(tmp_path, lattice):
+    """E1 carries every class that is not a `pass`; a caller may name the classes it wants and no others."""
+    kept, _ = _iterated(tmp_path, lattice, "kept", retry_classes=("wrong",))
+    assert sorted({row["round"] for row in rows(kept)}) == [0, 1]
+
+    none, generate = _iterated(tmp_path, lattice, "none", retry_classes=("invented",))
+    assert {row["round"] for row in rows(none)} == {0}
+    assert [request["round"] for request in requests_of(none)] == [0, 0, 0]
+    assert len(generate.calls) == 1  # round 1 had no chain, so nothing was sent
+
+
+def test_the_retry_and_the_seeds_arm_are_a_callers_to_replace(tmp_path, lattice):
+    run_dir, _ = _iterated(
+        tmp_path,
+        lattice,
+        "mine",
+        retry=lambda request, row: f"Try {request['name']} again.",
+        seed_arm=lambda arm: "C-9",
+        fields=lambda request, row: {"note": row["class"]},
+    )
+    later = [request for request in requests_of(run_dir) if request["round"] == 1]
+    cell = lattice.get("avx2/int8/dot")
+    for request in later:
+        assert request["messages"][-1] == {"role": "user", "content": f"Try {cell.name} again."}
+        assert request["note"] == "wrong"
+        assert request["params"]["seed"] == e1.seed(
+            "Qwen/Qwen2.5-Coder-7B-Instruct", cell.id, "C-9", request["sample"], 1
+        )
+
+
+def test_two_requests_that_are_one_question_are_sent_once_and_both_are_written(tmp_path, lattice):
+    """`_distinct`'s whole job: one answer for two ids, each row written and graded as its own."""
+    cell = lattice.get("avx2/int8/dot")
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-0",), k=0, rounds=0)
+    twin = json.loads((run_dir / e1.REQUESTS).read_text(encoding="utf-8").splitlines()[0])
+    e1._append(run_dir / e1.REQUESTS, [{**twin, "id": twin["id"].replace("C-0", "C-9")}])
+
+    generate = FakeGenerator(lambda request: fenced(prompts.definition(lattice, cell)))
+    e1.run(run_dir, FIXTURE, generate, fake_grade(golds(lattice)), ceiling_usd=10.0, rounds=0)
+
+    # the chat request went once; the G-mem probe is a second, different question
+    assert len(generate.calls) == 1
+    assert sum(1 for asked in generate.calls[0] if "|C-" in asked) == 1
+    written = {row["id"]: row for row in rows(run_dir)}
+    assert sorted(written) == [twin["id"], twin["id"].replace("C-0", "C-9")]
+    assert {row["class"] for row in written.values()} == {"pass"}
+    call = [json.loads(line) for line in (run_dir / e1.CALLS).read_text().splitlines()][0]
+    assert call["deduplicated"] == 1 and call["requests"] == 2
+
+
+def test_e1s_own_calls_deduplicate_nothing_because_the_seed_carries_the_arm(tmp_path, lattice, ledger):
+    """A planned E1 run has no two identical requests, so the dedup is a no-op wherever E1 runs."""
+    cells = list(lattice.by_isa("avx2"))
+    made = e1.plan(lattice, cells, prompts.ARMS, "Qwen/Qwen2.5-Coder-7B-Instruct", ledger, k=5)
+    asked, twins = e1._distinct(made)
+    assert len(asked) == len(made)
+    assert all(not others for others in twins.values())
+
+    run_dir = make_run(tmp_path, lattice, cells[:2], prompts.ARMS, k=1, ledger=ledger, rounds=1)
+    generate = FakeGenerator(lambda request: fenced(_wrong(lattice, cells[0])))
+    e1.run(run_dir, FIXTURE, generate, fake_grade(golds(lattice)), ceiling_usd=10.0, rounds=1)
+    calls = [json.loads(line) for line in (run_dir / e1.CALLS).read_text().splitlines()]
+    assert calls and all(call["deduplicated"] == 0 for call in calls)
+    assert sum(call["requests"] for call in calls) == sum(len(asked) for asked in generate.calls)
+
+
 def test_a_target_that_moved_since_the_plan_is_refused_before_anything_is_sent(tmp_path, lattice, monkeypatch):
     cell = lattice.get("avx2/int8/dot")
     run_dir = make_run(tmp_path, lattice, [cell], ("C-2",))

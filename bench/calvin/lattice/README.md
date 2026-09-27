@@ -452,6 +452,17 @@ only** (`C-0`, `C-3`): every chain whose last row is not `pass` gets its convers
 whole text as an assistant turn, and one user turn — `feedback.build`'s ≤1,500 characters, or the one fixed
 sentence for a `no-body` — and a chain stops at its first `pass`.
 
+**The loop is lent out, and E1's own use of it does not move** (D-13). `run` takes four hooks and **each one
+`None` is E1 byte for byte**: `retry_classes` narrows which of the round before's classes are carried forward
+(E1 carries every class that is not a `pass`), `retry(request, row)` replaces the feedback text, `seed_arm(arm)`
+says which arm's name a round's seed is made from, and `fields(request, row)` is the extra keys a fresh request
+records — which exists because the third makes two requests identical, and a caller that adds a section to a
+retry has to be able to record *what* it added. **Two requests that are the same question are sent once**:
+`_call` sends one per distinct (`messages`, `params`), gives that answer to every request sharing it — each
+still written and graded as its own row — and its call record says how many were `deduplicated`. In E1 the
+seed carries the arm, so no two requests are ever identical and the dedup is a no-op wherever E1 runs; E4's
+D-13 arms share a seed on purpose, and that is the whole mechanism of their exact tie.
+
 **A renamed parameter is not an invented API** (E1-g's record, limit 1). `grade` grafts the body under the
 **target's** signature, so a body that wrote `v1` where the target writes `va` fails with `use of
 undeclared identifier 'v1'`, and G-hsr — which reads exactly those messages and knows nothing of who wrote
@@ -533,6 +544,14 @@ are a section of their own and are never pooled with real bodies.** Tokens, seco
 completion that stopped at the limit is a fact about the limit. **A missing file is named in `missing`, never read as zero**: a run whose grading never
 happened and a run in which nothing passed are two different results.
 
+**A run with rounds gains a `loop` block** (D-13), and `None` — not an empty one — where it has none. Per arm:
+the chains the retry **rescued**, by the round-0 class they were retried from; the chains that carried a fact
+line against those that did not, with the number whose two arms really were **one identical request**, read
+off the requests as they were sent rather than asserted from the rule; and the **ruled-out reuse** — of the
+round-1 rows, how many invented a name that chain's own lines had called `not-here` or `nowhere`, which is
+D-12's finding asked again one turn later. The control arm's requests carry no lines and none are re-derived
+for it: the two arms' round 0 is one row copied twice, so an S-3hd chain's lines *are* its S-3hf twin's.
+
 **`compare`** — **E2's reading**: an original run against its shadows, from the runs' own rows and
 nothing else. Per arm the two runs share, each run's pass@1, pass@1(sampled) and pass@k with the
 shadow's **delta** against the original; per cell, the **greedy flips** each way — passed then failed,
@@ -561,6 +580,16 @@ tests and `registered` saying whether the pair and the kind are on `e4.COMPARISO
 naming one ISA twice (that pools a file's units with themselves) and runs that differ in the model, `k` or
 the params (`E4_POOL_SAME`); a run with no rows for an arm is **named** in its own row and its units simply
 do not pair.
+
+**A chain's final row, and the reading that cannot go down** (D-13). `report.e4_units` and `compare._e4_rows`
+take `through`, the last round a chain is read at: a chain contributes its row of the **highest round ≤
+through**, because a later round is one chain's history and not a second chain, and `through = 0` is round 0
+alone, which is every reading before D-13. `e4_pool(…, through=…)` carries it, and `registered` is
+`e4.registered_pair`'s answer at that `through` — so D-13's pair reads **registered through round 1** and
+*not* registered at round 0, where their common round 0 makes it a tie by construction. **`e4_rounds(runs,
+arm, rounds)`** is the other reading: one arm's round 0 against its final rows through round 1, pooled the
+same way and refused the same way, with `ROUNDS_ONE_WAY` printed above its numbers — a chain is retried only
+where it did not pass, so a pass can be gained and never lost, and a reader has to meet that before the p.
 
 **`paired`** — **the noise floor** (2026-09-26): whether a gap between two arms, or two runs, is more
 than the cells it rests on. Both sides grade the same cells, so each test is paired by cell and exact:
@@ -723,6 +752,45 @@ filled empty**: an empty availability table would mark every intrinsic unavailab
 merely silent but actively wrong. The request row carries the block **as data** — every name, its status and
 the form it was offered — and `meta.json` carries the record's digest with the flags and the clang line that
 answered, so "not available in this file" on a prompt can be traced to the compiler that said it.
+
+**S-3hd and S-3hf put the same facts in the retry** (D-13 a, pre-registered before this build). D-12's
+reading was that the block is *read and not acted on*: on sse2, 132 of S-3h's 194 invented intrinsics are
+exactly the same-width rename the block had said has no form here. So D-13 asks the fact again where the
+compiler has just disagreed with the student, and asks it **two ways, one variable apart**.
+
+- **Round 0 is D-12's own S-3h, copied and not asked.** `e4.loop` writes each S-3h request and its graded row
+  twice, as `S-3hd` and `S-3hf`, with only `arm` and `id` changed — `messages`, `params`, `grade`, `text` and
+  `class` are the source run's bytes — so the two arms begin from one answer, round 0 costs nothing and no
+  `calls.jsonl` row is written for it. The plan records the source's directory and the digests of its
+  `meta.json`, `requests.jsonl` and `rows.jsonl`, and `LoopSource` — its own type — refuses a source with no
+  S-3h, an S-3h request the source never graded, or one missing any of `model`, `k`, `params`, `target_sha`.
+- **A chain is retried at round 1 when its round-0 class is `invented` or `compile`**, in both arms. Every
+  other class — `wrong`, `edge`, `no-body`, `not-installed`, `pass` — keeps its round-0 row as its final row.
+- **S-3hd's retry is E1's own**, byte for byte what `e1._retry` sends (called, not copied). **S-3hf's is that
+  text plus one section**, headed "What this file can use, of the names above (read from this file's own
+  includes under its build flags, and from its own definitions):", with one line per name the round-0 answer
+  named: every `invented` entry whose bucket is not `param`, then every name clang's feature diagnostics
+  quoted (`always_inline function 'X' requires target feature`, `'X' needs target feature`), in
+  first-appearance order and deduplicated. Per name: an intrinsic-shaped one the availability record or the
+  **intrinsic index** declares and this file cannot use reads `` `X` is not available in this file… ``
+  (`not-here`); one neither declares reads `` `X` is declared by no header of this compiler… `` (`nowhere`);
+  each with rule R's form where it has one. A name another native file defines at file scope gets the S-3h
+  block's own other-file line by rule W (`other-file`). Anything else — available here, a type, a local — gets
+  **no line** and is counted `unlined`. At most ten lines, then `(N more names.)`; S-3hd's text is never cut
+  to make room. The lines ride on the request as data (`loop_facts`, `unlined`) as well as in the prose.
+- **The two arms share round 1's seed** (`seed(model, cell, "S-3h", sample, 1)`), so a chain with **no** fact
+  line is one request: S-3hf's retry is then S-3hd's byte for byte, and `e1._call` sends one question once
+  and writes both rows from the one answer, its call row saying how many were `deduplicated`. That is what
+  makes the pair an exact tie where the facts have nothing to add.
+- **E1's loop is lent out, not copied.** `e1.run` takes four hooks — `retry_classes`, `retry`, `seed_arm` and
+  `fields` — and **each one `None` is E1 byte for byte**. The fourth exists because the third makes two
+  requests identical: a caller that adds a section to a retry must be able to record *what* it added, and
+  `_next_round` is the one place a fresh request is built.
+- **The two registered readings** are `S-3hf − S-3hd` **through round 1** over every unit, and `S-3hf`'s round
+  0 against its final rows through round 1. The second cannot come out negative by construction — a chain is
+  retried only where it did not pass — and every rendering of it says so. The same pair at round 0 alone is
+  **not** registered, because their round 0 is one row copied twice. `e4 run` reads the rounds off
+  `meta.json` and refuses (`LoopMoved`) when either instrument's digest has moved.
 
 **`families`** — **E3's draw rules, ported verbatim** from `bench/calvin/e3-draw/`, the draw's scripts as
 they ran (2026-09-26). The recorded pool — 33,902 union tasks over the 40 taken repos, **24,222 unique**
@@ -980,6 +1048,17 @@ lattice e4 run runs/qwen-avx2-d12 /path/to/sqlite-vector --ceiling-usd 0.8 --gen
 lattice e4 report runs/qwen-avx2-d12                # `S-3h − S-2h` over every unit, registered
 lattice e4 pool runs/qwen-avx2-d12 runs/qwen-sse2-d12 runs/qwen-avx512-d12 --pair S-2h,S-3h
 
+# D-13: the same facts in the retry — D-12's S-3h round 0, copied, and one round to go
+# `e4 loop` calls nothing: round 0 is the source run's, already answered and already graded
+lattice e4 loop runs/qwen-avx2-d12 runs/qwen-avx2-d13 \
+  --available available.json --intrinsics facts/intrinsics-clang18.json
+lattice e4 run runs/qwen-avx2-d13 /path/to/sqlite-vector --ceiling-usd 0.6 --generator modal
+lattice e4 report runs/qwen-avx2-d13                # the rescued chains, the lines, the ruled-out reuse
+lattice e4 pool runs/qwen-avx2-d13 runs/qwen-sse2-d13 runs/qwen-avx512-d13 \
+  --pair S-3hd,S-3hf --through 1                    # registered: the primary reading
+lattice e4 pool runs/qwen-avx2-d13 runs/qwen-sse2-d13 runs/qwen-avx512-d13 \
+  --arm S-3hf --rounds 0,1                          # registered, and it cannot come out negative
+
 # E3: the draw's 40 clones as a training corpus and its shuffled control, on the host, spending nothing
 # repos.txt is one <name>=<root> a line, in the draw's taken order (its dedupe depends on that order)
 lattice e3 corpus --repos repos.txt --target /path/to/sqlite-vector --out corpora/e3
@@ -1113,6 +1192,35 @@ been called. The order:
 4. **`lattice e4 pool` the three runs** on `--pair S-2h,S-3h` with no `--kind`: every unit of the three
    files, which is the reading with the units to say anything.
 5. **Max's word**, before anything after it — the 32B on the same plan, or the next rung.
+
+## D-13 — the order of work (nothing has run)
+
+D-13 a was taken at a **$1.50 ceiling**, about **$0.15–0.35 expected** (§9): only the `invented` and
+`compile` chains are asked again, and where their round 0 named no name the two arms are one request. The
+instruments are built and no model has been called. The order:
+
+1. **`lattice e4 loop <D-12 run> <run-dir> --available available.json --intrinsics facts/intrinsics-clang18.json`,
+   once per native file.** It calls nothing and spends nothing — round 0 is D-12's own, copied — so run it on
+   all three and read what it prints: the chain count, that round 0 came from that run, and both instruments'
+   digests. Use the **same** `available.json` D-12 was planned with, and check the digest it prints against
+   D-12's `meta.json` `available.sha256`: the lines have to be the same compiler's answer as the block was.
+2. **`lattice e4 run --ceiling-usd … --generator modal` per file**, avx2 first and priced against
+   `e1.estimate` before the rest, as every run before it. There is one call a file: one round, and the chains
+   with no fact line are sent once for both arms.
+3. **`lattice e4 report` per file.** Read the loop block **before** the comparison: the rescued chains by
+   round-0 class, the chains that carried a line against those that did not (the latter are the exact ties),
+   and the **ruled-out reuse** — of the round-1 rows, how many wrote a name their own lines had said is not
+   here or is declared nowhere. That count is what D-12's finding was, asked again one turn later.
+4. **The two registered readings, pooled over the three files:**
+   `lattice e4 pool … --pair S-3hd,S-3hf --through 1`, the primary one, and
+   `lattice e4 pool … --arm S-3hf --rounds 0,1`, which is D-13 as its card worded it and **cannot come out
+   negative**; the table says so above its own numbers, and a reader has to meet that before the p.
+5. **Max's word**, before anything after it — the 32B on S-3h (D-13's route b), or the next rung.
+
+Step 0 changed the expectation and not the route (§9): of 477 intrinsic lines over D-12's retried chains,
+**one** has a form here and the rest are negatives, and on sse2 the diagnostic already says `undeclared`. The
+positive lines are the other file's own names mapped by rule W (113) — the kind the init used in D-12 — so
+that is where a move, if there is one, should show.
 
 ## E3 — the order of work
 

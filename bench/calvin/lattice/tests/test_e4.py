@@ -9,6 +9,11 @@ every definition of the file is a hole, so a single sibling body left in a skele
 the pattern S-2 exists to measure, and the run would read as S-2 under S-0's name. And **S-2o carries the
 student's own bodies and never gold**: its shots come off `rows.jsonl`, so the test that matters is the one
 that reads a later unit's prompt back against the *replay's* text and not against the target's.
+
+**D-13's section adds a third** (the end of the file): S-3hd is the control, so its retry has to be E1's own
+text *byte for byte* and its request E1's own round but for the seed's arm — anything else and the pair would
+differ in two things. Its source run is written here by hand (`source_run`) rather than answered, because
+D-13's round 0 is another run's graded rows and the copying is what is under test.
 """
 
 import hashlib
@@ -1053,6 +1058,490 @@ def test_the_plan_records_which_parser_filled_the_fields(tmp_path, lattice, ledg
         lattice, "avx2", requests, "M", arms=("S-5",), k=0, target=FIXTURE, facts=ledger, parser=block
     )
     assert record["parser"] == block
+
+
+# MARK: - D-13: the facts in the loop (S-3hd against S-3hf) -
+
+#: The names the source rows below invent, and what each one is there to make the rule say.
+NOT_HERE_FORM = "_mm512_setzero_si512"  # in the table, unavailable here, and rule R has a form
+NOT_HERE_BARE = "_mm512_reduce_add_ps"  # in the table, unavailable here, and rule R has none
+INDEXED = "_mm512_indexed_ps"  # in the **index** and not in the table: declared, and not here
+NOWHERE_FORM = "_mm512_nope_ps"  # in neither, and its rule-R form is available here
+NOWHERE_BARE = "_mm512_castps512_pd256"  # in neither, and its rule-R form is not here either
+THEIR_FUNCTION = "abs_diff_epu8_512"  # avx512's own; this file's member of the family is abs_diff_epu8
+THEIR_DEFINE = "S8_TO_BIASED_U8_512"  # avx512's own `#define`; this file has no such definition
+AVAILABLE = "_mm256_setzero_si256"  # available here, so there is nothing to correct
+
+
+def loop_table(lattice, isa="avx2"):
+    """:func:`available_for`'s hand-built table, plus the two entries D-13's cases need.
+
+    `_mm256_nope_ps` is available so that a name declared **nowhere** can still have a form here, which is
+    the one case of the four that says something positive; `_mm512_indexed_ps` is deliberately *absent*,
+    because the index is what makes that name read `not-here` rather than `nowhere`.
+    """
+    record = available_for(lattice, isa)
+    record[isa]["names"]["_mm256_nope_ps"] = {"available": True, "needs": [], "header": "hand-built"}
+    return record
+
+
+def loop_index():
+    """A hand-built intrinsic index: a JSON object keyed by name, as `facts/intrinsics-clang18.json` is."""
+    return {INDEXED: {"header": "avx512vlintrinsics.h"}, NOT_HERE_FORM: {"header": "avx512fintrinsics.h"}}
+
+
+def instruments(tmp_path, lattice, isa="avx2"):
+    """The two instruments on disk, which is where `e4.loop` records their digests from."""
+    available_path = tmp_path / "available.json"
+    available_path.write_text(json.dumps(loop_table(lattice, isa), sort_keys=True), encoding="utf-8")
+    index_path = tmp_path / "intrinsics.json"
+    index_path.write_text(json.dumps(loop_index(), sort_keys=True), encoding="utf-8")
+    return available_path, index_path
+
+
+def graded(request, given):
+    """One hand-written graded round-0 row for a planned request, in `e1._row` + `_merge`'s own shape."""
+    invented = [{"name": name, "bucket": bucket} for name, bucket in given.get("invented", ())]
+    diagnostics = [
+        {"file": "distance-avx2.c", "line": 1, "col": 1, "severity": "error", "message": message}
+        for message in given.get("messages", ())
+    ]
+    body = given.get("body", "{\n    return 0;\n}")
+    return {
+        "id": request["id"],
+        "cell": request["cell"],
+        "name": request["name"],
+        "kind": request["kind"],
+        "isa": request["isa"],
+        "type": request["type"],
+        "metric": request["metric"],
+        "signature": request["signature"],
+        "arm": request["arm"],
+        "sample": request["sample"],
+        "round": 0,
+        "class": given.get("class", "pass"),
+        "reason": None,
+        "text": given.get("text", f"```c\n{request['signature']}\n{body}\n```"),
+        "extract": {"body": body, "reason": None, "block": 1, "params": []},
+        "grade": {"class": given.get("class", "pass"), "diagnostics": diagnostics, "invented": invented},
+        "reg": True,
+        "invented": invented,
+        "feedback": given.get("feedback", "It did not compile.\nfoo.c:1:1: error: nope"),
+        "tokens_in": 10,
+        "tokens_out": 10,
+        "finish_reason": "stop",
+    }
+
+
+#: The source run's rows below. Two chains are retried (`invented` and `compile`) and `popcount_avx2` is
+#: `wrong`, which D-13 does not retry; every other unit passes at round 0 and is never asked again.
+SOURCE_ROWS = {
+    "hsum256_ps": {
+        "class": "invented",
+        "invented": (
+            (NOT_HERE_FORM, "intrinsic"),
+            (NOT_HERE_BARE, "intrinsic"),
+            (INDEXED, "intrinsic"),
+            (NOWHERE_FORM, "intrinsic"),
+            (NOWHERE_BARE, "intrinsic"),
+            (THEIR_FUNCTION, "in-repo"),
+            (THEIR_DEFINE, "in-repo"),
+            (AVAILABLE, "intrinsic"),
+            ("v1", "param"),
+            ("__m512i", "other"),
+        ),
+        "messages": (
+            f"always_inline function '{NOT_HERE_BARE}' requires target feature 'avx512f', but would be "
+            "inlined into function 'hsum256_ps'",
+            "'_mm512_abs_epi32' needs target feature avx512vl",
+        ),
+        "feedback": "It did not compile.\nThese names resolve nowhere.",
+    },
+    "sqdiff_epu8": {"class": "compile", "feedback": "It did not compile.\nfoo.c:2:3: error: expected ';'"},
+    "popcount_avx2": {"class": "wrong", "feedback": "It compiled, and case bulk/0 disagrees."},
+}
+
+
+def source_run(tmp_path, lattice, rows=None, *, isa="avx2", k=0, model="M", name="d12", arms=("S-3h",)):
+    """A finished E4 run of one file's S-3h arm, with hand-written graded rows: D-13's own round 0."""
+    table = loop_table(lattice, isa)
+    requests = e4.plan(lattice, isa, arms, model, k=k, available=table)
+    record = e4.meta(lattice, isa, requests, model, arms=arms, k=k, target=FIXTURE)
+    run_dir = e1.write_plan(tmp_path / name, requests, record)
+    written = [graded(request, (rows if rows is not None else SOURCE_ROWS).get(request["unit"], {}))
+               for request in requests]
+    (run_dir / e1.ROWS).write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in written), encoding="utf-8"
+    )
+    return run_dir
+
+
+def loop_run(tmp_path, lattice, rows=None, **rest):
+    """A D-13 run beside its source: `e4.loop` over one hand-written S-3h run, and the two instruments."""
+    source = source_run(tmp_path, lattice, rows, **rest)
+    available_path, index_path = instruments(tmp_path, lattice)
+    run_dir = e4.loop(
+        source, tmp_path / "d13", available_path=available_path, intrinsics_path=index_path
+    )
+    return source, run_dir
+
+
+def counting_generator(lattice, isa="avx2"):
+    """A generator that answers every request with its unit's gold definition and counts what it was sent."""
+    units = {unit.name: unit for unit in e4.units(lattice, isa)}
+    calls = []
+
+    def generate(requests):
+        calls.append([request["id"] for request in requests])
+        return {
+            "completions": [
+                {
+                    "id": request["id"],
+                    "text": f"```c\n{definition(lattice, isa, units[request['unit']])}\n```",
+                    "tokens_in": 10,
+                    "tokens_out": 10,
+                }
+                for request in requests
+            ],
+            "cost": 0.0,
+            "seconds": 0.0,
+        }
+
+    generate.calls = calls
+    return generate
+
+
+def later(run_dir, arm=None, unit=None):
+    """The run's round-1 requests, optionally one arm's or one unit's."""
+    found = [
+        json.loads(line)
+        for line in (run_dir / e1.REQUESTS).read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    return [
+        request
+        for request in found
+        if request["round"] == 1
+        and (arm is None or request["arm"] == arm)
+        and (unit is None or request["unit"] == unit)
+    ]
+
+
+def test_the_loop_copies_round_zero_exactly_and_asks_nothing(tmp_path, lattice):
+    """D-13's round 0 **is** D-12's: every S-3h request and row appears twice, one arm's name apart."""
+    source, run_dir = loop_run(tmp_path, lattice)
+    asked = {
+        request["id"]: request
+        for request in [json.loads(line) for line in (source / e1.REQUESTS).read_text().splitlines()]
+    }
+    was = {row["id"]: row for row in [json.loads(line) for line in (source / e1.ROWS).read_text().splitlines()]}
+    assert len(asked) == len(was) == 27
+
+    requests = {r["id"]: r for r in [json.loads(line) for line in (run_dir / e1.REQUESTS).read_text().splitlines()]}
+    rows = {r["id"]: r for r in rows_of(run_dir)}
+    assert len(requests) == len(rows) == 27 * 2
+    for arm in e4.LOOP_ARMS:
+        for unit in (u.name for u in e4.units(lattice, "avx2")):
+            before = asked[e1.request_id(unit, "S-3h", 0, 0)]
+            now = requests[e1.request_id(unit, arm, 0, 0)]
+            assert now == {**before, "arm": arm, "id": now["id"]}
+            assert now["messages"] == before["messages"] and now["params"] == before["params"]
+            row = rows[e1.request_id(unit, arm, 0, 0)]
+            assert row == {**was[before["id"]], "arm": arm, "id": row["id"]}
+            assert row["grade"] == was[before["id"]]["grade"]
+            assert row["class"] == was[before["id"]]["class"] and row["text"] == was[before["id"]]["text"]
+
+    # round 0's spend is the source's, so this run has bought nothing and says so by having no call at all
+    assert not (run_dir / e1.CALLS).exists() and e1.spent(run_dir) == 0.0
+    # and written twice it is still one round 0: a copy is not an answer, so nothing is appended
+    again = e4.loop(
+        source, run_dir, available_path=tmp_path / "available.json", intrinsics_path=tmp_path / "intrinsics.json"
+    )
+    assert len(rows_of(again)) == 27 * 2
+    record = json.loads((run_dir / e1.META).read_text(encoding="utf-8"))
+    assert record["rounds"] == 1 and record["iterate"] == list(e4.LOOP_ARMS)
+    assert record["retry_classes"] == ["invented", "compile"] == list(e4.RETRY_CLASSES)
+    assert record["arms"] == ["S-3hd", "S-3hf"]
+    assert record["source"]["run"] == source.name and record["source"]["arm"] == "S-3h"
+    for name in e4.LOOP_SOURCE_FILES:
+        assert record["source"][f"{name}_sha256"] == hashlib.sha256((source / name).read_bytes()).hexdigest()
+    # and the four fields it carries over are the source's own
+    before = json.loads((source / e1.META).read_text(encoding="utf-8"))
+    assert [record[field] for field in e4.LOOP_CARRIED] == [before[field] for field in e4.LOOP_CARRIED]
+
+
+def test_the_meta_records_both_instruments_digests(tmp_path, lattice):
+    _, run_dir = loop_run(tmp_path, lattice)
+    block = json.loads((run_dir / e1.META).read_text(encoding="utf-8"))["loop"]
+    for what, path in (("available", tmp_path / "available.json"), ("intrinsics", tmp_path / "intrinsics.json")):
+        assert block[what]["path"] == str(path)
+        assert block[what]["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    assert block["seed_arm"] == "S-3h" and block["max_lines"] == e4.LOOP_MAX_LINES == 10
+
+
+def test_a_source_with_no_s3h_or_an_ungraded_row_is_refused_and_nothing_is_written(tmp_path, lattice):
+    available_path, index_path = instruments(tmp_path, lattice)
+    plain = source_run(tmp_path, lattice, name="s2h-only", arms=("S-2h",))
+    with pytest.raises(e4.LoopSource) as no_arm:
+        e4.loop(plain, tmp_path / "none", available_path=available_path, intrinsics_path=index_path)
+    assert "has no S-3h request" in str(no_arm.value) and "nothing was written" in str(no_arm.value)
+    assert not (tmp_path / "none").exists()
+
+    half = source_run(tmp_path, lattice, name="half")
+    kept = rows_of(half)[:-3]
+    (half / e1.ROWS).write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in kept), encoding="utf-8"
+    )
+    with pytest.raises(e4.LoopSource) as ungraded:
+        e4.loop(half, tmp_path / "short", available_path=available_path, intrinsics_path=index_path)
+    assert "answered no row for" in str(ungraded.value)
+    assert not (tmp_path / "short").exists()
+
+    # and a source missing one of the four fields a D-13 plan carries over unchanged
+    for field in e4.LOOP_CARRIED:
+        bare = source_run(tmp_path, lattice, name=f"no-{field}")
+        record = json.loads((bare / e1.META).read_text(encoding="utf-8"))
+        record[field] = None
+        (bare / e1.META).write_text(json.dumps(record, indent=2, sort_keys=True), encoding="utf-8")
+        with pytest.raises(e4.LoopSource) as missing:
+            e4.loop(bare, tmp_path / f"x-{field}", available_path=available_path, intrinsics_path=index_path)
+        assert field in str(missing.value)
+
+
+def test_only_invented_and_compile_chains_are_retried_in_both_arms(tmp_path, lattice):
+    """D-13's two classes, and no others: `wrong` and `pass` keep their round-0 row as their final row."""
+    every = {
+        "hsum256_ps": {"class": "invented", "invented": ((NOT_HERE_FORM, "intrinsic"),)},
+        "sqdiff_epu8": {"class": "compile"},
+        "popcount_avx2": {"class": "wrong"},
+        "hsum256d": {"class": "edge"},
+        "dot_epu8": {"class": "no-body"},
+        "bf16x8_to_f32x8_loadu": {"class": "not-installed"},
+    }
+    _, run_dir = loop_run(tmp_path, lattice, every)
+    generate = counting_generator(lattice)
+    e4.run(run_dir, FIXTURE, generate, pass_grade(), ceiling_usd=1.0)
+
+    retried = {(row["arm"], row["cell"]) for row in rows_of(run_dir) if row["round"] == 1}
+    assert retried == {(arm, name) for arm in e4.LOOP_ARMS for name in ("hsum256_ps", "sqdiff_epu8")}
+    kept = {row["cell"] for row in rows_of(run_dir) if row["round"] == 0}
+    assert len(kept) == 27  # every unit still has its round-0 row, retried or not
+    assert {request["arm"] for request in later(run_dir)} == set(e4.LOOP_ARMS)
+
+
+def test_s3hds_retry_is_e1s_own_text_and_its_request_e1s_own_round(tmp_path, lattice):
+    """S-3hd is the control: E1's `_retry`, byte for byte, and E1's `_next_round` but for the seed's arm."""
+    _, run_dir = loop_run(tmp_path, lattice)
+    e4.run(run_dir, FIXTURE, counting_generator(lattice), pass_grade(), ceiling_usd=1.0)
+
+    zero = {
+        request["id"]: request
+        for request in [json.loads(line) for line in (run_dir / e1.REQUESTS).read_text().splitlines()]
+        if request["round"] == 0
+    }
+    rows = {row["id"]: row for row in rows_of(run_dir) if row["round"] == 0}
+    for unit in ("hsum256_ps", "sqdiff_epu8"):
+        was = zero[e1.request_id(unit, "S-3hd", 0, 0)]
+        row = rows[was["id"]]
+        asked = later(run_dir, "S-3hd", unit)[0]
+        assert asked["messages"][-1] == {"role": "user", "content": e1._retry(was, row)}
+        assert asked["messages"][-1]["content"] == row["feedback"]
+        assert asked["messages"][-2] == {"role": "assistant", "content": row["text"]}
+        assert e4._LOOP_HEADING not in asked["messages"][-1]["content"]
+        assert asked["loop_facts"] == [] and asked["unlined"] == []
+
+        # and the whole request is E1's own round, the seed's arm aside
+        mine = e1._next_round([was], {was["id"]: row}, 1, ("S-3hd",), "M")[0]
+        assert {k: v for k, v in asked.items() if k not in ("params", "loop_facts", "unlined")} == {
+            k: v for k, v in mine.items() if k != "params"
+        }
+        assert asked["params"] == {**mine["params"], "seed": e1.seed("M", unit, "S-3h", 0, 1)}
+        assert mine["params"]["seed"] == e1.seed("M", unit, "S-3hd", 0, 1) != asked["params"]["seed"]
+
+
+def facts_for(lattice, row, isa="avx2"):
+    """One row's fact lines, read with the hand-built table and index."""
+    return e4.loop_facts(lattice, isa, row, loop_table(lattice, isa), loop_index())
+
+
+def test_each_line_says_what_this_file_has_of_the_name_it_names(tmp_path, lattice):
+    """The four intrinsic cases, the two other-file ones, and the names the rule leaves alone."""
+    unit = unit_of(lattice, "hsum256_ps")
+    request = e4.requests_for(lattice, "avx2", unit, "S-3h", "M", 0, available=loop_table(lattice))[0]
+    found = facts_for(lattice, graded(request, SOURCE_ROWS["hsum256_ps"]))
+    lines = {fact["name"]: fact for fact in found["facts"]}
+
+    assert lines[NOT_HERE_FORM] == {
+        "name": NOT_HERE_FORM, "status": e4.NOT_HERE, "form": "_mm256_setzero_si256",
+        "line": f"`{NOT_HERE_FORM}` is not available in this file; its form here: `_mm256_setzero_si256`",
+    }
+    assert lines[NOT_HERE_BARE] == {
+        "name": NOT_HERE_BARE, "status": e4.NOT_HERE, "form": None,
+        "line": f"`{NOT_HERE_BARE}` is not available in this file, and no same-named form is",
+    }
+    # the index is the only thing that knows this one exists at all, and it makes it `not-here` and not `nowhere`
+    assert lines[INDEXED]["status"] == e4.NOT_HERE and lines[INDEXED]["form"] is None
+    assert lines[NOWHERE_FORM] == {
+        "name": NOWHERE_FORM, "status": e4.NOWHERE, "form": "_mm256_nope_ps",
+        "line": f"`{NOWHERE_FORM}` is declared by no header of this compiler; its form here: `_mm256_nope_ps`",
+    }
+    assert lines[NOWHERE_BARE] == {
+        "name": NOWHERE_BARE, "status": e4.NOWHERE, "form": None,
+        "line": f"`{NOWHERE_BARE}` is declared by no header of this compiler, and no same-named form is",
+    }
+    assert lines[THEIR_FUNCTION] == {
+        "name": THEIR_FUNCTION, "status": e4.OTHER_FILE, "form": "abs_diff_epu8",
+        "line": f"`{THEIR_FUNCTION}` is the other file's own; this file's: `abs_diff_epu8`",
+    }
+    assert lines[THEIR_DEFINE] == {
+        "name": THEIR_DEFINE, "status": e4.OTHER_FILE, "form": None,
+        "line": f"`{THEIR_DEFINE}` is the other file's own; this file has no such definition",
+    }
+    # a renamed parameter is not a name the student invented, and the three below have nothing to correct
+    assert "v1" not in found["names"]
+    assert found["unlined"] == [AVAILABLE, "__m512i"]
+    # the feature diagnostics' two names ride with the invented ones, deduplicated
+    assert found["names"][-1] == "_mm512_abs_epi32"
+    assert found["names"].count(NOT_HERE_BARE) == 1
+
+
+def test_a_diagnostics_name_is_read_even_where_nothing_was_invented(lattice):
+    """clang's `always_inline` refusal is a name the body wrote and this file cannot use, and no `invented`."""
+    row = {
+        "invented": [],
+        "grade": {
+            "diagnostics": [
+                {
+                    "message": f"always_inline function '{NOT_HERE_FORM}' requires target feature 'avx512f',"
+                    " but would be inlined into function 'hsum256_ps' which was not compiled for it",
+                    "severity": "error",
+                }
+            ]
+        },
+    }
+    found = facts_for(lattice, row)
+    assert found["names"] == [NOT_HERE_FORM]
+    assert found["facts"][0]["status"] == e4.NOT_HERE
+
+
+def test_past_ten_lines_the_section_counts_what_it_left_out(lattice):
+    """Ten lines, then one sentence: a cut nobody is told about is a fact the record does not carry."""
+    names = tuple((f"_mm512_made_up_{n}_ps", "intrinsic") for n in range(0, 13))
+    found = facts_for(lattice, graded_names(names))
+    assert len(found["facts"]) == 13 and found["unlined"] == []
+    text = e4.loop_retry("It did not compile.", found)
+    body = text.split(e4._LOOP_HEADING)[1].strip().splitlines()
+    assert len(body) == 11
+    assert body[-1] == "(3 more names.)" == e4.LOOP_MORE.format(count=3)
+    assert body[0].startswith("`_mm512_made_up_0_ps` is declared by no header")
+    # S-3hd's own text is never cut to make room
+    assert text.startswith("It did not compile.\n\n")
+
+
+def graded_names(names):
+    """The least of a graded row `loop_facts` reads: the invented names, and no diagnostics."""
+    return {"invented": [{"name": name, "bucket": bucket} for name, bucket in names], "grade": {}}
+
+
+def test_a_retry_with_no_line_is_s3hds_byte_for_byte(lattice):
+    """Where no name has a line, the two arms are one question — which is what makes the pair a tie there."""
+    found = facts_for(lattice, graded_names(((AVAILABLE, "intrinsic"), ("v1", "param"))))
+    assert found["facts"] == [] and found["unlined"] == [AVAILABLE]
+    assert e4.loop_retry("It did not compile.", found) == "It did not compile."
+
+
+def test_s3hf_carries_the_lines_under_one_heading_and_records_them_as_data(tmp_path, lattice):
+    _, run_dir = loop_run(tmp_path, lattice)
+    e4.run(run_dir, FIXTURE, counting_generator(lattice), pass_grade(), ceiling_usd=1.0)
+
+    plain = later(run_dir, "S-3hd", "hsum256_ps")[0]
+    facts = later(run_dir, "S-3hf", "hsum256_ps")[0]
+    said, mine = plain["messages"][-1]["content"], facts["messages"][-1]["content"]
+    assert mine.startswith(f"{said}\n\n")  # S-3hd's text, then the section, and nothing between
+    assert e4._LOOP_HEADING in mine and "of the names above" in mine
+    assert f"`{NOT_HERE_FORM}` is not available in this file; its form here: `_mm256_setzero_si256`" in mine
+    # an available name is the subject of no line — it is only ever offered as another name's form here
+    section = mine.split(e4._LOOP_HEADING)[1]
+    assert f"`{AVAILABLE}` is" not in section and f"here: `{AVAILABLE}`" in section
+    # and what it served is on the request as data, not only as prose
+    zero = {found["id"]: found for found in rows_of(run_dir)}[e1.request_id("hsum256_ps", "S-3hf", 0, 0)]
+    assert facts["loop_facts"] == facts_for(lattice, zero)["facts"]
+    assert [fact["line"] for fact in facts["loop_facts"]] == section.strip().splitlines()
+    assert {fact["status"] for fact in facts["loop_facts"]} == {e4.NOT_HERE, e4.NOWHERE, e4.OTHER_FILE}
+    assert facts["unlined"] == [AVAILABLE, "__m512i"]
+    # the turns before the retry are round 0's own, so the two arms differ in the one user turn
+    assert plain["messages"][:-1] == facts["messages"][:-1]
+
+
+def test_a_chain_with_no_line_is_one_request_and_two_graded_rows(tmp_path, lattice):
+    """The shared seed, doing its work: one question, one answer, and both arms' rows written from it."""
+    _, run_dir = loop_run(tmp_path, lattice)
+    generate = counting_generator(lattice)
+    e4.run(run_dir, FIXTURE, generate, pass_grade(), ceiling_usd=1.0)
+
+    both = {arm: later(run_dir, arm, "sqdiff_epu8")[0] for arm in e4.LOOP_ARMS}
+    assert both["S-3hd"]["messages"] == both["S-3hf"]["messages"]
+    assert both["S-3hd"]["params"] == both["S-3hf"]["params"]  # the seed is "S-3h"'s for either arm
+
+    # one call, and in it only one of the two ids: the other was answered from the same completion
+    sent = [call for call in generate.calls if any("|1" in asked for asked in call)]
+    assert len(sent) == 1
+    asked = set(sent[0])
+    assert len(asked & {both[arm]["id"] for arm in e4.LOOP_ARMS}) == 1
+    # the chain with lines is two questions, because its two retries are two different texts
+    assert len(asked & {e1.request_id("hsum256_ps", arm, 0, 1) for arm in e4.LOOP_ARMS}) == 2
+
+    rows = {row["id"]: row for row in rows_of(run_dir) if row["round"] == 1}
+    for arm in e4.LOOP_ARMS:
+        row = rows[e1.request_id("sqdiff_epu8", arm, 0, 1)]
+        assert row["class"] == "pass" and row["extract"]["body"]
+    call = [json.loads(line) for line in (run_dir / e1.CALLS).read_text().splitlines()][0]
+    assert call["deduplicated"] == 1 and call["requests"] == 3
+
+
+def test_no_gold_reaches_a_retry_that_the_source_did_not_already_carry(tmp_path, lattice):
+    """The one turn D-13 adds is names and statuses, and no body of the held-out file.
+
+    The **added** turn is the scope, and deliberately: the turns before it are round 0's own prompt, already
+    held to this property where S-3h is built (`test_no_gold_enters_an_s3h_prompt_that_is_not_a_shot`), plus
+    the assistant turn, which is the model's own text — here the fake's, which answers with the gold on
+    purpose, so reading the whole conversation would fail on the fake and say nothing about the retry.
+    """
+    _, run_dir = loop_run(tmp_path, lattice)
+    e4.run(run_dir, FIXTURE, counting_generator(lattice), pass_grade(), ceiling_usd=1.0)
+    gold = golds(lattice, "avx2")
+    for request in later(run_dir):
+        added = request["messages"][-1]["content"]
+        assert not token_run(tokens(added), tokens(gold[request["unit"]]))
+        for other in e4.units(lattice, "avx2"):
+            assert not token_run(tokens(added), tokens(gold[other.name])), (request["id"], other.name)
+
+
+def test_a_moved_instrument_is_refused_before_anything_is_sent(tmp_path, lattice):
+    for what, name in (("available", "available.json"), ("intrinsics", "intrinsics.json")):
+        into = tmp_path / what
+        into.mkdir()
+        _, run_dir = loop_run(into, lattice)
+        (into / name).write_text("{}", encoding="utf-8")
+        generate = counting_generator(lattice)
+        with pytest.raises(e4.LoopMoved) as refused:
+            e4.run(run_dir, FIXTURE, generate, pass_grade(), ceiling_usd=1.0)
+        assert "now digests" in str(refused.value) and "nothing was sent" in str(refused.value)
+        assert generate.calls == []
+        assert not any(row["round"] == 1 for row in rows_of(run_dir))
+
+
+def test_the_file_level_takes_a_round_one_pass_where_round_zero_failed(tmp_path, lattice):
+    """A loop run's file is each chain's **final** row, so a rescued unit is in it and a `wrong` one is not."""
+    _, run_dir = loop_run(tmp_path, lattice)
+    summary = e4.run(run_dir, FIXTURE, counting_generator(lattice), pass_grade(), ceiling_usd=1.0)
+    level = {row["arm"]: row for row in summary["file_level"]}
+    assert sorted(level) == ["S-3hd", "S-3hf"]
+    for row in level.values():
+        # the two retried units passed at round 1 and are in the file; `popcount_avx2` stayed `wrong`
+        assert "hsum256_ps" in row["unit_names"] and "sqdiff_epu8" in row["unit_names"]
+        assert "popcount_avx2" not in row["unit_names"]
+        assert row["units_passed"] == 26 and row["units"] == 27
 
 
 # MARK: - S-2o: the student's own passed bodies as shots -

@@ -31,6 +31,8 @@ their bodies would be gold in a prompt, and a body reaches a prompt only as an a
 | **S-2o** | S-2 plus the student's **own passed bodies** on the type and metric axes | growing a file from its own work |
 | **S-2h** | for a **helper**, the shots rule W's **name family** serves; for every other kind, S-2 byte for byte | pattern where the grid has no neighbour |
 | **S-3h** | S-2h plus **what this file can use** of what those shots use: the intrinsics by availability, and the other file's own names | the ISA's own facts |
+| **S-3hd** | S-3h's round 0, copied, and **one retry round**: E1's own feedback | the retry |
+| **S-3hf** | S-3hd's retry plus **one fact line per name the answer named** | the facts in the loop |
 
 **Rule W, the helper's name family** (D-11 a, pre-registered before this build). E4's record named the
 file's weak point: the three native files' 13, 6 and 12 helpers pass at 0.00 to 0.23 in every arm, and
@@ -104,9 +106,36 @@ the per-unit reading, :func:`file_level` builds the file **the student actually 
 greedy body where that unit passed, gold elsewhere, compiled and graded once over every slot the file
 installs, written to `final/<arm>/` with a unified diff against the target's own file.
 
+**S-3hd and S-3hf put the facts in the loop** (D-13 a, pre-registered before this build). D-12's reading
+was that the block is *read and not acted on*: on sse2, 132 of S-3h's 194 invented intrinsics are exactly
+the same-width rename the block had said has no form here. So D-13 asks the same fact again where the
+compiler has just disagreed with the student — in a **retry** — and asks it two ways, one variable apart:
+
+- **round 0 is D-12's own S-3h, copied and not asked** (:func:`loop`). One file's S-3h requests and graded
+  rows are copied twice, as S-3hd and S-3hf, with only `arm` and `id` changed: `messages`, `params`,
+  `grade`, `text` and `class` are the source run's, so the two arms start from one answer and round 0 costs
+  nothing. The run records the source's directory and the digests of its three files, and it **refuses**
+  (:class:`LoopSource`) a source with no S-3h, an S-3h request with no graded row, or one missing any of
+  the four fields it would carry over (`target_sha`, `model`, `k`, `params`).
+- **a chain is retried at round 1 when its round-0 class is `invented` or `compile`** (:data:`RETRY_CLASSES`),
+  in both arms; every other class keeps its round-0 row as its final row.
+- **S-3hd's retry is E1's own**, byte for byte what `e1._retry` sends. **S-3hf's is that text plus one
+  section** of fact lines for the names the round-0 answer named (:func:`loop_facts`): every invented name
+  that is not a renamed parameter, and every name clang's feature diagnostics quoted. A name available
+  here, a type, a local — anything the rule has nothing to say about — gets **no line** and is counted
+  `unlined`, and where no name has a line **S-3hf's retry is S-3hd's byte for byte**.
+- **the two arms share round 1's seed** (`seed(model, cell, "S-3h", sample, 1)`), so a chain with no fact
+  line is *one* request: `e1._call` sends one question once and writes both rows from the one answer. That
+  is what makes the pair an exact tie where the facts have nothing to add, and it is why the difference
+  between the arms is the lines and not the draw.
+
+Registered: **S-3hf − S-3hd through round 1**, paired by unit, and **S-3hf's round 0 against its final rows
+through round 1** — which cannot be negative by construction, and says so wherever it is printed.
+
 **What this module does not hold.** No model appears in it: the generator and the grader are injected
 callables, exactly as in :mod:`lattice.e1`, whose loop, ceiling, resume and pricing this module reuses
-whole with `rounds=0` — E4 does not iterate.
+whole — at `rounds=0` for every arm but D-13's, which runs E1's own iterate loop at `rounds=1` through the
+hooks `e1.run` lends out.
 """
 
 from __future__ import annotations
@@ -134,6 +163,8 @@ __all__ = [
     "ARMS",
     "AVAILABLE_HERE",
     "COMPARISONS",
+    "DECLARED_NOWHERE",
+    "DECLARED_NOWHERE_FORM",
     "FACTS_ARMS",
     "FACTS_ISA_ARMS",
     "FAMILY_ARMS",
@@ -144,7 +175,20 @@ __all__ = [
     "K",
     "KINDS",
     "LATER",
+    "LOOP_ARMS",
+    "LOOP_CARRIED",
+    "LOOP_MAX_LINES",
+    "LOOP_MORE",
+    "LOOP_PAIR",
+    "LOOP_ROUNDS",
+    "LOOP_SOURCE_ARM",
+    "LOOP_SOURCE_FILES",
     "NEIGHBOUR_FAILED",
+    "NOT_HERE",
+    "NOWHERE",
+    "OTHER_FILE",
+    "RETRY_CLASSES",
+    "UNLINED",
     "NOT_AVAILABLE",
     "NOT_AVAILABLE_FORM",
     "NOTHING_IN_SHOTS",
@@ -166,12 +210,15 @@ __all__ = [
     "PARSER_SYSTEM",
     "PARSE_MAX_TOKENS",
     "PARSE_STAGE",
+    "POOL_ARMS",
     "RUNG",
     "SHOT_ARMS",
     "SYSTEM",
     "WIDTH",
     "Designated",
     "DuplicateDefinition",
+    "LoopMoved",
+    "LoopSource",
     "NoAvailability",
     "NoFields",
     "Own",
@@ -187,6 +234,10 @@ __all__ = [
     "file_level",
     "fill_units",
     "helper_siblings",
+    "loop",
+    "loop_facts",
+    "loop_names",
+    "loop_retry",
     "meta",
     "messages",
     "other_natives",
@@ -201,6 +252,8 @@ __all__ = [
     "read_api",
     "read_fields",
     "reaching_cells",
+    "registered_pair",
+    "registered_rounds",
     "requests_for",
     "run",
     "shots",
@@ -228,6 +281,34 @@ FIELD_ARMS = ("S-5",)
 #: The arms that carry the **held-out file's own availability** — which of the shots' intrinsics this file
 #: can use, and which of their names are the other file's (D-12 a). One arm, and it is S-2h plus the block.
 FACTS_ISA_ARMS = ("S-3h",)
+
+#: **D-13's two arms** (D-13 a): one round-1 retry each, from one copied S-3h round 0. `S-3hd` is E1's own
+#: retry and `S-3hf` is that text plus the fact lines, which is the one variable between them.
+LOOP_ARMS = ("S-3hd", "S-3hf")
+
+#: The arm a D-13 run's round 0 is copied from, and — because both arms share it — the arm round 1's seed
+#: is made from. Two byte-identical retries are then one request and one answer (`e1._distinct`).
+LOOP_SOURCE_ARM = "S-3h"
+
+#: The round-0 classes a chain is retried from (D-13 a). `invented` and `compile` are the two the block is
+#: aimed at: a name that resolves nowhere, and a body the compiler refused. Every other class — `wrong`,
+#: `edge`, `no-body`, `not-installed`, `pass` — keeps its round-0 row as its chain's final row.
+RETRY_CLASSES = ("invented", "compile")
+
+#: One retry round, and one only (D-13 a): K-3's lightest form.
+LOOP_ROUNDS = 1
+
+#: The registered pair, read `second − first` through round :data:`LOOP_ROUNDS`, over every unit.
+LOOP_PAIR = LOOP_ARMS
+
+#: How many fact lines one retry carries before it says how many it left out. S-3hd's own text is never
+#: cut to make room for them: the variable between the arms is what the lines add, not what they displace.
+LOOP_MAX_LINES = 10
+
+#: The arms every reader will take as an arm name, D-13's included. :data:`ARMS` stays the arms a **plan**
+#: may ask for — a loop arm's round 0 is copied and never built, so `e4 plan --arms S-3hd` would be a
+#: request for a prompt this module does not write.
+POOL_ARMS = (*ARMS, *LOOP_ARMS)
 
 #: The arms whose shots a **helper** gets by rule W's name family rather than by the grid (D-11 a). Every
 #: other kind of unit reads these arms as S-2 does, byte for byte. S-3h is one of them because its shots
@@ -341,6 +422,23 @@ OTHERS_ONE = "`{name}` is the other file's own; this file's: `{mine}`"
 OTHERS_AMBIGUOUS = "`{name}` is the other file's own; this file's candidates: {mine} (ambiguous)"
 OTHERS_NONE = "`{name}` is the other file's own; this file has no such definition"
 
+#: D-13's two further lines, for a name **no header of this compiler declares** — the 34% class of D-12's
+#: step 0, which no fact about the shots can reach and which the availability record cannot answer either:
+#: it only holds what this file's own includes declare. The intrinsic index is what says "nowhere".
+DECLARED_NOWHERE_FORM = "`{name}` is declared by no header of this compiler; its form here: `{form}`"
+DECLARED_NOWHERE = "`{name}` is declared by no header of this compiler, and no same-named form is"
+
+#: What a retry says of the lines past :data:`LOOP_MAX_LINES`. A count, not a silent cut.
+LOOP_MORE = "({count} more names.)"
+
+#: A fact line's status, on the request's record. :data:`NOT_HERE` is declared somewhere and not available
+#: here, :data:`NOWHERE` is declared by no header at all, :data:`OTHER_FILE` is another kernel file's own
+#: definition, and :data:`UNLINED` is not a status but the count of names the rule had nothing to say about.
+NOT_HERE = "not-here"
+NOWHERE = "nowhere"
+OTHER_FILE = "other-file"
+UNLINED = "unlined"
+
 #: What S-5 says for a unit whose parse did not come back as the two fields. The reason is the parser
 #: row's own, so a reader of the prompt meets the same sentence a reader of `parser.jsonl` does. The arm
 #: is never filled empty and never filled from somewhere else.
@@ -361,6 +459,12 @@ _OWN_HEADING = "The same function on this file's other axes, as you wrote it and
 _AVAILABLE_HEADING = (
     "What this file can use, of what the examples above use (read from this file's own includes under its "
     "build flags, and from its own definitions):"
+)
+#: S-3hf's heading (D-13 a, as worded). It is S-3h's sentence with "of what the examples above use" replaced
+#: by "of the names above": the names are the model's own answer's this time, not the shots'.
+_LOOP_HEADING = (
+    "What this file can use, of the names above (read from this file's own includes under its build "
+    "flags, and from its own definitions):"
 )
 _CALLS_HEADING = "What this function calls, read from the project's graph and the compiler's own key:"
 _FIELDS_HEADING = "What this function must do:"
@@ -394,6 +498,20 @@ _IDENT = re.compile(r"[A-Za-z_]\w*")
 #: used. It cannot make an unavailable name read as available — only add a line about one nobody calls.
 _INTRINSIC = re.compile(r"\b(_mm\w*|_cvt\w*)\s*\(")
 
+#: An intrinsic-**shaped** name, for D-13's lines: the whole token, not a call site. A retry's names come
+#: off the graded row's `invented` list and the compiler's diagnostics, where there is no `(` to key on.
+_INTRINSIC_SHAPED = re.compile(r"\A(?:_mm|_cvt)\w*\Z")
+
+#: clang's two feature refusals, the forms D-13's step 0 read on D-12's rows:
+#: `always_inline function '_mm256_add_ps' requires target feature 'avx2', but would be inlined into …`
+#: and `'_mm512_abs_epi32' needs target feature avx512vl`. The name they quote is a name the body wrote and
+#: this file cannot use, which is the same fact a line carries and is not in `invented` (it compiled far
+#: enough to be *declared*), so the two sources are read together and deduplicated.
+_FEATURE_DIAGNOSTICS = (
+    re.compile(r"always_inline function '(\w+)' requires target feature"),
+    re.compile(r"'(\w+)' needs target feature"),
+)
+
 #: A file-scope `static` object: `static const char popcount_lut_bytes[32] = {…}`. The name is the one a
 #: `[` or an `=` follows, and the line is one **outside every definition** — a parameter written `int a[]`
 #: would otherwise read as an object of the file.
@@ -418,6 +536,25 @@ class NoAvailability(Exception):
     row missing. Worse here than elsewhere — an empty availability table marks **every** intrinsic
     unavailable, so the arm would not be merely silent but actively wrong, and the run would read as a
     finding about the block rather than about the missing record.
+    """
+
+
+class LoopSource(Exception):
+    """A D-13 run's round 0 cannot be copied from that source run, so nothing was written.
+
+    Its own type (P10, ADR-036), and a refusal rather than a smaller run. D-13's whole design is that round
+    1 is asked from **D-12's own round 0**: a source with no S-3h, an S-3h request the source never graded
+    (an unfinished run), or one whose model, `k`, `params` or `target_sha` this plan cannot carry over is
+    not that round 0, and a run built from it would report a comparison against something else.
+    """
+
+
+class LoopMoved(Exception):
+    """The availability record or the intrinsic index is not the bytes the loop's plan was written from.
+
+    Its own type, and the same refusal :class:`~lattice.e1.TargetMoved` is: the fact lines a retry carries
+    are one compiler's answer at one moment, and a run that read half its lines from one record and half
+    from another would put two instruments under one reading without either of them saying so.
     """
 
 
@@ -906,6 +1043,130 @@ def _other_line(row: dict) -> str:
             name=row["name"], mine=", ".join(f"`{mine}`" for mine in row["mine"])
         )
     return OTHERS_NONE.format(name=row["name"])
+
+
+# MARK: - D-13's fact lines: the same facts, in the loop -
+
+
+def loop_facts(lattice: Lattice, isa: str, row: dict, record: dict, index: dict) -> dict:
+    """The fact lines for one graded round-0 row (D-13 a): the names it named, and what this file has.
+
+    *record* is :func:`lattice.available.load`'s — the compiler's answer for the **held-out** file, read
+    under the grader's own flags — and *index* is the intrinsic index (`facts/intrinsics-clang18.json`),
+    a JSON object keyed by intrinsic name. Both are needed and they answer different questions: the record
+    says what *this file* can use, and only the index can say a name is declared by **no** header of this
+    compiler, since the record holds nothing but what this file's own includes declare.
+
+    The names are the pre-registration's two sources, in first-appearance order and deduplicated: every
+    `invented` entry whose bucket is not :data:`lattice.e1.PARAM` — a renamed parameter is the runner's own
+    re-bucketing and not a name the student invented — then every name clang's feature diagnostics quoted
+    (:data:`_FEATURE_DIAGNOSTICS`).
+
+    A name the rule has nothing to say about gets **no line** and lands in `unlined`: one available here
+    (there is nothing to correct), a type, a local, and anything not intrinsic-shaped that no other kernel
+    file defines either. `facts` is the lines in the names' own order, each `{"name", "status", "form",
+    "line"}`.
+    """
+    table = available_of.names_for(record, isa)
+    mine = file_scope(lattice, isa)
+    ordered = units(lattice, isa)
+    names = loop_names(row)
+    facts: list[dict] = []
+    unlined: list[str] = []
+    for name in names:
+        found = _loop_fact(lattice, isa, name, table, index, mine, ordered)
+        (facts if found is not None else unlined).append(found if found is not None else name)
+    return {"names": names, "facts": facts, "unlined": unlined}
+
+
+def loop_names(row: dict) -> list[str]:
+    """The names one graded row named, deduplicated in first-appearance order (the two sources above)."""
+    found: list[str] = []
+    for entry in row.get("invented") or ():
+        name = entry.get("name")
+        if name and entry.get("bucket") != e1.PARAM and name not in found:
+            found.append(name)
+    for diagnostic in (row.get("grade") or {}).get("diagnostics") or ():
+        message = diagnostic.get("message") or ""
+        for pattern in _FEATURE_DIAGNOSTICS:
+            for quoted in pattern.findall(message):
+                if quoted not in found:
+                    found.append(quoted)
+    return found
+
+
+def _loop_fact(
+    lattice: Lattice,
+    isa: str,
+    name: str,
+    table: dict[str, dict],
+    index: dict,
+    mine: dict[str, str],
+    ordered: Sequence[Unit],
+) -> dict | None:
+    """One name's line, or `None` where the rule has nothing to say about it (:data:`UNLINED`)."""
+    if _INTRINSIC_SHAPED.match(name):
+        entry = table.get(name) or {}
+        if entry.get("available"):
+            return None  # the body may use it: there is nothing here to correct
+        form = available_of.rename(name, isa, table)
+        declared = name in table or name in index
+        status = NOT_HERE if declared else NOWHERE
+        if declared:
+            line = (
+                NOT_AVAILABLE_FORM.format(name=name, form=form) if form else NOT_AVAILABLE.format(name=name)
+            )
+        else:
+            line = (
+                DECLARED_NOWHERE_FORM.format(name=name, form=form)
+                if form
+                else DECLARED_NOWHERE.format(name=name)
+            )
+        return {"name": name, "status": status, "form": form, "line": line}
+
+    if name in mine:
+        return None  # this file defines it, so the student may write it
+    for other in other_natives(lattice, isa):
+        theirs = file_scope(lattice, other)
+        if name not in theirs:
+            continue
+        candidates = (
+            [unit.name for unit in ordered if family_key(unit.name) == family_key(name)]
+            if theirs[name] == "function"
+            else []
+        )
+        return {
+            "name": name,
+            "status": OTHER_FILE,
+            "form": candidates[0] if len(candidates) == 1 else None,
+            "line": _other_line(
+                {
+                    "name": name,
+                    "mine": candidates,
+                    "status": "one" if len(candidates) == 1 else AMBIGUOUS if candidates else "none",
+                }
+            ),
+        }
+    return None
+
+
+def loop_retry(base: str, found: dict) -> str:
+    """S-3hf's retry: *base* — S-3hd's own text — then one section of fact lines, where there are any.
+
+    `base` is **never cut**: the one variable between the two arms is what the lines add, so a retry whose
+    lines crowded the graders' own message out would be two variables. Past :data:`LOOP_MAX_LINES` the
+    section says how many names it left out (:data:`LOOP_MORE`) rather than stopping silently. Where no
+    name has a line this returns *base* unchanged, which is what makes the two arms' retries byte-identical
+    on such a chain.
+    """
+    lines = [fact["line"] for fact in found["facts"]]
+    if not lines:
+        return base
+    shown = lines[:LOOP_MAX_LINES]
+    if len(lines) > LOOP_MAX_LINES:
+        shown.append(LOOP_MORE.format(count=len(lines) - LOOP_MAX_LINES))
+    body = "\n".join(shown)
+    return f"{base}\n\n{_section(_LOOP_HEADING, body)}"
 
 
 # MARK: - S-2o's own-pass shots -
@@ -1609,6 +1870,131 @@ def meta(
     return record
 
 
+# MARK: - D-13's plan: one source run's round 0, copied twice -
+
+#: What a D-13 plan carries over from its source unchanged, and refuses to invent where the source has none.
+#: The model and the parameters because round 1 is asked of the same model at the same settings; `k` because
+#: the chains are the source's chains; `target_sha` because the bodies are graded against that tree.
+LOOP_CARRIED = ("model", "k", "params", "target_sha")
+
+#: The source's three files, whose digests a D-13 plan records: round 0 is their bytes and not this run's.
+LOOP_SOURCE_FILES = (e1.META, e1.REQUESTS, e1.ROWS)
+
+
+def loop(
+    source_dir: Path | str,
+    run_dir: Path | str,
+    *,
+    available_path: Path | str,
+    intrinsics_path: Path | str,
+) -> Path:
+    """Write a D-13 run: one finished E4 run's S-3h round 0, copied as S-3hd and S-3hf, with one round to go.
+
+    **Nothing is asked here and nothing is spent.** Each S-3h request and its graded row is written twice,
+    with only `arm` and `id` changed — `messages`, `params`, `grade`, `text`, `class` and the rest are the
+    source's bytes — so the two arms begin from one answer and the only thing between them is the retry that
+    :func:`run` will build. No `calls.jsonl` row is written either: round 0's spend is the source run's, and
+    a row here would count it twice.
+
+    *available_path* and *intrinsics_path* are the two instruments the lines are read with; their digests go
+    on the record and :func:`run` refuses when either file's bytes have moved (:class:`LoopMoved`).
+    """
+    source_dir, run_dir = Path(source_dir), Path(run_dir)
+    record = json.loads((source_dir / e1.META).read_text(encoding="utf-8"))
+    for field in LOOP_CARRIED:
+        if record.get(field) is None:
+            raise LoopSource(
+                f"{source_dir.name}'s {e1.META} has no {field}, and a D-13 run carries the source's "
+                f"{', '.join(LOOP_CARRIED)} over unchanged; nothing was written"
+            )
+
+    asked = [request for request in _read(source_dir / e1.REQUESTS) if request.get("arm") == LOOP_SOURCE_ARM]
+    if not asked:
+        raise LoopSource(
+            f"{source_dir.name} has no {LOOP_SOURCE_ARM} request; D-13's round 0 **is** {LOOP_SOURCE_ARM}'s, "
+            "so there is nothing to copy and nothing was written"
+        )
+    rows = {row["id"]: row for row in _read(source_dir / e1.ROWS)}
+    ungraded = [request["id"] for request in asked if request["id"] not in rows]
+    if ungraded:
+        raise LoopSource(
+            f"{source_dir.name} answered no row for {', '.join(ungraded[:5])}"
+            + (f" and {len(ungraded) - 5} more" if len(ungraded) > 5 else "")
+            + "; a D-13 run is retried from a graded round 0, so nothing was written"
+        )
+
+    requests = [_loop_copy(request, arm) for request in asked for arm in LOOP_ARMS]
+    copied = [_loop_copy(rows[request["id"]], arm) for request in asked for arm in LOOP_ARMS]
+    plan_record = dict(record)
+    plan_record.update(
+        {
+            "arms": list(LOOP_ARMS),
+            "rounds": LOOP_ROUNDS,
+            "iterate": list(LOOP_ARMS),
+            "retry_classes": list(RETRY_CLASSES),
+            "source": {
+                "run": source_dir.name,
+                "dir": str(source_dir),
+                "arm": LOOP_SOURCE_ARM,
+                "requests": len(asked),
+                "rows": len(asked),
+                **{
+                    f"{name}_sha256": hashlib.sha256((source_dir / name).read_bytes()).hexdigest()
+                    for name in LOOP_SOURCE_FILES
+                },
+            },
+            "loop": {
+                "arms": list(LOOP_ARMS),
+                "rounds": LOOP_ROUNDS,
+                "retry_classes": list(RETRY_CLASSES),
+                "seed_arm": LOOP_SOURCE_ARM,
+                "max_lines": LOOP_MAX_LINES,
+                "available": _loop_instrument(available_path),
+                "intrinsics": _loop_instrument(intrinsics_path),
+            },
+        }
+    )
+    written = e1.write_plan(run_dir, requests, plan_record)
+    # written, not appended: `write_plan` overwrites its two files, and a copy is not an answer — running
+    # this twice over one directory must leave one round 0 there and not two
+    (written / e1.ROWS).write_text(
+        "".join(f"{json.dumps(row, sort_keys=True)}\n" for row in copied), encoding="utf-8"
+    )
+    return written
+
+
+def _loop_copy(row: dict, arm: str) -> dict:
+    """One request or row under another arm's name: `arm` and `id`, and not one other field."""
+    return {
+        **row,
+        "arm": arm,
+        "id": e1.request_id(row["cell"], arm, row["sample"], row.get("round") or 0),
+    }
+
+
+def _loop_instrument(path: Path | str) -> dict:
+    """One instrument on the record: where it was read from, and the digest :func:`run` holds it to."""
+    path = Path(path)
+    return {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+
+
+def registered_pair(first: str, second: str, kind: str | None, through: int = 0) -> bool:
+    """Whether `second − first` over *kind*, read through round *through*, is a registered comparison.
+
+    :data:`COMPARISONS` is the round-0 list; D-13's pair is registered **through round 1** and over every
+    unit, because that is what its card registered — the same two arms read at round 0 alone is a tie by
+    construction (their round 0 is one row copied twice) and is a description of nothing.
+    """
+    if through <= 0:
+        return (first, second, kind) in COMPARISONS
+    return kind is None and (first, second) == LOOP_PAIR
+
+
+def registered_rounds(arm: str, rounds: Sequence[int]) -> bool:
+    """Whether one arm's round reading is D-13's second registered one: S-3hf, round 0 against round 1."""
+    return arm == LOOP_PAIR[1] and tuple(rounds) == (0, LOOP_ROUNDS)
+
+
 # MARK: - the loop -
 
 
@@ -1624,22 +2010,91 @@ def run(
 
     *generate* is E1's protocol unchanged. *grade* takes **E4's own entries** — a unit's
     `{"id", "unit", "isa", "body"}` and the file level's `{"id", "isa", "bodies"}` — and `e1.default_grade`
-    is one, since `lattice grade` reads both forms. E1's loop runs with `rounds=0`: E4 does not iterate,
-    so a unit is asked once and read once.
+    is one, since `lattice grade` reads both forms. E1's loop runs with `rounds=0` unless the plan says
+    otherwise: a unit is asked once and read once, except in a D-13 run (below).
 
     **S-2o then runs wave by wave** (:func:`_own_waves`), because its shots are this run's own graded
     output. Every other arm is answered in the first call; a run without S-2o among its arms makes exactly
     the one call it made before.
+
+    **A D-13 run iterates once** (:func:`loop`). `rounds`, `iterate` and `retry_classes` are read off
+    `meta.json`, so what a run does is the plan's and not this call's: a plan without them is `rounds=0`,
+    exactly as before. Where they are there, E1's loop runs with D-13's hooks — the retry builder, the two
+    retried classes and the seed both arms share — and the instruments' digests are checked first
+    (:class:`LoopMoved`).
     """
     run_dir = Path(run_dir)
     record = json.loads((run_dir / e1.META).read_text(encoding="utf-8"))
     isa = record["isa"]
     graded = _unit_grade(grade, isa)
-    summary = e1.run(run_dir, target, generate, graded, ceiling_usd=ceiling_usd, rounds=0, iterate=())
+    rounds = int(record.get("rounds") or 0)
+    iterate = tuple(record.get("iterate") or ())
+    hooks = _loop_hooks(target, record) if rounds and iterate else {}
+    summary = e1.run(
+        run_dir, target, generate, graded, ceiling_usd=ceiling_usd, rounds=rounds, iterate=iterate, **hooks
+    )
     if any(arm in OWN_ARMS for arm in record.get("arms") or ()):
         summary = _own_waves(run_dir, target, record, generate, graded, ceiling_usd, summary)
     summary["file_level"] = file_level(run_dir, target, grade)
     return summary
+
+
+def _loop_hooks(target: Path | str, record: dict) -> dict:
+    """D-13's four hooks for `e1.run`, with both instruments held to the digests the plan named.
+
+    The retry is the one place the two arms differ: S-3hd gets `e1._retry`'s text — called, not copied, so
+    there is one definition of what E1 sends back — and S-3hf gets that text plus :func:`loop_retry`'s
+    section. `fields` puts the lines on the fresh request as **data**, because a prompt is not a record:
+    what each name's status was is what the arm served, and reading it back out of prose afterwards would
+    be a second rule beside this one.
+    """
+    block = record.get("loop") or {}
+    available = _loop_read(block.get("available") or {}, "availability record")
+    index = _loop_read(block.get("intrinsics") or {}, "intrinsic index")
+    lattice = build_lattice(target)
+    isa = record["isa"]
+    named = block.get("seed_arm") or LOOP_SOURCE_ARM
+    facts = LOOP_PAIR[1]
+
+    def found(row: dict) -> dict:
+        return loop_facts(lattice, isa, row, available, index)
+
+    def retry(request: dict, row: dict) -> str:
+        base = e1._retry(request, row)
+        return loop_retry(base, found(row)) if request.get("arm") == facts else base
+
+    def fields(request: dict, row: dict) -> dict:
+        if request.get("arm") != facts:
+            # S-3hd carries no lines, by design: its record says so rather than leaving the field out
+            return {"loop_facts": [], "unlined": []}
+        lines = found(row)
+        return {"loop_facts": lines["facts"], "unlined": lines["unlined"]}
+
+    return {
+        "retry_classes": tuple(record.get("retry_classes") or RETRY_CLASSES),
+        "retry": retry,
+        "seed_arm": lambda arm: named,
+        "fields": fields,
+    }
+
+
+def _loop_read(block: dict, what: str) -> dict:
+    """One instrument's JSON, refused unless its bytes still digest to what the plan recorded."""
+    path = Path(block.get("path") or "")
+    digest = block.get("sha256")
+    if not block.get("path") or digest is None:
+        raise LoopMoved(f"the plan records no {what} for its fact lines, so nothing was sent")
+    try:
+        raw = path.read_bytes()
+    except OSError as missing:
+        raise LoopMoved(f"the {what} {path} could not be read ({missing}), so nothing was sent") from missing
+    now = hashlib.sha256(raw).hexdigest()
+    if now != digest:
+        raise LoopMoved(
+            f"the plan's {what} digested {digest[:12]} and {path} now digests {now[:12]}; its lines would "
+            "be another instrument's answer, so nothing was sent"
+        )
+    return json.loads(raw.decode("utf-8"))
 
 
 def _own_waves(
@@ -1739,6 +2194,10 @@ def file_level(
 
     The bodies are filled here and again by the grader, both by :func:`fill_units`, so the bytes written
     to `final/` are the bytes graded; `filled_sha256` is on both sides of that seam and on the row.
+
+    **On a loop run the chain's final row is the one that counts** (D-13): a unit retried at round 1 is
+    written from round 1 where that row passed, and from round 0 where it was never retried. A run with no
+    rounds reads exactly as before, since round 0 is then the only round there is.
     """
     run_dir, target = Path(run_dir), Path(target)
     record = json.loads((run_dir / e1.META).read_text(encoding="utf-8"))
@@ -1748,11 +2207,7 @@ def file_level(
     ordered = units(lattice, isa)
     by_name = {unit.name: unit for unit in ordered}
 
-    greedy = [
-        row
-        for row in _read(run_dir / e1.ROWS)
-        if row.get("round") == 0 and row.get("sample") == 0 and row.get("arm")
-    ]
+    greedy = _greedy_final(_read(run_dir / e1.ROWS), int(record.get("rounds") or 0))
     done = {row["arm"] for row in _read(run_dir / FILE_LEVEL)}
     made: list[dict] = []
     for arm in record.get("arms") or sorted({row["arm"] for row in greedy}):
@@ -1799,6 +2254,24 @@ def file_level(
     if made:
         _append(run_dir / FILE_LEVEL, made)
     return _read(run_dir / FILE_LEVEL)
+
+
+def _greedy_final(rows: Sequence[dict], through: int) -> list[dict]:
+    """Each (arm, unit) greedy chain's row of the **highest round ≤ through**, in the rows' own order.
+
+    With `through = 0` this is the round-0 greedy rows and nothing else, which is every run but D-13's.
+    """
+    best: dict[tuple[str, str], dict] = {}
+    for row in rows:
+        if row.get("sample") != 0 or not row.get("arm"):
+            continue
+        at_round = int(row.get("round") or 0)
+        if at_round > through:
+            continue
+        chain = (row["arm"], row["cell"])
+        if chain not in best or at_round > int(best[chain].get("round") or 0):
+            best[chain] = row
+    return list(best.values())
 
 
 def fill_units(text: str, filled: Sequence[tuple[Unit, str]]) -> str:
