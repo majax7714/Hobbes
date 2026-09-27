@@ -382,6 +382,30 @@ def test_e4_pool_over_every_kind_is_described_where_the_pair_is_not_registered(t
     assert "described, not a registered comparison" in compare.render_e4_pool(found)
 
 
+def test_e4_pool_reads_d12s_pair_over_every_unit_as_registered(tmp_path):
+    """D-12 a's `S-3h − S-2h` is registered with **no kind**: the block is stated for every unit."""
+    runs = [
+        write_e4_run(
+            tmp_path / f"pool-{isa}",
+            {("S-3h", FAMILY[isa]): True, ("S-3h", f"int8_distance_dot_{isa}"): True},
+            isa=isa,
+            arms=("S-2h", "S-3h"),
+        )
+        for isa in ("avx2", "sse2", "avx512")
+    ]
+    found = compare.e4_pool(runs, "S-2h", "S-3h")
+    assert found["kind"] is None and found["registered"] is True
+    assert all(row["units"] == {"S-2h": 4, "S-3h": 4} for row in found["runs"])
+    # every unit of every file, and the two the block moved in each of the three
+    assert found["paired"]["pass_at_1"] == {
+        "cells": 12, "both": 0, "neither": 6, "lost": 0, "gained": 6,
+        "delta": 0.5, "p": 0.03125,
+    }
+    assert "every unit(s); registered" in compare.render_e4_pool(found)
+    # asked for one kind it is a description, because that narrowing is not what was registered
+    assert compare.e4_pool(runs, "S-2h", "S-3h", "helper")["registered"] is False
+
+
 def test_e4_pool_refuses_one_isa_twice_or_runs_that_are_not_one_model(tmp_path):
     runs = pooled_runs(tmp_path)
     with pytest.raises(compare.NotComparable) as repeated:

@@ -13,7 +13,7 @@ import test_e1
 import test_e3
 import test_intrinsics
 
-from lattice import cli, corpus, e1, e4, prompts, run, shadow
+from lattice import available, cli, corpus, e1, e4, prompts, run, shadow
 from lattice.cells import build as build_lattice
 from lattice.holes import HOLE
 
@@ -325,6 +325,39 @@ def test_here_outside_a_container_exits_two_with_the_refusal(monkeypatch, capsys
     assert cli.main(["grade", str(FIXTURE), str(manifest), "--here"]) == 2
     err = capsys.readouterr().err
     assert "never happens on the host" in err and "ADR-092" in err
+
+
+def test_available_without_here_runs_itself_in_the_image(monkeypatch, tmp_path):
+    """The plan is pure data: the mounts, the inner verb writing through the work dir, and `--here` last."""
+    seen = {}
+
+    def plan_only(plan, **kwargs):
+        seen["plan"] = plan
+        (tmp_path / "work" / "available.json").write_text('{"avx2": {"names": {}}}')
+        return type("Done", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    monkeypatch.setattr(run, "run_plan", plan_only)
+    out = tmp_path / "available.json"
+    assert cli.main([
+        "available", str(FIXTURE), "--out", str(out), "--isa", "avx2",
+        "--work", str(tmp_path / "work"),
+    ]) == 0
+    plan = seen["plan"]
+    assert plan[0] == "podman" and plan[-1] == "--here"
+    assert "hobbes-session:local" in plan
+    assert f"{FIXTURE.resolve()}:/target:ro" in plan and f"{(tmp_path / 'work').resolve()}:/work:rw" in plan
+    # the record is written through the work mount, since the target rides read-only
+    assert plan[plan.index("--out") + 1] == "/work/available.json"
+    assert plan[plan.index("--isa") + 1] == "avx2"
+    assert json.loads(out.read_text()) == {"avx2": {"names": {}}}
+
+
+def test_available_here_outside_a_container_exits_two_with_the_refusal(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr(run, "in_container", lambda: False)
+    assert cli.main(["available", str(FIXTURE), "--out", str(tmp_path / "a.json"), "--here"]) == 2
+    err = capsys.readouterr().err
+    assert "never happens on the host" in err and "ADR-092" in err
+    assert not (tmp_path / "a.json").exists()
 
 
 def test_selftest_here_outside_a_container_exits_two(monkeypatch, capsys):
@@ -1222,17 +1255,62 @@ def test_e4_run_answers_s2o_in_waves_and_reports_both_comparisons(tmp_path, caps
     assert "S-5 − S-3" in table and "not built" not in table
 
 
-def run_an_e4_file(tmp_path, capsys, monkeypatch, name, *, isa="avx2", model="Qwen/Qwen2.5-Coder-7B-Instruct"):
-    """Plan and answer one file's S-2 and S-2h over a replay, and return the run directory.
+def hand_available(tmp_path, isa="avx2", name="available.json"):
+    """A hand-built availability record covering one ISA, so `e4 plan --available` has an input.
+
+    The compiler's own answer is `test_available.py`'s, over the three real `clang -E -dD` excerpts; here the
+    record only has to cover the ISA being held out, which is the one thing the CLI checks it for.
+    """
+    lattice = build_lattice(FIXTURE)
+    names = {
+        found: {"available": True, "needs": [], "header": "hand-built"}
+        for found in dict.fromkeys(re.findall(r"\b(_mm\w*|_cvt\w*)\s*\(", lattice.sources[isa].text))
+    }
+    path = tmp_path / name
+    path.write_text(
+        json.dumps(
+            {
+                isa: {
+                    "isa": isa,
+                    "file": f"src/distance-{isa}.c",
+                    "flags": ["-O2", "-Isrc", "-Ilibs", "-mavx2", "-mfma"],
+                    "clang": "hand-built, not a compiler",
+                    "target_sha": None,
+                    "names": names,
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def run_an_e4_file(
+    tmp_path,
+    capsys,
+    monkeypatch,
+    name,
+    *,
+    isa="avx2",
+    model="Qwen/Qwen2.5-Coder-7B-Instruct",
+    arms="S-2,S-2h",
+    available=None,
+):
+    """Plan and answer one file's arms over a replay, and return the run directory.
 
     The request ids carry no model, only the seeds do, so one replay answers a 7B run and a 32B run of the
     same plan — which is what `e4 compare` reads.
     """
     run_dir = tmp_path / name
-    assert cli.main([
+    argv = [
         "e4", "plan", str(FIXTURE), str(run_dir), "--model", model,
-        "--isa", isa, "--arms", "S-2,S-2h", "--k", "0",
-    ]) == 0
+        "--isa", isa, "--arms", arms, "--k", "0",
+    ]
+    if available is not None:
+        argv += ["--available", str(available)]
+    assert cli.main(argv) == 0
     capsys.readouterr()
     recorded = e4_completions_for(run_dir, isa=isa)
     fake_e4_grade(monkeypatch)
@@ -1319,6 +1397,76 @@ def test_e4_pool_pools_the_registered_comparison_over_the_files_and_refuses_a_re
     assert "no arm 'C-2'" in capsys.readouterr().err
     assert cli.main(["e4", "pool", str(avx2), str(sse2), "--pair", "S-2"]) == 2
     assert "--pair takes two arms" in capsys.readouterr().err
+
+
+def test_e4_plan_carries_s3h_with_an_availability_record_and_names_it(tmp_path, capsys):
+    """D-12 a at the CLI: `--available` is S-3h's input, and `meta.json` names the record it was built from."""
+    run_dir = tmp_path / "e4"
+    record = hand_available(tmp_path)
+    assert cli.main([
+        "e4", "plan", str(FIXTURE), str(run_dir), "--model", "M",
+        "--arms", "S-2h,S-3h", "--k", "0", "--available", str(record),
+    ]) == 0
+    printed = capsys.readouterr().out
+    assert "what this file can use:" in printed and "hand-built, not a compiler" in printed
+
+    meta = json.loads((run_dir / e1.META).read_text())
+    assert meta["arms"] == ["S-2h", "S-3h"]
+    assert meta["available"]["sha256"] == available.record_meta(record)["sha256"]
+    assert meta["available"]["isas"]["avx2"]["flags"] == ["-O2", "-Isrc", "-Ilibs", "-mavx2", "-mfma"]
+
+    requests = [json.loads(line) for line in (run_dir / e1.REQUESTS).read_text().splitlines()]
+    family = next(r for r in requests if r["arm"] == "S-3h" and r["unit"] == "hsum256_ps")
+    assert "What this file can use, of what the examples above use" in family["messages"][1]["content"]
+    assert [row["name"] for row in family["available"]["intrinsics"]][-1] == "_mm512_reduce_add_ps"
+    # S-2h's own request is the same prompt without the block, and carries none on its row
+    plain = next(r for r in requests if r["arm"] == "S-2h" and r["unit"] == "hsum256_ps")
+    assert plain["available"] is None
+    assert plain["shots"] == family["shots"]
+
+
+def test_e4_plan_skips_s3h_with_no_record_and_refuses_one_for_another_isa(tmp_path, capsys):
+    run_dir = tmp_path / "e4"
+    assert cli.main([
+        "e4", "plan", str(FIXTURE), str(run_dir), "--model", "M", "--arms", "S-2h,S-3h", "--k", "0",
+    ]) == 0
+    assert "S-3h skipped" in capsys.readouterr().err
+    assert json.loads((run_dir / e1.META).read_text())["arms"] == ["S-2h"]
+    assert json.loads((run_dir / e1.META).read_text())["available"] is None
+
+    # a record that covers another file is refused, naming the ISA it does not cover: never filled empty
+    elsewhere = hand_available(tmp_path, isa="sse2", name="sse2.json")
+    assert cli.main([
+        "e4", "plan", str(FIXTURE), str(tmp_path / "other"), "--model", "M", "--arms", "S-3h", "--k", "0",
+        "--available", str(elsewhere),
+    ]) == 2
+    err = capsys.readouterr().err
+    assert "does not cover avx2" in err and "never filled empty" in err
+    assert not (tmp_path / "other" / e1.META).exists()
+
+    assert cli.main([
+        "e4", "plan", str(FIXTURE), str(tmp_path / "third"), "--model", "M", "--arms", "S-3h",
+        "--available", str(tmp_path / "nowhere.json"),
+    ]) == 2
+    assert "the availability record could not be read" in capsys.readouterr().err
+
+
+def test_e4_pool_reads_d12s_pair_with_no_kind_as_registered(tmp_path, capsys, monkeypatch):
+    record = hand_available(tmp_path)
+    avx2 = run_an_e4_file(
+        tmp_path, capsys, monkeypatch, "d12-avx2", arms="S-2h,S-3h", available=record
+    )
+    assert cli.main(["e4", "pool", str(avx2), "--pair", "S-2h,S-3h", "--json"]) == 0
+    found = json.loads(capsys.readouterr().out)
+    # no --kind: the default is the kind the pair is registered on, which for D-12's is every unit
+    assert found["kind"] is None and found["registered"] is True
+    assert found["paired"]["pass_at_1"]["cells"] == 27
+
+    assert cli.main(["e4", "pool", str(avx2), "--pair", "S-2h,S-3h"]) == 0
+    assert "every unit(s); registered" in capsys.readouterr().out
+    # and D-11's pair still defaults to its own kind, which is the helper units
+    assert cli.main(["e4", "pool", str(avx2), "--pair", "S-2,S-2h", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["kind"] == "helper"
 
 
 def test_e4_run_without_a_ceiling_exits_two(tmp_path, capsys):
