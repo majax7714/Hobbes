@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-27 (twentieth session); Hobbes 0.2.71-beta on `main`.**
+**Reviewed 2026-09-27 (twenty-first session); Hobbes 0.2.71-beta on `main`.**
 Max pushed through the eighteenth session's last commit (`ea6cb28`,
-0.2.70-beta); the nineteenth and twentieth sessions' commits (0.2.71-beta, the E3/E4/D-11 bench work and docs)
+0.2.70-beta); the nineteenth to twenty-first sessions' commits (0.2.71-beta, the E3/E4/D-11 to D-13 bench work and docs)
 are on `main`, unpushed. The image and the proxy are at 0.2.71-beta and this repo
 is ingested at that release. A new
 session's knowledge server is a new container from the current image
@@ -28,28 +28,31 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-27, twentieth session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-27, twenty-first session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Two tracks are open.**
-- **The Calvin experiments: D-12 is run and read, and D-13 waits for Max** (twentieth session;
-  `calvin-experiments.md` §6 "D-11's record" and "D-12's record", §9 D-13).
-  - **D-12** (about $0.67; runner unit `7e20`, merged with two review fixes to `available.parse`):
-    - **S-3h** is S-2h plus a block giving, for each intrinsic and sibling-file name the unit's shots use,
-      whether this file has it and its form here. Availability is read as the grader meets it
-      (`lattice available`, in the image; the record is `d12/available-record.json`).
-    - **Null:** S-3h − S-2h is +0.011 pooled (p 0.59).
-    - On sse2, 132 of 194 invented intrinsics are the renames the block said have no form here. The student
-      renames the shot itself and disregards the negative.
-    - The init passes 1.00 on all three files, where the block maps the other files' names.
+- **The Calvin experiments: D-13 is run and read, and D-14 waits for Max** (twenty-first session;
+  `calvin-experiments.md` §6 "D-12's record" and "D-13's record", §9 D-14).
+  - **D-13** (about $0.32 of $1.50; runner unit `b6dd`, merged with a docstring fix; `lattice e4 loop`):
+    - One retry round from D-12's own S-3h round 0 (no new round-0 call), asked two ways: **S-3hd**, E1's
+      feedback, and **S-3hf**, the same plus a line per named name. They share a seed, so a chain with no line
+      is one request.
+    - **Null:** S-3hf − S-3hd through round 1 is −0.001 pooled (p 1.0). The retry alone buys +0.02
+      (p ≤ 0.0002 in each arm).
+    - On the lined chains, the student drops the ruled-out name (131 against 161 rows) and invents another.
+      Of the 477 intrinsic lines, 476 were negatives.
 
-    Records: `~/.hobbes/bench/calvin-lattice/d12/` (`PREREG.md`, `avail.py`, `probe.py`, `classes.py`,
-    `run-isa.sh`, `run-7b-<isa>/`, `report-*`, `pool-7b*`).
-  - **D-13** (recommended a): the facts in the loop. One iterate round for E4: a failed unit goes back once
-    with the grader's diagnostic and the block's line for each invented name. It is a no-spend runner unit,
-    then about $0.3–0.5. Or b: S-3h on the 32B (about $1.7). Or c: close E4's line.
+    Records: `~/.hobbes/bench/calvin-lattice/d13/` (`PREREG.md`, `probe.py`, `run-isa.sh`, `run-7b-<isa>/`,
+    `report-*`, `pool-7b-*`, `classes-round1.txt`).
+  - **D-14** (recommended a): a **positive** fact, probed first with no spend. Does a written rule (the same
+    operation stem at this width, or the gold's own call at the site) name an available intrinsic for what the
+    student reached for, and how often is it the gold's? Only if it reaches, an arm (about $0.3). Or b: S-3h on
+    the 32B (about $1.7). Or c: close E4's line.
+  - **D-12** (about $0.67; runner `7e20`): S-3h, the ISA's facts beside the shots, null (+0.011, p 0.59). The
+    student disregards the negatives, and the init uses the positive name mappings. Records: `d12/`.
   - **D-11** (about $2.11 of $5; runner `e735`):
     - rule W, the width family (26 of 31 helpers);
     - S-2h − S-2 on helpers +0.261 pooled (p 0.0001), with sse2 unmoved;
@@ -393,7 +396,7 @@ named below was removed unless it says otherwise.
    - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
      E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
-     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; next: D-13 (START HERE). Drivers:
+     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run, twenty-first; next: D-14 (START HERE). Drivers:
      `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
      <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
      history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its
@@ -543,8 +546,8 @@ min each.
   C-153's rows.
 - **Suites** at 0.2.71-beta (2026-09-26, every suite re-run on the host): 2,412 pytest
   (`lane_b` 17 of them, run in the rebuilt image at 0.2.71-beta), Go `./...` 399 with
-  subtests (398 pass / 1 skip), 97 scip node, 47 tsextract, 52 vitest, 84 atlas0, 625
-  lattice (593 pass / 32 skip without clang, after D-12's unit); oracle-lane Go 129 with subtests, 117 pass /
+  subtests (398 pass / 1 skip), 97 scip node, 47 tsextract, 52 vitest, 84 atlas0, 656
+  lattice (624 pass / 32 skip without clang, after D-13's unit); oracle-lane Go 129 with subtests, 117 pass /
   12 skip on this host, which has no clang++ or cmake (the C++ fixture tests run and pass
   in the image).
 - **Disk:** `~/.hobbes` is about 50 GB plus the C++ cells (ScummVM's

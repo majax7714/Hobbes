@@ -1335,6 +1335,61 @@ one to this file's name. **A name mapping was used; a negative ("no form here") 
 E1's runner already has the iterate loop that E4 runs at zero rounds). Or the same block on the 32B, which may
 read what the 7B does not.
 
+#### D-13's record — the facts in the loop (2026-09-27; ceiling $1.50, spent ≈ $0.32)
+
+**What ran.**
+- **Pre-registered** before the build: `~/.hobbes/bench/calvin-lattice/d13/PREREG.md`, with step 0's probe
+  (`probe.py`).
+- **The runner:** session `b6dd` (165 of 180 turns, $26.94 on the subscription), merged with one docstring fix.
+  It adds `lattice e4 loop`, which copies a finished run's S-3h round 0 as two arms, and E1's loop lent to E4
+  through four hooks that leave E1 byte for byte.
+  - **S-3hd** is retried with E1's own feedback.
+  - **S-3hf** gets the same text plus one line per named name.
+  - Both share round 1's seed, and an identical request is sent once.
+- **Checked on the real rows before any call.** Round 0 is copied exactly (0 mismatches). S-3hd's retries are
+  E1's byte for byte. The retried and lined counts and the line statuses equal step 0's, and 959 requests are
+  sent, the pre-registration's figure.
+- **7B**, one retry round from D-12's S-3h round 0 on the three native files:
+  - costs: avx2 $0.094 (worst-case estimate $0.225), sse2 $0.095, avx512 $0.135;
+  - retried: 157, 202 and 215 chains per arm;
+  - S-3hf carried lines on 64, 172 and 149 of them;
+  - the rest were one shared request, a tie by construction.
+- Records: `d13/run-7b-<isa>/`, `report-7b-*.txt`, `pool-7b-*.txt`, `classes-round1.txt`.
+
+**The registered comparisons**, paired by unit, pooled over 127 units:
+
+| comparison | Δ sampled | greedy | pass@k |
+|---|---|---|---|
+| **S-3hf − S-3hd through round 1** (the facts in the loop) | **−0.001, p 1.0** | −0.008 (0 / 1) | −0.008 (1 / 2) |
+| **S-3hf, round 1 − round 0** (D-13 as worded; cannot be negative) | **+0.021, p 0.0002** | +0.008 (1 / 0) | +0.047, p 0.031 |
+| S-3hd, round 1 − round 0 (described) | +0.022, p 0.0001 | +0.016 (2 / 0) | +0.055, p 0.016 |
+
+Per file, S-3hf − S-3hd sampled is −0.009 on avx2, +0.005 on sse2 and +0.002 on avx512. It is −0.004 on
+cells, +0.010 on helpers and 0 on the init.
+
+**What the lined chains wrote at round 1:**
+- On sse2, 127 of 172 S-3hf retries are `invented` again, against 134 of 172 for S-3hd. On avx512 it is 110 and
+  112 of 149.
+- The lines lower **the ruled-out reuse**, the round-1 rows that write a name the lines had called not
+  available or declared by no header: 131 rows pooled, against S-3hd's 161 over the same chains.
+- The student drops the name it was told about and invents another.
+- Chains rescued by the round: S-3hd 30, S-3hf 28.
+
+**The readings, against the ones written before the run:**
+- **"A retry, not the facts" holds.** One round of the grader's own words buys +0.02 (p ≤ 0.0002 in both arms).
+  The lines add nothing to it.
+- "The facts carry in the loop" and "only the mappings carry" do not hold. The other-file lines (113) moved
+  nothing measurable.
+- "Nothing moves" does not hold, since the retry itself moves.
+- "The ruled-out reuse stays high" holds in part: it falls by about a fifth, and the invented class does not
+  fall with it.
+
+**What D-13 selects** (for Max, D-14, §9): **negatives do not steer the 7B**, in the prompt (D-12) or beside the
+error (D-13). Of the 477 intrinsic lines D-13 could serve, 476 were negatives. The only facts the 7B has acted
+on are positive name mappings: the init's, in D-12. The untested fact is a **positive** for an intrinsic: what
+this file does have for the operation the student reached for. Whether such a rule exists, and how often it
+names what the gold uses, can be measured with no spend.
+
 ### E5 — the pattern world: the science track (M-c)
 
 - **Question:** Atlas-0's method on a synthetic lattice. Functions generated along named axes
@@ -1554,6 +1609,20 @@ Proposed routes, the recommended one first.
     - One no-spend runner unit, then about $0.3 to $0.5 on the 7B.
   - b: S-3h on the 32B, which asks whether a larger student reads the negatives the 7B does not. About $1.7.
   - c: close E4's line with D-11 and D-12's records.
+  - **Ran** (§6, "D-13's record"; ≈ $0.32 of $1.50). S-3hf − S-3hd through round 1 is −0.001 pooled (p 1.0):
+    null. The retry alone buys +0.02 (p ≤ 0.0002 in each arm). The lines lower the reuse of a ruled-out name by
+    about a fifth, and the student invents another.
+
+- **D-14 — after D-13** (2026-09-27).
+  - **a (recommended): a positive fact, probed first, no spend.** Every intrinsic line D-12 and D-13 served was
+    a negative (476 of 477 in D-13), and the only facts the 7B has used are positive name mappings (the init).
+    - A probe over D-12 and D-13's invented intrinsics asks whether a written rule names an **available**
+      intrinsic for the same operation. Two candidates: the same operation stem at this file's width, such as
+      `_mm_cmp_pd` → `_mm_cmpgt_pd` …, or the intrinsic the gold calls at the unit's matching site.
+    - It asks how often the named intrinsic is the one the gold uses.
+    - Only if it reaches: an arm, S-3hp, in the loop or the prompt, about $0.3.
+  - b: S-3h on the 32B, D-13's b. It asks whether a larger student reads the negatives the 7B does not. About $1.7.
+  - c: close E4's line with D-11 to D-13's records, and write the programme up for Max.
 
 ---
 

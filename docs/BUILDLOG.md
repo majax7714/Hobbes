@@ -14597,3 +14597,38 @@ shots, S-3h. Null, ≈ $0.67** (`calvin-experiments.md` §6 "D-12's record").
   block's line. Or S-3h on the 32B, or close E4's line.
 
 The tracker reads 89 of 40. There is no version bump and no image rebuild.
+
+## 2026-09-27 (twenty-first session) — the top-level docs reviewed, the README's stale experiments paragraph fixed; D-13 taken, built and run: the facts in the loop, null
+
+**The top-level review.** README, CLAUDE.md/AGENTS.md (identical), CHANGELOG, the handoff and workstreams
+agree with the tree: 0.2.71-beta everywhere, ADR-151 the last, 89 session logs, 2,412 pytest and 625 lattice
+tests collected. One drift: the README's Calvin experiments paragraph stopped at E3. It now carries E4, D-11
+and D-12 (`f3655ae`). 44 commits sat unpushed on `main` at the review, as the handoff says.
+
+**D-13 taken (Max: "proceed with the recommended route"): the facts in the loop. Null, ≈ $0.32 of $1.50**
+(`calvin-experiments.md` §6 "D-13's record").
+- **Refined before the build** (`be99efb`; `~/.hobbes/bench/calvin-lattice/d13/PREREG.md`).
+  - D-13 as worded, round 1 against round 0 on one arm, cannot be negative, so it cannot tell the facts from
+    the retry.
+  - The round is asked two ways from **D-12's own S-3h round 0**: the same target and an unchanged grader, so
+    round 0 costs nothing. **S-3hd** gets E1's feedback, and **S-3hf** the same plus a line per named name.
+  - The two arms share a seed, so a chain with no line is one request.
+- **Step 0 (no spend) changed the expectation, not the route.** Of 477 intrinsic lines, one has a form here,
+  and the rest are negatives. The positives are 113 other-file name mappings.
+- **The runner** (session `b6dd`, 165 of 180 turns; merged `34caba8` with a docstring fix) lends E1's loop to
+  E4 through four hooks, each `None` by default and then E1 byte for byte, and adds `lattice e4 loop`.
+  - **Checked on the real rows before any call:** round 0 is copied exactly. S-3hd's retries are E1's byte for
+    byte. The counts and statuses equal step 0's, and 959 requests are sent, as pre-registered.
+- **7B, one round, three files:** avx2 $0.094 against a worst case of $0.225, then sse2 $0.095 and avx512
+  $0.135.
+  - **S-3hf − S-3hd through round 1: −0.001 pooled (p 1.0).**
+  - Round 1 − round 0: S-3hf +0.021 (p 0.0002) and S-3hd +0.022 (p 0.0001). The retry does it, and the lines
+    add nothing.
+  - On the lined chains, the student drops the name it was told about and invents another. The ruled-out reuse
+    is 131 rows against 161, while the invented class holds (sse2: 127 against 134 of 172).
+- **For Max, D-14.** Recommended: a **positive** fact, probed first with no spend. Does a written rule name an
+  available intrinsic for the operation the student reached for, and is it the gold's? Negatives have not
+  steered the 7B in the prompt or in the loop, and the only facts it used were positive mappings. The other
+  routes are S-3h on the 32B (about $1.7), or to close E4's line.
+
+The tracker reads 90 of 40. There is no version bump and no image rebuild.

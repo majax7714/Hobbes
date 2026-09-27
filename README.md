@@ -444,7 +444,7 @@ ADR-107):
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and eighty-nine session logs stand. The
+dispatched on 2026-09-12, and ninety session logs stand. The
 tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
@@ -486,7 +486,11 @@ instruction set than the target has; the 32B student added +0.13 on
 cells and +0.30 on helpers over the 7B. D-12 (about $0.67) listed, beside
 the shots, which of their intrinsics the target has: null (+0.011,
 p 0.59), since the 7B still wrote the renames the list said do not
-exist. The records are in the experiments page.
+exist. D-13 (about $0.32) gave the same list to a failed unit on its
+one retry, beside the compiler's error, against the same retry without
+it: null again (−0.001, p 1.0). The retry itself buys +0.02, and the
+student drops the name it was told about and invents another. The
+records are in the experiments page.
 
 The work built through it includes C's lane A and its oracle, the
 external veto (ADR-111), a session's records written by a sidecar
