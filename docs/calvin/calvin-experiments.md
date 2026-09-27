@@ -1660,7 +1660,12 @@ Proposed routes, the recommended one first.
     answers are the gold's: **not reached**, so no arm and no spend. 257 of the 331 unanswered names are sand,
     and the rest need a composition.
 
-- **D-15 — after D-14** (2026-09-27).
+- **D-15 — after D-14** (2026-09-27). **Taken: a** (Max, 2026-09-27: "good to proceed with recommended"); ceiling
+  $3 on actual spend (`~/.hobbes/bench/calvin-lattice/d15/PREREG.md`).
+  - **The route's price, corrected before any call.** "About $1.7 for round 0" was D-11's figure for **one**
+    arm, so a fresh S-2h and S-3h would be about $3.5. S-2h is D-11's own 32B answers, reused instead: all 1,397
+    S-2h requests are byte-identical to D-11's, seed included, and the runner answers a held completion without
+    sending it. Only S-3h is sent at round 0.
   - **a (recommended): S-3h on the 32B, with the loop.** The 32B invents less and has not seen the facts.
     - Run S-2h and S-3h at round 0, then S-3hd and S-3hf at one round from S-3h, on the three native files
       (`e4 plan --available`, then `e4 loop`; the runner exists, so there is no unit to build).
