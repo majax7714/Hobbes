@@ -34,26 +34,32 @@ drivers' paths below.
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Two tracks are open.**
-- **The Calvin experiments: D-11 is run and read, and D-12 waits for Max** (twentieth session;
-  `calvin-experiments.md` §6 "D-11's record", §9 D-12).
-  - **D-11** (about $2.11 of $5; runner unit `e735`):
-    - **Rule W** is the width family. E3's rule as worded reached 3 of 31 helpers, and D-11's own example needed
-      widths; W reaches 26 of 31.
-    - **7B:** S-2h − S-2 on helpers is +0.261 pooled (p 0.0001). avx2 +0.408, avx512 +0.233, sse2 +0.000.
-      Cells are unchanged (p 0.46).
-    - **Unmoved helpers invent across an ISA's capability** (sse2 lacks `_mm_shuffle_epi8`, `_mm_hadd_pd`), or
-      call the sibling file's own names.
-    - **32B on S-2h:** +0.129 cells and +0.303 helpers over the 7B (p < 0.0001 each), about $0.58 a file.
+- **The Calvin experiments: D-12 is run and read, and D-13 waits for Max** (twentieth session;
+  `calvin-experiments.md` §6 "D-11's record" and "D-12's record", §9 D-13).
+  - **D-12** (about $0.67; runner unit `7e20`, merged with two review fixes to `available.parse`):
+    - **S-3h** is S-2h plus a block giving, for each intrinsic and sibling-file name the unit's shots use,
+      whether this file has it and its form here. Availability is read as the grader meets it
+      (`lattice available`, in the image; the record is `d12/available-record.json`).
+    - **Null:** S-3h − S-2h is +0.011 pooled (p 0.59).
+    - On sse2, 132 of 194 invented intrinsics are the renames the block said have no form here. The student
+      renames the shot itself and disregards the negative.
+    - The init passes 1.00 on all three files, where the block maps the other files' names.
 
-    Records: `~/.hobbes/bench/calvin-lattice/d11/` (`PREREG.md`, `probe.py`, `run-isa.sh <isa> <model> <tag>
-    <arms> <ceiling>`, `run-{7b,32b}-<isa>/`, `report-*`, `compare-*`, `pool-7b-*`).
-  - **D-12** (recommended a): S-3h, S-2h plus the ISA's intrinsic facts for the unit's shots and the file's own
-    helper names, aimed at `invented`. One no-spend runner unit, then about $0.5 on the 7B. Or b: the 32B as the
-    student and an L2 instrument. Or c: close E4's line.
+    Records: `~/.hobbes/bench/calvin-lattice/d12/` (`PREREG.md`, `avail.py`, `probe.py`, `classes.py`,
+    `run-isa.sh`, `run-7b-<isa>/`, `report-*`, `pool-7b*`).
+  - **D-13** (recommended a): the facts in the loop. One iterate round for E4: a failed unit goes back once
+    with the grader's diagnostic and the block's line for each invented name. It is a no-spend runner unit,
+    then about $0.3–0.5. Or b: S-3h on the 32B (about $1.7). Or c: close E4's line.
+  - **D-11** (about $2.11 of $5; runner `e735`):
+    - rule W, the width family (26 of 31 helpers);
+    - S-2h − S-2 on helpers +0.261 pooled (p 0.0001), with sse2 unmoved;
+    - the 32B +0.13 on cells and +0.30 on helpers over the 7B, at about $0.58 a file.
+
+    Records: `d11/`.
   - **Costs, learned:**
     - The runner's estimate assumes every answer runs to `max_tokens`, 4 to 6 times the real figure. Size a
       file's ceiling at the estimate; the Modal timeout bounds the real spend.
-    - A network cut costs the call so far and returns nothing. `lattice e4 run <dir>` resumes in place, with the
+    - A network cut (twice this session) costs the call so far and returns nothing. `lattice e4 run <dir>` resumes in place, with the
       ceiling cumulative per run dir.
   - Earlier: E4 (`e4/`, about $1.25 of $8), where the ISA-axis shots gave +0.21 to +0.26 and the parser's fields
     hurt. E3 (`e3/`, about $5.55 of $25), the 300-step pair, with its gain gone on opaque names.
@@ -387,7 +393,7 @@ named below was removed unless it says otherwise.
    - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
      E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
-     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 run (≈ $2.11 of $5), twentieth session; next: D-12 (START HERE). Drivers:
+     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; next: D-13 (START HERE). Drivers:
      `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
      <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
      history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its
@@ -447,7 +453,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 88 of 40, 4
+   - **The validating 40 are done:** the tracker reads 89 of 40, 4
      areas, 4 false blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141`,
      `66c5`, the decorator case, open), 0 missed.
 3. **A regrade against stored keys:**
@@ -520,7 +526,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Eighty-eight log files under `docs/calvin/sessions/`; the tracker reads 88 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
+  is a tmpfs. Eighty-nine log files under `docs/calvin/sessions/`; the tracker reads 89 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 96 cells (22 same-key rows, C++'s two among them; flask's new
   cell at 0.2.68-beta's figures); `render.py
@@ -537,8 +543,8 @@ min each.
   C-153's rows.
 - **Suites** at 0.2.71-beta (2026-09-26, every suite re-run on the host): 2,412 pytest
   (`lane_b` 17 of them, run in the rebuilt image at 0.2.71-beta), Go `./...` 399 with
-  subtests (398 pass / 1 skip), 97 scip node, 47 tsextract, 52 vitest, 84 atlas0, 586
-  lattice (554 pass / 32 skip without clang, after D-11's unit); oracle-lane Go 129 with subtests, 117 pass /
+  subtests (398 pass / 1 skip), 97 scip node, 47 tsextract, 52 vitest, 84 atlas0, 625
+  lattice (593 pass / 32 skip without clang, after D-12's unit); oracle-lane Go 129 with subtests, 117 pass /
   12 skip on this host, which has no clang++ or cmake (the C++ fixture tests run and pass
   in the image).
 - **Disk:** `~/.hobbes` is about 50 GB plus the C++ cells (ScummVM's

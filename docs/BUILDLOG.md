@@ -14566,3 +14566,34 @@ Max: "fix the staleness then proceed with d-11". Fixed in `f2c9514`:
   32B as the student plus an L2 instrument, or close E4's line.
 
 There is no version bump (bench and records). The image was not rebuilt. The tracker reads 88 of 40.
+
+**D-12 taken (Max: "proceed with the recommended"), later the same session: the ISA's facts beside the
+shots, S-3h. Null, ≈ $0.67** (`calvin-experiments.md` §6 "D-12's record").
+- **Step 0, no spend** (`~/.hobbes/bench/calvin-lattice/d12/`). D-11's 492 invented intrinsics split three ways:
+  - 56% a width-rename of an intrinsic in the unit's own shots;
+  - 34% declared nowhere;
+  - 9% real but not available in the file.
+
+  "Available" is read as the grader meets it. sse2's file includes only `<emmintrin.h>`, so SSSE3 is
+  *undeclared* there, and clang 18's `<immintrin.h>` declares everything, so an off feature fails `compile`.
+  I preprocessed each real file in the image under the grader's flags. The real-source fixture
+  `tests/fixtures/preprocessed/` was cut from that output (27 of 27 statuses as the whole). Pre-registered
+  before any build (`38a176f`).
+- **The runner** (session `7e20`; 141 of 140 turns, so the harness committed its work; merged `b5cdeac` with
+  `bb72586`) adds `lattice available` and S-3h.
+  - **The review diffed the whole real record against my probe and found two defects** in
+    `available.parse`, both toward false advice. clang's three-line head was missed, so `_mm512_max_epi32` read
+    unavailable. And a split head's features were read from one line, so it read available everywhere.
+  - Both were fixed with a real-source test. After the fixes, every remaining difference is my probe's error.
+  - On the real plans, all 127 S-3h units are S-2h plus the block, with the pre-registration's counts.
+- **7B, S-2h and S-3h, three files.**
+  - **S-3h − S-2h is +0.011 pooled (p 0.59).** avx2 −0.007, sse2 +0.016, avx512 +0.025.
+  - **The student disregards the block's negatives.** On sse2, 132 of 194 invented intrinsics are the very
+    renames it says have no form here (`_mm_cmp_pd`, `_mm_blendv_pd`, `_mm_cvtepu16_epi32`). avx512's are all
+    sand.
+  - **A positive name mapping is used:** the init passes 1.00 on all three files.
+  - A second network cut lost sse2's first call, charged up to $0.27, and the run resumed in place.
+- **For Max, D-13.** Recommended: the facts in the loop, one iterate round with the grader's diagnostic and the
+  block's line. Or S-3h on the 32B, or close E4's line.
+
+The tracker reads 89 of 40. There is no version bump and no image rebuild.
