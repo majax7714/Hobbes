@@ -443,6 +443,57 @@ def test_s5_minus_s3_is_a_number_paired_by_unit(e4_run_dir):
     assert "pass_at_1           +0.333  lost   0  gained   1  of   3" in table
 
 
+#: D-11's comparison, as the report labels the two readings of it.
+HELPERS = "S-2h − S-2 (helper units, registered)"
+CELLS = "S-2h − S-2 (cell units, described: identical prompts under two seeds)"
+
+
+def test_the_helper_comparison_reads_registered_and_the_cell_one_described(e4_run_dir):
+    """D-11 a: `S-2h − S-2` is the helper units, and the same pair over the cells is the noise read.
+
+    Written as the run fills up, because the third reading is "no number yet": a comparison whose arms a
+    run has no rows for says which arm, and `missing` is not a zero.
+    """
+    found = report.e4_report(e4_run_dir)
+    assert found["comparisons"][HELPERS] == {"missing": "the run has no helper unit rows for S-2"}
+    assert found["comparisons"][CELLS] == {"missing": "the run has no cell unit rows for S-2"}
+
+    # S-2 alone: the reading still has no second arm, and says so of that one
+    with (e4_run_dir / e1.ROWS).open("a", encoding="utf-8") as handle:
+        for line in (
+            e4_row(U1, "S-2", "pass"),
+            e4_row(U2, "S-2", "wrong"),
+            e4_row(H, "S-2", "wrong", kind="helper"),
+        ):
+            handle.write(f"{json.dumps(line, sort_keys=True)}\n")
+    assert report.e4_report(e4_run_dir)["comparisons"][HELPERS] == {
+        "missing": "the run has no helper unit rows for S-2h"
+    }
+
+    # and with S-2h the helper moves, while the two cells — which were sent S-2's own bytes — do not
+    with (e4_run_dir / e1.ROWS).open("a", encoding="utf-8") as handle:
+        for line in (
+            e4_row(U1, "S-2h", "pass"),
+            e4_row(U2, "S-2h", "wrong"),
+            e4_row(H, "S-2h", "pass", kind="helper"),
+        ):
+            handle.write(f"{json.dumps(line, sort_keys=True)}\n")
+    found = report.e4_report(e4_run_dir)
+    assert found["comparisons"][HELPERS]["pass_at_1"] == {
+        "cells": 1, "both": 0, "neither": 0, "lost": 0, "gained": 1, "delta": 1.0, "p": 1.0,
+    }
+    assert found["comparisons"][CELLS]["pass_at_1"] == {
+        "cells": 2, "both": 1, "neither": 1, "lost": 0, "gained": 0, "delta": 0.0, "p": 1.0,
+    }
+    # the helper reading is over the helper units only: the cells are in the other line and nowhere else
+    assert found["comparisons"][HELPERS]["unpaired"] == 0
+
+    table = report.e4_render(found)
+    assert "each line says which units it is over and whether it was registered" in table
+    assert f"    {HELPERS}  (unpaired 0)" in table
+    assert f"    {CELLS}  (unpaired 0)" in table
+
+
 def test_s2o_is_shown_with_its_own_shot_counts_and_why_each_missing_one_was_missing(e4_run_dir):
     own = report.e4_report(e4_run_dir)["own_shots"]
     # the greedy requests only: three units, two of them cells

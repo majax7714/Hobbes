@@ -213,6 +213,12 @@ PRICING = {
     # Olmo runs on the L40S (scripts/modal_e1.py says why), at $0.000542/s; its throughputs are Qwen's
     # on the A10G until its own first call measures them, which keeps this estimate on the high side
     "allenai/Olmo-3-7B-Instruct": {"prompt_tps": 8000.0, "completion_tps": 950.0, "usd_per_second": 0.000542},
+    # **D-11's ceiling arm** (E4-e): Qwen2.5-Coder-32B on the A100-80GB at $0.000694/s, the card and the
+    # rate `scripts/modal_e1.py` pins and prices it at. The two throughputs are an **estimate and nothing
+    # has measured them** — about a quarter of the 7B's, which is the shape of a 4.6× parameter count on
+    # one card — and they are here for one purpose: to make the ceiling check refuse before a call rather
+    # than after it. The first call's `calls.jsonl` is what replaces them, as E1-g's did for the 7B.
+    "Qwen/Qwen2.5-Coder-32B-Instruct": {"prompt_tps": 3000.0, "completion_tps": 350.0, "usd_per_second": 0.000694},
 }
 DEFAULT_PRICE = {"prompt_tps": 8000.0, "completion_tps": 950.0, "usd_per_second": 1.10 / 3600}
 

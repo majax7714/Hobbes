@@ -29,6 +29,25 @@ their bodies would be gold in a prompt, and a body reaches a prompt only as an a
 | **S-3** | the ledger's callees for a cell | facts |
 | **S-5** | the **parser's fields** (§5.2: the contract and the edge cases) | the parser's words |
 | **S-2o** | S-2 plus the student's **own passed bodies** on the type and metric axes | growing a file from its own work |
+| **S-2h** | for a **helper**, the shots rule W's **name family** serves; for every other kind, S-2 byte for byte | pattern where the grid has no neighbour |
+
+**Rule W, the helper's name family** (D-11 a, pre-registered before this build). E4's record named the
+file's weak point: the three native files' 13, 6 and 12 helpers pass at 0.00 to 0.23 in every arm, and
+**none of them carries a shot** — a helper has no grid position, so :func:`shots` has nothing to cross.
+Their siblings exist by
+*name*: `hsum128_ps`, `hsum256_ps`, `hsum512_ps`. So S-2h matches by name. Two names are one family when
+:func:`family_key` is equal — over `families.isa_tokens`, in this order: a trailing all-digit token is
+dropped where the name has more than one token, every ISA token becomes `*`, a vector width `128`/`256`/
+`512` inside a token becomes `#`, and a lane count written `x<N>` becomes `x#`. On the real target that
+reaches **26 of 31** helpers in 11 families with **none ambiguous**, where E3's rule as worded
+(`families.isa_families`, one ISA token differing) reaches 3 — which is why W is a rule of its own here
+and :mod:`lattice.families`, a line-for-line port of the draw's scripts, is not touched. Two members of
+one family in one other file are **ambiguous**: that file serves no shot and the request names both
+(:func:`helper_siblings`).
+
+S-2h is **byte-identical to S-2** for a cell and for the init — only the arm's name, and so the request id
+and the seed, differ. That is why the registered comparison `S-2h − S-2` is read on the **helper** units
+only, and why the same pair over the cells is a *noise* read: identical prompts under two seeds.
 
 **Expected, from E1's own rows:** of Qwen's 18 C-2 greedy passes the answer sat nearest the *type*-axis
 shot in 12, and at L1 the type neighbours are inside the held-out file, so S-2's ISA-only shots are
@@ -77,17 +96,20 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable, NamedTuple, Sequence
 
-from . import e1, holes, prompts
+from . import e1, families, holes, prompts
 from .cells import ISAS, NATIVE, Cell, Lattice
 from .cells import build as build_lattice
 from .facts import Facts
 from .scan import Span
 
 __all__ = [
+    "AMBIGUOUS",
+    "ANY_ISA",
     "API_DOC",
     "ARMS",
     "COMPARISONS",
     "FACTS_ARMS",
+    "FAMILY_ARMS",
     "FIELD_ARMS",
     "FILE_LEVEL",
     "FINAL",
@@ -101,6 +123,7 @@ __all__ = [
     "NO_NEIGHBOUR",
     "NO_OWN",
     "NO_SHOTS",
+    "NO_SIBLING",
     "OWN_ARMS",
     "OWN_AXES",
     "P12",
@@ -112,19 +135,24 @@ __all__ = [
     "RUNG",
     "SHOT_ARMS",
     "SYSTEM",
+    "WIDTH",
     "Designated",
     "DuplicateDefinition",
     "NoFields",
     "Own",
     "Shot",
+    "Sibling",
     "Unit",
     "context",
     "cycles",
     "designated",
+    "family_key",
     "file_level",
     "fill_units",
+    "helper_siblings",
     "meta",
     "messages",
+    "other_natives",
     "own_shots",
     "parse",
     "parse_context",
@@ -148,20 +176,26 @@ __all__ = [
 #: The rung: the whole file is held out (E4-a). L3 — the whole directory — is a later run.
 RUNG = "L1"
 
-#: Every arm E4 has, in the order the report reads them: the escalation S-0 → S-2 → S-3 → S-5, with the
-#: described arm S-2o beside S-2, the arm it is described against.
-ARMS = ("S-0", "S-2", "S-2o", "S-3", "S-5")
+#: Every arm E4 has, in the order the report reads them: the escalation S-0 → S-2 → S-3 → S-5, with
+#: **S-2h** next to S-2 (the arm it is read against) and the described arm S-2o beside them.
+ARMS = ("S-0", "S-2", "S-2h", "S-2o", "S-3", "S-5")
 
 #: The arms that carry the ledger's facts, the graph's shots, the student's own shots, and the parser's
 #: fields. S-5 is S-3 and the fields, so it is a facts arm and a shot arm too.
 FACTS_ARMS = ("S-3", "S-5")
-SHOT_ARMS = ("S-2", "S-2o", "S-3", "S-5")
+SHOT_ARMS = ("S-2", "S-2h", "S-2o", "S-3", "S-5")
 OWN_ARMS = ("S-2o",)
 FIELD_ARMS = ("S-5",)
 
-#: The two comparisons E4-f registers, each `(first, second)` and read as `second − first`, paired by unit.
-#: S-2o is in neither: it is described, not registered.
-COMPARISONS = (("S-0", "S-2"), ("S-3", "S-5"))
+#: The arms whose shots a **helper** gets by rule W's name family rather than by the grid (D-11 a). Every
+#: other kind of unit reads these arms as S-2 does, byte for byte.
+FAMILY_ARMS = ("S-2h",)
+
+#: The registered comparisons, each `(first, second, kind)` and read as `second − first`, paired by unit.
+#: `kind` is `None` where every unit is read, and a member of :data:`KINDS` where the comparison is only
+#: about that kind: E4-f's two are over every unit, and **D-11's `S-2h − S-2` is the helper units**, since
+#: S-2h *is* S-2 for a cell and for the init. S-2o is in none of them: it is described, not registered.
+COMPARISONS = (("S-0", "S-2", None), ("S-3", "S-5", None), ("S-2", "S-2h", "helper"))
 
 #: The P12 record (ADR-082, and ADR-086's check): planner-defined units, one single-use agent each, every
 #: window smaller than the file. E1 records `arm=model+prompt`; this is the other answer.
@@ -212,6 +246,22 @@ NO_SHOTS = {
     "init": "shots: none (no other native file defines an init function)",
 }
 
+#: Rule W's two wildcards: the one every ISA token collapses to, and the one a vector width or a lane
+#: count collapses to. They are characters no C identifier holds, so a key cannot collide with a name.
+ANY_ISA = "*"
+WIDTH = "#"
+
+#: Why one other native file serves a helper no name-family shot. The first is the pre-registration's own
+#: wording, so a reader of a prompt meets the sentence D-11 wrote; the second is the case where the family
+#: has **two** members there, which makes neither of them *the* sibling.
+NO_SIBLING = "no name-family sibling"
+AMBIGUOUS = "ambiguous"
+
+#: What S-2h says about the files a helper's family reached nothing in: every one of them, with its reason,
+#: because a shot missing and a shot never looked for read the same in silence.
+FAMILY_NONE = "shots: none ({gaps})"
+FAMILY_GAP = "no shot from {gaps}"
+
 #: What S-3 says when it carries no facts. The ledger answers a cell's callees; a helper and the init are
 #: not cells, and a cell the ledger named nothing for is a third case, said as such.
 NO_FACTS = {
@@ -235,6 +285,12 @@ NO_FIELDS = "no parser fields (the parse failed: {reason})"
 
 _FILE_HEADING = "The file this function is in, its other definitions as prototypes:"
 _SHOTS_HEADING = "The same function in the instruction sets that stay:"
+#: S-2h's heading for a helper. It says the basis, because a name family is not the grid: these are not
+#: "the same function", they are the functions rule W reads as one family, and the prompt says which.
+_FAMILY_HEADING = (
+    "Functions of the same name family in the instruction sets that stay "
+    "(matched by name, not by the grid):"
+)
 _OWN_HEADING = "The same function on this file's other axes, as you wrote it and it passed:"
 _CALLS_HEADING = "What this function calls, read from the project's graph and the compiler's own key:"
 _FIELDS_HEADING = "What this function must do:"
@@ -305,6 +361,21 @@ class Shot(NamedTuple):
     isa: str
     source: str  # the cell id, or the init function's name
     text: str
+
+
+class Sibling(NamedTuple):
+    """One other native file's answer for a helper's name family: a shot, or why there is none (D-11 a).
+
+    `shot` and `reason` are exclusive — exactly one of them is set — and `candidates` names what was found
+    in that file either way: the one member the shot came from, or the two or more that made it
+    :data:`AMBIGUOUS`, or nothing at all beside :data:`NO_SIBLING`. The three are told apart on the request
+    rather than left as one silence.
+    """
+
+    isa: str
+    shot: Shot | None
+    reason: str | None  # NO_SIBLING | AMBIGUOUS, or None where a shot was carried
+    candidates: tuple[str, ...]
 
 
 class Designated(NamedTuple):
@@ -495,9 +566,8 @@ def shots(lattice: Lattice, isa: str, unit: Unit) -> list[Shot]:
     """
     if unit.kind == "helper":
         return []
-    others = [other for other in ISAS if other != isa and other in NATIVE and other in lattice.sources]
     found: list[Shot] = []
-    for other in others:
+    for other in other_natives(lattice, isa):
         if unit.kind == "init":
             source = lattice.sources[other]
             definition = next((fn for fn in source.scanned.functions if fn.name == source.init), None)
@@ -510,6 +580,85 @@ def shots(lattice: Lattice, isa: str, unit: Unit) -> list[Shot]:
         if sibling is None:
             continue
         found.append(Shot(other, sibling.id, prompts.definition(lattice, sibling)))
+    return found
+
+
+def other_natives(lattice: Lattice, isa: str) -> list[str]:
+    """The **files that stay** at L1, in `ISAS` order: every other native ISA the target has a file for.
+
+    One list, read by every arm that serves a shot, so `cpu`, `neon` and `rvv` are excluded in one place
+    and for the reasons :func:`shots` gives: `cpu` is G-diff's own reference, and the other two do not run
+    on this box.
+    """
+    return [other for other in ISAS if other != isa and other in NATIVE and other in lattice.sources]
+
+
+# MARK: - S-2h's name families (rule W) -
+
+#: Rule W's step 3: a vector width inside a token, and **not** part of a longer digit run — so `hsum256`
+#: is a width and the `16` of `bf16` and the `8` of `epi8` are not, which is the distinction that keeps an
+#: element width from reading as a vector width (`epi8` and `epi16` are two families, not one).
+_VECTOR_WIDTH = re.compile(r"(?<!\d)(128|256|512)(?!\d)")
+
+#: Rule W's step 4: a lane count written `x<N>` — `bf16x8` against `bf16x16`.
+_LANE_COUNT = re.compile(r"x\d+")
+
+
+def family_key(name: str) -> tuple[str, ...]:
+    """*name*'s **width family** key (rule W, D-11 a), as the pre-registration words it.
+
+    Over `families.isa_tokens` — the draw's own tokeniser, `_` and camelCase only — in this order:
+
+    1. a trailing all-digit token is dropped, where the name has more than one token
+       (`dot_epu8_512` → `dot epu8`, `block_has_l2_inf_mismatch_8` → `block has l2 inf mismatch`);
+    2. every token in `families.ISA` becomes :data:`ANY_ISA` (`popcount_avx2` → `popcount *`);
+    3. a vector width `128`, `256` or `512` inside a token becomes :data:`WIDTH` (`hsum256` → `hsum#`);
+    4. a lane count `x<N>` becomes `x#` (`bf16x8` → `bf16x#`).
+
+    Two names are one family when their keys are equal. The order matters: step 1 removes the trailing
+    `512` of `abs_diff_epu8_512` before step 3 could read it as a width, which is what makes that name and
+    `abs_diff_epu8` one family. :mod:`lattice.families` is **not** changed by any of this — it is a port
+    held against the draw's scripts, and its `isa_families` is a different rule with its own record.
+    """
+    tokens = list(families.isa_tokens(name))
+    if len(tokens) > 1 and tokens[-1].isdigit():
+        tokens.pop()
+    key: list[str] = []
+    for token in tokens:
+        if token in families.ISA:
+            key.append(ANY_ISA)
+            continue
+        key.append(_LANE_COUNT.sub(f"x{WIDTH}", _VECTOR_WIDTH.sub(WIDTH, token)))
+    return tuple(key)
+
+
+def helper_siblings(lattice: Lattice, isa: str, unit: Unit) -> list[Sibling]:
+    """S-2h's shots for a **helper**: one row per file that stays, with a shot or the reason there is none.
+
+    The candidates in each other file are that file's own **helper** units (:func:`units`, kind `helper`),
+    matched by :func:`family_key`: a cell and the init have the grid's own crossing and are not a name
+    family's business. One member is the shot — the whole definition, signature and body, as that file
+    writes it. **Two members are ambiguous**: the file serves nothing and the request names both, because
+    picking one of two by any other rule would be a rule that was not pre-registered.
+    """
+    key = family_key(unit.name)
+    found: list[Sibling] = []
+    for other in other_natives(lattice, isa):
+        source = lattice.sources[other]
+        members = [
+            candidate
+            for candidate in units(lattice, other)
+            if candidate.kind == "helper" and family_key(candidate.name) == key
+        ]
+        names = tuple(candidate.name for candidate in members)
+        if not members:
+            found.append(Sibling(other, None, NO_SIBLING, ()))
+        elif len(members) > 1:
+            found.append(Sibling(other, None, AMBIGUOUS, names))
+        else:
+            member = members[0]
+            text = source.text[member.signature_span.start : member.body_span.end]
+            found.append(Sibling(other, Shot(other, member.name, text), None, names))
     return found
 
 
@@ -612,6 +761,12 @@ def context(
         raise NoFields(f"{arm} carries the parser's fields and none were given; it is never filled empty")
 
     carried = shots(lattice, isa, unit) if arm in SHOT_ARMS else []
+    family: list[Sibling] = []
+    if arm in FAMILY_ARMS and unit.kind == "helper":
+        # the one place S-2h is not S-2: a helper's shots come from rule W's name family, and every other
+        # kind falls through to the grid's own crossing above, byte for byte
+        family = helper_siblings(lattice, isa, unit)
+        carried = [row.shot for row in family if row.shot is not None]
     own = own_shots(lattice, isa, unit, units(lattice, isa), bodies or {}) if arm in OWN_ARMS else []
     rows: list[dict] | None = None
     if arm in FACTS_ARMS:
@@ -632,7 +787,7 @@ def context(
         "kind": unit.kind,
         "skeleton": skeleton(lattice, isa, unit),
         "shots": [{"isa": shot.isa, "from": shot.source, "text": shot.text} for shot in carried],
-        "shots_note": None if arm not in SHOT_ARMS or carried else NO_SHOTS[unit.kind],
+        "shots_note": _shots_note(unit, arm, carried, family),
         "own": [{"axis": row.axis, "unit": row.unit, "text": row.text} for row in own if row.text],
         "own_notes": _own_notes(unit, arm, own),
         "facts": rows,
@@ -641,6 +796,31 @@ def context(
         "fields_note": _fields_note(parsed),
         "signature": unit.signature,
     }
+
+
+def _shots_note(unit: Unit, arm: str, carried: Sequence[Shot], family: Sequence[Sibling]) -> str | None:
+    """What a shot arm says about the shots it did not carry, and `None` where it carried them all.
+
+    S-2h on a helper says it per file, with the reason — :data:`NO_SIBLING` or :data:`AMBIGUOUS` and the
+    candidates — because "the family reached nothing there" and "the family reached two things there" are
+    different facts and the second is the one a later rule would have to answer. Every other (arm, kind)
+    keeps the note it had: one sentence naming which silence this is.
+    """
+    if arm not in SHOT_ARMS:
+        return None
+    if arm in FAMILY_ARMS and unit.kind == "helper":
+        gaps = "; ".join(f"{row.isa} — {_gap(row)}" for row in family if row.shot is None)
+        if not gaps:
+            return None
+        return (FAMILY_GAP if carried else FAMILY_NONE).format(gaps=gaps)
+    return None if carried else NO_SHOTS[unit.kind]
+
+
+def _gap(row: Sibling) -> str:
+    """One file's reason, with the ambiguous family's members named: the prompt says what was found."""
+    if row.reason == AMBIGUOUS:
+        return f"{AMBIGUOUS}: {', '.join(row.candidates)}"
+    return NO_SIBLING
 
 
 def _own_notes(unit: Unit, arm: str, own: Sequence[Own]) -> list[dict]:
@@ -693,8 +873,10 @@ def _user(data: dict) -> str:
     parts = [_section(_FILE_HEADING, _fenced(data["skeleton"]))]
     if data["shots"]:
         blocks = "\n\n".join(f"/* {row['isa']}: {row['from']} */\n{row['text']}" for row in data["shots"])
-        parts.append(_section(_SHOTS_HEADING, _fenced(blocks)))
-    elif data["shots_note"]:
+        parts.append(_section(_FAMILY_HEADING if _by_name(data) else _SHOTS_HEADING, _fenced(blocks)))
+    # a note beside shots is S-2h's: a helper can carry one file's sibling and have the other say why it
+    # carried none. Every other arm's note is `None` whenever it carried a shot, so this reads as it did
+    if data["shots_note"]:
         parts.append(data["shots_note"])
 
     if data["own"]:
@@ -718,6 +900,15 @@ def _user(data: dict) -> str:
     parts.append(_section(_SIGNATURE_HEADING, _fenced(data["signature"])))
     parts.append(INSTRUCTION)
     return "\n\n".join(parts)
+
+
+def _by_name(data: dict) -> bool:
+    """Whether these shots were matched by the name family (S-2h on a helper) or by the grid.
+
+    Read off the arm and the kind the context already carries, so the heading is decided in one place and
+    a request row carries no field whose only job is to name its own heading.
+    """
+    return data["arm"] in FAMILY_ARMS and data["kind"] == "helper"
 
 
 def _own_line(note: dict) -> str:

@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from lattice import e1, e4, facts, grade as grade_of, holes, prompts, task
+from lattice import e1, e4, facts, families as families_of, grade as grade_of, holes, prompts, task
 from lattice.cells import build
 from lattice.scan import mask
 
@@ -421,7 +421,7 @@ def test_a_facts_arm_with_no_ledger_is_refused_and_never_filled_empty(lattice):
 
 def test_an_arm_that_is_not_e4s_is_refused_as_a_typo(lattice, ledger):
     unit = next(u for u in e4.units(lattice, "avx2") if u.kind == "cell")
-    assert e4.ARMS == ("S-0", "S-2", "S-2o", "S-3", "S-5")
+    assert e4.ARMS == ("S-0", "S-2", "S-2h", "S-2o", "S-3", "S-5")
     with pytest.raises(prompts.UnknownArm):
         e4.context(lattice, "avx2", unit, "C-2", ledger)
 
@@ -439,6 +439,241 @@ def test_s5_with_no_parser_fields_is_refused_and_never_filled_empty(lattice, led
     assert unit.name in str(uncovered.value)
     with pytest.raises(e4.NoFields):
         e4.plan(lattice, "avx2", ("S-5",), "M", ledger, k=0, fields=without)
+
+
+# MARK: - S-2h: the helper's name family (rule W) -
+
+#: The native files, and the pre-registration's own figures for rule W over their helpers (D-11 a): 26 of
+#: 31 helpers in 11 families with none ambiguous, and these five with no member in any other native file.
+NATIVE = ("sse2", "avx2", "avx512")
+UNPAIRED = {
+    # `mm_abs_pd` is one of a kind, and no other file's helper loads an f16 lane pair
+    "sse2": ["mm_abs_pd", "f16x4_to_f32x4_loadu"],
+    # `hsum512_epu32` differs in `epu`, so neither of these two is its family
+    "avx2": ["hsum256_epi64", "hsum256_epi32"],
+    "avx512": ["hsum512_epu32"],
+}
+
+
+def helpers_of(lattice, isa):
+    """That file's non-cell helper units, in the units' own order."""
+    return [unit for unit in e4.units(lattice, isa) if unit.kind == "helper"]
+
+
+def token_run(written, gold):
+    """Whether *written*'s tokens hold *gold*'s as a contiguous run — the no-gold check, done once."""
+    length = len(gold)
+    return any(written[at : at + length] == gold for at in range(len(written) - length + 1))
+
+
+def test_rule_w_reproduces_the_pre_registration_on_the_real_helpers(lattice):
+    """The figures D-11 was taken on, recomputed from the fixture's own three native files.
+
+    The fixture carries the three files' helpers in full, so these are the target's numbers: **26 of 31**
+    with a sibling, in **11 families**, **0 ambiguous**. E3's rule as worded reaches 3 of them, which is
+    why W is a rule of its own — the last two lines hold that difference, since `families` is a port and
+    the reason it is not edited is that it is the draw's rule and not this one.
+    """
+    families = {}
+    paired, ambiguous = [], []
+    for isa in NATIVE:
+        for unit in helpers_of(lattice, isa):
+            rows = e4.helper_siblings(lattice, isa, unit)
+            assert [row.isa for row in rows] == [other for other in NATIVE if other != isa]
+            if any(row.reason == e4.AMBIGUOUS for row in rows):
+                ambiguous.append(f"{isa}:{unit.name}")
+            if any(row.shot for row in rows):
+                paired.append(f"{isa}:{unit.name}")
+                families.setdefault(e4.family_key(unit.name), []).append(f"{isa}:{unit.name}")
+            else:
+                assert unit.name in UNPAIRED[isa], f"{isa}:{unit.name} was expected to have a sibling"
+                assert all(row.reason == e4.NO_SIBLING for row in rows)
+
+    everything = [f"{isa}:{u.name}" for isa in NATIVE for u in helpers_of(lattice, isa)]
+    assert len(everything) == 31 and len(paired) == 26 and ambiguous == []
+    assert sorted(set(everything) - set(paired)) == sorted(
+        f"{isa}:{name}" for isa, names in UNPAIRED.items() for name in names
+    )
+    assert len(families) == 11 and sum(len(members) for members in families.values()) == 26
+
+    # E3's rule as worded pairs only the three `popcount_*`, which is the record D-11 corrected
+    members = [{"name": unit.name} for isa in NATIVE for unit in helpers_of(lattice, isa)]
+    by_isa_token = {
+        name
+        for family in families_of.isa_families(members)
+        for name in (member["name"] for member in family["members"])
+    }
+    assert sorted(by_isa_token) == ["popcount_avx2", "popcount_avx512", "popcount_sse2"]
+
+
+def test_the_families_are_the_pre_registrations_own_examples(lattice):
+    """Four of the eleven, each named in D-11's page, read back off the fixture."""
+    shots = {}
+    for isa in NATIVE:
+        for unit in helpers_of(lattice, isa):
+            shots[f"{isa}:{unit.name}"] = [
+                f"{row.isa}:{row.shot.source}" for row in e4.helper_siblings(lattice, isa, unit) if row.shot
+            ]
+    assert shots["avx2:hsum256_ps"] == ["sse2:hsum128_ps", "avx512:hsum512_ps"]
+    assert shots["avx512:dot_epu8_512"] == ["avx2:dot_epu8"]
+    assert shots["avx2:bf16x8_to_f32x8_loadu"] == [
+        "sse2:bf16x4_to_f32x4_loadu",
+        "avx512:bf16x16_to_f32x16_loadu",
+    ]
+    assert shots["avx2:block_has_l2_inf_mismatch_bf16_8"] == ["avx512:block_has_l2_inf_mismatch_bf16_16"]
+    assert shots["avx2:popcount_avx2"] == ["sse2:popcount_sse2", "avx512:popcount_avx512"]
+
+
+def test_the_family_key_abstracts_a_width_and_never_an_element_type():
+    """Rule W, step by step — and the two pairs it must **not** join, which is what makes it a rule."""
+    # 1: a trailing all-digit token goes, where the name has more than one token
+    assert e4.family_key("dot_epu8_512") == e4.family_key("dot_epu8") == ("dot", "epu8")
+    assert e4.family_key("block_has_l2_inf_mismatch_8") == ("block", "has", "l2", "inf", "mismatch")
+    # 2: an ISA token is any ISA
+    assert e4.family_key("popcount_sse2") == e4.family_key("popcount_avx512") == ("popcount", e4.ANY_ISA)
+    # 3: a vector width inside a token, and a one-token name keeps its own shape around it
+    assert e4.family_key("hsum256_ps") == (f"hsum{e4.WIDTH}", "ps")
+    assert e4.family_key("hsum128d") == (f"hsum{e4.WIDTH}d",)
+    # 4: a lane count
+    assert e4.family_key("bf16x8_to_f32x8_loadu") == (f"bf16x{e4.WIDTH}", "to", f"f32x{e4.WIDTH}", "loadu")
+
+    # an **element** width is not a vector width: `epi8` and `epi16` stay two families
+    assert e4.family_key("dot_epi8") != e4.family_key("dot_epi16")
+    assert e4.family_key("bf16x8_to_f32x8_loadu") != e4.family_key("f16x4_to_f32x4_loadu")
+    # and neither is a different element sign or width in the same position
+    assert e4.family_key("hsum256_epi32") != e4.family_key("hsum512_epu32")
+    assert e4.family_key("hsum256_epi64") != e4.family_key("hsum512_epi32_signed")
+
+
+def ambiguous_target(tmp_path):
+    """A target whose `sse2` file holds **two** members of one family, which `avx2`'s helper matches.
+
+    `hsum128_ps` and `hsum512_ps` are one family under rule W (`hsum# ps`), so a file defining both answers
+    `hsum256_ps` with two candidates and no shot. The real target has no such file — 0 ambiguous over its
+    31 helpers — so the case is built rather than waited for.
+    """
+    root = tmp_path / "ambiguous"
+    (root / "src").mkdir(parents=True)
+    for isa, helpers in (("avx2", ("hsum256_ps",)), ("sse2", ("hsum128_ps", "hsum512_ps"))):
+        lines = ["#include <stddef.h>", "extern distance_function_t dispatch_distance_table[8][8];"]
+        lines += [f"static inline float {name} (float v) {{ return v + 1.0f; }}" for name in helpers]
+        lines.append(
+            f"float float32_distance_dot_{isa} (const void *v1, const void *v2, int n)\n"
+            f"{{ (void)v2; (void)n; return {helpers[0]}(*(const float *)v1); }}"
+        )
+        lines.append(
+            f"int init_distance_functions_{isa} (void)\n"
+            "{ dispatch_distance_table[VECTOR_DISTANCE_DOT][VECTOR_TYPE_F32] = "
+            f"float32_distance_dot_{isa}; return 1; }}"
+        )
+        (root / "src" / f"distance-{isa}.c").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return build(root)
+
+
+def test_an_ambiguous_family_serves_no_shot_and_the_request_names_both(tmp_path):
+    lattice = ambiguous_target(tmp_path)
+    unit = next(u for u in e4.units(lattice, "avx2") if u.name == "hsum256_ps")
+    assert e4.family_key("hsum128_ps") == e4.family_key("hsum512_ps") == e4.family_key(unit.name)
+
+    rows = e4.helper_siblings(lattice, "avx2", unit)
+    assert rows == [e4.Sibling("sse2", None, e4.AMBIGUOUS, ("hsum128_ps", "hsum512_ps"))]
+    data = e4.context(lattice, "avx2", unit, "S-2h")
+    assert data["shots"] == []
+    assert data["shots_note"] == "shots: none (sse2 — ambiguous: hsum128_ps, hsum512_ps)"
+    text = e4.messages(lattice, "avx2", unit, "S-2h")[1]["content"]
+    assert "ambiguous: hsum128_ps, hsum512_ps" in text
+    assert "return v + 1.0f;" not in text  # neither candidate's body is carried; picking one is a new rule
+
+
+def test_a_helpers_s2h_shots_are_its_name_family_in_the_files_that_stay(lattice):
+    unit = next(u for u in e4.units(lattice, "avx2") if u.name == "hsum256_ps")
+    assert e4.shots(lattice, "avx2", unit) == []  # S-2 has nothing to cross for a helper: that is the gap
+
+    data = e4.context(lattice, "avx2", unit, "S-2h")
+    assert [(row["isa"], row["from"]) for row in data["shots"]] == [
+        ("sse2", "hsum128_ps"),
+        ("avx512", "hsum512_ps"),
+    ]
+    assert data["shots_note"] is None  # every file that stays answered, so there is nothing to say
+    text = e4.messages(lattice, "avx2", unit, "S-2h")[1]["content"]
+    assert "matched by name, not by the grid" in text
+    assert "/* sse2: hsum128_ps */" in text and "/* avx512: hsum512_ps */" in text
+    sibling = next(u for u in e4.units(lattice, "sse2") if u.name == "hsum128_ps")
+    assert definition(lattice, "sse2", sibling) in text  # the whole definition, as that file writes it
+
+
+def test_a_helper_with_no_sibling_carries_the_pre_registered_note_and_never_s2s(lattice):
+    unit = next(u for u in e4.units(lattice, "avx2") if u.name == "hsum256_epi32")
+    data = e4.context(lattice, "avx2", unit, "S-2h")
+    assert data["shots"] == []
+    assert e4.NO_SIBLING == "no name-family sibling"  # the pre-registration's own wording
+    assert data["shots_note"] == (
+        "shots: none (sse2 — no name-family sibling; avx512 — no name-family sibling)"
+    )
+    text = e4.messages(lattice, "avx2", unit, "S-2h")[1]["content"]
+    assert e4.NO_SIBLING in text
+    # and it is never S-2's sentence: "none (helper)" would say the grid had nothing, which is not the fact
+    assert e4.NO_SHOTS["helper"] not in text
+    assert e4.NO_SHOTS["helper"] in e4.messages(lattice, "avx2", unit, "S-2")[1]["content"]
+
+
+def test_s2h_is_s2_byte_for_byte_for_every_cell_and_the_init(lattice):
+    """The arm differs on the helpers and nowhere else, which is why the comparison is read on them."""
+    ordered = e4.units(lattice, "avx2")
+    for unit in ordered:
+        if unit.kind == "helper":
+            continue
+        one = e4.context(lattice, "avx2", unit, "S-2")
+        other = e4.context(lattice, "avx2", unit, "S-2h")
+        assert other == {**one, "arm": "S-2h"}  # the arm's name is the whole of the difference
+        assert e4.messages(lattice, "avx2", unit, "S-2h") == e4.messages(lattice, "avx2", unit, "S-2")
+
+    moved = {
+        unit.name
+        for unit in ordered
+        if e4.context(lattice, "avx2", unit, "S-2")["shots"]
+        != e4.context(lattice, "avx2", unit, "S-2h")["shots"]
+    }
+    assert moved == {u.name for u in helpers_of(lattice, "avx2")} - set(UNPAIRED["avx2"])
+
+    # the request is the same request under another name: one id, one seed, and the same bytes
+    unit = next(u for u in ordered if u.kind == "cell")
+    made = {
+        arm: e4.requests_for(lattice, "avx2", unit, arm, "M", 0)[0] for arm in ("S-2", "S-2h")
+    }
+    assert made["S-2h"]["messages"] == made["S-2"]["messages"]
+    assert made["S-2h"]["shots"] == made["S-2"]["shots"]
+    assert made["S-2h"]["id"] != made["S-2"]["id"]
+    assert made["S-2h"]["params"]["seed"] == e1.seed("M", unit.name, "S-2h", 0, 0)
+    assert made["S-2h"]["params"]["seed"] != made["S-2"]["params"]["seed"]
+
+
+def test_no_gold_enters_an_s2h_helper_prompt_that_is_not_a_shot(lattice):
+    """The skeleton is still bare, and of the files that stay only the family's own member is shown."""
+    unit = next(u for u in e4.units(lattice, "avx2") if u.name == "hsum256_ps")
+    written = tokens("".join(turn["content"] for turn in e4.messages(lattice, "avx2", unit, "S-2h")))
+
+    for other in e4.units(lattice, "avx2"):
+        if other.name == unit.name:
+            continue
+        gold = tokens(holes.gold_body(lattice.sources["avx2"].text, other))
+        assert not token_run(written, gold), f"the held-out file's {other.name} is in the prompt"
+
+    for isa in ("sse2", "avx512"):
+        for other in e4.units(lattice, isa):
+            gold = tokens(holes.gold_body(lattice.sources[isa].text, other))
+            shown = other.kind == "helper" and e4.family_key(other.name) == e4.family_key(unit.name)
+            assert token_run(written, gold) is shown, f"{isa}:{other.name}"
+
+
+def test_the_registered_comparison_is_the_helper_units(lattice):
+    assert e4.COMPARISONS == (("S-0", "S-2", None), ("S-3", "S-5", None), ("S-2", "S-2h", "helper"))
+    assert e4.FAMILY_ARMS == ("S-2h",) and "S-2h" in e4.SHOT_ARMS
+    # S-2h needs no ledger, no fields and no wave: it is planned whole, like S-2
+    assert "S-2h" not in e4.FACTS_ARMS and "S-2h" not in e4.FIELD_ARMS and "S-2h" not in e4.OWN_ARMS
+    made = e4.plan(lattice, "avx2", ("S-2h",), "M", k=0)
+    assert len(made) == len(e4.units(lattice, "avx2"))
+    assert {request["wave"] for request in made} == {0}
 
 
 # MARK: - the parser's fields (S-5) -

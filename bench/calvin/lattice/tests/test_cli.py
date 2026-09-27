@@ -1222,6 +1222,105 @@ def test_e4_run_answers_s2o_in_waves_and_reports_both_comparisons(tmp_path, caps
     assert "S-5 − S-3" in table and "not built" not in table
 
 
+def run_an_e4_file(tmp_path, capsys, monkeypatch, name, *, isa="avx2", model="Qwen/Qwen2.5-Coder-7B-Instruct"):
+    """Plan and answer one file's S-2 and S-2h over a replay, and return the run directory.
+
+    The request ids carry no model, only the seeds do, so one replay answers a 7B run and a 32B run of the
+    same plan — which is what `e4 compare` reads.
+    """
+    run_dir = tmp_path / name
+    assert cli.main([
+        "e4", "plan", str(FIXTURE), str(run_dir), "--model", model,
+        "--isa", isa, "--arms", "S-2,S-2h", "--k", "0",
+    ]) == 0
+    capsys.readouterr()
+    recorded = e4_completions_for(run_dir, isa=isa)
+    fake_e4_grade(monkeypatch)
+    assert cli.main([
+        "e4", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "10", "--generator", f"replay:{recorded}",
+    ]) == 0
+    capsys.readouterr()
+    return run_dir
+
+
+def test_e4_report_reads_the_helper_comparison_and_the_cell_noise_read(tmp_path, capsys, monkeypatch):
+    """D-11 a at the CLI: S-2h plans and runs like S-2, and the report reads the two of them apart."""
+    run_dir = run_an_e4_file(tmp_path, capsys, monkeypatch, "e4")
+    requests = [json.loads(line) for line in (run_dir / e1.REQUESTS).read_text().splitlines()]
+    family = next(r for r in requests if r["arm"] == "S-2h" and r["unit"] == "hsum256_ps")
+    assert [(row["isa"], row["from"]) for row in family["shots"]] == [
+        ("sse2", "hsum128_ps"),
+        ("avx512", "hsum512_ps"),
+    ]
+    assert "matched by name, not by the grid" in family["messages"][1]["content"]
+    # the same helper under S-2 carries nothing, which is the gap the arm is about
+    plain = next(r for r in requests if r["arm"] == "S-2" and r["unit"] == "hsum256_ps")
+    assert plain["shots"] == [] and plain["shots_note"] == e4.NO_SHOTS["helper"]
+
+    assert cli.main(["e4", "report", str(run_dir), "--json"]) == 0
+    found = json.loads(capsys.readouterr().out)
+    helpers = found["comparisons"]["S-2h − S-2 (helper units, registered)"]
+    cells = found["comparisons"]["S-2h − S-2 (cell units, described: identical prompts under two seeds)"]
+    assert helpers["pass_at_1"]["cells"] == 13 and cells["pass_at_1"]["cells"] == 13
+    # every unit answered with its own gold, so both readings are flat — and both are readings
+    assert helpers["pass_at_1"]["delta"] == 0.0 and cells["pass_at_1"]["delta"] == 0.0
+
+    assert cli.main(["e4", "report", str(run_dir)]) == 0
+    table = capsys.readouterr().out
+    assert "S-2h − S-2 (helper units, registered)" in table
+    assert "S-2h − S-2 (cell units, described" in table
+
+
+def test_e4_compare_reads_one_file_on_two_models_and_refuses_anything_else(tmp_path, capsys, monkeypatch):
+    small = run_an_e4_file(tmp_path, capsys, monkeypatch, "qwen-7b")
+    large = run_an_e4_file(
+        tmp_path, capsys, monkeypatch, "qwen-32b", model="Qwen/Qwen2.5-Coder-32B-Instruct"
+    )
+
+    assert cli.main(["e4", "compare", str(small), str(large), "--json"]) == 0
+    found = json.loads(capsys.readouterr().out)
+    assert found["a"]["model"] == "Qwen/Qwen2.5-Coder-7B-Instruct"
+    assert found["b"]["model"] == "Qwen/Qwen2.5-Coder-32B-Instruct"
+    assert found["described"] is True and found["arms"] == ["S-2", "S-2h"]
+    assert sorted(found["paired"]["S-2h"]) == ["cell", "helper", "init"]
+
+    assert cli.main(["e4", "compare", str(small), str(large)]) == 0
+    assert "a price, not a registered comparison" in capsys.readouterr().out
+
+    # the other file at the same model is not one variable apart, and is refused rather than differenced
+    other = run_an_e4_file(tmp_path, capsys, monkeypatch, "qwen-7b-sse2", isa="sse2")
+    assert cli.main(["e4", "compare", str(small), str(other)]) == 2
+    assert "nothing was compared" in capsys.readouterr().err
+
+
+def test_e4_pool_pools_the_registered_comparison_over_the_files_and_refuses_a_repeat(
+    tmp_path, capsys, monkeypatch
+):
+    avx2 = run_an_e4_file(tmp_path, capsys, monkeypatch, "pool-avx2")
+    sse2 = run_an_e4_file(tmp_path, capsys, monkeypatch, "pool-sse2", isa="sse2")
+
+    assert cli.main([
+        "e4", "pool", str(avx2), str(sse2), "--pair", "S-2,S-2h", "--kind", "helper", "--json",
+    ]) == 0
+    found = json.loads(capsys.readouterr().out)
+    assert found["registered"] is True and found["kind"] == "helper"
+    assert [row["isa"] for row in found["runs"]] == ["avx2", "sse2"]
+    # avx2's 13 helpers and sse2's 6, keyed by ISA so the two files' names cannot collide
+    assert found["paired"]["pass_at_1"]["cells"] == 13 + 6
+    assert found["runs"][0]["units"] == {"S-2": 13, "S-2h": 13}
+
+    assert cli.main(["e4", "pool", str(avx2), str(sse2)]) == 0  # the defaults are the registered pair
+    table = capsys.readouterr().out
+    assert "E4 pooled S-2h − S-2 over 2 run(s)" in table and "helper unit(s); registered" in table
+
+    assert cli.main(["e4", "pool", str(avx2), str(avx2)]) == 2
+    assert "both over avx2" in capsys.readouterr().err
+    assert cli.main(["e4", "pool", str(avx2), str(sse2), "--pair", "S-2,C-2"]) == 2
+    assert "no arm 'C-2'" in capsys.readouterr().err
+    assert cli.main(["e4", "pool", str(avx2), str(sse2), "--pair", "S-2"]) == 2
+    assert "--pair takes two arms" in capsys.readouterr().err
+
+
 def test_e4_run_without_a_ceiling_exits_two(tmp_path, capsys):
     run_dir = plan_an_e4_run(tmp_path, capsys)
     with pytest.raises(SystemExit) as refused:

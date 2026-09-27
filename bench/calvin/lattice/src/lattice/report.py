@@ -40,8 +40,15 @@ not the same task, exactly as E1 keeps wrappers apart. A helper **no cell's gold
 reported apart as :data:`UNEXERCISED`: it compiled and no slot ran it, so it has no pass rate to average
 into the others, and a unit is counted there whenever *any* of its rows says so — the empty slot union is
 a fact about the unit, not about a body. The **file-level** rows (`file_level.jsonl`) are printed as they
-are, with the two comparisons E4-f registered — `S-2 − S-0` and `S-5 − S-3` — paired by unit, both now
-computed from the rows.
+are, with the comparisons `e4.COMPARISONS` registers — `S-2 − S-0` and `S-5 − S-3` — paired by unit, all
+computed from the rows. E4-f's two are over **every** unit; D-11's `S-2h` against `S-2` is over the
+**helper** units, which is where the two arms differ at all.
+
+**A comparison registered on one kind is printed twice**, and the second printing is a description. S-2h
+sends a cell and the init exactly S-2's bytes (`e4.context`), so the same pair over the **cells** is the
+sampler's own noise under two seeds and nothing else — which is what the helper reading has to be larger
+than to say anything. It is printed beside it, labelled `described` (:data:`DESCRIBED_KIND`), and is never
+read as a result.
 
 And **S-2o is described, not tested** (E4-c): it is in no registered comparison, so what the report owes a
 reader is what the arm actually carried. :func:`_own_shots` counts it off the run's own
@@ -63,10 +70,12 @@ from .e1 import CALLS, GMEM, ITERATE, META, REQUESTS, ROWS
 __all__ = [
     "BODY_KINDS",
     "COMPILED",
+    "DESCRIBED_KIND",
     "LOW_BIT",
     "UNEXERCISED",
     "e4_render",
     "e4_report",
+    "e4_units",
     "figures",
     "pass_at_k",
     "render",
@@ -87,6 +96,11 @@ COMPILED = ("not-installed", "wrong", "edge", "pass")
 #: The label a cell whose probe had nothing to continue carries: not a G-mem reading, and never folded
 #: into `unseen` (`gmem.run` marks those rows `evidence: False`).
 NO_EVIDENCE = "no-evidence"
+
+#: The kind a comparison registered on one kind is **also** read over, described: S-2h sends a cell the
+#: same bytes S-2 does, so that reading is two seeds and nothing else — the noise the helper reading has to
+#: stand above. It is a description and never a result.
+DESCRIBED_KIND = "cell"
 
 #: `grade.UNEXERCISED`, repeated rather than imported: `grade` pulls in the compiler and the differential,
 #: and a report is read on a box that has neither. The string is the seam, and `test_grade.py` holds the
@@ -396,28 +410,68 @@ def _e4_arm(rows: list[dict], k: int) -> dict:
     }
 
 
-def _e4_comparisons(rows: list[dict], k: int) -> dict:
-    """E4-f's two registered comparisons, each paired by unit, or the reason there is no number yet."""
-    # `paired` reads this module's section kinds, so the two may not import each other at the top
-    from . import paired as paired_of
+def e4_units(rows: list[dict], kind: str | None = None) -> dict[str, dict[str, dict]]:
+    """`arm -> unit -> {"greedy", "drawn"}` over E4 rows: `paired.paired`'s own shape, by unit.
 
+    *kind* keeps one of :data:`lattice.e4.KINDS` and `None` keeps every unit. Which rows to hand in is the
+    caller's (the report's figures are round 0 with an arm), so that this says nothing about which rows a
+    reading is over and `compare.e4_compare` can read the same shape off another run's rows.
+    """
     by_arm: dict[str, dict[str, dict]] = {}
     for row in rows:
+        if kind is not None and row.get("kind") != kind:
+            continue
         unit = by_arm.setdefault(row["arm"], {}).setdefault(row["cell"], {"greedy": None, "drawn": []})
         passed = row.get("class") == "pass"
         if row.get("sample") == 0:
             unit["greedy"] = passed
         else:
             unit["drawn"].append(passed)
+    return by_arm
 
+
+def _e4_comparisons(rows: list[dict], k: int) -> dict:
+    """Every registered comparison, paired by unit, or the reason there is no number yet.
+
+    A comparison scoped to a kind is read over that kind **and** printed a second time over
+    :data:`DESCRIBED_KIND` as the noise read, which is a description and is labelled one.
+    """
     found: dict[str, dict] = {}
-    for first, second in e4_of.COMPARISONS:
-        label = f"{second} − {first}"
-        if first not in by_arm or second not in by_arm:
-            found[label] = {"missing": f"the run has no rows for {first if first not in by_arm else second}"}
-            continue
-        found[label] = paired_of.paired(by_arm[first], by_arm[second], k)
+    for first, second, kind in e4_of.COMPARISONS:
+        found[_comparison_label(first, second, kind, registered=True)] = _paired_units(
+            rows, first, second, kind, k
+        )
+        if kind is not None:
+            found[_comparison_label(first, second, DESCRIBED_KIND, registered=False)] = _paired_units(
+                rows, first, second, DESCRIBED_KIND, k
+            )
     return found
+
+
+def _comparison_label(first: str, second: str, kind: str | None, registered: bool) -> str:
+    """One comparison's line: the delta's direction, the units it is over, and whether it was registered.
+
+    The described label may say *identical prompts* because that is what a kind-scoped comparison is: its
+    two arms differ on the scoped kind and nowhere else (D-11's S-2h is S-2 for a cell and for the init,
+    which `test_e4.py` holds byte for byte), so every other kind's pair is two seeds of one prompt.
+    """
+    if kind is None:
+        return f"{second} − {first}"
+    if registered:
+        return f"{second} − {first} ({kind} units, registered)"
+    return f"{second} − {first} ({kind} units, described: identical prompts under two seeds)"
+
+
+def _paired_units(rows: list[dict], first: str, second: str, kind: str | None, k: int) -> dict:
+    """One comparison's three tests over the units of *kind*, or which arm the run has no rows for."""
+    # `paired` reads this module's section kinds, so the two may not import each other at the top
+    from . import paired as paired_of
+
+    by_arm = e4_units(rows, kind)
+    for arm in (first, second):
+        if arm not in by_arm:
+            return {"missing": f"the run has no{'' if kind is None else f' {kind} unit'} rows for {arm}"}
+    return paired_of.paired(by_arm[first], by_arm[second], k)
 
 
 def _own_shots(requests: list[dict]) -> dict | None:
@@ -518,7 +572,10 @@ def e4_render(found: dict) -> str:
         )
 
     lines.append("")
-    lines.append("registered comparisons, paired by unit (exact, two-sided, uncorrected):")
+    lines.append(
+        "comparisons, paired by unit (exact, two-sided, uncorrected); each line says which units it is "
+        "over and whether it was registered:"
+    )
     for label, tests in found["comparisons"].items():
         if "missing" in tests:
             lines.append(f"    {label}  — {tests['missing']}")
