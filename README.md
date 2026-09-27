@@ -474,8 +474,19 @@ E3 (2026-09-26, about $5.55 of $25) trained a 300-step LoRA on 21,290
 pattern examples drawn from 40 permissively licensed C repos: it lifted
 the use of examples (+0.148 pass@1 against the base, p 0.0002) and not
 the no-example arm, and the gain vanished on meaningless names — training
-sharpens reading named neighbours, not skill in the weights. The records
-are in the experiments page.
+sharpens reading named neighbours, not skill in the weights. E4
+(2026-09-26, about $1.25 of $8) was the first run on the page that
+decomposes, so the first that is a Hobbes test: a 7B rebuilt each of the
+three native files one definition at a time, leaves first, and the
+graph's shots from the other files lifted it by +0.21 to +0.26 pass@1
+(p ≤ 0.0003 each), while a 7B parser's written spec made it worse. D-11
+(2026-09-27, about $2.11 of $5) gave the file's helpers shots by name
+family, +0.26 pooled (p 0.0001), except where the shot is from a wider
+instruction set than the target has; the 32B student added +0.13 on
+cells and +0.30 on helpers over the 7B. D-12 (about $0.67) listed, beside
+the shots, which of their intrinsics the target has: null (+0.011,
+p 0.59), since the 7B still wrote the renames the list said do not
+exist. The records are in the experiments page.
 
 The work built through it includes C's lane A and its oracle, the
 external veto (ADR-111), a session's records written by a sidecar
