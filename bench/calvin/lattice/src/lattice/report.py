@@ -40,9 +40,10 @@ not the same task, exactly as E1 keeps wrappers apart. A helper **no cell's gold
 reported apart as :data:`UNEXERCISED`: it compiled and no slot ran it, so it has no pass rate to average
 into the others, and a unit is counted there whenever *any* of its rows says so — the empty slot union is
 a fact about the unit, not about a body. The **file-level** rows (`file_level.jsonl`) are printed as they
-are, with the comparisons `e4.COMPARISONS` registers — `S-2 − S-0` and `S-5 − S-3` — paired by unit, all
-computed from the rows. E4-f's two are over **every** unit; D-11's `S-2h` against `S-2` is over the
-**helper** units, which is where the two arms differ at all.
+are, with the comparisons `e4.COMPARISONS` registers — `S-2 − S-0`, `S-5 − S-3` and `S-3h − S-2h` — paired
+by unit, all computed from the rows. E4-f's two are over **every** unit, and so is D-12's `S-3h − S-2h`,
+whose block is stated for every unit that carries a shot; D-11's `S-2h` against `S-2` is over the **helper**
+units, which is where those two arms differ at all.
 
 **A comparison registered on one kind is printed twice**, and the second printing is a description. S-2h
 sends a cell and the init exactly S-2's bytes (`e4.context`), so the same pair over the **cells** is the

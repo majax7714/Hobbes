@@ -6,6 +6,7 @@
     lattice facts      <target> <cell-id>       the cell's callees from the ledger (C-1, §5.3)
     lattice prompts    <target> [--arms …]      the five context arms' prompts, one JSON row per (cell, arm)
     lattice intrinsics <include-dir>            index clang's headers for every `_mm…`/`_cvt…` signature
+    lattice available  <target> --out J         which intrinsics each native file can use, per its includes
     lattice ages       <git-dir> <ref>          since when each cell's name and body have been what they are
     lattice mem-probes <target>                 the G-mem probes, written and not run
     lattice shadow     <target> <dest>          write one rename shadow of the target (E2)
@@ -34,9 +35,10 @@ it before anything is sent, and the parse step's calls are counted against the s
 student's (`calls.jsonl`, `stage: "parse"`). Grading between rounds goes into the image, as `grade` does.
 
 Everything but the last three reads text — files, a git history, the derived artifacts — and runs
-nowhere in particular. **`grade` and `selftest` compile and run the target's code**, so they take
-`--here` (this process is already contained) or `--image NAME` (the default: build a `podman run` plan
-and run this same CLI inside it, ADR-092/C-64). `--here` outside a container exits 2 with the refusal.
+nowhere in particular. **`grade`, `selftest` and `available` run the target's own text through the
+compiler**, so they take `--here` (this process is already contained) or `--image NAME` (the default: build
+a `podman run` plan and run this same CLI inside it, ADR-092/C-64). `--here` outside a container exits 2
+with the refusal.
 **`graph-grade` runs a Hobbes ingest**, which contains its own lane B (ADR-092) and so runs on the host
 like `uv run hobbes ingest` does. `<target>` is a checkout's root — the directory holding
 `src/distance-*.c`.
@@ -88,6 +90,17 @@ differ. `lattice e4 compare <run-a> <run-b>` is the other reading: one file's tw
 (E4-e's 32B ceiling arm), refused unless the ISA, the file, the target's SHA, the units, `k` and the params
 all agree, and **described throughout** — a second model is a price, not a registered test.
 
+**S-3h serves the ISA's own facts, and `lattice available` reads them** (D-12 a). `lattice available
+<target> --out available.json [--isa sse2,avx2,avx512]` preprocesses each native kernel file **in the
+image**, under the grader's own flags, and writes which intrinsics that file can use — declared by its own
+includes, with every required feature on — beside the clang version and the target's SHA that answered.
+`e4 plan --available available.json` then carries `S-3h`: S-2h plus one block naming, of the intrinsics the
+unit's shots use, which this file has and what the pre-registered rename rule R offers for the ones it has
+not, and which names in those shots are the *other* file's own. It is skipped and named, exactly as a facts
+arm with no ledger is, when `--available` is not given, and refused when the record does not cover the ISA
+being held out. `report` reads `S-3h − S-2h` over **every** unit as the registered comparison, and
+`lattice e4 pool --pair S-2h,S-3h` pools it over the three files' runs.
+
 **S-5's fields come from `e4 parse`, which runs first.** It asks one greedy question per unit — `API.md`,
 the unit's name, kind and signature, its grid position, and the *names* of its callees, and **no body of
 any kind** — and writes `parser.jsonl`: the two fields where the answer was that JSON, and the whole text
@@ -127,6 +140,7 @@ import tempfile
 from pathlib import Path
 
 from . import ages as ages_of
+from . import available as available_of
 from . import compare as compare_of
 from . import corpus as corpus_of
 from . import paired as paired_of
@@ -184,6 +198,16 @@ def main(argv: list[str] | None = None) -> int:
     indexer.add_argument("include_dir", type=Path, help="clang's include dir (`clang -print-file-name=include`)")
     indexer.add_argument("--out", type=Path, help="write the index as JSON here")
 
+    availabler = verbs.add_parser(
+        "available", help="which intrinsics each native file can use, read from its own includes (D-12)"
+    )
+    availabler.add_argument("target", type=Path)
+    availabler.add_argument("--out", type=Path, required=True, help="write the record as JSON here")
+    availabler.add_argument(
+        "--isa", help=f"a comma-separated list of ISAs (default: {','.join(available_of.native())})"
+    )
+    _where(availabler)
+
     ager = verbs.add_parser("ages", help="since when each cell's name and body have been what they are")
     ager.add_argument("git_dir", type=Path, help="a clone of the target, with its history")
     ager.add_argument("ref", help="the commit to read the cells at")
@@ -239,6 +263,16 @@ def main(argv: list[str] | None = None) -> int:
     except OSError as missing:
         print(f"lattice: the shadow map could not be read ({missing})", file=sys.stderr)
         return 2
+
+    if args.verb == "available":
+        try:
+            return _available(args)
+        except (run.NotContained, available_of.PreprocessFailed) as refusal:
+            print(f"lattice: {refusal}", file=sys.stderr)
+            return 2
+        except FileNotFoundError as missing:
+            print(f"lattice: the plan could not be run ({missing}); is podman installed?", file=sys.stderr)
+            return 2
 
     if args.verb in ("grade", "selftest"):
         try:
@@ -351,6 +385,45 @@ def _intrinsics(args) -> int:
     if args.out:
         args.out.write_text(json.dumps(index, indent=2, sort_keys=True), encoding="utf-8")
     return 0
+
+
+def _available(args) -> int:
+    """D-12's availability record: the file's own includes, preprocessed in the image under the grader's flags.
+
+    The shape is `grade`'s, and for the same reason — it runs the compiler over a checkout's text (ADR-092,
+    C-64). Without `--here` it builds a `podman run` plan and runs this same CLI inside it, the record
+    written **through the work mount** and copied out to `--out`, so the target stays read-only.
+    """
+    isas = [part.strip() for part in args.isa.split(",") if part.strip()] if args.isa else None
+    if args.here:
+        record = available_of.build(args.target, isas)
+        args.out.write_text(json.dumps(record, indent=2, sort_keys=True), encoding="utf-8")
+        print(_available_table(record))
+        return 0
+
+    with _workdir(args.work) as workdir:
+        inner = ["available", "/target", "--out", "/work/available.json"]
+        if isas:
+            inner += ["--isa", ",".join(isas)]
+        done = run.run_plan(run.image_plan(args.image, args.target, workdir, inner))
+        sys.stdout.write(done.stdout)
+        sys.stderr.write(done.stderr)
+        if done.returncode != 0:
+            return done.returncode
+        args.out.write_text((workdir / "available.json").read_text(encoding="utf-8"), encoding="utf-8")
+    return 0
+
+
+def _available_table(record: dict) -> str:
+    """One line per ISA: how many names its file declares, how many it can use, and the flags it was read at."""
+    header = f"{'isa':<8}{'names':>7}{'available':>11}  flags"
+    lines = [f"availability — {next(iter(record.values()), {}).get('clang') or 'unknown clang'}", header,
+             "-" * len(header)]
+    for isa, row in record.items():
+        names = row.get("names") or {}
+        usable = sum(1 for entry in names.values() if entry.get("available"))
+        lines.append(f"{isa:<8}{len(names):>7}{usable:>11}  {' '.join(row.get('flags') or ())}")
+    return "\n".join(lines)
 
 
 def _ages(args) -> int:
@@ -824,11 +897,10 @@ def _e3_corpus(args) -> int:
 # MARK: - E4's runner -
 
 
-#: `e4 pool`'s defaults: the comparison D-11 registered, so the everyday invocation is the registered one
+#: `e4 pool`'s default pair: the comparison D-11 registered, so the everyday invocation is a registered one
 #: and anything else is asked for explicitly. `--pair` and `--kind` are checked against `e4.ARMS` and
 #: `e4.KINDS`, and `compare.e4_pool` says on the record whether what was asked for is registered at all.
 POOL_PAIR = "S-2,S-2h"
-POOL_KIND = "helper"
 
 
 def _e4_verbs(verb: argparse.ArgumentParser) -> None:
@@ -860,6 +932,11 @@ def _e4_verbs(verb: argparse.ArgumentParser) -> None:
     planner.add_argument("--isa", default="avx2", help="the ISA whose file is held out (default: avx2, E4-a)")
     planner.add_argument("--arms", help=f"a comma-separated list of arms (default: {','.join(e4_of.ARMS)})")
     planner.add_argument("--k", type=int, default=e4_of.K, help=f"samples beside greedy (default: {e4_of.K})")
+    planner.add_argument(
+        "--available",
+        type=Path,
+        help=f"an availability record from `lattice available`; {', '.join(e4_of.FACTS_ISA_ARMS)} needs it",
+    )
     _ledger(planner)
 
     doer = steps.add_parser("run", help="answer and grade every unit, then build the file per arm")
@@ -892,9 +969,8 @@ def _e4_verbs(verb: argparse.ArgumentParser) -> None:
     pooler.add_argument("--pair", default=POOL_PAIR, help=f"the two arms, `first,second` (default: {POOL_PAIR})")
     pooler.add_argument(
         "--kind",
-        default=POOL_KIND,
         choices=(*e4_of.KINDS, "all"),
-        help=f"the unit kind the pair is read on, or `all` (default: {POOL_KIND})",
+        help="the unit kind the pair is read on, or `all` (default: the kind the pair is registered on)",
     )
     pooler.add_argument("--json", action="store_true", help="the comparison as JSON rather than a table")
 
@@ -1026,18 +1102,39 @@ def _e4_plan(args) -> int:
         print(f"lattice: the ledger could not be read ({missing})", file=sys.stderr)
         return 2
 
+    table = None
+    if args.available:
+        try:
+            table = available_of.load(args.available)
+        except (OSError, ValueError) as unreadable:
+            print(f"lattice: the availability record could not be read ({unreadable})", file=sys.stderr)
+            return 2
+        if not available_of.names_for(table, args.isa):
+            print(
+                f"lattice: {args.available} does not cover {args.isa} — "
+                f"run `lattice available <target> --out {args.available} --isa {args.isa}` first; "
+                f"{', '.join(e4_of.FACTS_ISA_ARMS)} is never filled empty",
+                file=sys.stderr,
+            )
+            return 2
+
     given = ledger if (args.graph or args.key or args.intrinsics) else None
-    asked = [arm for arm in arms if given is not None or arm not in e4_of.FACTS_ARMS]
-    for arm in [arm for arm in arms if arm not in asked]:
-        print(
-            f"lattice: {arm} skipped — it is a facts arm and no ledger was given "
-            "(--graph, --key, --intrinsics); it is never filled empty",
-            file=sys.stderr,
-        )
+    asked, skipped = [], []
+    for arm in arms:
+        if given is None and arm in e4_of.FACTS_ARMS:
+            skipped.append((arm, "it is a facts arm and no ledger was given (--graph, --key, --intrinsics)"))
+        elif table is None and arm in e4_of.FACTS_ISA_ARMS:
+            skipped.append((arm, "it carries what this file can use and no --available record was given"))
+        else:
+            asked.append(arm)
+    for arm, why in skipped:
+        print(f"lattice: {arm} skipped — {why}; it is never filled empty", file=sys.stderr)
 
     try:
-        requests = e4_of.plan(lattice, args.isa, asked, args.model, given, k=args.k, fields=fields)
-    except (e4_of.DuplicateDefinition, e4_of.NoFields) as refusal:
+        requests = e4_of.plan(
+            lattice, args.isa, asked, args.model, given, k=args.k, fields=fields, available=table
+        )
+    except (e4_of.DuplicateDefinition, e4_of.NoFields, e4_of.NoAvailability) as refusal:
         print(f"lattice: {refusal}", file=sys.stderr)
         return 2
     record = e4_of.meta(
@@ -1050,6 +1147,7 @@ def _e4_plan(args) -> int:
         target=args.target,
         facts=given,
         parser=e4_of.parser_meta(args.run_dir),
+        availability=None if args.available is None else available_of.record_meta(args.available),
     )
     e1_of.write_plan(args.run_dir, requests, record)
     window = record["decomposition"]
@@ -1066,6 +1164,13 @@ def _e4_plan(args) -> int:
         print(
             f"  the parser's fields: {block['parsed']} of {block['units']} unit(s) parsed, "
             f"{block['model'] or ', '.join(block['models'])} ({block['sha256'][:12]})"
+        )
+    if record["available"]:
+        block = record["available"]
+        seen = block["isas"].get(args.isa) or {}
+        print(
+            f"  what this file can use: {seen.get('available')} of {seen.get('names')} name(s) declared "
+            f"under {' '.join(seen.get('flags') or ())} by {seen.get('clang')} ({block['sha256'][:12]})"
         )
     if any(arm in e4_of.OWN_ARMS for arm in asked):
         sizes = ", ".join(str(len(wave)) for wave in record["waves"])
@@ -1147,14 +1252,29 @@ def _e4_pool(args) -> int:
     except prompts_of.UnknownArm as refusal:
         print(f"lattice: {refusal}", file=sys.stderr)
         return 2
-    kind = None if args.kind == "all" else args.kind
     try:
-        found = compare_of.e4_pool(args.runs, first, second, kind)
+        found = compare_of.e4_pool(args.runs, first, second, _e4_kind(first, second, args.kind))
     except compare_of.NotComparable as refusal:
         print(f"lattice: {refusal}", file=sys.stderr)
         return 2
     print(json.dumps(found, indent=2, sort_keys=True) if args.json else compare_of.render_e4_pool(found))
     return 0
+
+
+def _e4_kind(first: str, second: str, given: str | None) -> str | None:
+    """The unit kind to pool on: the one asked for, or **the one the pair is registered on**.
+
+    A default of one fixed kind would silently narrow a pair registered over every unit — D-11's
+    `S-2h − S-2` is the helper units and D-12's `S-3h − S-2h` is all of them — so the default is read off
+    `e4.COMPARISONS` rather than written down twice. `--kind all` is every unit, asked for explicitly, and a
+    pair on no comparison at all defaults to every unit too, with `registered` false on the record.
+    """
+    if given is not None:
+        return None if given == "all" else given
+    for registered, against, kind in e4_of.COMPARISONS:
+        if (registered, against) == (first, second):
+            return kind
+    return None
 
 
 def _e4_pair(given: str) -> tuple[str, str]:

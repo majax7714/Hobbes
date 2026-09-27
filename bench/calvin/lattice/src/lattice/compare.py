@@ -25,7 +25,8 @@ run directories, and the thing that differs between the two runs is what each of
   is described**: a bigger model is a price, not a registered test, and no comparison on `e4.COMPARISONS`
   is between two models.
 - :func:`e4_pool` is **one registered comparison pooled over several files' runs** — `S-2h − S-2` on the
-  helper units of avx2, sse2 and avx512 at once. A unit is keyed `<isa>/<unit>` because `hsum256_ps` and
+  helper units of avx2, sse2 and avx512 at once, and D-12's `S-3h − S-2h` over **every** unit of the same
+  three. A unit is keyed `<isa>/<unit>` because `hsum256_ps` and
   `hsum512_ps` are two units and one name would pool them into one; a run list naming one ISA twice is
   refused, since that pools a file's units with themselves; and the runs must share the model, `k` and the
   params, because a pooled figure over two models is a number about neither.

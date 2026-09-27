@@ -212,6 +212,35 @@ keywords and the attribute macros (`__DEFAULT_FN_ATTRS256`, a written-out `__att
 `__m256 _mm256_fmadd_ps(__m256 __A, __m256 __B, __m256 __C)`. A macro keeps its `#define` line, because
 it has no type. A line scanner, not a preprocessor: it reads both arms of an `#if`, and it says so.
 
+**`available`** — **what one kernel file can use** (D-12 a), which is the question `intrinsics` deliberately
+does not answer. An intrinsic is **available** in a file when both hold: the file's own text, *preprocessed
+under the grader's flags*, declares it — a function definition or a `#define` — and **every feature it
+requires is enabled** under those flags, read from `clang -dM`. A function's features are its
+`__target__("…")` entries, with a `no-…` entry read as the statement it is and never as a requirement; a
+**macro** has none of its own and takes its **header's**, the most common feature tuple among the functions
+that header (by line marker) defines, `()` where it defines none — which is also how the target's own
+`#define _mm512_abs_ps` reads. `parse(preprocessed, macros)` is the rule, **pure over the two texts**;
+`build(target, isas)` is the pair of clang runs that produce them, from the target's root with relative
+includes so the record names no path of this box, and it goes through `run.require_container` because it
+runs the compiler over a checkout's source (ADR-092, C-64). The record is `{isa: {flags, clang, target_sha,
+names}}`, and `record_meta` is the digest and the flags a plan carries.
+
+**Why not the index.** `intrinsics` reads clang's headers as text, both arms of every `#if`, and knows
+nothing of `-mavx2`: it is the right instrument for *what names exist* and the wrong one here. sse2's kernel
+file includes only `<emmintrin.h>`, so `_mm_shuffle_epi8` is **undeclared** there and the index would call
+it real — which is exactly the mistake D-11 watched the student make. avx2's and avx512's files include
+`<immintrin.h>`, which in clang 18 declares every header, so there the same names are declared and *off*:
+`_mm512_reduce_add_ps` needs `avx512f`, and `_mm512_popcnt_epi64` needs `avx512vpopcntdq`, which the
+target's Makefile does not pass even on avx512. On the real target the counts are sse2 425, avx2 1,051 and
+avx512 4,857, and every gold intrinsic is available in its own file but two that sit in `#if`-guarded code
+these flags do not compile. **`rename` is rule R**, pre-registered: the leading `_mm_`/`_mm256_`/`_mm512_`
+becomes this file's prefix and every `128`/`256`/`512` written directly after `si`, `ps` or `pd` becomes
+this file's width, and the result **counts only when it differs from the name and is itself available** —
+`_mm256_loadu_si256` → `_mm_loadu_si128` in sse2, while `_mm256_extractf128_ps` has no form there (its
+`f128` is a lane index, not a width) and is said to have none rather than renamed into a second invented
+name. Three real `clang -E -dD` excerpts ride under `tests/fixtures/preprocessed/` with their
+`PROVENANCE.md`: parsed as the whole files are, they give each of nine names the same status, 27 of 27.
+
 **`ages`** — cell age, a contamination instrument (§6's E0 card, C-39). `name_since` is since when the
 file has defined the name and `body_since` since when the body at the ref has been byte-identical, both
 walked **contiguously back from the ref** through `git log --format=%H %cI -- <file>` and `git show
@@ -662,6 +691,39 @@ That is why the registered comparison **`S-2h − S-2` is read on the helper uni
 over the **cells** is printed beside it as the *noise* read — identical prompts under two seeds — labelled
 described and never read as a result.
 
+**S-3h serves the ISA's own facts beside the pattern** (D-12 a, pre-registered before this build). D-11's
+reading was that a name-family shot carries the pattern and **not what the target ISA has**: sse2 did not
+move, and there the dominant class is `invented` — the student copies the wider sibling's
+`_mm_shuffle_epi8` (SSSE3) into a file that includes only `<emmintrin.h>`, and copies that file's own helper
+names with it (`abs_diff_epu8_512`, `popcount_lut_bytes`). By class, 56% of D-11's invented intrinsics are a
+width-rename of one in the unit's own shots, 34% are declared nowhere, and 9% are real but not available in
+the file. So **S-3h is S-2h plus one block**, headed "What this file can use, of what the examples above use
+(read from this file's own includes under its build flags, and from its own definitions):", built from the
+unit's shot texts and nothing else:
+
+- **the intrinsics** the shots call (`\b(_mm\w*|_cvt\w*)\s*\(`, first-appearance order, deduplicated): the
+  available ones on one line, `` available here: `a`, `b` ``, omitted where there are none; and each
+  unavailable one on a line of its own — `` `X` is not available in this file; its form here: `Y` `` where
+  **rule R** has a form, and `` `X` is not available in this file, and no same-named form is `` where it has
+  not. Availability is `available.py`'s, read the way the **grader** meets it.
+- **the other file's own names**: a name in a shot that the **shot's source file** defines at file scope — a
+  `scan` function, a `scan` `#define`, or a file-scope `static` object (`popcount_lut_bytes`) — and that the
+  held-out file does **not** define. Each is answered by **rule W's** family among this file's units:
+  `` `abs_diff_epu8_512` is the other file's own; this file's: `abs_diff_epu8` ``, or `this file's
+  candidates: … (ambiguous)` for two, or `this file has no such definition` — which is what a `#define` and
+  an object always get, since rule W is a rule over the names of *definitions*.
+
+A unit with **no shots** carries the one line `nothing to check: no examples above`: a block about examples
+nobody was shown would be a claim about a prompt that does not exist. Everything else in S-3h — the shots,
+the skeleton, the notes — is **S-2h's byte for byte**, and the block is placed directly under the shots and
+their note, which is why the registered comparison **`S-3h − S-2h` is over every unit** (a cell's and the
+init's shots are the grid's, a helper's are rule W's, and all three get the block). Without a record, or
+with one that does not cover the ISA being held out, it is `NoAvailability` — its own type — and is **never
+filled empty**: an empty availability table would mark every intrinsic unavailable, so the arm would not be
+merely silent but actively wrong. The request row carries the block **as data** — every name, its status and
+the form it was offered — and `meta.json` carries the record's digest with the flags and the clang line that
+answered, so "not available in this file" on a prompt can be traced to the compiler that said it.
+
 **`families`** — **E3's draw rules, ported verbatim** from `bench/calvin/e3-draw/`, the draw's scripts as
 they ran (2026-09-26). The recorded pool — 33,902 union tasks over the 40 taken repos, **24,222 unique**
 (§6, "E3's pool") — was read by those scripts, so the corpus has to select the same members, and the
@@ -789,6 +851,19 @@ how many cells carried 0, 1 or 2, and **why each missing one was missing** (`lat
 `neighbour-failed`, `no-neighbour`, or the unit having no axis at all) — read off `requests.jsonl`, because
 what a prompt carried is not on any row.
 
+**And this unit adds one verb and one flag, both D-12's.** `lattice available <target> --out <json> [--isa
+sse2,avx2,avx512] [--image NAME] [--here]` writes the availability record: which intrinsics each named
+file's own includes declare under the grader's flags, and which of those every required feature is on for,
+beside `clang --version`'s first line and the target's SHA. It **compiles the target's text**, so it takes
+`--here`/`--image` exactly as `grade` does — without `--here` it plans itself into the image and the JSON
+rides out through the work mount — and `--here` outside a container exits 2 with the refusal. Then `lattice
+e4 plan --available <json>`, which is **S-3h's input**: without it S-3h is *skipped and named on stderr*, as
+a facts arm with no ledger is, and with a record that does not cover the ISA being held out the plan exits 2
+naming it rather than planning an arm it would have to fill empty. `e4 plan`'s default `--arms` carries
+S-3h, `report` reads `S-3h − S-2h` over **every** unit as the registered comparison, and `e4 pool --pair
+S-2h,S-3h` pools it — with **no `--kind`**, because `--kind`'s default is now *the kind the pair is
+registered on* rather than one fixed value: D-11's pair still defaults to `helper` and D-12's to every unit.
+
 **And this unit adds two verbs, both E4's cross-run readings.** `lattice e4 compare <run-a> <run-b>
 [--json]` prints one file's two runs **one model apart**, paired by unit per shared arm and per unit kind,
 and exits 2 naming the field when anything else differs. `lattice e4 pool <run>… [--pair S-2,S-2h] [--kind
@@ -820,8 +895,9 @@ e3 compare <run-a> <run-b> [--json]`, which prints the paired reading of `b` aga
 one plan one adapter apart. None of the three calls a model: `e1 run --generator modal` still does that,
 and it is the only verb that does.
 
-Everything that compiles or runs the target's code runs in the image (ADR-092, C-64) — and so does the
-intrinsic index, whose headers are the image's clang's. `graph-grade` is the exception and says why: it
+Everything that compiles or runs the target's code runs in the image (ADR-092, C-64) — and so do the
+intrinsic index, whose headers are the image's clang's, and `available`, which preprocesses the target's own
+files with it. `graph-grade` is the exception and says why: it
 runs a Hobbes ingest, which contains its own lane B. Still to come: G-test, `grade` and `diff` taking a
 rename of their own instead of `shadow.grading`, and the first run that actually calls a model.
 
@@ -894,6 +970,15 @@ lattice e4 pool runs/qwen-avx2-l1 runs/qwen-sse2-l1 runs/qwen-avx512-l1 \
 lattice e4 plan /path/to/sqlite-vector runs/qwen32b-avx2-l1 \
   --model Qwen/Qwen2.5-Coder-32B-Instruct --isa avx2 --arms S-2,S-2h --k 10
 lattice e4 compare runs/qwen-avx2-l1 runs/qwen32b-avx2-l1   # described: model size is a price
+
+# D-12: what each file can use, read in the image, then S-3h beside S-2h per native file
+lattice available /path/to/sqlite-vector --out available.json   # --isa defaults to the three native ones
+lattice e4 plan /path/to/sqlite-vector runs/qwen-avx2-d12 \
+  --model Qwen/Qwen2.5-Coder-7B-Instruct --isa avx2 --arms S-2h,S-3h --k 10 \
+  --available available.json
+lattice e4 run runs/qwen-avx2-d12 /path/to/sqlite-vector --ceiling-usd 0.8 --generator modal
+lattice e4 report runs/qwen-avx2-d12                # `S-3h − S-2h` over every unit, registered
+lattice e4 pool runs/qwen-avx2-d12 runs/qwen-sse2-d12 runs/qwen-avx512-d12 --pair S-2h,S-3h
 
 # E3: the draw's 40 clones as a training corpus and its shuffled control, on the host, spending nothing
 # repos.txt is one <name>=<root> a line, in the draw's taken order (its dedupe depends on that order)
@@ -1007,6 +1092,27 @@ pre-registered and the instruments are built; no model has been called. The orde
    first call's `calls.jsonl`, as E1-g's replaced the 7B's.
 5. **`lattice e4 compare <7B run> <32B run>`**, which is **described throughout**: model size is a price,
    not a registered comparison, and that card has never run on this account.
+
+## D-12 — the order of work (nothing has run)
+
+D-12 a was taken at about **$0.40 expected**, the runner's worst-case guard being about $0.80 a file, and
+**avx2 is priced first** (§9). Rules R and W are pre-registered and the instruments are built; no model has
+been called. The order:
+
+1. **`lattice available <target> --out available.json`** — in the image, since it runs clang over the
+   target's own text. It spends no API money. Read the counts it prints against the record: sse2 425, avx2
+   1,051 and avx512 4,857 at `0c2223a` under clang 18.1.3, and the clang line, because "not available in
+   this file" is only as good as the compiler that said it.
+2. **`lattice e4 plan --arms S-2h,S-3h --available available.json` per native file**, and `e4 run` each. The
+   plan costs nothing; read the P12 line and the prompt sizes off `requests.jsonl` before anything is sent.
+   S-3h adds one prompt per unit and changes **every** unit that carries a shot, so the plan is about the
+   size of an S-2h run twice over.
+3. **`lattice e4 report` per file.** The registered line is `S-3h − S-2h` over every unit. Read the **sse2**
+   file first: it is the one D-11 left unmoved, and it is where the block's claim — that what stops a helper
+   is the ISA's facts and not the pattern — either holds or does not.
+4. **`lattice e4 pool` the three runs** on `--pair S-2h,S-3h` with no `--kind`: every unit of the three
+   files, which is the reading with the units to say anything.
+5. **Max's word**, before anything after it — the 32B on the same plan, or the next rung.
 
 ## E3 — the order of work
 

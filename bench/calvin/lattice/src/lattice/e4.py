@@ -30,6 +30,7 @@ their bodies would be gold in a prompt, and a body reaches a prompt only as an a
 | **S-5** | the **parser's fields** (§5.2: the contract and the edge cases) | the parser's words |
 | **S-2o** | S-2 plus the student's **own passed bodies** on the type and metric axes | growing a file from its own work |
 | **S-2h** | for a **helper**, the shots rule W's **name family** serves; for every other kind, S-2 byte for byte | pattern where the grid has no neighbour |
+| **S-3h** | S-2h plus **what this file can use** of what those shots use: the intrinsics by availability, and the other file's own names | the ISA's own facts |
 
 **Rule W, the helper's name family** (D-11 a, pre-registered before this build). E4's record named the
 file's weak point: the three native files' 13, 6 and 12 helpers pass at 0.00 to 0.23 in every arm, and
@@ -48,6 +49,29 @@ one family in one other file are **ambiguous**: that file serves no shot and the
 S-2h is **byte-identical to S-2** for a cell and for the init — only the arm's name, and so the request id
 and the seed, differ. That is why the registered comparison `S-2h − S-2` is read on the **helper** units
 only, and why the same pair over the cells is a *noise* read: identical prompts under two seeds.
+
+**S-3h serves the ISA's own facts beside the pattern** (D-12 a, pre-registered before this build). D-11's
+reading was that a name-family shot carries the pattern and **not what the target ISA has**: on sse2 the
+dominant class is `invented`, because the student copies a wider sibling's `_mm_shuffle_epi8` into a file
+that includes only `<emmintrin.h>`, and copies that file's own helper names with it. So S-3h is S-2h plus
+one block, headed *"What this file can use, of what the examples above use…"*, built from the unit's shot
+texts and nothing else:
+
+- **the intrinsics** the shots write, the available ones on one line and each unavailable one on a line of
+  its own — with **its form here** where rule R (:func:`lattice.available.rename`) has one, and the
+  statement that there is none where it has not;
+- **the other file's own names** a shot writes — a function, a `#define` or a file-scope `static` object of
+  the *shot's* file that the held-out file does not define — each answered by **rule W's** family among this
+  file's units: the one member, the two that make it ambiguous, or no such definition.
+
+Availability is read the way the **grader** meets it, from the file's own includes preprocessed under the
+build flags (:mod:`lattice.available`), never from the intrinsic index, which reads both arms of every
+`#if` and would call `_mm_shuffle_epi8` real on sse2. The arm is stated for **every** unit whose S-2h
+context carries shots; a unit with no shots carries :data:`NO_EXAMPLES` and nothing else, since a block
+about examples nobody was shown would be a claim about a prompt that does not exist. Everything else in
+S-3h — the shots included — is S-2h's byte for byte, which is why the registered comparison `S-3h − S-2h`
+is over **every** unit. Without a record it is :class:`NoAvailability` and is **never filled empty**, for
+the reason `prompts.NoLedger` and :class:`NoFields` are: an empty S-3h is S-2h under another name.
 
 **Expected, from E1's own rows:** of Qwen's 18 C-2 greedy passes the answer sat nearest the *type*-axis
 shot in 12, and at L1 the type neighbours are inside the held-out file, so S-2's ISA-only shots are
@@ -96,6 +120,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable, NamedTuple, Sequence
 
+from . import available as available_of
 from . import e1, families, holes, prompts
 from .cells import ISAS, NATIVE, Cell, Lattice
 from .cells import build as build_lattice
@@ -107,8 +132,10 @@ __all__ = [
     "ANY_ISA",
     "API_DOC",
     "ARMS",
+    "AVAILABLE_HERE",
     "COMPARISONS",
     "FACTS_ARMS",
+    "FACTS_ISA_ARMS",
     "FAMILY_ARMS",
     "FIELD_ARMS",
     "FILE_LEVEL",
@@ -118,12 +145,19 @@ __all__ = [
     "KINDS",
     "LATER",
     "NEIGHBOUR_FAILED",
+    "NOT_AVAILABLE",
+    "NOT_AVAILABLE_FORM",
+    "NOTHING_IN_SHOTS",
+    "NO_EXAMPLES",
     "NO_FACTS",
     "NO_FIELDS",
     "NO_NEIGHBOUR",
     "NO_OWN",
     "NO_SHOTS",
     "NO_SIBLING",
+    "OTHERS_AMBIGUOUS",
+    "OTHERS_NONE",
+    "OTHERS_ONE",
     "OWN_ARMS",
     "OWN_AXES",
     "P12",
@@ -138,15 +172,18 @@ __all__ = [
     "WIDTH",
     "Designated",
     "DuplicateDefinition",
+    "NoAvailability",
     "NoFields",
     "Own",
     "Shot",
     "Sibling",
     "Unit",
+    "availability",
     "context",
     "cycles",
     "designated",
     "family_key",
+    "file_scope",
     "file_level",
     "fill_units",
     "helper_siblings",
@@ -177,25 +214,38 @@ __all__ = [
 RUNG = "L1"
 
 #: Every arm E4 has, in the order the report reads them: the escalation S-0 → S-2 → S-3 → S-5, with
-#: **S-2h** next to S-2 (the arm it is read against) and the described arm S-2o beside them.
-ARMS = ("S-0", "S-2", "S-2h", "S-2o", "S-3", "S-5")
+#: **S-2h** next to S-2 (the arm it is read against), **S-3h** next to S-2h (likewise), and the described
+#: arm S-2o beside them.
+ARMS = ("S-0", "S-2", "S-2h", "S-3h", "S-2o", "S-3", "S-5")
 
 #: The arms that carry the ledger's facts, the graph's shots, the student's own shots, and the parser's
 #: fields. S-5 is S-3 and the fields, so it is a facts arm and a shot arm too.
 FACTS_ARMS = ("S-3", "S-5")
-SHOT_ARMS = ("S-2", "S-2h", "S-2o", "S-3", "S-5")
+SHOT_ARMS = ("S-2", "S-2h", "S-3h", "S-2o", "S-3", "S-5")
 OWN_ARMS = ("S-2o",)
 FIELD_ARMS = ("S-5",)
 
+#: The arms that carry the **held-out file's own availability** — which of the shots' intrinsics this file
+#: can use, and which of their names are the other file's (D-12 a). One arm, and it is S-2h plus the block.
+FACTS_ISA_ARMS = ("S-3h",)
+
 #: The arms whose shots a **helper** gets by rule W's name family rather than by the grid (D-11 a). Every
-#: other kind of unit reads these arms as S-2 does, byte for byte.
-FAMILY_ARMS = ("S-2h",)
+#: other kind of unit reads these arms as S-2 does, byte for byte. S-3h is one of them because its shots
+#: **are** S-2h's: the block it adds is the one thing between the two arms.
+FAMILY_ARMS = ("S-2h", "S-3h")
 
 #: The registered comparisons, each `(first, second, kind)` and read as `second − first`, paired by unit.
 #: `kind` is `None` where every unit is read, and a member of :data:`KINDS` where the comparison is only
 #: about that kind: E4-f's two are over every unit, and **D-11's `S-2h − S-2` is the helper units**, since
 #: S-2h *is* S-2 for a cell and for the init. S-2o is in none of them: it is described, not registered.
-COMPARISONS = (("S-0", "S-2", None), ("S-3", "S-5", None), ("S-2", "S-2h", "helper"))
+#: **D-12's `S-3h − S-2h` is every unit**, because the block is stated for every unit that carries a shot —
+#: a cell's and the init's shots are the grid's and a helper's are rule W's, and all three get the block.
+COMPARISONS = (
+    ("S-0", "S-2", None),
+    ("S-3", "S-5", None),
+    ("S-2", "S-2h", "helper"),
+    ("S-2h", "S-3h", None),
+)
 
 #: The P12 record (ADR-082, and ADR-086's check): planner-defined units, one single-use agent each, every
 #: window smaller than the file. E1 records `arm=model+prompt`; this is the other answer.
@@ -278,6 +328,19 @@ NO_OWN = {
 }
 OWN_NOTE = "own shots: none on the {axis} axis ({reason})"
 
+#: S-3h's lines, the pre-registration's own wording (D-12 a). :data:`NO_EXAMPLES` is the whole of the arm
+#: for a unit with no shots: there is no block, because there is nothing the block would be about.
+#: :data:`NOTHING_IN_SHOTS` is the block's body where the shots exist and name neither an intrinsic nor a
+#: definition of their own — a heading with no lines under it would read as a section that went missing.
+NO_EXAMPLES = "nothing to check: no examples above"
+NOTHING_IN_SHOTS = "nothing to check: the examples above name no intrinsic and no definition of their own"
+AVAILABLE_HERE = "available here: {names}"
+NOT_AVAILABLE_FORM = "`{name}` is not available in this file; its form here: `{form}`"
+NOT_AVAILABLE = "`{name}` is not available in this file, and no same-named form is"
+OTHERS_ONE = "`{name}` is the other file's own; this file's: `{mine}`"
+OTHERS_AMBIGUOUS = "`{name}` is the other file's own; this file's candidates: {mine} (ambiguous)"
+OTHERS_NONE = "`{name}` is the other file's own; this file has no such definition"
+
 #: What S-5 says for a unit whose parse did not come back as the two fields. The reason is the parser
 #: row's own, so a reader of the prompt meets the same sentence a reader of `parser.jsonl` does. The arm
 #: is never filled empty and never filled from somewhere else.
@@ -292,6 +355,13 @@ _FAMILY_HEADING = (
     "(matched by name, not by the grid):"
 )
 _OWN_HEADING = "The same function on this file's other axes, as you wrote it and it passed:"
+#: S-3h's heading, the pre-registration's own sentence. It names both instruments the block was read with —
+#: this file's includes under its build flags, and this file's own definitions — because a student told
+#: "not available" without being told who said so has been handed an assertion and not a fact.
+_AVAILABLE_HEADING = (
+    "What this file can use, of what the examples above use (read from this file's own includes under its "
+    "build flags, and from its own definitions):"
+)
 _CALLS_HEADING = "What this function calls, read from the project's graph and the compiler's own key:"
 _FIELDS_HEADING = "What this function must do:"
 _SIGNATURE_HEADING = "The function to write:"
@@ -319,6 +389,16 @@ _UNIT_HEADING = "The function to describe:"
 #: An identifier token. The grain the call edges, the order and the reach are all read at.
 _IDENT = re.compile(r"[A-Za-z_]\w*")
 
+#: An intrinsic **call** in a shot, as D-12's pre-registration words it. Over the shot's text as written,
+#: not its masked text: that is the rule that was registered, and it means a name in a comment is read as
+#: used. It cannot make an unavailable name read as available — only add a line about one nobody calls.
+_INTRINSIC = re.compile(r"\b(_mm\w*|_cvt\w*)\s*\(")
+
+#: A file-scope `static` object: `static const char popcount_lut_bytes[32] = {…}`. The name is the one a
+#: `[` or an `=` follows, and the line is one **outside every definition** — a parameter written `int a[]`
+#: would otherwise read as an object of the file.
+_STATIC_OBJECT = re.compile(r"\bstatic\b.*?\b([A-Za-z_]\w*)\s*(?:\[|=)")
+
 
 class NoFields(Exception):
     """S-5 was asked for without the parser's fields, or without the fields for that unit.
@@ -327,6 +407,17 @@ class NoFields(Exception):
     S-3 wearing S-5's name, and a row recorded under the wrong arm is worse than a row missing. A unit
     whose parse *failed* is a different thing and is not this: it carries :data:`NO_FIELDS`, which says
     so in the prompt.
+    """
+
+
+class NoAvailability(Exception):
+    """S-3h was asked for without a record of what the held-out file can use, or without that file's ISA.
+
+    Its own type (P10, ADR-036), and the rule `prompts.NoLedger` and :class:`NoFields` keep: an S-3h whose
+    block says nothing is S-2h under another name, and a row recorded under the wrong arm is worse than a
+    row missing. Worse here than elsewhere — an empty availability table marks **every** intrinsic
+    unavailable, so the arm would not be merely silent but actively wrong, and the run would read as a
+    finding about the block rather than about the missing record.
     """
 
 
@@ -662,6 +753,161 @@ def helper_siblings(lattice: Lattice, isa: str, unit: Unit) -> list[Sibling]:
     return found
 
 
+# MARK: - S-3h's availability block -
+
+
+def file_scope(lattice: Lattice, isa: str) -> dict[str, str]:
+    """Every name one file defines at file scope, by what it is: `function`, `define` or `object`.
+
+    The three the pre-registration names. Functions and `#define`s come from `scan`, this package's own
+    scanner, and an **object** is a file-scope `static` — a line outside every definition where a `[` or an
+    `=` follows the name (:data:`_STATIC_OBJECT`). `popcount_lut_bytes` is the case that matters: avx2's
+    `popcount_avx2` reads it, and a student writing sse2's or avx512's has no such array.
+
+    Not `extern`, which is a declaration of something another file owns (`dispatch_distance_table`), and not
+    a local: the definitions' spans are blanked before the scan, so nothing inside a body is read. A name a
+    file defines twice is named once, the first kind wins, and `scan`'s own limits are inherited whole.
+    """
+    source = lattice.sources[isa]
+    found = {fn.name: "function" for fn in source.scanned.functions}
+    for name in source.scanned.defines:
+        found.setdefault(name, "define")
+    for name in _static_objects(lattice, isa):
+        found.setdefault(name, "object")
+    return found
+
+
+def _static_objects(lattice: Lattice, isa: str) -> list[str]:
+    """The file-scope `static` objects, in the file's order, read outside every definition."""
+    source = lattice.sources[isa]
+    text = list(source.scanned.masked)
+    for fn in source.scanned.functions:
+        for at in range(fn.signature_span.start, min(fn.body_span.end, len(text))):
+            if text[at] != "\n":
+                text[at] = " "
+    names: list[str] = []
+    for line in "".join(text).splitlines():
+        found = _STATIC_OBJECT.search(line)
+        if found is not None and found.group(1) not in names:
+            names.append(found.group(1))
+    return names
+
+
+def availability(
+    lattice: Lattice, isa: str, unit: Unit, carried: Sequence[Shot], record: dict
+) -> dict:
+    """S-3h's block for one unit, as data: the shots' intrinsics by availability, and their file's own names.
+
+    *carried* is the unit's S-2h shots and *record* is :func:`lattice.available.load`'s, from which only the
+    **held-out** ISA's names are read — the question is what *this* file can use. A unit with no shots gets
+    :data:`NO_EXAMPLES` and no lists: the block is about the examples above it, and there are none.
+    """
+    if not carried:
+        return {"shots": 0, "intrinsics": [], "names": [], "note": NO_EXAMPLES}
+    table = available_of.names_for(record, isa)
+    intrinsics = _intrinsic_rows(carried, isa, table)
+    names = _other_rows(lattice, isa, carried)
+    return {
+        "shots": len(carried),
+        "intrinsics": intrinsics,
+        "names": names,
+        "note": None if (intrinsics or names) else NOTHING_IN_SHOTS,
+    }
+
+
+def _intrinsic_rows(carried: Sequence[Shot], isa: str, table: dict[str, dict]) -> list[dict]:
+    """Each intrinsic the shots call, deduplicated in first-appearance order, with its status and its form.
+
+    `form` is rule R's answer and is `None` both where the rule found nothing and where the name is
+    available anyway — the two are told apart by `available`, and the prompt says which sentence it is.
+    """
+    seen: list[str] = []
+    for shot in carried:
+        for found in _INTRINSIC.finditer(shot.text):
+            if found.group(1) not in seen:
+                seen.append(found.group(1))
+    rows: list[dict] = []
+    for name in seen:
+        ok = bool((table.get(name) or {}).get("available"))
+        rows.append(
+            {
+                "name": name,
+                "available": ok,
+                "form": None if ok else available_of.rename(name, isa, table),
+            }
+        )
+    return rows
+
+
+def _other_rows(lattice: Lattice, isa: str, carried: Sequence[Shot]) -> list[dict]:
+    """Each name of the **shot's own file** the held-out file does not define, answered by rule W's family.
+
+    Only a **function** has a family: rule W is a rule over the names of definitions, and the members it is
+    matched against are the held-out file's units. A `#define` and a file-scope object therefore read "this
+    file has no such definition", which is what the held-out file will say to the compiler too.
+
+    A shot's own name is in its own text and is answered here like any other — `hsum128_ps` is sse2's and
+    this file's is `hsum256_ps`, which is exactly the fact D-12's card asks the block to carry.
+    """
+    mine = file_scope(lattice, isa)
+    ordered = units(lattice, isa)
+    rows: list[dict] = []
+    seen: set[str] = set()
+    for shot in carried:
+        theirs = file_scope(lattice, shot.isa)
+        for token in _IDENT.finditer(shot.text):
+            name = token.group(0)
+            if name in seen or name in mine or name not in theirs:
+                continue
+            seen.add(name)
+            candidates = (
+                [other.name for other in ordered if family_key(other.name) == family_key(name)]
+                if theirs[name] == "function"
+                else []
+            )
+            rows.append(
+                {
+                    "name": name,
+                    "from": shot.isa,
+                    "kind": theirs[name],
+                    "mine": candidates,
+                    "status": "one" if len(candidates) == 1 else AMBIGUOUS if candidates else "none",
+                }
+            )
+    return rows
+
+
+def _availability_section(found: dict) -> str:
+    """The block as the prompt carries it, or :data:`NO_EXAMPLES` alone where there were no shots."""
+    if not found["shots"]:
+        return NO_EXAMPLES
+    lines: list[str] = []
+    here = [row["name"] for row in found["intrinsics"] if row["available"]]
+    if here:
+        lines.append(AVAILABLE_HERE.format(names=", ".join(f"`{name}`" for name in here)))
+    for row in found["intrinsics"]:
+        if row["available"]:
+            continue
+        lines.append(
+            NOT_AVAILABLE_FORM.format(name=row["name"], form=row["form"])
+            if row["form"]
+            else NOT_AVAILABLE.format(name=row["name"])
+        )
+    lines += [_other_line(row) for row in found["names"]]
+    return _section(_AVAILABLE_HEADING, "\n".join(lines) if lines else NOTHING_IN_SHOTS)
+
+
+def _other_line(row: dict) -> str:
+    """One name of the other file's own: this file's member, its two candidates, or neither."""
+    if row["status"] == "one":
+        return OTHERS_ONE.format(name=row["name"], mine=row["mine"][0])
+    if row["status"] == AMBIGUOUS:
+        return OTHERS_AMBIGUOUS.format(
+            name=row["name"], mine=", ".join(f"`{mine}`" for mine in row["mine"])
+        )
+    return OTHERS_NONE.format(name=row["name"])
+
+
 # MARK: - S-2o's own-pass shots -
 
 
@@ -741,17 +987,22 @@ def context(
     facts: Facts | None = None,
     fields: dict[str, dict] | None = None,
     bodies: dict[str, str] | None = None,
+    available: dict | None = None,
 ) -> dict:
     """One arm's context for one unit, as data: what it carries, and what it says it does not.
 
-    A facts arm with no ledger is `prompts.NoLedger` and an S-5 with no parser row is :class:`NoFields`,
-    and neither is ever filled empty: an empty S-3 is S-2 under another name, an empty S-5 is S-3 under
-    another name, and a row recorded under the wrong arm is worse than a row missing.
+    A facts arm with no ledger is `prompts.NoLedger`, an S-5 with no parser row is :class:`NoFields`, and an
+    S-3h with no availability record — or one that does not cover the held-out ISA — is
+    :class:`NoAvailability`. None of the three is ever filled empty: an empty S-3 is S-2 under another name,
+    an empty S-5 is S-3 under another name, an empty S-3h is S-2h under another name, and a row recorded
+    under the wrong arm is worse than a row missing.
 
     *bodies* is S-2o's own-pass bodies (:func:`own_shots`). `None` is the same as none written yet, which
     is what **wave 0** is: a wave-0 unit has no designated neighbour, so no axis of it can read
     `neighbour-failed` for want of a body. Every later wave is built by :func:`run`, which always passes
     the rows it has.
+
+    *available* is :func:`lattice.available.load`'s whole record, `{isa: {…, "names": {…}}}`.
     """
     if arm not in ARMS:
         raise prompts.UnknownArm(f"{arm!r} is not one of {', '.join(ARMS)}")
@@ -759,6 +1010,12 @@ def context(
         raise prompts.NoLedger(f"{arm} is a facts arm and no ledger was given; it is never filled empty")
     if arm in FIELD_ARMS and fields is None:
         raise NoFields(f"{arm} carries the parser's fields and none were given; it is never filled empty")
+    if arm in FACTS_ISA_ARMS and not available_of.names_for(available or {}, isa):
+        raise NoAvailability(
+            f"{arm} carries what {isa}'s file can use and "
+            + ("no availability record was given" if not available else f"the record does not cover {isa}")
+            + "; it is never filled empty"
+        )
 
     carried = shots(lattice, isa, unit) if arm in SHOT_ARMS else []
     family: list[Sibling] = []
@@ -788,6 +1045,9 @@ def context(
         "skeleton": skeleton(lattice, isa, unit),
         "shots": [{"isa": shot.isa, "from": shot.source, "text": shot.text} for shot in carried],
         "shots_note": _shots_note(unit, arm, carried, family),
+        "available": (
+            availability(lattice, isa, unit, carried, available) if arm in FACTS_ISA_ARMS else None
+        ),
         "own": [{"axis": row.axis, "unit": row.unit, "text": row.text} for row in own if row.text],
         "own_notes": _own_notes(unit, arm, own),
         "facts": rows,
@@ -854,9 +1114,10 @@ def messages(
     facts: Facts | None = None,
     fields: dict[str, dict] | None = None,
     bodies: dict[str, str] | None = None,
+    available: dict | None = None,
 ) -> list[dict]:
     """The chat turns for one (unit, arm): the fixed system line, and one user turn — E1's shape."""
-    return turns(context(lattice, isa, unit, arm, facts, fields, bodies))
+    return turns(context(lattice, isa, unit, arm, facts, fields, bodies, available))
 
 
 def turns(data: dict) -> list[dict]:
@@ -878,6 +1139,9 @@ def _user(data: dict) -> str:
     # carried none. Every other arm's note is `None` whenever it carried a shot, so this reads as it did
     if data["shots_note"]:
         parts.append(data["shots_note"])
+    # S-3h's block is about the shots, so it goes directly under them and their note and nowhere else
+    if data["available"] is not None:
+        parts.append(_availability_section(data["available"]))
 
     if data["own"]:
         blocks = "\n\n".join(
@@ -1189,6 +1453,7 @@ def plan(
     facts: Facts | None = None,
     k: int = K,
     fields: dict[str, dict] | None = None,
+    available: dict | None = None,
 ) -> list[dict]:
     """Round 0's requests: one chat request per (unit, arm, sample), in the units' own order.
 
@@ -1208,7 +1473,7 @@ def plan(
             if arm in OWN_ARMS and waved[unit.name] > 0:
                 continue
             made += requests_for(
-                lattice, isa, unit, arm, model, k, facts=facts, fields=fields, wave=0
+                lattice, isa, unit, arm, model, k, facts=facts, fields=fields, available=available, wave=0
             )
     return made
 
@@ -1224,10 +1489,11 @@ def requests_for(
     facts: Facts | None = None,
     fields: dict[str, dict] | None = None,
     bodies: dict[str, str] | None = None,
+    available: dict | None = None,
     wave: int = 0,
 ) -> list[dict]:
     """One unit's requests on one arm: the greedy sample and *k* drawn ones, over one built context."""
-    data = context(lattice, isa, unit, arm, facts, fields, bodies)
+    data = context(lattice, isa, unit, arm, facts, fields, bodies, available)
     built = turns(data)
     cell = lattice.get(unit.cell) if unit.cell else None
     made: list[dict] = []
@@ -1256,6 +1522,10 @@ def requests_for(
                 "messages": built,
                 "shots": [{"isa": row["isa"], "from": row["from"]} for row in data["shots"]],
                 "shots_note": data["shots_note"],
+                # S-3h's block as data and not only as text: what each name's status was is the record of
+                # what the arm served, and re-deriving it from a prompt afterwards would be reading it back
+                # out of prose
+                "available": data["available"],
                 # what S-2o carried and what it did not, on the request itself: the report reads the
                 # arm's own-shot counts off these rather than re-deriving a rule the run already applied
                 "own": [{"axis": row["axis"], "unit": row["unit"]} for row in data["own"]],
@@ -1284,6 +1554,7 @@ def meta(
     target: Path | str | None = None,
     facts: Facts | None = None,
     parser: dict | None = None,
+    availability: dict | None = None,
 ) -> dict:
     """The run's `meta.json`: E1's record, plus the rung, the units' order and the P12 decomposition.
 
@@ -1294,7 +1565,10 @@ def meta(
 
     `waves` is S-2o's order as names, one list per wave, and `parser` is :func:`parser_meta`'s block —
     which model filled S-5's fields and the digest of the file they were read from, so the arm names its
-    own input. `decomposition` is restated by :func:`run` as a wave adds requests the plan could not hold.
+    own input. *availability* is `available.record_meta`'s block and lands under `available`, for the same
+    reason: the digest of the record S-3h was built from, and per ISA the flags and the clang line that
+    answered, so "not available in this file" on a prompt can be traced to the compiler that said it.
+    `decomposition` is restated by :func:`run` as a wave adds requests the plan could not hold.
     """
     ordered, cycled = _read_units(lattice, isa)
     file_chars = len(lattice.sources[isa].text)
@@ -1322,6 +1596,7 @@ def meta(
                 for wave in range(0, max(waved.values(), default=0) + 1)
             ],
             "parser": parser,
+            "available": availability,
             "p12": P12,
             "decomposition": {
                 "unit_count": len(ordered),

@@ -494,6 +494,35 @@ def test_the_helper_comparison_reads_registered_and_the_cell_one_described(e4_ru
     assert f"    {CELLS}  (unpaired 0)" in table
 
 
+def test_s3h_minus_s2h_is_registered_over_every_unit(e4_run_dir):
+    """D-12 a: the block is stated for every unit that carries a shot, so the pair is read over all of them."""
+    assert report.e4_report(e4_run_dir)["comparisons"]["S-3h − S-2h"] == {
+        "missing": "the run has no rows for S-2h"
+    }
+    with (e4_run_dir / e1.ROWS).open("a", encoding="utf-8") as handle:
+        for line in (
+            e4_row(U1, "S-2h", "wrong"),
+            e4_row(U2, "S-2h", "wrong"),
+            e4_row(H, "S-2h", "wrong", kind="helper"),
+            e4_row(U1, "S-3h", "pass"),
+            e4_row(U2, "S-3h", "wrong"),
+            e4_row(H, "S-3h", "pass", kind="helper"),
+        ):
+            handle.write(f"{json.dumps(line, sort_keys=True)}\n")
+
+    found = report.e4_report(e4_run_dir)
+    tests = found["comparisons"]["S-3h − S-2h"]
+    # one cell and one helper moved, and both are in the one reading: the pair is registered on no kind
+    assert tests["pass_at_1"] == {
+        "cells": 3, "both": 0, "neither": 1, "lost": 0, "gained": 2,
+        "delta": round(2 / 3, 6), "p": 0.5,
+    }
+    assert tests["unpaired"] == 0
+    # printed once, and as registered: a comparison over every unit has no described second printing
+    assert [label for label in found["comparisons"] if "S-3h" in label] == ["S-3h − S-2h"]
+    assert "    S-3h − S-2h  (unpaired 0)" in report.e4_render(found)
+
+
 def test_s2o_is_shown_with_its_own_shot_counts_and_why_each_missing_one_was_missing(e4_run_dir):
     own = report.e4_report(e4_run_dir)["own_shots"]
     # the greedy requests only: three units, two of them cells

@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pytest
 
+from lattice import available as available_of
 from lattice import e1, e4, facts, families as families_of, grade as grade_of, holes, prompts, task
 from lattice.cells import build
 from lattice.scan import mask
@@ -197,6 +198,38 @@ def rows_of(run_dir):
     return [json.loads(line) for line in (run_dir / e1.ROWS).read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+#: The prefixes each native file may **not** write, for the hand-built availability tables below.
+_WIDER = {"sse2": ("_mm256_", "_mm512_"), "avx2": ("_mm512_",), "avx512": ()}
+
+
+def available_for(lattice, isa="avx2"):
+    """A **hand-built** availability record for one file, in `available.load`'s shape.
+
+    Not the compiler's answer — that is `test_available.py`'s, against the three real `clang -E -dD`
+    excerpts. This is the stand-in every S-3h test reads, and its rule is one line: every intrinsic any of
+    the three native files writes is available in *isa*'s file **unless its prefix is wider than that
+    file's**, so `_mm512_reduce_add_ps` is unavailable on avx2 and `_mm_add_ps` is available. It has the
+    shape of the real answer at the grain these tests are about, and none of them depends on its edges.
+    """
+    names = {}
+    for other in NATIVE:
+        for name in re.findall(r"\b(_mm\w*|_cvt\w*)\s*\(", lattice.sources[other].text):
+            names.setdefault(
+                name,
+                {"available": not name.startswith(_WIDER[isa] or ("\0",)), "needs": [], "header": "hand-built"},
+            )
+    return {
+        isa: {
+            "isa": isa,
+            "file": f"src/distance-{isa}.c",
+            "flags": ["-O2", "-Isrc", "-Ilibs"],
+            "clang": "hand-built, not a compiler",
+            "target_sha": None,
+            "names": names,
+        }
+    }
+
+
 # MARK: - the units and their order -
 
 
@@ -338,13 +371,14 @@ def test_no_held_out_gold_reaches_any_prompt(lattice, ledger):
     """
     units = e4.units(lattice, "avx2")
     fields = fields_for(lattice)
+    table = available_for(lattice)
     bodies = {unit.name: tokens(holes.gold_body(lattice.sources["avx2"].text, unit)) for unit in units}
     for unit in units:
         for arm in e4.ARMS:
             written = tokens(
                 "".join(
                     turn["content"]
-                    for turn in e4.messages(lattice, "avx2", unit, arm, ledger, fields)
+                    for turn in e4.messages(lattice, "avx2", unit, arm, ledger, fields, available=table)
                 )
             )
             for other in units:
@@ -360,8 +394,10 @@ def test_no_held_out_gold_reaches_any_prompt(lattice, ledger):
 def test_the_arms_differ_in_one_thing_each(lattice, ledger):
     unit = next(u for u in e4.units(lattice, "avx2") if u.name == "float32_distance_dot_avx2")
     fields = fields_for(lattice)
+    table = available_for(lattice)
     said = {
-        arm: e4.messages(lattice, "avx2", unit, arm, ledger, fields)[1]["content"] for arm in e4.ARMS
+        arm: e4.messages(lattice, "avx2", unit, arm, ledger, fields, available=table)[1]["content"]
+        for arm in e4.ARMS
     }
     skeleton = e4.skeleton(lattice, "avx2", unit)
     assert all(skeleton in text for text in said.values())
@@ -371,6 +407,9 @@ def test_the_arms_differ_in_one_thing_each(lattice, ledger):
         assert ("read from the project's graph and the compiler's own key" in text) == (arm in e4.FACTS_ARMS)
         assert ("What this function must do:" in text) == (arm in e4.FIELD_ARMS)
         assert ("own shots" in text or "as you wrote it" in text) == (arm in e4.OWN_ARMS)
+        assert ("What this file can use, of what the examples above use" in text) == (
+            arm in e4.FACTS_ISA_ARMS
+        )
     # S-5 is S-3 and the parser's words, and nothing else: the one is the other plus one section
     row = fields[unit.name]
     section = "What this function must do:\n\n" + "\n".join(
@@ -421,7 +460,7 @@ def test_a_facts_arm_with_no_ledger_is_refused_and_never_filled_empty(lattice):
 
 def test_an_arm_that_is_not_e4s_is_refused_as_a_typo(lattice, ledger):
     unit = next(u for u in e4.units(lattice, "avx2") if u.kind == "cell")
-    assert e4.ARMS == ("S-0", "S-2", "S-2h", "S-2o", "S-3", "S-5")
+    assert e4.ARMS == ("S-0", "S-2", "S-2h", "S-3h", "S-2o", "S-3", "S-5")
     with pytest.raises(prompts.UnknownArm):
         e4.context(lattice, "avx2", unit, "C-2", ledger)
 
@@ -667,13 +706,213 @@ def test_no_gold_enters_an_s2h_helper_prompt_that_is_not_a_shot(lattice):
 
 
 def test_the_registered_comparison_is_the_helper_units(lattice):
-    assert e4.COMPARISONS == (("S-0", "S-2", None), ("S-3", "S-5", None), ("S-2", "S-2h", "helper"))
-    assert e4.FAMILY_ARMS == ("S-2h",) and "S-2h" in e4.SHOT_ARMS
-    # S-2h needs no ledger, no fields and no wave: it is planned whole, like S-2
+    assert e4.COMPARISONS == (
+        ("S-0", "S-2", None),
+        ("S-3", "S-5", None),
+        ("S-2", "S-2h", "helper"),
+        ("S-2h", "S-3h", None),
+    )
+    assert e4.FAMILY_ARMS == ("S-2h", "S-3h") and "S-2h" in e4.SHOT_ARMS
+    # S-2h needs no ledger, no fields, no availability and no wave: it is planned whole, like S-2
     assert "S-2h" not in e4.FACTS_ARMS and "S-2h" not in e4.FIELD_ARMS and "S-2h" not in e4.OWN_ARMS
+    assert "S-2h" not in e4.FACTS_ISA_ARMS
     made = e4.plan(lattice, "avx2", ("S-2h",), "M", k=0)
     assert len(made) == len(e4.units(lattice, "avx2"))
     assert {request["wave"] for request in made} == {0}
+
+
+# MARK: - S-3h: what this file can use (D-12 a) -
+
+
+def said(lattice, unit, arm, isa="avx2", table=None, **rest):
+    """One (unit, arm)'s user turn."""
+    return e4.messages(lattice, isa, unit, arm, available=table, **rest)[1]["content"]
+
+
+def unit_of(lattice, name, isa="avx2"):
+    return next(u for u in e4.units(lattice, isa) if u.name == name)
+
+
+def block_of(lattice, name, isa="avx2", table=None):
+    """One unit's S-3h block as data, and the lines the prompt carries for it."""
+    unit = unit_of(lattice, name, isa)
+    table = available_for(lattice, isa) if table is None else table
+    data = e4.context(lattice, isa, unit, "S-3h", available=table)
+    return data["available"], said(lattice, unit, "S-3h", isa, table)
+
+
+def test_s3h_is_s2h_plus_one_block_and_nothing_else(lattice):
+    """The arm is one variable apart: every unit's shots, note and skeleton are S-2h's byte for byte."""
+    table = available_for(lattice)
+    for unit in e4.units(lattice, "avx2"):
+        family = e4.context(lattice, "avx2", unit, "S-2h")
+        facts_isa = e4.context(lattice, "avx2", unit, "S-3h", available=table)
+        assert facts_isa == {**family, "arm": "S-3h", "available": facts_isa["available"]}
+        assert facts_isa["available"] is not None and family["available"] is None
+        # and the prompt is S-2h's with exactly one section inserted, under the shots and their note
+        block = e4._availability_section(facts_isa["available"])
+        text = said(lattice, unit, "S-3h", table=table)
+        assert text.replace(f"{block}\n\n", "") == said(lattice, unit, "S-2h")
+        assert e4.INSTRUCTION not in block
+        # and it sits after the shots and their note, and before the hole
+        if facts_isa["shots"]:
+            assert text.index("in the instruction sets that stay") < text.index(block)
+        if facts_isa["shots_note"]:
+            assert text.index(facts_isa["shots_note"]) < text.index(block)
+        assert text.index(block) < text.index("The function to write:")
+
+
+def test_the_blocks_intrinsics_are_the_shots_own_with_their_status_and_form(lattice):
+    """`hsum256_ps`: five SSE names its sse2 sibling writes, and the one AVX-512 name that has no form."""
+    found, text = block_of(lattice, "hsum256_ps")
+    assert [row["name"] for row in found["intrinsics"]] == [
+        "_mm_add_ps", "_mm_movehl_ps", "_mm_add_ss", "_mm_shuffle_ps", "_mm_cvtss_f32",
+        "_mm512_reduce_add_ps",
+    ]
+    assert [row["name"] for row in found["intrinsics"] if row["available"]][-1] == "_mm_cvtss_f32"
+    wider = next(row for row in found["intrinsics"] if row["name"] == "_mm512_reduce_add_ps")
+    assert wider == {"name": "_mm512_reduce_add_ps", "available": False, "form": None}
+
+    assert "available here: `_mm_add_ps`, `_mm_movehl_ps`" in text
+    assert "`_mm512_reduce_add_ps` is not available in this file, and no same-named form is" in text
+    assert "What this file can use, of what the examples above use" in text
+
+
+def test_an_unavailable_intrinsic_with_a_form_says_what_it_is_here(lattice):
+    """`sqdiff_epu8`: every `_mm512_` name of its avx512 sibling renames to one this file has (rule R)."""
+    found, text = block_of(lattice, "sqdiff_epu8")
+    assert [(row["name"], row["form"]) for row in found["intrinsics"]] == [
+        ("_mm512_unpacklo_epi8", "_mm256_unpacklo_epi8"),
+        ("_mm512_setzero_si512", "_mm256_setzero_si256"),
+        ("_mm512_unpackhi_epi8", "_mm256_unpackhi_epi8"),
+        ("_mm512_add_epi32", "_mm256_add_epi32"),
+        ("_mm512_madd_epi16", "_mm256_madd_epi16"),
+    ]
+    assert not any(row["available"] for row in found["intrinsics"])
+    assert "available here:" not in text  # none of them is, so the line is omitted rather than empty
+    assert "`_mm512_setzero_si512` is not available in this file; its form here: `_mm256_setzero_si256`" in text
+
+
+def test_a_name_the_other_file_owns_is_answered_by_rule_ws_family(lattice):
+    """`sqdiff_epu8`'s avx512 shot calls `abs_diff_epu8_512`, and this file's is `abs_diff_epu8` (D-12)."""
+    found, text = block_of(lattice, "sqdiff_epu8")
+    theirs = {row["name"]: row for row in found["names"]}
+    assert theirs["abs_diff_epu8_512"] == {
+        "name": "abs_diff_epu8_512", "from": "avx512", "kind": "function",
+        "mine": ["abs_diff_epu8"], "status": "one",
+    }
+    assert "`abs_diff_epu8_512` is the other file's own; this file's: `abs_diff_epu8`" in text
+    # the shot's own name is answered the same way: this file's member of its family
+    assert theirs["sqdiff_epu8_512"]["mine"] == ["sqdiff_epu8"]
+
+
+def test_a_cells_block_names_the_helper_and_the_other_files_define(lattice):
+    """`int8_distance_l2_impl_avx2`: its avx512 shot calls `sqdiff_epu8_512` (distance-avx512.c:281).
+
+    `S8_TO_BIASED_U8_512` is that file's `#define` and not a function, so rule W has no family for it and
+    the block says this file has no such definition — which is what the compiler would say too.
+    """
+    found, text = block_of(lattice, "int8_distance_l2_impl_avx2")
+    theirs = {row["name"]: row for row in found["names"]}
+    assert theirs["sqdiff_epu8_512"]["mine"] == ["sqdiff_epu8"]
+    assert "`sqdiff_epu8_512` is the other file's own; this file's: `sqdiff_epu8`" in text
+
+    assert theirs["S8_TO_BIASED_U8_512"]["kind"] == "define"
+    assert theirs["S8_TO_BIASED_U8_512"] == {
+        "name": "S8_TO_BIASED_U8_512", "from": "avx512", "kind": "define", "mine": [], "status": "none",
+    }
+    assert "`S8_TO_BIASED_U8_512` is the other file's own; this file has no such definition" in text
+
+
+@pytest.mark.parametrize("isa", ["sse2", "avx512"])
+def test_a_file_scope_static_object_of_the_other_file_is_named(lattice, isa):
+    """`popcount_lut_bytes` is avx2's own array, and neither other file has one (the pre-reg's third form)."""
+    assert e4.file_scope(lattice, "avx2")["popcount_lut_bytes"] == "object"
+    assert "popcount_lut_bytes" not in e4.file_scope(lattice, isa)
+
+    found, text = block_of(lattice, f"popcount_{isa}", isa)
+    row = next(row for row in found["names"] if row["name"] == "popcount_lut_bytes")
+    assert row == {
+        "name": "popcount_lut_bytes", "from": "avx2", "kind": "object", "mine": [], "status": "none",
+    }
+    assert "`popcount_lut_bytes` is the other file's own; this file has no such definition" in text
+    # and the sibling helper itself is answered by the family, which is this file's own popcount
+    assert next(r for r in found["names"] if r["name"] == "popcount_avx2")["mine"] == [f"popcount_{isa}"]
+
+
+def test_a_unit_with_no_shots_says_there_is_nothing_to_check(lattice):
+    """`hsum256_epi64`'s family reaches nothing in either file that stays, so there is no block to state."""
+    unit = unit_of(lattice, "hsum256_epi64")
+    table = available_for(lattice)
+    data = e4.context(lattice, "avx2", unit, "S-3h", available=table)
+    assert data["shots"] == [] and data["available"] == {
+        "shots": 0, "intrinsics": [], "names": [], "note": e4.NO_EXAMPLES,
+    }
+    text = said(lattice, unit, "S-3h", table=table)
+    assert e4.NO_EXAMPLES in text and "What this file can use" not in text
+    assert e4.NO_SIBLING in text  # S-2h's own note is still there, unchanged
+
+
+def test_s3h_without_a_record_is_refused_and_never_filled_empty(lattice):
+    """An empty availability table marks every intrinsic unavailable, so it is a refusal and not a default."""
+    unit = unit_of(lattice, "hsum256_ps")
+    with pytest.raises(e4.NoAvailability) as refused:
+        e4.context(lattice, "avx2", unit, "S-3h")
+    assert "never filled empty" in str(refused.value)
+
+    # a record that covers another file is the same refusal, naming the one it does not cover
+    with pytest.raises(e4.NoAvailability) as elsewhere:
+        e4.context(lattice, "avx2", unit, "S-3h", available=available_for(lattice, "sse2"))
+    assert "does not cover avx2" in str(elsewhere.value)
+    with pytest.raises(e4.NoAvailability):
+        e4.plan(lattice, "avx2", ("S-3h",), "M", k=0)
+
+
+def test_the_request_records_the_blocks_data_and_not_only_its_text(lattice):
+    """What the arm served is on the row: every name, its status, and the form it was offered."""
+    unit = unit_of(lattice, "sqdiff_epu8")
+    table = available_for(lattice)
+    made = e4.requests_for(lattice, "avx2", unit, "S-3h", "M", 0, available=table)[0]
+    assert made["available"] == e4.context(lattice, "avx2", unit, "S-3h", available=table)["available"]
+    assert made["arm"] == "S-3h" and made["available"]["shots"] == 1
+    # and S-2h's row carries none, which is how the two arms are told apart on the record
+    assert e4.requests_for(lattice, "avx2", unit, "S-2h", "M", 0)[0]["available"] is None
+
+
+def test_no_gold_enters_an_s3h_prompt_that_is_not_a_shot(lattice):
+    """The block is names and statuses, never a body: the same property S-2h's prompt is held to."""
+    table = available_for(lattice)
+    for name in ("hsum256_ps", "sqdiff_epu8", "int8_distance_l2_impl_avx2"):
+        unit = unit_of(lattice, name)
+        shown = {row["from"] for row in e4.context(lattice, "avx2", unit, "S-3h", available=table)["shots"]}
+        written = tokens(
+            "".join(turn["content"] for turn in e4.messages(lattice, "avx2", unit, "S-3h", available=table))
+        )
+        for other in e4.units(lattice, "avx2"):
+            if other.name == unit.name:
+                continue
+            gold = tokens(holes.gold_body(lattice.sources["avx2"].text, other))
+            assert not token_run(written, gold), f"the held-out file's {other.name} is in S-3h's prompt"
+        assert shown  # the shots are there; it is only the held-out file's bodies that are not
+
+
+def test_the_meta_records_the_availability_the_plan_was_built_from(tmp_path, lattice):
+    """A plan names the record it read: its digest, and per ISA the flags and the clang line that answered."""
+    path = tmp_path / "available.json"
+    path.write_text(json.dumps(available_for(lattice), indent=2), encoding="utf-8")
+    table = available_of.load(path)
+    requests = e4.plan(lattice, "avx2", ("S-3h",), "M", k=0, available=table)
+    record = e4.meta(
+        lattice, "avx2", requests, "M", arms=("S-3h",), k=0, target=FIXTURE,
+        availability=available_of.record_meta(path),
+    )
+    block = record["available"]
+    assert block["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    assert block["isas"]["avx2"]["flags"] == ["-O2", "-Isrc", "-Ilibs"]
+    assert block["isas"]["avx2"]["clang"] == "hand-built, not a compiler"
+    assert block["isas"]["avx2"]["available"] < block["isas"]["avx2"]["names"]
+    # and a plan with no record says so rather than carrying an empty block
+    assert e4.meta(lattice, "avx2", requests, "M", arms=("S-2h",), k=0)["available"] is None
 
 
 # MARK: - the parser's fields (S-5) -
