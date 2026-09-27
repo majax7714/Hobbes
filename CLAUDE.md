@@ -331,7 +331,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   300-step LoRA (≈ $5.55 of $25): +0.148 on C-2 against the base (p 0.0002),
   C-0 nil, the gain gone on opaque names — training sharpens reading named
   neighbours, not skill; its shuffled control was degenerate (recorded).
-  E4's runner is built. Next, for Max: D-10 (run E4 now, recommended).
+  E4 (L1, three files, ≈ $1.25, P12 decomposed): the graph's ISA-axis
+  shots lift the student +0.21 to +0.26 (p ≤ 0.0003 each); the 7B parser's
+  fields hurt. Next, for Max: D-11 (helper shots by name family).
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its

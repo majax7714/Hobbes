@@ -14498,3 +14498,17 @@ No product change was made and there is no version bump. The drivers are in
     assumed four characters a token.
 - **For Max:** D-10 (run E4 next, recommended; or fix E3's control and cap first; or close E3).
 - The tracker reads 87 of 40.
+
+**D-10 taken (Max: "good to proceed with the recommended"): E4 ran on all three native files, for about $1.25 of
+$8.**
+- **The runs:** the parser (Qwen2.5-7B) parsed all 127 units, then the student (Qwen2.5-Coder-7B) ran five arms
+  at k = 10, with S-2o in four waves and file-level builds.
+- **P12 decomposed:** the first Hobbes test in the experiments programme.
+- **S-2 − S-0,** the graph's ISA-axis shots: +0.258, +0.263 and +0.211 sampled (p ≤ 0.0003 each). Cells went
+  0.19/0.03/0.23 → 0.58/0.42/0.52 greedy, which is above my written expectation. I had read E1's type-axis
+  finding as predicting a drop, but at L1 each cell carries two ISA-axis shots.
+- **S-5 − S-3,** the parser's fields: −0.173, −0.158 and −0.073 (p ≤ 0.02). They hurt on every file.
+- **S-2o** adds nothing measurable. **Helpers** stay at 0 to 0.23 with no shot.
+- Record `2302606`.
+- **For Max:** D-11. Recommended: helper shots by name family (E3's rule), then the 32B arm. Or L2/L3, or a
+  frontier parser.

@@ -34,26 +34,19 @@ drivers' paths below.
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Two tracks are open.**
-- **The Calvin experiments: E3's 300-step pair is read, and D-10 waits for Max** (nineteenth session;
-  `calvin-experiments.md` §6 "E3's record", §9).
-  - **E3** (about $5.55 of the $25 ceiling):
-    - pattern − base is **+0.148 on C-2 (p 0.0002)**, and C-0 is nil: training lifts the use of examples, not
-      skill in the weights;
-    - the gain **vanishes on opaque names** with the task stated, so it is name-reading of the neighbours;
-    - the shuffled control is **degenerate**: it moved whole definitions, so the model learned to ignore the
-      signature. A fair control is not built;
-    - 728 records were truncated, because the character cap assumed four characters a token.
+- **The Calvin experiments: E3 and E4 are read, and D-11 waits for Max** (nineteenth session;
+  `calvin-experiments.md` §6 "E3's record" and "E4's record", §9).
+  - **E4** (L1, all three native files, about $1.25 of $8; P12 decomposed, the first Hobbes test):
+    - the graph's ISA-axis shots lift the student +0.21 to +0.26 sampled (p ≤ 0.0003 each);
+    - the 7B parser's fields hurt on every file;
+    - S-2o adds nothing;
+    - helpers (0 to 0.23, no shot) are the weak point.
 
-    Runs and ledger: `~/.hobbes/bench/calvin-lattice/e3/runs/`. Corpus: `e3/corpus/out/`. Adapters on the
-    `hobbes-ttt` volume under `adapters/qwen-qwen2-5-coder-7b-instruct/e3-c-lattice{,-shuffled}/0b78510dca2b/`.
-  - **E4's runner is built and merged** (sessions `5724` and `1e40`) and planned on the real target: 45 units,
-    S-2o in 4 waves. **Its run waits on D-10** (recommended: now, under D-6's $8 ceiling). The order: `e4 parse`
-    (the parser, Qwen2.5-7B-Instruct), `e4 plan` with the arms, `e4 run`, `e4 report`.
-  - **D-10's other routes:** fix E3's control (own signature, broken body pairing) and the token cap, and re-run
-    the 300-step pair for about $5; or close E3. The 3,000-step pair would cost about $36 alone, outside the
-    ceiling.
-  - Units: `~/.hobbes/bench/calvin-lattice/units/u6a` `u6b` `u7a` `u7b`. The E3 draw's scripts are in
-    `bench/calvin/e3-draw/`.
+    Records: `~/.hobbes/bench/calvin-lattice/e4/` (`run-*/`, `report*.txt`, `run-isa.sh`).
+  - **E3** (about $5.55 of $25): pattern − base +0.148 on C-2, C-0 nil, the gain gone on opaque names; the
+    shuffled control degenerate. Records: `e3/runs/`, `e3/corpus/out/`.
+  - **D-11** (recommended): helper shots by name family, then the 32B arm. Or L2/L3 (it needs an L2
+    instrument), or a frontier parser.
 - **Extraction, shipped this session (0.2.71-beta, D-8):**
   - one file's depth never ends an ingest (C-171);
   - C's unread-region record (C-172);
