@@ -2010,8 +2010,8 @@ def run(
 
     *generate* is E1's protocol unchanged. *grade* takes **E4's own entries** — a unit's
     `{"id", "unit", "isa", "body"}` and the file level's `{"id", "isa", "bodies"}` — and `e1.default_grade`
-    is one, since `lattice grade` reads both forms. E1's loop runs with `rounds=0`: E4 does not iterate,
-    so a unit is asked once and read once.
+    is one, since `lattice grade` reads both forms. E1's loop runs with `rounds=0` unless the plan says
+    otherwise: a unit is asked once and read once, except in a D-13 run (below).
 
     **S-2o then runs wave by wave** (:func:`_own_waves`), because its shots are this run's own graded
     output. Every other arm is answered in the first call; a run without S-2o among its arms makes exactly
