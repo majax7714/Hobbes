@@ -1532,7 +1532,19 @@ Proposed routes, the recommended one first.
     invented intrinsics are the renames the block said do not exist. The init passes 1.00 on all three files,
     where the block mapped the other files' names.
 
-- **D-13 — after D-12** (2026-09-27).
+- **D-13 — after D-12** (2026-09-27). **Taken: a** (Max, 2026-09-27: "proceed with the recommended route").
+  Ceiling $1.50; expected about $0.15–0.35.
+  - **Refined before the build** (`~/.hobbes/bench/calvin-lattice/d13/PREREG.md`).
+    - Round 1 against round 0 on one arm cannot be negative, so it cannot say whether the facts or the retry
+      did it. The round is therefore asked two ways, one variable apart, from D-12's own S-3h round 0 (same
+      target, grader unchanged, no new round-0 call): **S-3hd**, E1's retry (the grader's feedback), and
+      **S-3hf**, the same text plus one line per named name.
+    - **Registered:** S-3hf − S-3hd through round 1 (the primary reading), and S-3hf through round 1 against
+      its round 0 (D-13 as worded).
+    - The two arms share round 1's seed, so a chain with no fact line is one request and an exact tie.
+  - **Step 0 changed the expectation, not the route.** Of 477 intrinsic lines over D-12's retried chains, one
+    has a form here; the rest are negatives, and on sse2 the diagnostic already says `undeclared`. The
+    positive lines are the other file's own names mapped by rule W (113), the kind the init used in D-12.
   - **a (recommended): the facts in the loop.**
     - E4 with **one iterate round**. A unit that fails `invented` or `compile` is asked again, once, with the
       grader's own diagnostic plus the block's line for each invented name (its form here, or that it has
