@@ -1202,6 +1202,73 @@ With S-2 the student writes 21 of 45, 13 of 38 and 17 of 44 definitions, against
 The next measured step is **helper shots by name family**, and then a model-size price (the 32B arm). The
 parser, as D-2 cast it, is set aside at 7B.
 
+#### D-11's record — helper shots by name family, and the 32B (2026-09-27; ceiling $5, spent ≈ $2.11)
+
+**What ran.**
+- **The rule, corrected before the build.** E3's rule as worded reaches 3 of 31 helpers. **W, the width
+  family**, reaches 26 of 31, in 11 families, 0 ambiguous; its bodies were read as 11 of 11 the same
+  operation (D-11 in §9).
+- **The runner:** session `e735` (117 turns, $21.99 on the subscription). It adds:
+  - **S-2h**, which is S-2 plus W's shots for a helper, and byte-identical to S-2 for every cell and the init
+    (checked on the real avx2 plan);
+  - `e4 compare` and `e4 pool`;
+  - the 32B pin (A100-80GB).
+- **Pre-registered** before any call: `~/.hobbes/bench/calvin-lattice/d11/PREREG.md`.
+- **7B** (`Qwen2.5-Coder-7B`), S-2 and S-2h on all three native files, k = 10: $0.365.
+- **32B** (`Qwen2.5-Coder-32B`), S-2h on the same plans: $1.74.
+  - The first call cost $0.53, against a worst-case estimate of $2.33. That estimate assumes every answer runs
+    to `max_tokens`; the pricing table now holds the measured throughput.
+  - avx512's first call was cut by a network loss 4 minutes in. It was charged ($0.18, an upper bound) and
+    returned nothing. The run resumed in place.
+- Records: `~/.hobbes/bench/calvin-lattice/d11/` (`run-{7b,32b}-<isa>/`, `report-*.txt`, `compare-*.txt`,
+  `pool-7b-*.txt`, `probe.py`, `run-isa.sh`).
+
+**The registered comparison: S-2h − S-2 on the helper units**, paired by unit, exact.
+
+| file (helpers) | sampled S-2 → S-2h | Δ sampled | greedy |
+|---|---|---|---|
+| avx2 (13) | 0.08 → 0.48 | **+0.408, p 0.002** | +0.308 (5 / 1), p 0.22 |
+| sse2 (6) | 0.08 → 0.08 | +0.000, p 1.0 | +0.000 |
+| avx512 (12) | 0.00 → 0.23 | +0.233, p 0.125 | +0.250 (3 / 0), p 0.25 |
+| **pooled (31)** | | **+0.261, p 0.0001** | **+0.226 (8 / 1), p 0.039**; pass@k +0.290, p 0.004 |
+
+- **The noise read** (cells, identical prompts under two seeds, described): +0.010 sampled pooled, p 0.46.
+  The arm is one variable apart.
+- **File level:** with S-2h the student writes 25, 13 and 20 definitions, against S-2's 20, 13 and 17. G-diff and
+  G-reg pass on every rebuilt file.
+
+**Where helpers do not move, the shot crosses an ISA's capability.** On sse2 and in avx512's unmoved helpers,
+the dominant class is `invented`:
+- sse2 has no `_mm_shuffle_epi8` (SSSE3), `_mm_cvtepu16_epi32` (SSE4.1) or `_mm_hadd_pd` (SSE3), and the
+  student copies the wider sibling's shape;
+- it also copies the sibling file's own names. avx512's `sqdiff_epu8_512` calls avx2's `abs_diff_epu8`, and
+  `popcount_avx512` reads avx2's `popcount_lut_bytes`.
+
+A name-family shot carries the pattern; it does not carry what the target ISA has.
+
+**The 32B on S-2h, paired by unit with the 7B's S-2h** (described: a price, not a registered test).
+
+| file | cells, sampled 7B → 32B | helpers, sampled 7B → 32B | init | definitions written (7B → 32B) |
+|---|---|---|---|---|
+| avx2 | 0.49 → 0.59 | 0.48 → 0.79 | 0.20 → 1.00 | 25 → 29 of 45 |
+| sse2 | 0.39 → 0.59 | 0.08 → 0.40 | 0.30 → 1.00 | 13 → 23 of 38 |
+| avx512 | 0.46 → 0.55 | 0.23 → 0.53 | 0.70 → 1.00 | 20 → 26 of 44 |
+| **pooled** | **+0.129, p < 0.0001** (greedy +0.097, 16 / 7, p 0.09) | **+0.303, p < 0.0001** (greedy +0.290, 11 / 2, p 0.022) | | |
+
+The 32B invents less but not nothing. On sse2 its invented share is 0.38 of cell samples (7B 0.48) and 0.44
+of helper samples (7B 0.73).
+
+**The readings, against the ones written before the run:**
+- **"Helper shots carry the pattern to helpers" holds** pooled (p 0.0001), and on avx2 alone. It does not
+  hold on sse2, where every sibling is a wider ISA. The pre-registration also said the unpaired helpers "are
+  S-2's prompt". They are not byte for byte: their note names each file's reason. No shot differs.
+- **"The cells are unchanged" holds** (p 0.46), so the run stands.
+- **"32B above the 7B by a clear margin" holds.** Size adds about as much at L1 as the graph's ISA-axis shots
+  did over S-0 (E4: +0.21 to +0.26). At ≈ $0.58 a file, the 32B is cheap enough to be a student.
+
+**What D-11 selects** (for Max, D-12, §9): the helpers' remaining loss is **facts**, not pattern. The next
+measured step is the ISA's own intrinsics served to a unit, then the 32B as the student for the rung above.
+
 ### E5 — the pattern world: the science track (M-c)
 
 - **Question:** Atlas-0's method on a synthetic lattice. Functions generated along named axes
@@ -1373,6 +1440,19 @@ Proposed routes, the recommended one first.
   - b: go up the ladder to L2/L3 (`sqlite-vector.c`), which needs an L2 instrument E0 did not build.
   - c: a frontier-model parser, D-2's priced comparison, to learn whether S-5's loss is the parser's size or the
     idea.
+  - **Ran** (§6, "D-11's record"; ≈ $2.11 of $5). Pooled S-2h − S-2 on helpers is +0.261 sampled (p 0.0001),
+    with sse2 unmoved. The 32B adds +0.129 on cells and +0.303 on helpers over the 7B.
+
+- **D-12 — after D-11** (2026-09-27).
+  - **a (recommended): the ISA's facts for every unit.** The intrinsic index
+    (`facts/intrinsics-clang18.json`) already says which intrinsics each ISA's headers declare.
+    - An arm **S-3h**, S-2h plus a short list: the intrinsics the unit's shots use, each marked available or
+      not in the target ISA, and the file's own helper names.
+    - It is aimed at the class that stops helpers, `invented`.
+    - One no-spend runner unit, then S-2h against S-3h on the 7B over the three files (about $0.5).
+  - b: take the 32B as E4's student and build the L2 instrument (`sqlite-vector.c`) for the next rung. It is a
+    larger unit, and the ladder's next claim.
+  - c: close E4's line here with D-11's record, and write the programme up for Max's read.
 
 ---
 
