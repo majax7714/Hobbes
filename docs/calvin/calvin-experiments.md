@@ -1613,7 +1613,10 @@ Proposed routes, the recommended one first.
     null. The retry alone buys +0.02 (p ≤ 0.0002 in each arm). The lines lower the reuse of a ruled-out name by
     about a fifth, and the student invents another.
 
-- **D-14 — after D-13** (2026-09-27).
+- **D-14 — after D-13** (2026-09-27). **Taken: a** (Max, 2026-09-27: "good to proceed with the recommended").
+  The probe, its rules and its reach are pre-registered in `~/.hobbes/bench/calvin-lattice/d14/PREREG.md`:
+  rule S (the same type, an op that extends or is extended by the invented one, 1 to 5 names); reach is
+  30% answered and 50% of those the gold's. An arm is built only if it reaches.
   - **a (recommended): a positive fact, probed first, no spend.** Every intrinsic line D-12 and D-13 served was
     a negative (476 of 477 in D-13), and the only facts the 7B has used are positive name mappings (the init).
     - A probe over D-12 and D-13's invented intrinsics asks whether a written rule names an **available**
