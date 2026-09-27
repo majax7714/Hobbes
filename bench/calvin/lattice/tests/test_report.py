@@ -303,10 +303,10 @@ def test_a_figure_with_nothing_to_compute_it_from_is_none_and_never_zero(run_dir
 U1, U2, H = "float32_distance_dot_avx2", "int8_distance_dot_avx2", "hsum256_ps"
 
 
-def e4_row(unit, arm, cls, *, kind="cell"):
+def e4_row(unit, arm, cls, *, kind="cell", round_=0, invented=()):
     """One E4 row. A unit stands where a cell does, which is what `cell` holds (`e4.plan`'s own key)."""
     return {
-        "id": e1.request_id(unit, arm, 0, 0),
+        "id": e1.request_id(unit, arm, 0, round_),
         "cell": unit,
         "name": unit,
         "kind": kind,
@@ -315,30 +315,41 @@ def e4_row(unit, arm, cls, *, kind="cell"):
         "metric": "dot",
         "arm": arm,
         "sample": 0,
-        "round": 0,
+        "round": round_,
         "class": cls,
         "reg": True,
-        "invented": [],
+        "invented": [{"name": name, "bucket": "intrinsic"} for name in invented],
     }
 
 
-def e4_request(unit, arm, sample, *, kind="cell", own=(), notes=(), wave=0):
+def e4_request(
+    unit, arm, sample, *, kind="cell", own=(), notes=(), wave=0, round_=0, lines=(), unlined=(), seed=1
+):
     """One request, carrying what its arm gave it — which is where the own-shot counts are read from."""
     return {
-        "id": e1.request_id(unit, arm, sample, 0),
+        "id": e1.request_id(unit, arm, sample, round_),
         "cell": unit,
         "unit": unit,
         "name": unit,
         "kind": kind,
         "arm": arm,
         "sample": sample,
-        "round": 0,
+        "round": round_,
         "wave": wave,
         "mode": "chat",
-        "messages": [{"role": "user", "content": "…"}],
+        # the lines are in the text as well as on the record, as a real S-3hf retry's are: that is what
+        # makes two retries with no line byte-identical and two with one not
+        "messages": [
+            {"role": "user", "content": "…" + "".join(f"\n`{name}` is {status}" for name, status in lines)}
+        ],
         "own": [dict(row) for row in own],
         "own_notes": [dict(note) for note in notes],
-        "params": {"temperature": 0.0, "top_p": 1.0, "max_tokens": 2048, "seed": 1},
+        "loop_facts": [
+            {"name": name, "status": status, "form": None, "line": f"`{name}` is {status}"}
+            for name, status in lines
+        ],
+        "unlined": list(unlined),
+        "params": {"temperature": 0.0, "top_p": 1.0, "max_tokens": 2048, "seed": seed},
     }
 
 
@@ -546,6 +557,145 @@ def test_the_e4_table_names_the_parser_and_the_window(e4_run_dir):
     assert "parser: 2 of 3 unit(s) parsed by Qwen/Qwen2.5-7B-Instruct (abcdef012345)" in table
     assert "largest prompt 900 chars against the file's 20357 (every window smaller)" in table
     assert "file level (greedy bodies where the unit passed, gold elsewhere):" in table
+
+
+# MARK: - D-13: the chain's final row, and what the retry did -
+
+#: The one name the loop run's lines below rule out, and the name nothing was said about.
+RULED = "_mm512_setzero_si512"
+LOOP_LABEL = "S-3hf − S-3hd (every unit, through round 1, registered)"
+
+
+@pytest.fixture
+def loop_run_dir(tmp_path):
+    """A D-13 run: one copied round 0 in both arms, and one retry round that moved one unit in one arm.
+
+    `U1` carries a fact line and is rescued by S-3hf alone — S-3hd invents the very name the line rules out,
+    which is the reuse reading. `U2` carries none, so its two retries are one identical request and it is
+    rescued in both. `H` was `wrong` at round 0, which D-13 does not retry.
+    """
+    made = tmp_path / "d13"
+    made.mkdir()
+    (made / e1.META).write_text(
+        json.dumps(
+            {
+                "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+                "k": 0,
+                "params": {"temperature": 0.8, "top_p": 0.95, "max_tokens": 2048},
+                "rounds": 1,
+                "iterate": list(e4.LOOP_ARMS),
+                "retry_classes": list(e4.RETRY_CLASSES),
+                "arms": list(e4.LOOP_ARMS),
+                "cells": [U1, U2, H],
+                "units": [{"name": U1}, {"name": U2}, {"name": H}],
+                "rung": "L1",
+                "isa": "avx2",
+                "file": "src/distance-avx2.c",
+                "source": {"run": "d12-avx2", "arm": "S-3h", "requests": 3, f"{e1.ROWS}_sha256": "ab" * 32},
+                "loop": {
+                    "arms": list(e4.LOOP_ARMS),
+                    "rounds": 1,
+                    "retry_classes": list(e4.RETRY_CLASSES),
+                    "seed_arm": "S-3h",
+                    "max_lines": 10,
+                },
+                "p12": "decomposed",
+                "decomposition": {
+                    "unit_count": 3,
+                    "largest_prompt_chars": 900,
+                    "file_chars": 20357,
+                    "every_window_smaller": True,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    _write(
+        made / e1.ROWS,
+        [
+            *(e4_row(U1, arm, "invented", invented=(RULED,)) for arm in e4.LOOP_ARMS),
+            *(e4_row(U2, arm, "compile") for arm in e4.LOOP_ARMS),
+            *(e4_row(H, arm, "wrong", kind="helper") for arm in e4.LOOP_ARMS),
+            e4_row(U1, "S-3hd", "invented", round_=1, invented=(RULED,)),
+            e4_row(U1, "S-3hf", "pass", round_=1),
+            e4_row(U2, "S-3hd", "pass", round_=1),
+            e4_row(U2, "S-3hf", "pass", round_=1),
+        ],
+    )
+    _write(
+        made / e1.REQUESTS,
+        [
+            *(e4_request(unit, arm, 0) for unit in (U1, U2, H) for arm in e4.LOOP_ARMS),
+            e4_request(U1, "S-3hd", 0, round_=1, seed=7),
+            e4_request(U1, "S-3hf", 0, round_=1, seed=7, lines=((RULED, e4.NOT_HERE),), unlined=("__m512i",)),
+            e4_request(U2, "S-3hd", 0, round_=1, seed=9),
+            e4_request(U2, "S-3hf", 0, round_=1, seed=9),
+        ],
+    )
+    _write(made / e1.CALLS, [{"round": 1, "requests": 3, "deduplicated": 1, "cost": 0.02, "seconds": 2.0}])
+    return made
+
+
+def test_through_zero_is_todays_reading_and_through_one_takes_the_final_row(loop_run_dir):
+    """The one property the readers rest on: a later round is a chain's history, never a second chain."""
+    rows = [json.loads(line) for line in (loop_run_dir / e1.ROWS).read_text().splitlines()]
+    at_zero = report.e4_units(rows)
+    assert at_zero == report.e4_units([row for row in rows if row["round"] == 0])
+    assert at_zero["S-3hf"][U1] == {"greedy": False, "drawn": []}
+
+    final = report.e4_units(rows, None, 1)
+    assert final["S-3hf"][U1] == {"greedy": True, "drawn": []}  # round 1 replaced it
+    assert final["S-3hd"][U1] == {"greedy": False, "drawn": []}  # S-3hd's round 1 failed too
+    assert final["S-3hd"][H] == {"greedy": False, "drawn": []}  # never retried: its round-0 row stands
+    # one row per chain either way, never one per round
+    assert len(final["S-3hf"]) == len(at_zero["S-3hf"]) == 3
+
+
+def test_the_loop_pair_is_read_through_round_one_and_is_registered(loop_run_dir):
+    found = report.e4_report(loop_run_dir)
+    tests = found["comparisons"][LOOP_LABEL]
+    # U1 moved and nothing else did: the facts arm rescued it and the control did not
+    assert tests["pass_at_1"] == {
+        "cells": 3, "both": 1, "neither": 1, "lost": 0, "gained": 1, "delta": round(1 / 3, 6), "p": 1.0,
+    }
+    assert e4.registered_pair("S-3hd", "S-3hf", None, 1) is True
+    # and at round 0 it is not registered at all: the two arms' round 0 is one row copied twice
+    assert e4.registered_pair("S-3hd", "S-3hf", None, 0) is False
+    assert LOOP_LABEL in report.e4_render(found)
+
+
+def test_the_report_names_what_the_retry_rescued_and_the_reuse_it_ruled_out(loop_run_dir):
+    loop = report.e4_report(loop_run_dir)["loop"]
+    assert loop["rounds"] == 1 and loop["retry_classes"] == ["invented", "compile"]
+    assert loop["source"]["run"] == "d12-avx2"
+    assert loop["lines"] == {e4.NOT_HERE: 1} and loop["unlined"] == 1
+    # U2's two retries were one identical request; U1's were two, because one carried a line
+    assert loop["identical_retries"] == 1
+
+    control, facts = loop["by_arm"]["S-3hd"], loop["by_arm"]["S-3hf"]
+    assert control["retried"] == facts["retried"] == 2  # `wrong` is not retried, in either arm
+    assert control["with_lines"] == facts["with_lines"] == 1
+    assert control["without_lines"] == facts["without_lines"] == 1
+    assert facts["rescued"] == {"compile": 1, "invented": 1}
+    assert control["rescued"] == {"compile": 1}
+    # the ruled-out reuse: S-3hd wrote the very name the line said is not here, and S-3hf wrote none
+    assert control["reuse"] == 1 and facts["reuse"] == 0
+
+    table = report.e4_render(report.e4_report(loop_run_dir))
+    assert "the loop, 1 round — retried from invented, compile" in table
+    assert "round 0 copied from d12-avx2 (S-3h)" in table
+    assert f"fact lines by status: {e4.NOT_HERE} 1; 1 name(s) unlined" in table
+    assert "1 chain(s) had no line, so both arms asked one identical retry" in table
+    assert "ruled-out reuse: 1 round-1 row(s)" in table
+    assert "rescued compile 1, invented 1" in table
+
+
+def test_a_run_with_no_rounds_has_no_loop_block_at_all(e4_run_dir):
+    """`None`, not an empty one: a run that did not iterate has nothing to say about a retry."""
+    found = report.e4_report(e4_run_dir)
+    assert found["loop"] is None
+    assert not any("S-3hf" in label for label in found["comparisons"])
+    assert "the loop," not in report.e4_render(found)
 
 
 def test_an_e4_run_with_no_requests_file_names_it_rather_than_reading_no_shots(tmp_path, e4_run_dir):

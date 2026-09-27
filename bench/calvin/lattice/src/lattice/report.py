@@ -78,6 +78,7 @@ __all__ = [
     "e4_report",
     "e4_units",
     "figures",
+    "loop_label",
     "pass_at_k",
     "render",
     "report",
@@ -346,6 +347,10 @@ def e4_report(run_dir: Path | str) -> dict:
     A reader and nothing else, as :func:`report` is: a file that is not there is named in `missing` and
     never read as a zero. The registered comparisons are paired **by unit** — `paired.paired` takes a
     unit where it takes a cell — and one whose arms a run has no rows for reads `missing`.
+
+    **A run with rounds is read twice** (D-13): the per-arm figures stay round 0's, because that round is
+    one answer copied into both arms and so is the pair's common ground, and the comparison is read through
+    the rounds beside :func:`_e4_loop`'s own account of what the retry did.
     """
     run_dir = Path(run_dir)
     missing: list[str] = []
@@ -361,6 +366,8 @@ def e4_report(run_dir: Path | str) -> dict:
     k = int(record.get("k") or 0)
     arms = list(record.get("arms") or sorted({row["arm"] for row in rows if row.get("arm")}))
     first = [row for row in rows if row.get("round") == 0 and row.get("arm")]
+    through = int(record.get("rounds") or 0)
+    carried = [row for row in rows if int(row.get("round") or 0) <= through and row.get("arm")]
 
     return {
         "run": run_dir.name,
@@ -384,10 +391,110 @@ def e4_report(run_dir: Path | str) -> dict:
             if any(row["arm"] == arm for row in first)
         },
         "file_level": levels,
-        "comparisons": _e4_comparisons(first, k),
+        "comparisons": _e4_comparisons(carried, k, through),
         "own_shots": _own_shots(requests),
+        "loop": _e4_loop(record, rows, requests, through),
         "totals": _totals(calls),
     }
+
+
+def _e4_loop(record: dict, rows: list[dict], requests: list[dict], through: int) -> dict | None:
+    """D-13's own account of the retry, per arm, or `None` where the run has no rounds at all.
+
+    Three readings, the ones D-13's card asks for:
+
+    - **what the retry rescued**, by the round-0 class it was retried from: a chain whose final row passes
+      and whose round-0 row did not;
+    - **the chains that carried a fact line against those that did not**, and how many of the latter really
+      were one request — where no name has a line, S-3hf's retry is S-3hd's byte for byte and the shared
+      seed makes the two one question (`e1._distinct`), so the count is read off the requests themselves
+      rather than asserted from the rule;
+    - **the ruled-out reuse**: of the round-1 rows, how many invented a name the chain's own lines had said
+      is not available here (`not-here`) or is declared nowhere (`nowhere`). S-3hd's requests carry no
+      lines, and none are re-derived for it: the two arms' round 0 is **one row copied twice**, so an S-3hd
+      chain's lines are its S-3hf twin's, read off that request. It is the same rule over the same input.
+    """
+    if not through:
+        return None
+    lines = _loop_lines(requests)
+    retried = [row for row in rows if int(row.get("round") or 0) > 0 and row.get("arm")]
+    starting = {
+        (row["arm"], row["cell"], row.get("sample")): row.get("class")
+        for row in rows
+        if int(row.get("round") or 0) == 0 and row.get("arm")
+    }
+    by_arm: dict[str, dict] = {}
+    for arm in record.get("arms") or sorted({row["arm"] for row in rows if row.get("arm")}):
+        mine = [row for row in retried if row["arm"] == arm]
+        rescued = Counter(
+            starting.get((arm, row["cell"], row.get("sample"))) or "ungraded"
+            for row in mine
+            if row.get("class") == "pass"
+        )
+        chains = {(row["cell"], row.get("sample")) for row in mine}
+        with_lines = sum(1 for chain in chains if lines["by_chain"].get(chain))
+        by_arm[arm] = {
+            "retried": len(chains),
+            "rescued": dict(sorted(rescued.items())),
+            "with_lines": with_lines,
+            "without_lines": len(chains) - with_lines,
+            "reuse": sum(1 for row in mine if _ruled_out(row, lines["by_chain"].get((row["cell"], row.get("sample"))))),
+        }
+    return {
+        "rounds": through,
+        "arms": list(record.get("arms") or ()),
+        "retry_classes": list(record.get("retry_classes") or ()),
+        "source": record.get("source"),
+        "lines": lines["counts"],
+        "unlined": lines["unlined"],
+        "identical_retries": lines["identical"],
+        "by_arm": by_arm,
+    }
+
+
+def _loop_lines(requests: list[dict]) -> dict:
+    """The fact lines each retried chain was given, and how many chains' two retries were one question.
+
+    A chain is keyed `(unit, sample)` and its lines are the **facts arm's**, for the reason
+    :func:`_e4_loop` gives. `identical` compares the two arms' round-1 requests as they were sent — the
+    turns and the parameters — so it is a fact about the run and not a restatement of the rule.
+    """
+    later = [request for request in requests if int(request.get("round") or 0) > 0]
+    by_chain: dict[tuple[str, object], dict[str, str]] = {}
+    counts: Counter = Counter()
+    unlined = 0
+    for request in later:
+        if request.get("arm") != e4_of.LOOP_PAIR[1]:
+            continue
+        chain = (request.get("cell"), request.get("sample"))
+        by_chain[chain] = {fact["name"]: fact["status"] for fact in request.get("loop_facts") or ()}
+        counts.update(fact["status"] for fact in request.get("loop_facts") or ())
+        unlined += len(request.get("unlined") or ())
+
+    sent: dict[tuple[str, object], dict[str, object]] = {}
+    for request in later:
+        sent.setdefault((request.get("cell"), request.get("sample")), {})[request.get("arm")] = (
+            request.get("messages"),
+            request.get("params"),
+        )
+    first, second = e4_of.LOOP_PAIR
+    identical = sum(
+        1 for asked in sent.values() if first in asked and second in asked and asked[first] == asked[second]
+    )
+    return {
+        "by_chain": by_chain,
+        "counts": dict(sorted(counts.items())),
+        "unlined": unlined,
+        "identical": identical,
+    }
+
+
+def _ruled_out(row: dict, lines: dict[str, str] | None) -> bool:
+    """Whether this row invented a name its own chain's lines had ruled out (`not-here` or `nowhere`)."""
+    if not lines:
+        return False
+    ruled = {e4_of.NOT_HERE, e4_of.NOWHERE}
+    return any(lines.get(entry.get("name")) in ruled for entry in row.get("invented") or ())
 
 
 def _e4_arm(rows: list[dict], k: int) -> dict:
@@ -411,17 +518,32 @@ def _e4_arm(rows: list[dict], k: int) -> dict:
     }
 
 
-def e4_units(rows: list[dict], kind: str | None = None) -> dict[str, dict[str, dict]]:
+def e4_units(rows: list[dict], kind: str | None = None, through: int = 0) -> dict[str, dict[str, dict]]:
     """`arm -> unit -> {"greedy", "drawn"}` over E4 rows: `paired.paired`'s own shape, by unit.
 
     *kind* keeps one of :data:`lattice.e4.KINDS` and `None` keeps every unit. Which rows to hand in is the
     caller's (the report's figures are round 0 with an arm), so that this says nothing about which rows a
     reading is over and `compare.e4_compare` can read the same shape off another run's rows.
+
+    *through* is the last round a chain is read at (D-13): a chain — one (arm, unit, sample) — contributes
+    its row of the **highest round ≤ through**, which is where the chain stood after that many retries.
+    `through = 0` is round 0 and nothing else, which is every reading before D-13 and is what the default
+    keeps.
     """
-    by_arm: dict[str, dict[str, dict]] = {}
+    final: dict[tuple[str, str, object], dict] = {}
     for row in rows:
         if kind is not None and row.get("kind") != kind:
             continue
+        at_round = int(row.get("round") or 0)
+        if at_round > through:
+            continue
+        chain = (row["arm"], row["cell"], row.get("sample"))
+        held = final.get(chain)
+        if held is None or at_round > int(held.get("round") or 0):
+            final[chain] = row
+
+    by_arm: dict[str, dict[str, dict]] = {}
+    for row in final.values():
         unit = by_arm.setdefault(row["arm"], {}).setdefault(row["cell"], {"greedy": None, "drawn": []})
         passed = row.get("class") == "pass"
         if row.get("sample") == 0:
@@ -431,11 +553,15 @@ def e4_units(rows: list[dict], kind: str | None = None) -> dict[str, dict[str, d
     return by_arm
 
 
-def _e4_comparisons(rows: list[dict], k: int) -> dict:
+def _e4_comparisons(rows: list[dict], k: int, through: int = 0) -> dict:
     """Every registered comparison, paired by unit, or the reason there is no number yet.
 
     A comparison scoped to a kind is read over that kind **and** printed a second time over
     :data:`DESCRIBED_KIND` as the noise read, which is a description and is labelled one.
+
+    A run with rounds gains D-13's pair **through** them (:func:`lattice.e4.registered_pair`). It is not in
+    :data:`lattice.e4.COMPARISONS`, because the same two arms at round 0 alone is a tie by construction —
+    their round 0 is one row copied twice — and a tie is not a comparison anybody registered.
     """
     found: dict[str, dict] = {}
     for first, second, kind in e4_of.COMPARISONS:
@@ -446,7 +572,15 @@ def _e4_comparisons(rows: list[dict], k: int) -> dict:
             found[_comparison_label(first, second, DESCRIBED_KIND, registered=False)] = _paired_units(
                 rows, first, second, DESCRIBED_KIND, k
             )
+    if through > 0:
+        first, second = e4_of.LOOP_PAIR
+        found[loop_label(first, second, through)] = _paired_units(rows, first, second, None, k, through)
     return found
+
+
+def loop_label(first: str, second: str, through: int) -> str:
+    """D-13's comparison line: the direction, the rounds it is read through, and that it is registered."""
+    return f"{second} − {first} (every unit, through round {through}, registered)"
 
 
 def _comparison_label(first: str, second: str, kind: str | None, registered: bool) -> str:
@@ -463,12 +597,14 @@ def _comparison_label(first: str, second: str, kind: str | None, registered: boo
     return f"{second} − {first} ({kind} units, described: identical prompts under two seeds)"
 
 
-def _paired_units(rows: list[dict], first: str, second: str, kind: str | None, k: int) -> dict:
+def _paired_units(
+    rows: list[dict], first: str, second: str, kind: str | None, k: int, through: int = 0
+) -> dict:
     """One comparison's three tests over the units of *kind*, or which arm the run has no rows for."""
     # `paired` reads this module's section kinds, so the two may not import each other at the top
     from . import paired as paired_of
 
-    by_arm = e4_units(rows, kind)
+    by_arm = e4_units(rows, kind, through)
     for arm in (first, second):
         if arm not in by_arm:
             return {"missing": f"the run has no{'' if kind is None else f' {kind} unit'} rows for {arm}"}
@@ -571,6 +707,34 @@ def e4_render(found: dict) -> str:
             "  no own shot, by reason: "
             + (", ".join(f"{reason} {n}" for reason, n in own["missing"].items()) or "none missing")
         )
+
+    loop = found.get("loop")
+    if loop:
+        lines.append("")
+        source = loop.get("source") or {}
+        lines.append(
+            f"the loop, {loop['rounds']} round — retried from {', '.join(loop['retry_classes']) or 'no class'}"
+            + (f"; round 0 copied from {source.get('run')} ({source.get('arm')})" if source else "")
+            + ":"
+        )
+        lines.append(
+            "  fact lines by status: "
+            + (", ".join(f"{status} {n}" for status, n in (loop["lines"] or {}).items()) or "none")
+            + f"; {loop['unlined']} name(s) unlined"
+        )
+        lines.append(
+            f"  {loop['identical_retries']} chain(s) had no line, so both arms asked one identical retry"
+        )
+        for arm, block in loop["by_arm"].items():
+            lines.append(
+                f"  {arm:<8}retried {block['retried']:>3}  with a line {block['with_lines']:>3}  "
+                f"without {block['without_lines']:>3}  rescued "
+                + (", ".join(f"{cls} {n}" for cls, n in block["rescued"].items()) or "none")
+            )
+            lines.append(
+                f"  {'':<8}ruled-out reuse: {block['reuse']} round-{loop['rounds']} row(s) invented a name "
+                f"its own lines called {e4_of.NOT_HERE} or {e4_of.NOWHERE}"
+            )
 
     lines.append("")
     lines.append(

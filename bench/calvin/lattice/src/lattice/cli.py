@@ -21,6 +21,7 @@
     lattice e4 parse   <run-dir> <target>       E4: the parser's fields for every unit, one call each (S-5)
     lattice e4 plan    <target> <run-dir>       E4: L1's units of one file, leaves first, one arm each
     lattice e4 run     <run-dir> <target>       answer and grade them, then build the file per arm
+    lattice e4 loop    <source-run> <run-dir>   D-13: one run's S-3h round 0 as S-3hd and S-3hf, one round to go
     lattice e4 report  <run-dir>                per arm and unit kind, the file level, the comparisons
     lattice e4 compare <run-a> <run-b>          E4: one file's two runs, one model apart (the 32B arm)
     lattice e4 pool    <run>… --pair A,B --kind K  E4: one comparison pooled over several files' runs
@@ -100,6 +101,15 @@ not, and which names in those shots are the *other* file's own. It is skipped an
 arm with no ledger is, when `--available` is not given, and refused when the record does not cover the ISA
 being held out. `report` reads `S-3h − S-2h` over **every** unit as the registered comparison, and
 `lattice e4 pool --pair S-2h,S-3h` pools it over the three files' runs.
+
+**`e4 loop` puts those facts in the retry instead** (D-13 a). `lattice e4 loop <source-run> <run-dir>
+--available available.json --intrinsics index.json` writes a plan whose **round 0 is the source run's S-3h,
+copied twice** as `S-3hd` and `S-3hf` — it calls nothing and spends nothing, because that round is already
+answered and graded — and whose round 1 asks the `invented` and `compile` chains again: S-3hd with E1's own
+feedback, S-3hf with that text plus one fact line per name the answer named. `e4 run` reads the rounds off
+`meta.json`, so the same verb runs it, and it **refuses** when either instrument's digest has moved. The two
+readings are `e4 pool --pair S-3hd,S-3hf --through 1` and `e4 pool --arm S-3hf --rounds 0,1`, the second of
+which prints that its difference cannot be negative by construction.
 
 **S-5's fields come from `e4 parse`, which runs first.** It asks one greedy question per unit — `API.md`,
 the unit's name, kind and signature, its grid position, and the *names* of its callees, and **no body of
@@ -902,9 +912,12 @@ def _e3_corpus(args) -> int:
 #: `e4.KINDS`, and `compare.e4_pool` says on the record whether what was asked for is registered at all.
 POOL_PAIR = "S-2,S-2h"
 
+#: `e4 pool --arm`'s default rounds: D-13's second registered reading, round 0 against round 1.
+POOL_ROUNDS = f"0,{e4_of.LOOP_ROUNDS}"
+
 
 def _e4_verbs(verb: argparse.ArgumentParser) -> None:
-    """`parse`, `plan`, `run`, `report`, `compare` and `pool` — E1's steps over one held-out file."""
+    """`parse`, `plan`, `run`, `loop`, `report`, `compare` and `pool` — E1's steps over one held-out file."""
     steps = verb.add_subparsers(dest="step", required=True)
 
     parser = steps.add_parser("parse", help="the parser's fields for every unit, one greedy call each (S-5)")
@@ -964,13 +977,40 @@ def _e4_verbs(verb: argparse.ArgumentParser) -> None:
     comparer.add_argument("b", type=Path, help="the run read against it (the larger model)")
     comparer.add_argument("--json", action="store_true", help="the comparison as JSON rather than a table")
 
+    looper = steps.add_parser(
+        "loop", help="D-13: one finished run's S-3h round 0, copied as S-3hd and S-3hf, with one round to go"
+    )
+    looper.add_argument("source", type=Path, help="the finished E4 run whose S-3h round 0 is copied")
+    looper.add_argument("run_dir", type=Path, help="the run directory to create")
+    looper.add_argument(
+        "--available", type=Path, required=True, help="the availability record the fact lines are read with"
+    )
+    looper.add_argument(
+        "--intrinsics", type=Path, required=True, help="the intrinsic index that says a name is declared nowhere"
+    )
+
     pooler = steps.add_parser("pool", help="one comparison pooled over several files' runs, by <isa>/<unit>")
     pooler.add_argument("runs", type=Path, nargs="+", help="one run per instruction set; a repeat is refused")
-    pooler.add_argument("--pair", default=POOL_PAIR, help=f"the two arms, `first,second` (default: {POOL_PAIR})")
+    pooler.add_argument("--pair", help=f"the two arms, `first,second` (default: {POOL_PAIR})")
     pooler.add_argument(
         "--kind",
         choices=(*e4_of.KINDS, "all"),
         help="the unit kind the pair is read on, or `all` (default: the kind the pair is registered on)",
+    )
+    pooler.add_argument(
+        "--through",
+        type=int,
+        default=0,
+        help="read each chain's final row through this round (default: 0, round 0 alone)",
+    )
+    pooler.add_argument(
+        "--arm",
+        help="read one arm's own rounds against each other instead of two arms; --rounds says which",
+    )
+    pooler.add_argument(
+        "--rounds",
+        default=POOL_ROUNDS,
+        help=f"with --arm, the two rounds, `earlier,later` (default: {POOL_ROUNDS})",
     )
     pooler.add_argument("--json", action="store_true", help="the comparison as JSON rather than a table")
 
@@ -982,6 +1022,8 @@ def _e4(args) -> int:
         return _e4_plan(args)
     if args.step == "run":
         return _e4_run(args)
+    if args.step == "loop":
+        return _e4_loop(args)
     if args.step == "compare":
         return _e4_compare(args)
     if args.step == "pool":
@@ -1218,13 +1260,52 @@ def _e4_run(args) -> int:
     grade = e1_of.default_grade(args.target, args.image)
     try:
         summary = e4_of.run(args.run_dir, args.target, generate, grade, ceiling_usd=args.ceiling_usd)
-    except (e1_of.CeilingReached, e1_of.TargetMoved) as refusal:
+    except (e1_of.CeilingReached, e1_of.TargetMoved, e4_of.LoopMoved) as refusal:
         print(f"lattice: {refusal}", file=sys.stderr)
         return 2
     except (e1_of.MissingCompletion, e1_of.GenerateFailed, e1_of.GradeFailed) as refusal:
         print(f"lattice: {refusal}", file=sys.stderr)
         return 2
     print(json.dumps(summary, indent=2, sort_keys=True))
+    return 0
+
+
+def _e4_loop(args) -> int:
+    """D-13's plan: one finished run's S-3h round 0 copied twice, with the two instruments named.
+
+    It calls nothing and spends nothing — round 0's spend is the source run's, which is the whole point of
+    copying it — so the only thing that can go wrong here is the source, and each way it can is a refusal
+    naming what was missing rather than a smaller run.
+    """
+    try:
+        run_dir = e4_of.loop(
+            args.source, args.run_dir, available_path=args.available, intrinsics_path=args.intrinsics
+        )
+    except OSError as missing:
+        print(f"lattice: the source run or an instrument could not be read ({missing})", file=sys.stderr)
+        return 2
+    except e4_of.LoopSource as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    record = json.loads((run_dir / e1_of.META).read_text(encoding="utf-8"))
+    source, loop = record["source"], record["loop"]
+    requests = len([line for line in (run_dir / e1_of.REQUESTS).read_text(encoding="utf-8").splitlines() if line.strip()])
+    rows = len([line for line in (run_dir / e1_of.ROWS).read_text(encoding="utf-8").splitlines() if line.strip()])
+    print(
+        f"e4 loop: {requests} request(s) and {rows} copied row(s) — {source['requests']} "
+        f"{source['arm']} chain(s) × {len(loop['arms'])} arm(s) ({', '.join(loop['arms'])}) "
+        f"over {record.get('file')} at {record.get('rung')}"
+    )
+    print(
+        f"  round 0 is {source['run']}'s, copied and not asked: "
+        f"{source[f'{e1_of.ROWS}_sha256'][:12]} ({e1_of.ROWS})"
+    )
+    print(
+        f"  {loop['rounds']} round to go, retried from {', '.join(loop['retry_classes'])}; both arms' seed "
+        f"is {loop['seed_arm']}'s, so a retry with no fact line is one request"
+    )
+    for what in ("available", "intrinsics"):
+        print(f"  {what}: {loop[what]['path']} ({loop[what]['sha256'][:12]})")
     return 0
 
 
@@ -1246,19 +1327,51 @@ def _e4_compare(args) -> int:
 
 
 def _e4_pool(args) -> int:
-    """One arm pair over several files' runs, keyed `<isa>/<unit>`. The pair is checked before anything."""
-    try:
-        first, second = _e4_pair(args.pair)
-    except prompts_of.UnknownArm as refusal:
-        print(f"lattice: {refusal}", file=sys.stderr)
+    """One pooled reading over several files' runs, keyed `<isa>/<unit>`, checked before anything is read.
+
+    Two forms. Without `--arm` it is an arm **pair**, read through `--through` rounds (D-11's and D-12's
+    readings, and D-13's first one at `--through 1`). With `--arm` it is **one** arm's two rounds against
+    each other, which is D-13's second — and a different question, so naming both a pair and an arm is a
+    refusal rather than a guess at which was meant.
+    """
+    if args.arm and args.pair:
+        print(
+            f"lattice: --arm {args.arm} reads one arm's rounds and --pair {args.pair} reads two arms; they "
+            "are two readings, so nothing was pooled",
+            file=sys.stderr,
+        )
         return 2
     try:
-        found = compare_of.e4_pool(args.runs, first, second, _e4_kind(first, second, args.kind))
-    except compare_of.NotComparable as refusal:
+        found = _e4_pooled(args)
+    except (prompts_of.UnknownArm, compare_of.NotComparable) as refusal:
         print(f"lattice: {refusal}", file=sys.stderr)
         return 2
-    print(json.dumps(found, indent=2, sort_keys=True) if args.json else compare_of.render_e4_pool(found))
+    render = compare_of.render_e4_rounds if args.arm else compare_of.render_e4_pool
+    print(json.dumps(found, indent=2, sort_keys=True) if args.json else render(found))
     return 0
+
+
+def _e4_pooled(args) -> dict:
+    """Whichever of the two pooled readings was asked for."""
+    if args.arm:
+        if args.arm not in e4_of.POOL_ARMS:
+            raise prompts_of.UnknownArm(
+                f"no arm {args.arm!r}; the arms are {', '.join(e4_of.POOL_ARMS)}"
+            )
+        return compare_of.e4_rounds(args.runs, args.arm, _e4_rounds(args.rounds))
+    first, second = _e4_pair(args.pair or POOL_PAIR)
+    return compare_of.e4_pool(args.runs, first, second, _e4_kind(first, second, args.kind), args.through)
+
+
+def _e4_rounds(given: str) -> tuple[int, ...]:
+    """`earlier,later`, two whole rounds. Anything else is refused before any run is read."""
+    asked = [part.strip() for part in given.split(",") if part.strip()]
+    if len(asked) != 2 or not all(part.isdigit() for part in asked):
+        raise compare_of.NotComparable(
+            f"--rounds takes two whole rounds, `earlier,later`, and {given!r} is not that; the delta is "
+            "read as the later round minus the earlier"
+        )
+    return tuple(int(part) for part in asked)
 
 
 def _e4_kind(first: str, second: str, given: str | None) -> str | None:
@@ -1286,8 +1399,10 @@ def _e4_pair(given: str) -> tuple[str, str]:
             "as second − first"
         )
     for arm in asked:
-        if arm not in e4_of.ARMS:
-            raise prompts_of.UnknownArm(f"no arm {arm!r}; the arms are {', '.join(e4_of.ARMS)}")
+        # a pool reads what a run recorded, D-13's two arms included; `e4 plan --arms` is the narrower
+        # check, since a loop arm's round 0 is copied and no prompt for it is ever built
+        if arm not in e4_of.POOL_ARMS:
+            raise prompts_of.UnknownArm(f"no arm {arm!r}; the arms are {', '.join(e4_of.POOL_ARMS)}")
     return asked[0], asked[1]
 
 

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from lattice import compare
+from lattice import compare, e4
 from lattice.e1 import CALLS, GMEM, META, ROWS
 
 MODEL = "Qwen/Qwen2.5-Coder-7B-Instruct"
@@ -421,6 +421,100 @@ def test_e4_pool_refuses_one_isa_twice_or_runs_that_are_not_one_model(tmp_path):
         compare.e4_pool([], "S-2", "S-2h", "helper")
     assert "nothing to pool" in str(nothing.value)
     assert compare.E4_POOL_SAME == ("model", "k", "params")
+
+
+#: D-13's chains, per file: one rescued by the facts arm alone, one rescued in both arms.
+def write_loop_run(run_dir, *, isa="avx2", model=MODEL, k=0, rescued=("S-3hf",)):
+    """One D-13 run: a copied round 0 that failed in both arms, and one retry round that moved *rescued*.
+
+    The units are that file's own, so a pool over three of them is keyed apart; `FAMILY[isa]`'s chain is
+    the one the retry is read on and every other unit keeps its round-0 row.
+    """
+    made = write_e4_run(run_dir, {}, isa=isa, model=model, k=k, arms=e4.LOOP_ARMS)
+    record = json.loads((made / META).read_text(encoding="utf-8"))
+    record.update({"rounds": 1, "iterate": list(e4.LOOP_ARMS), "retry_classes": list(e4.RETRY_CLASSES)})
+    (made / META).write_text(json.dumps(record, indent=2, sort_keys=True), encoding="utf-8")
+    later = [
+        {
+            "id": f"{FAMILY[isa]}|{arm}|{sample}|1",
+            "cell": FAMILY[isa],
+            "name": FAMILY[isa],
+            "kind": "helper",
+            "isa": isa,
+            "arm": arm,
+            "sample": sample,
+            "round": 1,
+            "class": "pass" if arm in rescued else "invented",
+            "invented": [],
+            "reg": True,
+        }
+        for arm in e4.LOOP_ARMS
+        for sample in range(0, k + 1)
+    ]
+    with (made / ROWS).open("a", encoding="utf-8") as handle:
+        for row in later:
+            handle.write(f"{json.dumps(row, sort_keys=True)}\n")
+    return made
+
+
+def loop_pool(tmp_path, **rest):
+    return [write_loop_run(tmp_path / f"d13-{isa}", isa=isa, **rest) for isa in ("avx2", "sse2", "avx512")]
+
+
+def test_e4_pool_reads_d13s_pair_through_round_one_as_registered(tmp_path):
+    """D-13's first registered reading: the same two arms at round 0 is a tie, and through round 1 is the pair."""
+    runs = loop_pool(tmp_path)
+    at_zero = compare.e4_pool(runs, "S-3hd", "S-3hf")
+    assert at_zero["through"] == 0 and at_zero["registered"] is False
+    # round 0 is one row copied twice, so nothing moved and nothing could have
+    assert at_zero["paired"]["pass_at_1"]["lost"] == at_zero["paired"]["pass_at_1"]["gained"] == 0
+
+    found = compare.e4_pool(runs, "S-3hd", "S-3hf", None, 1)
+    assert found["through"] == 1 and found["registered"] is True
+    # one chain a file, rescued by the facts arm and not by the control
+    assert found["paired"]["pass_at_1"] == {
+        "cells": 12, "both": 0, "neither": 9, "lost": 0, "gained": 3, "delta": 0.25, "p": 0.25,
+    }
+    table = compare.render_e4_pool(found)
+    assert "through round 1" in table and "registered" in table
+    # and narrowed to a kind it is a description: that narrowing is not what D-13 registered
+    assert compare.e4_pool(runs, "S-3hd", "S-3hf", "helper", 1)["registered"] is False
+
+
+def test_e4_rounds_reads_one_arms_two_rounds_and_says_it_cannot_go_down(tmp_path):
+    """D-13's second registered reading, and the sentence that has to ride with it."""
+    runs = loop_pool(tmp_path, rescued=e4.LOOP_ARMS)
+    found = compare.e4_rounds(runs, "S-3hf")
+    assert found["arm"] == "S-3hf" and found["rounds"] == [0, 1] and found["registered"] is True
+    assert found["paired"]["pass_at_1"] == {
+        "cells": 12, "both": 0, "neither": 9, "lost": 0, "gained": 3, "delta": 0.25, "p": 0.25,
+    }
+    assert found["paired"]["pass_at_1"]["lost"] == 0  # it cannot be anything else
+    assert [row["retried"] for row in found["runs"]] == [1, 1, 1]
+    assert all(row["units"] == {"round 0": 4, "round 1": 4} for row in found["runs"])
+
+    table = compare.render_e4_rounds(found)
+    assert "E4 S-3hf round 1 − round 0 over 3 run(s)" in table and "registered" in table
+    assert "cannot be negative by construction" in table
+    assert "retried 1" in table
+
+    # the control arm's own rounds are the same reading and are **not** what D-13 registered
+    assert compare.e4_rounds(runs, "S-3hd")["registered"] is False
+    assert e4.registered_rounds("S-3hf", (0, 1)) and not e4.registered_rounds("S-3hf", (0, 2))
+
+
+def test_e4_rounds_refuses_two_rounds_that_are_not_a_pair_and_a_pool_it_cannot_read(tmp_path):
+    runs = loop_pool(tmp_path)
+    for asked in ((1, 0), (1,), (0, 1, 2)):
+        with pytest.raises(compare.NotComparable) as refusal:
+            compare.e4_rounds(runs, "S-3hf", asked)
+        assert "--rounds takes two rounds" in str(refusal.value)
+    with pytest.raises(compare.NotComparable) as repeated:
+        compare.e4_rounds([runs[0], runs[0]], "S-3hf")
+    assert "both over avx2" in str(repeated.value)
+    with pytest.raises(compare.NotComparable) as nothing:
+        compare.e4_rounds([], "S-3hf")
+    assert "nothing to pool" in str(nothing.value)
 
 
 def test_e4_pool_names_a_run_that_has_no_rows_for_an_arm_rather_than_failing_it(tmp_path):

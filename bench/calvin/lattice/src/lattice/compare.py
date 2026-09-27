@@ -57,10 +57,12 @@ __all__ = [
     "compare",
     "e4_compare",
     "e4_pool",
+    "e4_rounds",
     "flips",
     "render",
     "render_e4_compare",
     "render_e4_pool",
+    "render_e4_rounds",
 ]
 
 #: What two runs must agree on before a delta between them is one variable. The arms are deliberately
@@ -374,13 +376,18 @@ def _e4_field(record: dict, field: str) -> object:
     return record.get(field)
 
 
-def _e4_rows(run_dir: Path) -> list[dict]:
-    """A run's round-0 rows that carry an arm — the rows every E4 figure is read from, and no others."""
+def _e4_rows(run_dir: Path, through: int = 0) -> list[dict]:
+    """A run's rows through round *through* that carry an arm — the rows every E4 figure is read from.
+
+    `through = 0` is round 0 and nothing else, which is every reading before D-13; a later round's rows are
+    kept beside it and `report.e4_units` picks each chain's last (they are a chain's history, not a second
+    chain, and summing them would count one unit twice).
+    """
     path = run_dir / ROWS
     if not path.exists():
         return []
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    return [row for row in rows if row.get("round") == 0 and row.get("arm")]
+    return [row for row in rows if int(row.get("round") or 0) <= through and row.get("arm")]
 
 
 def _e4_arms(record: dict, rows: list[dict]) -> list[str]:
@@ -408,7 +415,9 @@ def _e4_side(run_dir: Path, record: dict, rows: list[dict]) -> dict:
 # MARK: - E4: one registered comparison, pooled over several files -
 
 
-def e4_pool(runs: Sequence[Path | str], first: str, second: str, kind: str | None = None) -> dict:
+def e4_pool(
+    runs: Sequence[Path | str], first: str, second: str, kind: str | None = None, through: int = 0
+) -> dict:
     """One arm pair over the pooled units of several files' runs, paired by `<isa>/<unit>`.
 
     The key carries the ISA because a unit name is a file's, not the target's: `hsum256_ps` and
@@ -417,38 +426,27 @@ def e4_pool(runs: Sequence[Path | str], first: str, second: str, kind: str | Non
     do not share :data:`E4_POOL_SAME`.
 
     *kind* keeps one of `e4.KINDS`, which is how D-11's helper reading is pooled; `None` pools every unit.
-    `registered` says whether the pair and the kind are on `e4.COMPARISONS`, so a reader can tell the
-    pooled form of a registered comparison from a pooled description of something else.
+    `registered` says whether the pair and the kind are registered at this *through*
+    (:func:`lattice.e4.registered_pair`), so a reader can tell the pooled form of a registered comparison
+    from a pooled description of something else — and D-13's pair, which is registered **through round 1**
+    and a tie at round 0, from the same two arms read where the retry has not happened yet.
+
+    *through* is the last round each chain is read at (D-13): a chain contributes its final row, not one row
+    per round.
     """
     paths = [Path(run) for run in runs]
     if not paths:
         raise NotComparable("no run was named, so there was nothing to pool")
     records = [(path, _meta(path)) for path in paths]
-
-    seen: dict[str, Path] = {}
-    for path, record in records:
-        isa = record.get("isa")
-        if isa in seen:
-            raise NotComparable(
-                f"{path.name} and {seen[isa].name} are both over {isa}; a pool is one run per instruction "
-                "set, and two of them would put one file's units in twice, so nothing was pooled"
-            )
-        seen[isa] = path
+    _e4_poolable(records)
     base_path, base = records[0]
-    for path, record in records[1:]:
-        for field in E4_POOL_SAME:
-            if base.get(field) != record.get(field):
-                raise NotComparable(
-                    f"{path.name} has {field} {record.get(field)!r} and {base_path.name} has "
-                    f"{base.get(field)!r}; a pooled figure would be about neither, so nothing was pooled"
-                )
 
     k = int(base.get("k") or 0)
     before: dict[str, dict] = {}
     after: dict[str, dict] = {}
     counts: list[dict] = []
     for path, record in records:
-        by_arm = report_of.e4_units(_e4_rows(path), kind)
+        by_arm = report_of.e4_units(_e4_rows(path, through), kind, through)
         isa = record.get("isa") or path.name
         counts.append(
             {
@@ -468,7 +466,104 @@ def e4_pool(runs: Sequence[Path | str], first: str, second: str, kind: str | Non
     return {
         "pair": [first, second],
         "kind": kind,
-        "registered": (first, second, kind) in e4_of.COMPARISONS,
+        "through": through,
+        "registered": e4_of.registered_pair(first, second, kind, through),
+        "k": k,
+        "model": base.get("model"),
+        "runs": counts,
+        "paired": paired_of.paired(before, after, k),
+    }
+
+
+def _e4_poolable(records: Sequence[tuple[Path, dict]]) -> None:
+    """Refuse a pool that is not one run per instruction set at one model, `k` and set of parameters.
+
+    One place for both pooled readings (:func:`e4_pool` and :func:`e4_rounds`): what makes a pool readable
+    is the same question either way, and two copies of it are how the two come apart.
+    """
+    seen: dict[str, Path] = {}
+    for path, record in records:
+        isa = record.get("isa")
+        if isa in seen:
+            raise NotComparable(
+                f"{path.name} and {seen[isa].name} are both over {isa}; a pool is one run per instruction "
+                "set, and two of them would put one file's units in twice, so nothing was pooled"
+            )
+        seen[isa] = path
+    base_path, base = records[0]
+    for path, record in records[1:]:
+        for field in E4_POOL_SAME:
+            if base.get(field) != record.get(field):
+                raise NotComparable(
+                    f"{path.name} has {field} {record.get(field)!r} and {base_path.name} has "
+                    f"{base.get(field)!r}; a pooled figure would be about neither, so nothing was pooled"
+                )
+
+
+#: What a one-arm round reading cannot be, whatever the rows say. A chain's final row is its round-0 row
+#: unless a later round replaced it, and a chain is only carried forward when it did **not** pass — so a
+#: pass can be gained and never lost, and the difference has no downward direction to have. It is printed
+#: on every rendering of that reading, because a p beside a figure that cannot go one way is not a test of
+#: the thing a reader will take it for.
+ROUNDS_ONE_WAY = (
+    "the difference cannot be negative by construction: a chain is retried only where it did not pass, "
+    "and its final row is its round-0 row until a later round replaces it"
+)
+
+
+def e4_rounds(
+    runs: Sequence[Path | str], arm: str, rounds: Sequence[int] = (0, e4_of.LOOP_ROUNDS)
+) -> dict:
+    """One arm's round *rounds[0]* against its final rows through *rounds[1]*, paired by `<isa>/<unit>`.
+
+    D-13's second registered reading, as its card words it: S-3hf through round 1 against its own round 0.
+    It is **one arm**, so there is no second context and no second draw — the only thing between the two
+    sides is the retry — and it is therefore also the reading that cannot come out negative
+    (:data:`ROUNDS_ONE_WAY`), which every rendering of it says.
+
+    The refusals are :func:`e4_pool`'s own, for the same reasons: one run per instruction set, and one
+    model, `k` and set of parameters across them.
+    """
+    paths = [Path(run) for run in runs]
+    if not paths:
+        raise NotComparable("no run was named, so there was nothing to pool")
+    asked = tuple(int(at) for at in rounds)
+    if len(asked) != 2 or asked[0] >= asked[1]:
+        raise NotComparable(
+            f"--rounds takes two rounds, the earlier first, and {list(rounds)} is not that; the delta is "
+            "read as the later round minus the earlier"
+        )
+    records = [(path, _meta(path)) for path in paths]
+    _e4_poolable(records)
+
+    base_path, base = records[0]
+    k = int(base.get("k") or 0)
+    before: dict[str, dict] = {}
+    after: dict[str, dict] = {}
+    counts: list[dict] = []
+    for path, record in records:
+        rows = _e4_rows(path, asked[1])
+        isa = record.get("isa") or path.name
+        sides = [report_of.e4_units(rows, None, at) for at in asked]
+        counts.append(
+            {
+                "run": path.name,
+                "isa": isa,
+                "file": record.get("file"),
+                "units": {f"round {at}": len(side.get(arm) or {}) for at, side in zip(asked, sides)},
+                "missing": [] if arm in sides[0] else [arm],
+                "retried": sum(1 for row in rows if int(row.get("round") or 0) > 0 and row.get("arm") == arm),
+            }
+        )
+        for side, into in zip(sides, (before, after)):
+            for unit, value in (side.get(arm) or {}).items():
+                into[f"{isa}/{unit}"] = value
+
+    return {
+        "arm": arm,
+        "rounds": list(asked),
+        "registered": e4_of.registered_rounds(arm, asked),
+        "one_way": ROUNDS_ONE_WAY,
         "k": k,
         "model": base.get("model"),
         "runs": counts,
@@ -505,10 +600,13 @@ def render_e4_pool(found: dict) -> str:
     """The pooled comparison as a table: which runs went in, how many units each gave, then the tests."""
     first, second = found["pair"]
     label = "registered" if found["registered"] else "described, not a registered comparison"
+    through = int(found.get("through") or 0)
     lines = [
         f"E4 pooled {second} − {first} over {len(found['runs'])} run(s) — "
         f"{found.get('model') or 'no model recorded'} (k={found.get('k')}, "
-        f"{found.get('kind') or 'every'} unit(s); {label})"
+        f"{found.get('kind') or 'every'} unit(s)"
+        + (f", through round {through}" if through else "")
+        + f"; {label})"
     ]
     for row in found["runs"]:
         counts = ", ".join(f"{arm} {count}" for arm, count in row["units"].items())
@@ -517,4 +615,23 @@ def render_e4_pool(found: dict) -> str:
             lines.append(f"    missing, not read as zero: no rows for {', '.join(row['missing'])}")
     lines.append("  paired over <isa>/<unit> (exact, two-sided, uncorrected):")
     lines.extend(paired_of.render_pair(f"{second} − {first}", found["paired"]))
+    return "\n".join(lines)
+
+
+def render_e4_rounds(found: dict) -> str:
+    """One arm's two rounds as a table, with what the difference cannot be printed above the numbers."""
+    earlier, later = found["rounds"]
+    label = "registered" if found["registered"] else "described, not a registered reading"
+    lines = [
+        f"E4 {found['arm']} round {later} − round {earlier} over {len(found['runs'])} run(s) — "
+        f"{found.get('model') or 'no model recorded'} (k={found.get('k')}; {label})",
+        f"  {found['one_way']}",
+    ]
+    for row in found["runs"]:
+        counts = ", ".join(f"{at} {count}" for at, count in row["units"].items())
+        lines.append(f"  {row['isa']:<8}{row['run']:<24}{counts}  retried {row['retried']}")
+        if row["missing"]:
+            lines.append(f"    missing, not read as zero: no rows for {', '.join(row['missing'])}")
+    lines.append("  paired over <isa>/<unit> (exact, two-sided, uncorrected):")
+    lines.extend(paired_of.render_pair(f"round {later} − round {earlier}", found["paired"]))
     return "\n".join(lines)
