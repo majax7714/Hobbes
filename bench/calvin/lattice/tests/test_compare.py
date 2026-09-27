@@ -3,6 +3,10 @@
 Nothing here plans, answers or grades anything — a comparison is a reader over rows that already exist,
 so the rows are written by hand and are the whole input. That is also why the runs are tiny: what is
 under test is the delta, the flip and the refusal, not a pass rate.
+
+**E4's two cross-run readings are held the same way** at the end: `e4_compare`, one file's two runs one
+*model* apart, and `e4_pool`, one arm pair over several files' runs keyed `<isa>/<unit>`. What each of them
+refuses is the point of it, so every refusal has a case here beside its one number.
 """
 
 import json
@@ -166,3 +170,240 @@ def test_a_run_whose_rows_are_not_there_is_named_missing_and_not_read_as_zero(tm
     assert ROWS in found["shadows"][0]["missing"]
     assert found["shadows"][0]["sections"]["bodies"] == {}  # no arm to read, so no delta invented
     assert found["shadows"][0]["flips"] == {}
+
+
+# MARK: - E4: one file's two runs one model apart, and one comparison pooled over files -
+
+#: One helper a file, and the three of them are one name family (rule W) — which is what S-2h serves and
+#: what a pool keyed `<isa>/<unit>` must keep apart: `hsum128_ps` and `hsum512_ps` are two units.
+FAMILY = {"avx2": "hsum256_ps", "sse2": "hsum128_ps", "avx512": "hsum512_ps"}
+
+
+def units_of(isa):
+    """One held-out file's units, named as that file's own definitions are: two cells, a helper, the init."""
+    return (
+        (f"float32_distance_dot_{isa}", "cell"),
+        (f"int8_distance_dot_{isa}", "cell"),
+        (FAMILY[isa], "helper"),
+        (f"init_distance_functions_{isa}", "init"),
+    )
+
+
+def write_e4_run(
+    run_dir,
+    passes,
+    *,
+    isa="avx2",
+    model=MODEL,
+    k=1,
+    units=None,
+    params=PARAMS,
+    arms=("S-2", "S-2h"),
+    target_sha="a" * 40,
+):
+    """One E4 run directory: `meta.json` and one greedy plus *k* drawn rows per (unit, arm).
+
+    *passes* maps `(arm, unit)` to whether the unit passed; the drawn samples pass with the greedy one, so
+    a move is visible in all three tests. *units* defaults to that ISA's own (:func:`units_of`).
+    """
+    run_dir.mkdir(parents=True, exist_ok=True)
+    named = list(units if units is not None else units_of(isa))
+    record = {
+        "model": model,
+        "params": params,
+        "arms": list(arms),
+        "cells": [name for name, _ in named],
+        "units": [{"name": name, "kind": kind, "cell": None} for name, kind in named],
+        "k": k,
+        "rounds": 0,
+        "iterate": [],
+        "rung": "L1",
+        "isa": isa,
+        "file": f"src/distance-{isa}.c",
+        "target_sha": target_sha,
+        "p12": "decomposed",
+    }
+    (run_dir / META).write_text(json.dumps(record, indent=2, sort_keys=True), encoding="utf-8")
+    rows = []
+    for arm in arms:
+        for name, kind in named:
+            for sample in range(0, k + 1):
+                rows.append(
+                    {
+                        "id": f"{name}|{arm}|{sample}|0",
+                        "cell": name,
+                        "name": name,
+                        "kind": kind,
+                        "isa": isa,
+                        "type": None,
+                        "metric": None,
+                        "arm": arm,
+                        "sample": sample,
+                        "round": 0,
+                        "class": "pass" if passes.get((arm, name)) else "wrong",
+                        "invented": [],
+                        "reg": True,
+                    }
+                )
+    (run_dir / ROWS).write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
+    return run_dir
+
+
+def e4_runs(tmp_path, isa="avx2", **rest):
+    """One file's run on the 7B and on the 32B: the helper passes on the larger model and nothing else."""
+    small = write_e4_run(
+        tmp_path / f"qwen-7b-{isa}",
+        {("S-2", f"float32_distance_dot_{isa}"): True, ("S-2h", f"float32_distance_dot_{isa}"): True},
+        isa=isa,
+        **rest,
+    )
+    large = write_e4_run(
+        tmp_path / f"qwen-32b-{isa}",
+        {
+            ("S-2", f"float32_distance_dot_{isa}"): True,
+            ("S-2h", f"float32_distance_dot_{isa}"): True,
+            ("S-2h", FAMILY[isa]): True,
+        },
+        isa=isa,
+        model="Qwen/Qwen2.5-Coder-32B-Instruct",
+        **rest,
+    )
+    return small, large
+
+
+def test_e4_compare_pairs_each_shared_arm_by_unit_and_by_kind(tmp_path):
+    small, large = e4_runs(tmp_path)
+    found = compare.e4_compare(small, large)
+
+    assert found["a"]["model"] == MODEL
+    assert found["b"]["model"] == "Qwen/Qwen2.5-Coder-32B-Instruct"
+    assert found["isa"] == "avx2" and found["file"] == "src/distance-avx2.c"
+    assert found["arms"] == ["S-2", "S-2h"] and found["described"] is True
+    # per arm, per kind: the 32B's one gained helper is on S-2h's helper line and on no other
+    assert sorted(found["paired"]["S-2h"]) == ["cell", "helper", "init"]
+    assert found["paired"]["S-2h"]["helper"]["pass_at_1"]["gained"] == 1
+    assert found["paired"]["S-2h"]["helper"]["pass_at_1"]["delta"] == 1.0
+    assert found["paired"]["S-2h"]["cell"]["pass_at_1"]["delta"] == 0.0
+    assert found["paired"]["S-2"]["helper"]["pass_at_1"]["gained"] == 0
+    # the drawn samples moved with it, so the sampled test reads the same one unit
+    assert found["paired"]["S-2h"]["helper"]["pass_at_1_sampled"]["moved"] == 1
+
+    table = compare.render_e4_compare(found)
+    assert "E4 qwen-7b-avx2 → qwen-32b-avx2 — src/distance-avx2.c" in table
+    assert "described: a second model is a price, not a registered comparison" in table
+    assert "helper units  described" in table
+
+
+def test_e4_compare_refuses_two_runs_that_differ_in_more_than_the_model(tmp_path):
+    small, _ = e4_runs(tmp_path)
+    cases = {
+        "isa": write_e4_run(tmp_path / "other-isa", {}, isa="sse2"),
+        "k": write_e4_run(tmp_path / "other-k", {}, k=5),
+        "params": write_e4_run(tmp_path / "hot", {}, params={**PARAMS, "temperature": 1.0}),
+        "units": write_e4_run(tmp_path / "fewer", {}, units=units_of("avx2")[:2]),
+        "target_sha": write_e4_run(tmp_path / "moved", {}, target_sha="b" * 40),
+    }
+    for field, run_dir in cases.items():
+        with pytest.raises(compare.NotComparable) as refusal:
+            compare.e4_compare(small, run_dir)
+        assert field in str(refusal.value) and "nothing was compared" in str(refusal.value)
+    # and the model alone differing is exactly what it is for
+    assert compare.e4_compare(small, e4_runs(tmp_path)[1])["described"] is True
+    assert compare.E4_SAME == ("isa", "file", "target_sha", "units", "k", "params")
+
+
+def test_e4_compare_reads_only_the_arms_the_two_share_and_names_missing_rows(tmp_path):
+    small, _ = e4_runs(tmp_path)
+    one_arm = write_e4_run(
+        tmp_path / "qwen-32b-one-arm",
+        {("S-2", "float32_distance_dot_avx2"): True},
+        model="Qwen/Qwen2.5-Coder-32B-Instruct",
+        arms=("S-2",),
+    )
+    found = compare.e4_compare(small, one_arm)
+    assert found["arms"] == ["S-2"] and list(found["paired"]) == ["S-2"]
+
+    (one_arm / ROWS).unlink()
+    bare = compare.e4_compare(small, one_arm)
+    assert bare["b"]["missing"] == [ROWS]
+    assert bare["paired"] == {}  # no arm both runs answered, so no delta is invented for one
+    assert "(no arm both runs answered)" in compare.render_e4_compare(bare)
+
+
+def pooled_runs(tmp_path, arms=("S-2", "S-2h"), **rest):
+    """One run per native file, each with its own units, on one model: what a pool is made of."""
+    made = []
+    for isa in ("avx2", "sse2", "avx512"):
+        made.append(
+            write_e4_run(tmp_path / f"pool-{isa}", {("S-2h", FAMILY[isa]): True}, isa=isa, arms=arms, **rest)
+        )
+    return made
+
+
+def test_e4_pool_keys_every_unit_by_its_isa_and_counts_each_run(tmp_path):
+    found = compare.e4_pool(pooled_runs(tmp_path), "S-2", "S-2h", "helper")
+
+    assert found["pair"] == ["S-2", "S-2h"] and found["kind"] == "helper"
+    assert found["registered"] is True  # the pair and the kind are on `e4.COMPARISONS`
+    assert found["model"] == MODEL
+    assert [row["isa"] for row in found["runs"]] == ["avx2", "sse2", "avx512"]
+    assert all(row["units"] == {"S-2": 1, "S-2h": 1} and row["missing"] == [] for row in found["runs"])
+    # one helper per file, each keyed by its own ISA, and each of the three gained on S-2h
+    tests = found["paired"]["pass_at_1"]
+    assert tests == {"cells": 3, "both": 0, "neither": 0, "lost": 0, "gained": 3, "delta": 1.0, "p": 0.25}
+    assert found["paired"]["unpaired"] == 0
+
+    table = compare.render_e4_pool(found)
+    assert "E4 pooled S-2h − S-2 over 3 run(s)" in table and "helper unit(s); registered" in table
+    assert "avx512  pool-avx512" in table  # every run is named, with the ISA its units are keyed by
+    assert "S-2 1, S-2h 1" in table
+
+
+def test_e4_pool_keeps_two_files_units_of_one_name_apart(tmp_path):
+    """The `<isa>/` in the key. Two files can define one name, and pooling them as one unit would both
+    halve the reading and pair each file's answer with the other's."""
+    same = [
+        write_e4_run(
+            tmp_path / "pool-a", {("S-2h", "hsum256_ps"): True}, isa="avx2", units=(("hsum256_ps", "helper"),)
+        ),
+        write_e4_run(tmp_path / "pool-b", {}, isa="sse2", units=(("hsum256_ps", "helper"),)),
+    ]
+    found = compare.e4_pool(same, "S-2", "S-2h", "helper")
+    assert [row["units"] for row in found["runs"]] == [{"S-2": 1, "S-2h": 1}] * 2
+    # two units, not one: `avx2/hsum256_ps` moved and `sse2/hsum256_ps` did not
+    assert found["paired"]["pass_at_1"]["cells"] == 2
+    assert found["paired"]["pass_at_1"]["gained"] == 1 and found["paired"]["unpaired"] == 0
+
+
+def test_e4_pool_over_every_kind_is_described_where_the_pair_is_not_registered(tmp_path):
+    found = compare.e4_pool(pooled_runs(tmp_path), "S-2", "S-2h")
+    assert found["kind"] is None and found["registered"] is False
+    assert found["paired"]["pass_at_1"]["cells"] == 12  # four units a file, three files
+    assert "described, not a registered comparison" in compare.render_e4_pool(found)
+
+
+def test_e4_pool_refuses_one_isa_twice_or_runs_that_are_not_one_model(tmp_path):
+    runs = pooled_runs(tmp_path)
+    with pytest.raises(compare.NotComparable) as repeated:
+        compare.e4_pool([runs[0], runs[1], runs[0]], "S-2", "S-2h", "helper")
+    assert "both over avx2" in str(repeated.value) and "nothing was pooled" in str(repeated.value)
+
+    other = write_e4_run(tmp_path / "pool-32b", {}, isa="sse2", model="Qwen/Qwen2.5-Coder-32B-Instruct")
+    with pytest.raises(compare.NotComparable) as mixed:
+        compare.e4_pool([runs[0], other], "S-2", "S-2h", "helper")
+    assert "model" in str(mixed.value) and "about neither" in str(mixed.value)
+
+    with pytest.raises(compare.NotComparable) as nothing:
+        compare.e4_pool([], "S-2", "S-2h", "helper")
+    assert "nothing to pool" in str(nothing.value)
+    assert compare.E4_POOL_SAME == ("model", "k", "params")
+
+
+def test_e4_pool_names_a_run_that_has_no_rows_for_an_arm_rather_than_failing_it(tmp_path):
+    runs = pooled_runs(tmp_path)
+    (runs[1] / ROWS).unlink()
+    found = compare.e4_pool(runs, "S-2", "S-2h", "helper")
+    assert found["runs"][1]["missing"] == ["S-2", "S-2h"]
+    assert found["runs"][1]["units"] == {"S-2": 0, "S-2h": 0}
+    # the two files that answered are still paired, and the one that did not is in neither side
+    assert found["paired"]["pass_at_1"]["cells"] == 2 and found["paired"]["unpaired"] == 0

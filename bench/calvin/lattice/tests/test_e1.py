@@ -901,8 +901,10 @@ def test_the_modal_script_pins_every_model_and_the_vllm_version():
     }
     models = ast.literal_eval(values["MODELS"])
     assert sorted(models) == [
-        # the two students, and E4's parser (E4-e), which is asked for through this same script
+        # the two students, E4's parser (E4-e) and E4's 32B ceiling arm (D-11), each asked for through
+        # this same script
         "Qwen/Qwen2.5-7B-Instruct",
+        "Qwen/Qwen2.5-Coder-32B-Instruct",
         "Qwen/Qwen2.5-Coder-7B-Instruct",
         "allenai/Olmo-3-7B-Instruct",
     ]
@@ -914,6 +916,29 @@ def test_the_modal_script_pins_every_model_and_the_vllm_version():
     assert models["Qwen/Qwen2.5-7B-Instruct"]["gpu"] == "A10G"
     assert ast.literal_eval(values["VLLM"]) == "0.27.1"
     assert ast.literal_eval(values["APP"]) == "hobbes-e1"
+
+
+def test_the_ceiling_arms_32b_is_pinned_to_the_a100_and_the_card_is_priced():
+    """D-11's 32B arm: 65.5 GB of bf16 weights fit no smaller card in the table, so its price must be there.
+
+    Read from the source, never imported — and the two tables are checked against each other, because a
+    card a model is pinned to and a card the record can price are the same list or a call cannot be priced.
+    """
+    values = script_constants()
+    models = values["MODELS"]
+    rate = values["GPU_USD_PER_SECOND"]
+
+    assert models["Qwen/Qwen2.5-Coder-32B-Instruct"] == {"gpu": "A100-80GB", "max_model_len": 16384}
+    assert rate["A100-80GB"] == 0.000694
+    # the spelling is the one `with_options(gpu=…)` takes, and a bare "A100" (the 40 GB card) is not it
+    assert "A100" not in rate and "A100" not in {row["gpu"] for row in models.values()}
+    assert {row["gpu"] for row in models.values()} <= set(rate)
+    # and the runner prices that model at that card's rate, on an estimate it says is an estimate
+    assert e1.PRICING["Qwen/Qwen2.5-Coder-32B-Instruct"] == {
+        "prompt_tps": 3000.0,
+        "completion_tps": 350.0,
+        "usd_per_second": rate["A100-80GB"],
+    }
 
 
 class _Whatever:

@@ -442,6 +442,9 @@ deliberately high: prompt characters over 3.5, plus `max_tokens` for *every* req
 and most of a small round's bill. The rates are no longer guesses: `PRICING` is **8,000 prompt tokens a
 second and 950 completion tokens**, measured on E1-g's run (Qwen2.5-Coder-7B, batched vLLM on one A10G at
 $1.10/h), in place of the 5,000 and 500 this opened with. Olmo carries Qwen's numbers until Olmo has run.
+**The 32B ceiling arm's row is an estimate and says so** (D-11): 3,000 prompt and 350 completion tokens a
+second on the A100-80GB at $0.000694/s, there to make the ceiling check refuse early, to be replaced by that
+arm's first `calls.jsonl` exactly as E1-g's replaced the 7B's.
 If
 the spend already in `calls.jsonl` plus that estimate passes the ceiling, `CeilingReached` — its own type —
 is raised and nothing is sent. **A generator that reports no cost has its estimate recorded as the cost**,
@@ -516,6 +519,19 @@ is also the order the two gaps are read in: descriptive − original is what ren
 meaningful names cost, and opaque − descriptive is, on this lattice, the loss of the task statement as
 much as of the names (E2's record: the hole's name was the only place the metric and type were said).
 Beside each arm's delta go the **paired tests** below.
+
+**E4's two cross-run readings live here too** (D-11 a), for the same reason E2's do — they are readers over
+run directories, and what each refuses is what it is for. **`e4_compare(a, b)`** is *one file's two runs, one
+model apart* (E4-e's 32B ceiling arm): refused unless the two agree on the ISA, the file, the target's SHA,
+the units, `k` and the sampling parameters (`E4_SAME`, with the model deliberately absent), read over the
+arms they share, **per arm and per unit kind** (cell, helper, init) and paired by unit. Everything it prints
+is **described**: a bigger model is a price, not a registered test, and its heading says so. **`e4_pool(runs,
+first, second, kind)`** is *one arm pair over several files' runs*, keyed **`<isa>/<unit>`** — because a unit
+name is a file's and `hsum256_ps` and `hsum512_ps` are two units — with the per-run counts beside the pooled
+tests and `registered` saying whether the pair and the kind are on `e4.COMPARISONS`. It refuses a run list
+naming one ISA twice (that pools a file's units with themselves) and runs that differ in the model, `k` or
+the params (`E4_POOL_SAME`); a run with no rows for an arm is **named** in its own row and its units simply
+do not pair.
 
 **`paired`** — **the noise floor** (2026-09-26): whether a gap between two arms, or two runs, is more
 than the cells it rests on. Both sides grade the same cells, so each test is paired by cell and exact:
@@ -621,6 +637,30 @@ passed, gold elsewhere — writes it to `final/<arm>/<file>` with a unified diff
 the image through **a manifest form and not a `grade-file` verb** — `{"id", "isa", "bodies"}` beside the
 unit form, which is the smaller of the two: no new argparse, no new container plumbing, and `e1.default_grade`
 carries it unchanged. Both sides fill with `fill_units`, and `filled_sha256` is on the row from each.
+
+**S-2h gives a helper its *name family*'s shots** (D-11 a, pre-registered before this build). E4's record
+found the file's weak point: at 13, 6 and 12 helpers a file they pass at 0.00 to 0.23 in every arm, and
+**none of them carries a shot** — `shots` crosses the *grid*, and a helper has no grid position. Their
+siblings exist by **name**, so `family_key` matches them by **rule W, the width family**: over
+`families.isa_tokens`, in this order, a trailing all-digit token is dropped where the name has more than one
+token, every ISA token becomes `*`, a vector width `128`/`256`/`512` inside a token becomes `#`, and a lane
+count written `x<N>` becomes `x#`. Over the three native files that reaches **26 of 31** helpers in **11
+families, 0 ambiguous** — `hsum256_ps ← hsum128_ps, hsum512_ps`; `dot_epu8 ← dot_epu8_512`;
+`bf16x8_to_f32x8_loadu ← bf16x4_to_f32x4_loadu, bf16x16_to_f32x16_loadu`;
+`popcount_avx2 ← popcount_sse2, popcount_avx512` — and the five it reaches nothing for (`mm_abs_pd`,
+`f16x4_to_f32x4_loadu`, `hsum256_epi64`, `hsum256_epi32`, `hsum512_epu32`) are named in the tests, not
+rounded away. **E3's rule as worded is a different rule and stays one:** `families.isa_families` pairs names
+differing in one *ISA token*, and `hsum128`/`hsum256`/`hsum512` differ in a *width*, so it reaches only the
+three `popcount_*` (3 of 31). W is therefore its own rule and **`families.py` is not touched** — it is a
+line-for-line port of the draw's scripts, held against them by `test_families.py`. Two members of one family
+in one other file are **ambiguous**: that file serves nothing and the request names both, since choosing
+between them would be a rule nobody registered. `helper_siblings` gives one row per file that stays — a
+shot, or `no name-family sibling` or `ambiguous` with its candidates — and the prompt carries them under a
+heading of its own, "…matched by name, not by the grid", with the gaps said per file. For a **cell** and for
+the **init**, S-2h is S-2 **byte for byte**: only the arm's name, and so the request id and the seed, differ.
+That is why the registered comparison **`S-2h − S-2` is read on the helper units**, and why the same pair
+over the **cells** is printed beside it as the *noise* read — identical prompts under two seeds — labelled
+described and never read as a result.
 
 **`families`** — **E3's draw rules, ported verbatim** from `bench/calvin/e3-draw/`, the draw's scripts as
 they ran (2026-09-26). The recorded pool — 33,902 union tasks over the 40 taken repos, **24,222 unique**
@@ -733,7 +773,9 @@ report <run-dir> [--json]`. `plan` prints the P12 window line and refuses, exit 
 not and an arm that is not E4's, naming it; `S-3` or `S-5` with no ledger is skipped and named, as
 `prompts` does. `run` takes no `--rounds`: E4 does not iterate. `report` prints one block per arm **per unit
 kind** — cell, helper, init, with the `unexercised` helpers counted apart and never averaged in — the
-file-level rows, and the two comparisons E4-f registered, paired by unit: `S-2 − S-0` and `S-5 − S-3`.
+file-level rows, and the comparisons `e4.COMPARISONS` registers, paired by unit: E4-f's `S-2 − S-0` and
+`S-5 − S-3` over every unit, and D-11's `S-2h − S-2` over the **helper** units, with the same pair over the
+cells beside it as the noise read. Each line says which units it is over and whether it was registered.
 
 **And E4's second half adds one verb and one flag.** `lattice e4 parse <run-dir> <target> --parser-model M
 --ceiling-usd X [--isa avx2] [--generator modal|replay:…] [--graph G --key K --intrinsics I]` writes
@@ -746,6 +788,15 @@ checked again before each wave and a resume sends nothing twice. `report` gains 
 how many cells carried 0, 1 or 2, and **why each missing one was missing** (`later-in-order`,
 `neighbour-failed`, `no-neighbour`, or the unit having no axis at all) — read off `requests.jsonl`, because
 what a prompt carried is not on any row.
+
+**And this unit adds two verbs, both E4's cross-run readings.** `lattice e4 compare <run-a> <run-b>
+[--json]` prints one file's two runs **one model apart**, paired by unit per shared arm and per unit kind,
+and exits 2 naming the field when anything else differs. `lattice e4 pool <run>… [--pair S-2,S-2h] [--kind
+helper|cell|init|all] [--json]` pools one arm pair over several files' runs, keyed `<isa>/<unit>`; the
+defaults are the comparison D-11 registered, an arm that is not E4's or a `--pair` that is not two arms exits
+2 before any run is read, and a list naming one ISA twice or runs that are not one model, `k` and params is
+exit 2 as well. Neither calls a model, and `e4 plan`'s default `--arms` now carries **S-2h**, which needs no
+ledger, no fields and no wave.
 
 **And this unit adds one verb, E3's:** `lattice e3 corpus --repos <list> --target <sqlite-vector root>
 --out <dir> [--seed 20260926]`, where `<list>` is a file of `<name>=<root>` lines in the draw's taken
@@ -835,6 +886,15 @@ lattice e4 plan /path/to/sqlite-vector runs/qwen-avx2-l1 \
 lattice e4 run runs/qwen-avx2-l1 /path/to/sqlite-vector --ceiling-usd 8 --generator modal
 lattice e4 report runs/qwen-avx2-l1                 # or --json
 
+# D-11: S-2h beside S-2 per native file, the helper comparison pooled, then the 32B on the same plan
+lattice e4 plan /path/to/sqlite-vector runs/qwen-sse2-l1 \
+  --model Qwen/Qwen2.5-Coder-7B-Instruct --isa sse2 --arms S-2,S-2h --k 10
+lattice e4 pool runs/qwen-avx2-l1 runs/qwen-sse2-l1 runs/qwen-avx512-l1 \
+  --pair S-2,S-2h --kind helper                     # registered, keyed <isa>/<unit>; or --json
+lattice e4 plan /path/to/sqlite-vector runs/qwen32b-avx2-l1 \
+  --model Qwen/Qwen2.5-Coder-32B-Instruct --isa avx2 --arms S-2,S-2h --k 10
+lattice e4 compare runs/qwen-avx2-l1 runs/qwen32b-avx2-l1   # described: model size is a price
+
 # E3: the draw's 40 clones as a training corpus and its shuffled control, on the host, spending nothing
 # repos.txt is one <name>=<root> a line, in the draw's taken order (its dedupe depends on that order)
 lattice e3 corpus --repos repos.txt --target /path/to/sqlite-vector --out corpora/e3
@@ -923,6 +983,30 @@ order:
 `Qwen/Qwen2.5-7B-Instruct` for it (E4-e: an open instruct 7B, a parser and not an author) — Qwen2.5-Coder's
 own base at the same size, so the same card and the same 16k window the student runs under, and
 `e1.PRICING`'s fall-back is the A10G's rate it bills at.
+
+## D-11 — the order of work (nothing has run)
+
+D-11 a was taken at a **$5 ceiling**: $1.50 for the 7B's S-2 and S-2h, $3.50 for the 32B arm (§9). Rule W is
+pre-registered and the instruments are built; no model has been called. The order:
+
+1. **`lattice e4 plan --arms S-2,S-2h` per native file** on the 7B, and `e4 run` each — the requests cost
+   nothing, and the P12 line and the prompt sizes are read off `requests.jsonl` before anything is sent.
+   S-2h adds one prompt per unit and changes only the **helper** prompts, so the plan is about the size of
+   an S-2 run twice over.
+2. **`lattice e4 report` per file.** The registered line is `S-2h − S-2 (helper units)`; the line under it,
+   the same pair over the cells, is the noise these must stand above, and it should read flat.
+3. **`lattice e4 pool` the three runs** on `--pair S-2,S-2h --kind helper`. 26 of 31 helpers carry a shot,
+   so the pooled reading is the one with the cells to say anything — the per-file ones are 4, 11 and 11
+   units.
+4. **Then the 32B on the same plan** (E4-e's ceiling arm), one file first, priced against `e1.estimate`
+   before the rest: `Qwen/Qwen2.5-Coder-32B-Instruct` is pinned to the **A100-80GB** in `modal_e1.py`
+   (≈ 65.5 GB of bf16 weights fit no smaller card in the table; its KV cache is ≈ 0.26 MB a token, so about
+   4.3 GB at the 16k window that is kept so a 32B row and a 7B row are the same prompt), priced at
+   $0.000694/s, and `e1.PRICING`'s throughputs for it are an **estimate nobody has measured** — 3,000 prompt
+   and 350 completion tokens a second — there to make the ceiling check refuse early. Replace them with the
+   first call's `calls.jsonl`, as E1-g's replaced the 7B's.
+5. **`lattice e4 compare <7B run> <32B run>`**, which is **described throughout**: model size is a price,
+   not a registered comparison, and that card has never run on this account.
 
 ## E3 — the order of work
 

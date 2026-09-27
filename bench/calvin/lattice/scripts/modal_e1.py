@@ -19,7 +19,11 @@ weaker than `SamplingParams(seed=…)` on an offline batch, which is what makes 
 the `hobbes-hf-cache` volume. :data:`MODELS` is the whole of what may run: a model this table does not name
 is refused rather than downloaded, because a run at an unpinned model is not the run the record describes.
 **E4's parser** (`lattice e4 parse --parser-model`) is one of them, and is asked for through this same
-script and the same seam: a parse is a batch of greedy chat requests like any other.
+script and the same seam: a parse is a batch of greedy chat requests like any other. So is **E4's ceiling
+arm** (E4-e, D-11): `Qwen/Qwen2.5-Coder-32B-Instruct`, on the **A100-80GB**, because its bf16 weights are
+about 65.5 GB and no smaller card in this table holds them; the 16k window is kept so that a 32B row and a
+7B row are the same prompt. That card has never run on this account, and like every other pin here it is
+first exercised by the developer.
 
 **The lattice package never imports `modal`.** This is a `uv run` script with its own dependencies, and
 `lattice.e1.modal_generator` reaches it through a subprocess and two JSONL files. A dispatched session has
@@ -83,11 +87,17 @@ MODELS = {
     # window is the coder's, which has run on the A10G here. The card and the window are therefore the
     # coder's too, and the estimate falls back to `e1.DEFAULT_PRICE`, which is the A10G's rate.
     "Qwen/Qwen2.5-7B-Instruct": {"gpu": "A10G", "max_model_len": 16384},
+    # **E4's ceiling arm** (E4-e, D-11: the one arm that prices model size). Qwen2.5-Coder-32B's bf16
+    # weights are about 65.5 GB, so neither the A10G (24 GB) nor the L40S (48 GB) can hold them at all;
+    # the A100-80GB can. Its KV cache is 64 layers × 8 KV heads × 128 head dim × 2 (K and V) × 2 bytes ≈
+    # 0.26 MB a token, so about 4.3 GB at the 16k window every model here runs at — which fits on the 80 GB
+    # card beside the weights. The window is kept so that a 32B row and a 7B row are the same prompt.
+    "Qwen/Qwen2.5-Coder-32B-Instruct": {"gpu": "A100-80GB", "max_model_len": 16384},
 }
 
-#: Each GPU's price per second, for the call record only (Modal's pricing page, read 2026-09-25: the
-#: A10 at $0.000306/s, the L40S at $0.000542/s).
-GPU_USD_PER_SECOND = {"A10G": 0.000306, "L40S": 0.000542}
+#: Each GPU's price per second, for the call record only (Modal's pricing page: the A10 at $0.000306/s and
+#: the L40S at $0.000542/s, read 2026-09-25; the A100 80 GB at $0.000694/s, read 2026-09-26).
+GPU_USD_PER_SECOND = {"A10G": 0.000306, "L40S": 0.000542, "A100-80GB": 0.000694}
 
 #: The A10G's price, kept under its old name for the record's field.
 #: **Check this against Modal's pricing page before the first run** — it is a constant here, not a quote.
@@ -276,7 +286,11 @@ def main(argv: list[str]) -> int:
     try:
         with app.run():
             # the decorator's GPU is only the default: each model runs on the card MODELS pins for it,
-            # and under the budget's own timeout rather than the decorator's four hours
+            # and under the budget's own timeout rather than the decorator's four hours.
+            # `with_options(gpu=…)` takes the **same string** the `@app.function(gpu=…)` decorator takes in
+            # the pinned client (`modal>=1.1`), so MODELS' values are spelled that way: `"A10G"`, `"L40S"`,
+            # and `"A100-80GB"` for the 80 GB A100 — a bare `"A100"` is the 40 GB card, which the 32B's
+            # weights do not fit, and a count would be a `":n"` suffix, which nothing here asks for.
             answer = generate.with_options(gpu=gpu, timeout=timeout).remote(args.model, requests, args.adapter)
         with open(args.out, "w", encoding="utf-8") as handle:
             for completion in answer["completions"]:

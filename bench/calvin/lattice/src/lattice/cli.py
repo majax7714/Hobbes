@@ -21,6 +21,8 @@
     lattice e4 plan    <target> <run-dir>       E4: L1's units of one file, leaves first, one arm each
     lattice e4 run     <run-dir> <target>       answer and grade them, then build the file per arm
     lattice e4 report  <run-dir>                per arm and unit kind, the file level, the comparisons
+    lattice e4 compare <run-a> <run-b>          E4: one file's two runs, one model apart (the 32B arm)
+    lattice e4 pool    <run>… --pair A,B --kind K  E4: one comparison pooled over several files' runs
     lattice grade      <target> <manifest.json> grade every entry in the manifest; one JSON line each
     lattice selftest   <target> [--cells …]     the gate on the instruments (§5.5)
 
@@ -75,6 +77,16 @@ rung and `p12: decomposed` with the largest prompt against the file's own length
 answers and grades every unit against the *gold* file with that one definition punched, so a failure does
 not cascade, and then builds the file the student wrote: every passing unit's greedy body, gold elsewhere,
 into `final/<arm>/` with a patch, graded once over every slot the file installs.
+
+**S-2h gives a helper its name family's shots** (D-11 a): the same-family function in each other native
+file, matched by `e4.family_key`'s rule W and not by the grid, because a helper has no grid position. For
+a cell and for the init it is S-2 byte for byte, which is why `report` reads `S-2h − S-2` on the **helper**
+units as the registered comparison and prints the same pair over the cells beside it as the noise read.
+`lattice e4 pool <run>… --pair S-2,S-2h --kind helper` pools that comparison over the three native files'
+runs, keyed `<isa>/<unit>`, and refuses a list naming one ISA twice or runs whose model, `k` or params
+differ. `lattice e4 compare <run-a> <run-b>` is the other reading: one file's two runs **one model apart**
+(E4-e's 32B ceiling arm), refused unless the ISA, the file, the target's SHA, the units, `k` and the params
+all agree, and **described throughout** — a second model is a price, not a registered test.
 
 **S-5's fields come from `e4 parse`, which runs first.** It asks one greedy question per unit — `API.md`,
 the unit's name, kind and signature, its grid position, and the *names* of its callees, and **no body of
@@ -812,8 +824,15 @@ def _e3_corpus(args) -> int:
 # MARK: - E4's runner -
 
 
+#: `e4 pool`'s defaults: the comparison D-11 registered, so the everyday invocation is the registered one
+#: and anything else is asked for explicitly. `--pair` and `--kind` are checked against `e4.ARMS` and
+#: `e4.KINDS`, and `compare.e4_pool` says on the record whether what was asked for is registered at all.
+POOL_PAIR = "S-2,S-2h"
+POOL_KIND = "helper"
+
+
 def _e4_verbs(verb: argparse.ArgumentParser) -> None:
-    """`parse`, `plan`, `run` and `report` — E1's steps over one held-out file rather than one cell."""
+    """`parse`, `plan`, `run`, `report`, `compare` and `pool` — E1's steps over one held-out file."""
     steps = verb.add_subparsers(dest="step", required=True)
 
     parser = steps.add_parser("parse", help="the parser's fields for every unit, one greedy call each (S-5)")
@@ -863,6 +882,22 @@ def _e4_verbs(verb: argparse.ArgumentParser) -> None:
     reporter.add_argument("run_dir", type=Path)
     reporter.add_argument("--json", action="store_true", help="the report as JSON rather than a table")
 
+    comparer = steps.add_parser("compare", help="one file's two runs, one model apart (E4-e's 32B arm)")
+    comparer.add_argument("a", type=Path, help="the run the delta is read from (the smaller model)")
+    comparer.add_argument("b", type=Path, help="the run read against it (the larger model)")
+    comparer.add_argument("--json", action="store_true", help="the comparison as JSON rather than a table")
+
+    pooler = steps.add_parser("pool", help="one comparison pooled over several files' runs, by <isa>/<unit>")
+    pooler.add_argument("runs", type=Path, nargs="+", help="one run per instruction set; a repeat is refused")
+    pooler.add_argument("--pair", default=POOL_PAIR, help=f"the two arms, `first,second` (default: {POOL_PAIR})")
+    pooler.add_argument(
+        "--kind",
+        default=POOL_KIND,
+        choices=(*e4_of.KINDS, "all"),
+        help=f"the unit kind the pair is read on, or `all` (default: {POOL_KIND})",
+    )
+    pooler.add_argument("--json", action="store_true", help="the comparison as JSON rather than a table")
+
 
 def _e4(args) -> int:
     if args.step == "parse":
@@ -871,6 +906,10 @@ def _e4(args) -> int:
         return _e4_plan(args)
     if args.step == "run":
         return _e4_run(args)
+    if args.step == "compare":
+        return _e4_compare(args)
+    if args.step == "pool":
+        return _e4_pool(args)
     return _e4_report(args)
 
 
@@ -1088,6 +1127,48 @@ def _e4_report(args) -> int:
     found = report_of.e4_report(args.run_dir)
     print(json.dumps(found, indent=2, sort_keys=True) if args.json else report_of.e4_render(found))
     return 0
+
+
+def _e4_compare(args) -> int:
+    """One file's two runs, one model apart. Anything else differing is a refusal, not a smaller reading."""
+    try:
+        found = compare_of.e4_compare(args.a, args.b)
+    except compare_of.NotComparable as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    print(json.dumps(found, indent=2, sort_keys=True) if args.json else compare_of.render_e4_compare(found))
+    return 0
+
+
+def _e4_pool(args) -> int:
+    """One arm pair over several files' runs, keyed `<isa>/<unit>`. The pair is checked before anything."""
+    try:
+        first, second = _e4_pair(args.pair)
+    except prompts_of.UnknownArm as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    kind = None if args.kind == "all" else args.kind
+    try:
+        found = compare_of.e4_pool(args.runs, first, second, kind)
+    except compare_of.NotComparable as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    print(json.dumps(found, indent=2, sort_keys=True) if args.json else compare_of.render_e4_pool(found))
+    return 0
+
+
+def _e4_pair(given: str) -> tuple[str, str]:
+    """`first,second`, each one of `e4.ARMS`. Anything else is a typo and is refused before any run is read."""
+    asked = [part.strip() for part in given.split(",") if part.strip()]
+    if len(asked) != 2:
+        raise prompts_of.UnknownArm(
+            f"--pair takes two arms, `first,second`, and {given!r} names {len(asked)}; the delta is read "
+            "as second − first"
+        )
+    for arm in asked:
+        if arm not in e4_of.ARMS:
+            raise prompts_of.UnknownArm(f"no arm {arm!r}; the arms are {', '.join(e4_of.ARMS)}")
+    return asked[0], asked[1]
 
 
 def _shadow(args) -> int:
