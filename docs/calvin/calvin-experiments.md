@@ -1300,7 +1300,7 @@ Proposed routes, the recommended one first.
     Then run E3 at a **$25 ceiling**: the 300-step pair first, and the 3,000-step pair only after its reading.
   - b: hold E3 until E4 has run, so the in-context route reads first.
 
-- **D-10 — after E3's 300-step pair** (2026-09-26).
+- **D-10 — after E3's 300-step pair** (2026-09-26). **Taken: a** (Max, 2026-09-26: "good to proceed with the recommended"). E4 runs under D-6's $8 ceiling.
   - **a (recommended):** run E4 now (D-6's plan, ceiling $8), since E3 points at the in-context route. Hold E3's
     3,000-step pair. If it is ever run, it needs a token-true length cap and a fair control (the member's own
     signature, only the body's pairing broken), and a new ceiling of about $45.
