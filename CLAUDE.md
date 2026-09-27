@@ -345,8 +345,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   facts in the loop, one retry round with and without a line per named
   name (S-3hf against S-3hd, from D-12's own round 0), null, −0.001
   (p 1.0); the retry alone buys +0.02 — the 7B drops the ruled-out name
-  and invents another; 476 of 477 intrinsic lines were negatives. Next,
-  for Max: D-14 (a positive fact, probed first with no spend, recommended).
+  and invents another; 476 of 477 intrinsic lines were negatives. D-14
+  (no spend): a positive name for an invented intrinsic, probed — rule S
+  answers 12.7% of 387 names, 4.1% of those the gold's, not reached; two
+  thirds are sand, the rest need a composition. Next, for Max: D-15 (S-3h
+  on the 32B with the loop, ceiling $3, recommended).
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its

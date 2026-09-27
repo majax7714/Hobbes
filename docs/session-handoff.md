@@ -34,8 +34,8 @@ drivers' paths below.
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Two tracks are open.**
-- **The Calvin experiments: D-13 is run and read, and D-14 waits for Max** (twenty-first session;
-  `calvin-experiments.md` §6 "D-12's record" and "D-13's record", §9 D-14).
+- **The Calvin experiments: D-13 is run and D-14 probed, and D-15 waits for Max** (twenty-first session;
+  `calvin-experiments.md` §6 "D-13's record" and "D-14's probe", §9 D-15).
   - **D-13** (about $0.32 of $1.50; runner unit `b6dd`, merged with a docstring fix; `lattice e4 loop`):
     - One retry round from D-12's own S-3h round 0 (no new round-0 call), asked two ways: **S-3hd**, E1's
       feedback, and **S-3hf**, the same plus a line per named name. They share a seed, so a chain with no line
@@ -47,10 +47,12 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
 
     Records: `~/.hobbes/bench/calvin-lattice/d13/` (`PREREG.md`, `probe.py`, `run-isa.sh`, `run-7b-<isa>/`,
     `report-*`, `pool-7b-*`, `classes-round1.txt`).
-  - **D-14** (recommended a): a **positive** fact, probed first with no spend. Does a written rule (the same
-    operation stem at this width, or the gold's own call at the site) name an available intrinsic for what the
-    student reached for, and how often is it the gold's? Only if it reaches, an arm (about $0.3). Or b: S-3h on
-    the 32B (about $1.7). Or c: close E4's line.
+  - **D-14** (no spend; `d14/PREREG.md`, `probe.py`, `probe-out.txt`): a positive fact for an invented
+    intrinsic, probed. Rule S answers 12.7% of 387 names, and 4.1% of those answers are the gold's: **not
+    reached**, so no arm. 257 of the 331 unanswered names are sand, and the rest need a composition.
+  - **D-15** (recommended a): S-3h on the 32B with the loop: S-2h and S-3h at round 0, then `e4 loop`, ceiling
+    $3. No unit to build. Or b: close E4's line and write the programme up. Or c: the narrow `_mm_cmp_*`
+    positive (not recommended).
   - **D-12** (about $0.67; runner `7e20`): S-3h, the ISA's facts beside the shots, null (+0.011, p 0.59). The
     student disregards the negatives, and the init uses the positive name mappings. Records: `d12/`.
   - **D-11** (about $2.11 of $5; runner `e735`):
@@ -396,7 +398,7 @@ named below was removed unless it says otherwise.
    - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
      E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
-     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run, twenty-first; next: D-14 (START HERE). Drivers:
+     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run and D-14 probed (no spend), twenty-first; next: D-15 (START HERE). Drivers:
      `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
      <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
      history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its

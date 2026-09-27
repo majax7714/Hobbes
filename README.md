@@ -489,8 +489,11 @@ p 0.59), since the 7B still wrote the renames the list said do not
 exist. D-13 (about $0.32) gave the same list to a failed unit on its
 one retry, beside the compiler's error, against the same retry without
 it: null again (−0.001, p 1.0). The retry itself buys +0.02, and the
-student drops the name it was told about and invents another. The
-records are in the experiments page.
+student drops the name it was told about and invents another. D-14
+(no spend) looked for a positive instead, a rule naming an intrinsic the
+file does have: it answers 12.7% of the invented names, and 4.1% of those
+answers are what the target uses. Two thirds of the invented names are
+declared by no header at all. The records are in the experiments page.
 
 The work built through it includes C's lane A and its oracle, the
 external veto (ADR-111), a session's records written by a sidecar

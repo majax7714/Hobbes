@@ -14632,3 +14632,16 @@ and D-12 (`f3655ae`). 44 commits sat unpushed on `main` at the review, as the ha
   routes are S-3h on the 32B (about $1.7), or to close E4's line.
 
 The tracker reads 90 of 40. There is no version bump and no image rebuild.
+
+**D-14 taken (Max: "good to proceed with the recommended"): a positive fact, probed first. Not reached, no
+spend** (`calvin-experiments.md` §6 "D-14's probe"; `~/.hobbes/bench/calvin-lattice/d14/`).
+- Pre-registered before the probe ran (`273a5d0`). Rule S takes this file's available intrinsics with the same
+  type and an op that extends or is extended by the invented op, 1 to 5 names. Reach is 30% answered and 50% of
+  those the gold's.
+- **S answers 49 of 387 distinct invented names (12.7%), and 2 of those 49 (4.1%) are the gold's.** S-any, over
+  any type, answers 45.2%, with 12.0% the gold's (described).
+- Of the 331 unanswered names, 257 are sand and 74 are real intrinsics of another ISA, where the gold composes
+  the operation. The one narrow exception, described: sse2's `_mm_cmp_*` → `_mm_cmpeq_*`, where 5 of 7
+  `too-many` lists held the gold's.
+- **For Max, D-15.** Recommended: S-3h on the 32B, with the loop (ceiling $3). Or close E4's line and write the
+  programme up, or the narrow comparison-family positive (not recommended).

@@ -1390,6 +1390,36 @@ on are positive name mappings: the init's, in D-12. The untested fact is a **pos
 this file does have for the operation the student reached for. Whether such a rule exists, and how often it
 names what the gold uses, can be measured with no spend.
 
+#### D-14's probe — a positive fact (2026-09-27; no spend)
+
+Pre-registered before it ran: `~/.hobbes/bench/calvin-lattice/d14/PREREG.md`. The probe and its output are
+`probe.py` and `probe-out.txt`.
+- **Occurrences:** 387 distinct (ISA, unit, name) where a 7B row invented an intrinsic-shaped name (1,688
+  rows), over D-12's S-2h and S-3h round 0 and D-13's two round-1 arms.
+- **Rule S** looks among this file's available intrinsics: its own prefix, the same type, and an op that
+  extends or is extended by the invented op. It answers with 1 to 5 names.
+
+| rule | answers | the gold's, where it answers | reach |
+|---|---|---|---|
+| **S (registered)** | **49 of 387 (12.7%)**; none 329, too-many 7, no op 2 | **2 of 49 (4.1%)** | **not reached** (30% and 50% needed) |
+| S-any, any type (described) | 175 of 387 (45.2%) | 21 of 175 (12.0%) | — |
+
+- **Not reached, so no arm was built and nothing was spent.**
+- **What the unanswered names are.** Of the 331 S could not answer, 257 are sand, declared by no header of
+  clang 18. 74 are real intrinsics of another ISA or feature, such as `_mm_shuffle_epi8` and `_mm_blendv_pd`
+  on sse2. There the gold composes the operation from other intrinsics (`popcount_sse2`: shifts, `and`, `sub`;
+  `blendv`: `and` with `cmpeq`). **No name-to-name rule reaches a composition, and no fact about names reaches
+  sand.**
+- **Described, the one narrow exception:** in 5 of S's 7 `too-many` occurrences the gold's intrinsic is in the
+  list. This is sse2's `_mm_cmp_pd`/`_mm_cmp_ps` → `_mm_cmpeq_*` family, 1.8% of the names but 130 of the
+  1,688 rows. It is recorded, not acted on: the rule as registered capped at 5.
+
+**What D-14 selects** (for Max, D-15, §9): **at the 7B, a fact about names does not remove invented
+intrinsics**, whether as a negative (D-12, D-13) or as a positive (D-14, which does not reach). Two thirds of
+the invented names are sand, and the rest mostly need a composition. The remaining lever E4 has priced is
+model size: the 32B invents less (D-11: 0.38 against 0.48 of sse2's cell samples) and has not been shown the
+facts.
+
 ### E5 — the pattern world: the science track (M-c)
 
 - **Question:** Atlas-0's method on a synthetic lattice. Functions generated along named axes
@@ -1626,6 +1656,20 @@ Proposed routes, the recommended one first.
     - Only if it reaches: an arm, S-3hp, in the loop or the prompt, about $0.3.
   - b: S-3h on the 32B, D-13's b. It asks whether a larger student reads the negatives the 7B does not. About $1.7.
   - c: close E4's line with D-11 to D-13's records, and write the programme up for Max.
+  - **Probed** (§6, "D-14's probe"; no spend). Rule S answers 12.7% of 387 invented names, and 4.1% of those
+    answers are the gold's: **not reached**, so no arm and no spend. 257 of the 331 unanswered names are sand,
+    and the rest need a composition.
+
+- **D-15 — after D-14** (2026-09-27).
+  - **a (recommended): S-3h on the 32B, with the loop.** The 32B invents less and has not seen the facts.
+    - Run S-2h and S-3h at round 0, then S-3hd and S-3hf at one round from S-3h, on the three native files
+      (`e4 plan --available`, then `e4 loop`; the runner exists, so there is no unit to build).
+    - It asks whether a larger student reads the negatives the 7B does not, beside the shots or beside the error.
+    - About $1.7 for round 0 (D-11's 32B figure) plus about $0.5 for the round; ceiling $3.
+  - b: close E4's line and write the programme up for Max: pattern carries at the 7B (E1, E4, D-11), facts
+    about names do not (D-12 to D-14), and size is priced (D-11).
+  - c: the narrow comparison-family positive (the 5 of 7 `too-many` lists that held the gold's), about 1.8% of
+    the invented names. Not recommended, because it is too narrow to move a pooled figure.
 
 ---
 
