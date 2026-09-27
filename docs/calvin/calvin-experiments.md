@@ -1152,6 +1152,56 @@ It is tested on the fixture's trimmed avx2 file. The tests include a planted wro
 cascade, and a gold-substituted unit shown to be absent from every later prompt. The
 parser's model and the ceiling arm's are the run's parameters, not the unit's.
 
+#### E4's record — L1 on all three native files (2026-09-26; D-6 and D-10, ceiling $8; spent ≈ $1.25)
+
+**What ran.**
+- The runner was built in sessions `5724` and `1e40`.
+- Per file: the parser's fields (`Qwen/Qwen2.5-7B-Instruct`, one greedy call per unit, all 127 parsed), then the
+  student `Qwen/Qwen2.5-Coder-7B-Instruct` on five arms at k = 10, S-2o in four waves, and one file-level build
+  per arm.
+- **P12: decomposed.** Units are planner-defined (every definition, leaves first), with one single-use call
+  each, and the largest window was 13,412 characters against the smallest file's 42,228. **This is the first
+  run on this page that is a Hobbes test.**
+- Each file cost $0.39 to $0.43.
+- Records are in `~/.hobbes/bench/calvin-lattice/e4/` (`run-{avx2,sse2,avx512}/`, `report*.txt`, `run-isa.sh`).
+- **Not run:** the 32B ceiling arm (E4-e) and the cascade arm (E4-d b).
+
+**The registered comparisons, paired by unit, exact:**
+
+| file (units) | S-2 − S-0 sampled | S-2 − S-0 greedy | S-5 − S-3 sampled | S-5 − S-3 greedy |
+|---|---|---|---|---|
+| avx2 (45) | **+0.258, p < 0.0001** | +0.289 (14 / 1), p 0.001 | **−0.173, p 0.0006** | −0.200 (1 / 10), p 0.012 |
+| sse2 (38) | **+0.263, p 0.0003** | +0.316 (12 / 0), p 0.0005 | **−0.158, p 0.019** | −0.158 (2 / 8), p 0.11 |
+| avx512 (44) | **+0.211, p 0.0003** | +0.227 (12 / 2), p 0.013 | **−0.073, p 0.010** | −0.023, p 1.0 |
+
+**Cells, greedy pass@1, S-0 → S-2:** avx2 0.19 → 0.58, sse2 0.03 → 0.42, avx512 0.23 → 0.52.
+
+**Helpers barely move:** 0.00 to 0.23 in every arm, and none carries a shot.
+
+**File level:** each arm's rebuilt file (the student's passing bodies, gold elsewhere) passes G-diff and G-reg.
+With S-2 the student writes 21 of 45, 13 of 38 and 17 of 44 definitions, against S-0's 8, 1 and 7.
+
+**The readings, against the ones written before the run:**
+- **"S-2 holds E1's gap at L1" holds, and above my expectation.**
+  - I wrote that S-2 would fall below E1's C-2 (0.29), since 12 of E1's 18 passes leaned on a type-axis shot and
+    L1 holds those out.
+  - It rose to 0.42–0.58 instead. At L1 every cell carries **two** ISA-axis shots of its own `(type, metric)`
+    (both other native files), where E1 carried one per axis.
+  - The graph can serve pattern to a student at file scale.
+- **"S-5 does not add" is worse than that: the parser's fields hurt, on every file.**
+  - A 7B parser's contract ("using the dot_epi8, hsum256_epi32_signed, and sqrt functions"; edge cases such as
+    "vectors of different lengths") misleads beside the ledger's facts.
+  - D-2's parser, at this size, is overhead at best.
+- **S-2o adds nothing measurable.** Own-pass shots reached 10 of 31 cells per file (27 axes later in the order,
+  18 to 20 neighbours failed). Where they did, S-2 had already carried the pattern.
+- **The file's weak point is its helpers.** At 13, 6 and 12 per file they pass at 0 to 0.23 with no shot. Their
+  ISA siblings exist by name (`hsum128_ps`, `hsum256_ps`, `hsum512_ps`), which is exactly the name-token family
+  E3 found training reads.
+
+**What E4 selects** (for Max, D-11, §9): the in-context route works at file scale with the graph's own shots.
+The next measured step is **helper shots by name family**, and then a model-size price (the 32B arm). The
+parser, as D-2 cast it, is set aside at 7B.
+
 ### E5 — the pattern world: the science track (M-c)
 
 - **Question:** Atlas-0's method on a synthetic lattice. Functions generated along named axes
@@ -1306,6 +1356,14 @@ Proposed routes, the recommended one first.
     signature, only the body's pairing broken), and a new ceiling of about $45.
   - b: fix the control and the cap, and re-run the 300-step pair first, for about $5, before E4.
   - c: close E3 here, as recorded.
+
+- **D-11 — after E4's three files** (2026-09-26).
+  - **a (recommended):** give helpers ISA-axis shots by name family. This is E3's rule: names differing in one
+    ISA token, `hsum256_ps` ← `hsum128_ps` and `hsum512_ps`. It is a small runner unit with no spend, and then a
+    re-run of S-2 on the three files (about $1). Then the 32B ceiling arm on S-2 (about $2–3) prices model size.
+  - b: go up the ladder to L2/L3 (`sqlite-vector.c`), which needs an L2 instrument E0 did not build.
+  - c: a frontier-model parser, D-2's priced comparison, to learn whether S-5's loss is the parser's size or the
+    idea.
 
 ---
 
