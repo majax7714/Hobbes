@@ -58,66 +58,12 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   out; the cells stay on 0.49.0 until Max says otherwise.
 - **Extraction:** the next candidate is **route c** (below), measured first.
 
-- **Done (ADR-146, 0.2.65-beta, unit `f751`, 45 turns, $2.49; Max: route a):** a
-  decorator is a call of what it names. The step-0 probe for Python's closure misses
-  found nested defs are **already symbols** (the docs said otherwise; corrected) and
-  that lane A had never walked a decorator's expression (C-169, registered and
-  lifted). click 2,136 → 3,052 confirmed (46.5% → 66.4%), 18 suspect unchanged,
-  poison PASS; flask +166, attrs +120 rows, all `semantic` (§10.30). The review found
-  and fixed a digest defect the doer had copied: `children[-1]` reads a trailing
-  comment as the decorator's expression.
-- **Done (ADR-147, 0.2.66-beta, unit `db45`, 87 turns, $8.23; Max: "proceed with the
-  dispatch", the strict wording):** a decorator factory's application is a call of the
-  def it returns, `syntactic`, `via: decorator-factory`, where the index names the
-  factory at the line and **every** return of its one undecorated body is the one
-  nested def. click 368 drawn, 304 confirmed, 0 contradicted — the pre-registered
-  probe's figures exactly — 3,052 → 3,356 (66.4% → 73.0%), 18 suspect unchanged
-  (§10.31). Loose (661 rows at 0 contradicted) measured and **not taken**; its sites are
-  `no-returned-def` in `graph["decorators"]` and the ingest's `decorators:` line. The
-  host's `lane_b` run found what the sandbox could not: the edge append dropped a
-  **module** caller (the brief's fault — "exactly as ADR-145's"), counted and not drawn.
-  Drivers `~/.hobbes/bench/py-nested-defs/` (`PREREG.md`, `probe.py`; `PREREG-b.md`,
-  `probe_b.py` — ADR-147 as worded, `--show`; `RESULTS.md`; `u0/` `u0b/` simulated,
-  `real/click/` 0.2.65, `real147/click/` 0.2.66; `units/` u1, u2; its worktree was removed).
-- **Done (H-36, oracle lane, unit `de0e`, 51 turns, $2.76; Max: "go with h-36
-  first"):** a comprehension's frame entry is dropped and counted at the py-trace
-  extractor (`excluded: generated`), no site made for a line that held only that.
-  Regraded, signed (§10.32): click's key regenerated as **`click-py-r3` — the standing
-  key now** (4,561 pairs; `click-py-r2` is history) — recall 73.0% → 73.6%; this repo
-  traced at `2c915a8` by the pre-fix and fixed extractor, 85.6% → **94.8%**
-  (8,162/8,612), all 923 moved rows `<genexpr>`, no confirmed or suspect row moved
-  anywhere. The two foreign click cells were regraded on r3 so the same-key rows stay
-  same-key; the comparative tables and graphics re-derived. Drivers
-  `~/.hobbes/bench/oracle-defect-drivers/h36/` (`u1.md`, `oracle-pre`, `oracle`,
-  `trace-hobbes-py.sh`, `hobbes-py/` both arms — **a usable fresh hobbes-py key**,
-  `post-oracle.json` @ `2c915a8` — `foreign/`).
-- **Done (ADR-148, 0.2.67-beta, unit `b4d4`, 131 turns of 140, $15.98; Max: "route a good
-  to proceed with dispatch"):** the optional-parentheses factory. Its own guards are
-  folded over the site's literal arguments, three-valued, and it draws `syntactic`, `via:
-  decorator-factory-folded`, only where every reachable return is the one nested def;
-  `method-positional` and `guard-unknown` counted. click 3,356 → **3,703** on
-  `click-py-r3` (73.6% → **81.2%**), 397 folded, **3 new suspects read and owned**
-  (`pytest.raises` tests where a lower decorator raises before `command()`'s `decorator` is
-  applied), poison PASS, the probe's rows exactly (§10.33); attrs 18, flask 0. **The
-  review found the first build folded nothing on click**: a typed `**attrs: T` is a
-  `typed_parameter` wrapping the splat — fixed with a test (`39815c0`). Drivers
-  `~/.hobbes/bench/py-optparens/` (`PREREG.md`, `probe.py` — `--new-only --emit
-  --method-positional`, `RESULTS.md`, `oracle`, `base/` `sim/` `sim2/` the simulated
-  grades, `real/` attrs and flask at 0.2.66, `real148/click/` the built cell, `units/`;
-  its worktree was removed).
-- **Done (ADR-149, 0.2.68-beta, unit `67cc`, 107 turns of 140, $13.04; Max: "good to go
-  with route a"):** a factory whose reachable returns are all one second factory's call —
-  `group()` → `return command(…)`, the `*_option` family → `option` — drawn through to that
-  factory's nested def, `syntactic`, `via: decorator-factory-chained`, one level; the second
-  factory settled (ADR-147) or folded over the forwarded arguments (a `**x` leaves unbound
-  parameters unknown, never defaulted). click 3,703 → **3,755** on `click-py-r3` (81.2% →
-  **82.3%**), 67 chained, 52 confirmed, 0 new suspects, poison PASS (§10.34); the probe's 66
-  rows plus one splat site it refused and the wording binds as unknown (`@click.help_option(
-  *name_specs, **option_attrs)`, confirmed). attrs, flask unchanged. The brief carried click's
-  real `group`/`command`/`version_option`/`option` as a test fixture
-  (`pipeline/tests/fixtures/click-excerpt/`), and the build folded click first time. Drivers
-  `~/.hobbes/bench/py-factory-chain/` (`PREREG.md`, `probe_chain.py`, `RESULTS.md`,
-  `click_real.py`, `sim-click*`, `real149/` the built cells, `units/`; its worktree was removed).
+- **Next candidate — route c (ADR-150), measured first:** lane A drawing a bare-name call
+  to the one def of that name in the enclosing function's own body, `syntactic`. Its
+  ceiling on the keys is the seven sites (flask 237, 251, 281, 296, 310; click 1836,
+  1888), each at its own right def. Measure how many sites the rule would draw in every
+  Python cell, and whether any is wrong (a name rebound between def and call), before an
+  ADR.
 - **What click still misses** (806 on r3): 460 closures — callbacks reached through
   attributes and parameters (`self.callback(…)`, `callback(*args)`, monkeypatched doubles:
   values, C-58), `@cli.command("sdist")` (10, a method factory with a positional —
@@ -127,44 +73,6 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   decorator-line shape with more than 10 rows is left**; none of the rest has a syntactic rule
   ready. This repo's 450: 195 functions (values in tables and records), 154 lambdas, 76
   closures, 22 methods.
-- **Done (ADR-145 amended, 0.2.69-beta, unit `54cf`, 86 turns of 140, $7.62; Max: "good
-  to proceed with recommended route"):** a fixture's value bound once to a local by a
-  construction is read as the construction, and a method a single, index-named base
-  defines is drawn (the base read from the index's edge on the class's own `class` line,
-  any type — `Flask → App` has no `implements` edge). **flask keyed for it** — a new
-  py-trace cell, `d73fa1c`, contained, 494 passed both runs
-  (`docs/oracle/cells/flask-py-2026-09-22.md`): **1,121 → 1,521 (41.5% → 56.4%)**, 400
-  added, 329 inherited, 0 contradicted, poison PASS, the as-worded probe's 400 row for
-  row (§10.35); click and attrs unchanged. Two review fixes toward drawing less
-  (`64eadf0`). Drivers `~/.hobbes/bench/c4-local-value/` (`PREREG.md`,
-  `simulate_local.py` — `own_nodes` fixed there, not in `c4-returned-value/`;
-  `PREREG-worded.md`, `probe_worded.py` over a cell's own graph, reusable; `real/` the
-  built cells, `units/`; its worktree was removed). The key and the clone:
-  `~/.hobbes/bench/oracle/flask-py/`, `~/.hobbes/bench/oracle/repos/flask` (its `.venv`
-  from `uv sync --group tests --python 3.12`).
-- **Done (ADR-150, 0.2.70-beta, unit `4732`, 54 turns of 100, $3.13; Max: "proceed with
-  recommended"):** flask's three wrong `semantic` edges were scip-python's descriptor. It
-  names a def nested in a method by its class and its own name, so sibling methods'
-  same-named nested defs share one moniker, and the helper kept a moniker one file
-  defines at several lines at its smallest line. Python now abstains as C++ does. flask
-  1,521 → 1,519 confirmed and 18 → 15 suspect; click 3,755 → 3,754 and 21 → 20 (its
-  `core.py:1888` was a fourth wrong edge); 0 contradicted, poison PASS. Exactly seven
-  edges removed: the 4 wrong, and 3 right only by order (§10.36). C-170 registered. **The
-  review fixed the brief's own error** (`e47b35b`): the record named `@overload` stubs,
-  property setters and conditional defs, but scip-python 0.6.6 emits **one** definition
-  for each (a fixture in the image). My first classifier had counted parameter monikers;
-  ADR-150's table is corrected in place. Drivers `~/.hobbes/bench/py-multidef/`
-  (`index.sh` raw scip-python in the image, `dump.mjs`, `classify.py` shapes by `ast` —
-  **filter out parameter monikers** (`(x)` descriptors) before reading it, `rows.py`
-  report join, `cells.tsv`, `probe/` the one-line rule, `built/` the built cells,
-  `RESULTS.md`, `units/`; `wt/` is the probe worktree, removable). **The flask and click
-  clones' `.hobbes/derived/` hold the built branch's graph** (the same as `main`'s code).
-- **Next candidate — route c (ADR-150), measured first:** lane A drawing a bare-name call
-  to the one def of that name in the enclosing function's own body, `syntactic`. Its
-  ceiling on the keys is the seven sites (flask 237, 251, 281, 296, 310; click 1836,
-  1888), each at its own right def. Measure how many sites the rule would draw in every
-  Python cell, and whether any is wrong (a name rebound between def and call), before an
-  ADR.
 - **Also found:** `src/flask/sansio/` has no `__init__.py` (a PEP 420 namespace dir):
   lane A names its modules `app`, `scaffold`, and the `implements` join places `App →
   Scaffold` but not `Flask → App` (`graph["implements"]["outside"]` 79 on flask). Why is
@@ -180,33 +88,6 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   2026-09-10 "with the constructor grain settled before `new`", which ADR-142 since
   settled: **re-ask Max**, do not start); the CJS literal member (cue 49, Express 46).
 
-**C-4's two parts (Max, earlier 2026-09-20), both done:**
-- **Done (ADR-145, 0.2.63-beta, unit `1527`, 81 turns, $6.73; Max: route a):** a
-  call on the value a fixture constructs. `p.m(…)` on an injected parameter → `C.m`,
-  `syntactic`, where the fixture's own body is one `return C(…)`, the index names
-  `C` a repo class there, `p` is never rebound and `m` is one `def` on `C` itself.
-  click 1,755 → 2,136 confirmed (recall 38.2% → 46.5%), 0 contradicted, six
-  other-language cells row-identical (§10.29). Refused and counted
-  (`fixtures.value_calls.refused`): a value that is not a construction (flask: 702
-  sites, `return app`, `return app.test_client()`), an inherited method
-  (unmeasured — no cell has one), a property, a rebound parameter. Drivers
-  `~/.hobbes/bench/c4-returned-value/` (`count.py`, `PREREG.md`, `simulate.py` the
-  stand-in, `simulate_real.py` through `fixtures.injections`, `RESULTS.md`,
-  `lang-regrade.sh` + `lang-cells.tsv`, `lang/`, `units/`; `wt/` a worktree,
-  removable). `simulate_real.py`'s `own_nodes` enters a nested def written at a
-  body's top level — fix it before reusing it.
-- **Done (ADR-139 amended, 0.2.64-beta, unit `0bf3`, 39 turns, $2.91):** a
-  module-level `pytestmark`'s `usefixtures` strings are requested by every test in
-  the file. MissyLabs/missy @ `223dbe8` drawn at random for it (two walks;
-  `draw-log.md`): 34,505 right / 0 wrong / 1,265 missed before, 35,770 / 0 / 0
-  built; flask and attrs unchanged. Drivers `~/.hobbes/bench/c4-pytestmark/`
-  (`DRAW-RULE.md`, `DRAW-RULE-2.md`, `pool.json`, `scan.py`, `probe.py`,
-  `lookup.py`, `compare.py`, `missy/` the clone, `missy-deps/`, `missy-key-v.txt`,
-  `<repo>-built.json`, `RESULTS.md`, `units/`; `try/` fifteen shallow clones,
-  removable).
-- C-4 keeps: a fixture value that is not a construction, an inherited method, a
-  non-literal `autouse=`, a class-body or annotated `pytestmark`, and the
-  abstentions.
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
@@ -378,6 +259,30 @@ BUILDLOG entries; only the paths a next session reaches for stay here.
 Run the probes with `uv run --project pipeline python`; every worktree
 named below was removed unless it says otherwise.
 
+- **Python recall, 2026-09-20 to 2026-09-24 (ADR-139 amended, ADR-145 to ADR-150, H-36):**
+  their records are the BUILDLOG's, the CHANGELOG's and `oracle-grading.md` §10.29–§10.36; the
+  worktrees were removed.
+  - ADR-150 (C-170): `~/.hobbes/bench/py-multidef/` (`index.sh` raw scip-python in the image,
+    `dump.mjs`, `classify.py` — **filter out parameter monikers** (`(x)` descriptors) before reading
+    it — `rows.py`, `cells.tsv`, `probe/`, `built/`, `RESULTS.md`, `units/`; `wt/` removable). **The
+    flask and click clones' `.hobbes/derived/` hold the built branch's graph.**
+  - ADR-145 amended (flask keyed): `~/.hobbes/bench/c4-local-value/` (`PREREG-worded.md`,
+    `probe_worded.py` over a cell's own graph, reusable; `simulate_local.py`, `real/`, `units/`). The
+    key and the clone: `~/.hobbes/bench/oracle/flask-py/`, `~/.hobbes/bench/oracle/repos/flask` (its
+    `.venv` from `uv sync --group tests --python 3.12`).
+  - ADR-149: `~/.hobbes/bench/py-factory-chain/` (`probe_chain.py`, `click_real.py`, `real149/`).
+    ADR-148: `~/.hobbes/bench/py-optparens/` (`probe.py --new-only --emit --method-positional`,
+    `real148/click/`). ADR-146/147: `~/.hobbes/bench/py-nested-defs/` (`probe.py`, `probe_b.py
+    --show`, `real147/click/`).
+  - H-36: `~/.hobbes/bench/oracle-defect-drivers/h36/` (`trace-hobbes-py.sh`; `hobbes-py/` holds
+    **a usable fresh hobbes-py key**, `post-oracle.json` @ `2c915a8`). click's standing key is
+    `click-py-r3`.
+  - ADR-145: `~/.hobbes/bench/c4-returned-value/` (`simulate_real.py`'s `own_nodes` enters a nested
+    def written at a body's top level — fix it before reusing it; `lang-regrade.sh` +
+    `lang-cells.tsv`). ADR-139 amended: `~/.hobbes/bench/c4-pytestmark/` (`scan.py`, `probe.py`,
+    `missy/`, `missy-key-v.txt`; `try/` removable).
+  - C-4 keeps: a fixture value that is not a construction, an inherited method, a non-literal
+    `autouse=`, a class-body or annotated `pytestmark`, and the abstentions.
 - **JavaScript (ADR-140):** `~/.hobbes/bench/js-cells/` (above);
   `~/.hobbes/bench/h33-regrade/` (`regrade.sh <label> <tsc-oracle.mjs>
   <oracle>` runs the oracle in the image over the five TS cells' stored
@@ -472,7 +377,7 @@ named below was removed unless it says otherwise.
    - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
      E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
-     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3's card revised, its pool drawn and E4 designed (nineteenth session); next: D-6 to D-8 (START HERE). Drivers:
+     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; next: D-11 (START HERE). Drivers:
      `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
      <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
      history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its
@@ -595,7 +500,7 @@ min each.
 2. **The cell's defect register** (D-1–D-5): which to fix first.
 3. **ADR-092's four embedded decisions.** Nothing blocks on them.
 
-## WHERE THINGS STAND (2026-09-24)
+## WHERE THINGS STAND (2026-09-26)
 
 - **Languages:** Python, TypeScript, Go, Rust, Java, C and C++ supported,
   each as far as its §3.8 row (P11); Terraform/HCL structure. JavaScript
@@ -620,14 +525,12 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.70-beta (2026-09-24; pytest, every `lane_b` test and the scip
-  node suite re-run and green on the host, Go `./...` as at 0.2.66-beta, the rest as
-  counted at 0.2.50-beta): 2,402
-  pytest (`lane_b` 17 of them), Go `./...` 399 with
-  subtests (398 pass / 1 skip), 97 scip node, 47 tsextract, 52 vitest,
-  84 atlas0; oracle-lane Go 128 with subtests, 116 pass / 12 skip on
-  this host, which has no clang++ or cmake (the five C++ fixture tests
-  run and pass in the image; counted 2026-09-20).
+- **Suites** at 0.2.71-beta (2026-09-26, every suite re-run on the host): 2,412 pytest
+  (`lane_b` 17 of them, run in the rebuilt image at 0.2.71-beta), Go `./...` 399 with
+  subtests (398 pass / 1 skip), 97 scip node, 47 tsextract, 52 vitest, 84 atlas0, 564
+  lattice (532 pass / 32 skip without clang); oracle-lane Go 129 with subtests, 117 pass /
+  12 skip on this host, which has no clang++ or cmake (the C++ fixture tests run and pass
+  in the image).
 - **Disk:** `~/.hobbes` is about 50 GB plus the C++ cells (ScummVM's
   cost clone at `cpp-cells/scummvm-cost` is the large one; sweep it if
   space is needed).
