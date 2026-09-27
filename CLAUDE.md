@@ -304,18 +304,17 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   sessions that validate the harness: 4 areas, 4 false blocks (`f3c1`,
   closed at 0.2.28-beta; `9326`, `c141` and `66c5`, the decorator case
   below, open), 0 missed. It stays the way work is done.
-- **Latest — 0.2.70-beta, extraction first** (Max, 2026-09-20: "the
+- **Latest — 0.2.71-beta, extraction first** (Max, 2026-09-20: "the
   most annoying work to do but the most important"; "we never sacrifice
-  honesty for higher recall"). **ADR-150** (unit `4732`): scip-python
-  names a def nested in a method by its class and its own name, so
-  sibling methods' same-named nested defs share one moniker, and the
-  helper filed every reference under the first. A Python moniker one
-  file defines at several lines is now no lane B answer, as in C++.
-  flask 1,521 → 1,519 confirmed, 18 → 15 suspect; click 3,755 → 3,754,
-  21 → 20; 0 contradicted, poison PASS; exactly the 4 wrong edges and 3
-  right-by-order removed (§10.36). **Next:** the candidates in the
-  handoff (route c, a lane A rule for those sites, among them), each
-  measured first.
+  honesty for higher recall"). **One file's depth never ends an ingest**
+  (D-8, found by the E3 draw): moonlab's 537-call bindgen chain overflowed
+  Rust's recursive walk and ended the whole ingest. The Rust, Go, Java and
+  Terraform walks are iterative, and every lane A provider contains an
+  overflow per file, naming it (C-171; Python's visitor is the residual,
+  about 600 levels). C's unread-region record now says its definitions
+  are lost (C-172). **Next:** the candidates in the handoff (route c
+  among them), each measured first; C/C++ lane A's super-linear time on
+  deep chains is one.
 - **Calvin experiments** (ADR-151, `docs/calvin/calvin-experiments.md`):
   a model that writes C, starting from sqlite-vector's kernel lattice.
   E0, the instruments (`bench/calvin/lattice/`), was built and accepted
@@ -328,9 +327,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   gap is not name-reading. The paired tests (2026-09-26) hold the
   pattern effect (p 0.0015) and leave facts-beside-pattern suggestive; E3's
   pool count found the card's family rule and the ingested permissive pool
-  unfit, so its card is revised; a C lattice draw (40 repos) gives 24,222
-  unique tasks, 2,062 validated, and E4 is designed. Next, for Max: D-6
-  (E4), D-7 (which count funds E3), D-8 (two extraction defects it found).
+  unfit; a C lattice draw (40 repos) gave a 21,290-example corpus. E3's
+  300-step LoRA (≈ $5.55 of $25): +0.148 on C-2 against the base (p 0.0002),
+  C-0 nil, the gain gone on opaque names — training sharpens reading named
+  neighbours, not skill; its shuffled control was degenerate (recorded).
+  E4's runner is built. Next, for Max: D-10 (run E4 now, recommended).
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its

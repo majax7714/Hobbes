@@ -2,8 +2,8 @@
 
 **Reviewed 2026-09-26 (nineteenth session); Hobbes 0.2.71-beta on `main`.**
 Max pushed through the eighteenth session's last commit (`ea6cb28`,
-0.2.70-beta); the nineteenth session's commits (docs and bench, no version bump) are on
-`main`, unpushed. The image and the proxy are at 0.2.70-beta and this repo
+0.2.70-beta); the nineteenth session's commits (0.2.71-beta, the E3/E4 bench work and docs) are on
+`main`, unpushed. The image and the proxy are at 0.2.71-beta and this repo
 is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -34,34 +34,30 @@ drivers' paths below.
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Two tracks are open.**
-- **The Calvin experiments: three decisions wait for Max — D-6, D-7, D-8** (nineteenth session, no spend;
-  `calvin-experiments.md` §6 and §9).
-  - **Done:**
-    - the noise floor (`lattice e1 paired`, `45963f9`): E1's pattern effect is firm, and facts beside it
-      suggestive;
-    - E3's card revised;
-    - D-5 a taken, and the C lattice draw run by its committed rule (`b273b13`, record `ffa3e26`): 40 repos,
-      **24,222 unique tasks, 2,062 validated**. The body-shape rule fails its recall bar, and sqlite-ndvss is
-      clear of the target.
-    - E4's design (`8efcc51`): 12 of E1's 18 C-2 passes leaned on the type-axis shot, so the S-2o arm was
-      added.
-  - **D-6:** E4's routes (L1 on the avx2 file, decomposed, ≈ $3–5, a ceiling of $8, one dispatched unit to
-    build `lattice e4` first).
-  - **D-7:** which count funds E3. Recommended: mined real code needs no validation route, so the pool is
-    24,222 and the steps ablation is priced on it. Or the registered band, 2,062 at 300 steps, or a second
-    draw first.
-  - **D-8, two Hobbes extraction defects the draw found, reproduced.** Recommended: the iterative walk
-    first, then C's counted `parse-lost`.
-    - moonlab's `build.rs` (a 537-call bindgen chain) overflows `rustsource._walk` and aborts the whole
-      ingest. `javasource._walk` has the same shape.
-    - C lane A silently drops a file whose top level is one ERROR node (`e3/draw/hypersonic-fixture/`).
+- **The Calvin experiments: E3's 300-step pair is read, and D-10 waits for Max** (nineteenth session;
+  `calvin-experiments.md` §6 "E3's record", §9).
+  - **E3** (about $5.55 of the $25 ceiling):
+    - pattern − base is **+0.148 on C-2 (p 0.0002)**, and C-0 is nil: training lifts the use of examples, not
+      skill in the weights;
+    - the gain **vanishes on opaque names** with the task stated, so it is name-reading of the neighbours;
+    - the shuffled control is **degenerate**: it moved whole definitions, so the model learned to ignore the
+      signature. A fair control is not built;
+    - 728 records were truncated, because the character cap assumed four characters a token.
 
-  Drivers:
-  - `~/.hobbes/bench/calvin-lattice/e3/draw/` (`DRAW-RULE.md`, `RESULTS.md`, `final.json`, the scripts;
-    `crash/moonlab` is the crash's clone);
-  - `e3/noise-floor/`, `e3/family-count/`;
-  - `e4/shot_axis.py`;
-  - `e2/`, `shadows/`.
+    Runs and ledger: `~/.hobbes/bench/calvin-lattice/e3/runs/`. Corpus: `e3/corpus/out/`. Adapters on the
+    `hobbes-ttt` volume under `adapters/qwen-qwen2-5-coder-7b-instruct/e3-c-lattice{,-shuffled}/0b78510dca2b/`.
+  - **E4's runner is built and merged** (sessions `5724` and `1e40`) and planned on the real target: 45 units,
+    S-2o in 4 waves. **Its run waits on D-10** (recommended: now, under D-6's $8 ceiling). The order: `e4 parse`
+    (the parser, Qwen2.5-7B-Instruct), `e4 plan` with the arms, `e4 run`, `e4 report`.
+  - **D-10's other routes:** fix E3's control (own signature, broken body pairing) and the token cap, and re-run
+    the 300-step pair for about $5; or close E3. The 3,000-step pair would cost about $36 alone, outside the
+    ceiling.
+  - Units: `~/.hobbes/bench/calvin-lattice/units/u6a` `u6b` `u7a` `u7b`. The E3 draw's scripts are in
+    `bench/calvin/e3-draw/`.
+- **Extraction, shipped this session (0.2.71-beta, D-8):**
+  - one file's depth never ends an ingest (C-171);
+  - C's unread-region record (C-172);
+  - C and C++ lane A time grows about 8× per doubling of chain depth, which is a measured-fix candidate.
 - **The comparative programme reads JavaScript** (`fbf6198`, `8292c98`): CodeGraphContext and repowise on the five
   JS keys. repowise's converter@5 fixed a `__module__` drop that had cost every repowise cell its top-level calls,
   and all 22 published cells were regraded. C-94 has the chain-line residual. Drivers:

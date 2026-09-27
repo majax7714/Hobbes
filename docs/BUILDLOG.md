@@ -14465,3 +14465,36 @@ There is no version bump: bench and records only. The image was not rebuilt.
 
 No product change was made and there is no version bump. The drivers are in
 `~/.hobbes/bench/calvin-lattice/e3/draw/`.
+
+**D-6 to D-9 taken (Max: "good to proceed with recommended", then "good to proceed"), later the same session.**
+- **0.2.71-beta** (`9409a8f`, D-8 a): one file's depth never ends an ingest.
+  - The Rust, Go (two walks), Java and Terraform walks use explicit stacks, and every lane A provider catches
+    an overflow per file (C-171). Python's visitor still overflows near 600 levels, so containment is its
+    guarantee.
+  - C's parse record says a definition inside an unread region is not a symbol (C-172).
+  - **Proven on moonlab:** it ingests, and `build.rs` is read in full.
+  - Checks: 2,412 pytest, 17 `lane_b` in the rebuilt image, Go and node green. The image was rebuilt.
+  - **Corrected my own record:** C's loss was never silent. I had read `_parse_file`'s `had_error` as "ok".
+    Memory saved.
+  - Seen, not fixed: C and C++ lane A time grows about 8× per doubling of chain depth.
+- **E4's runner in two units**, dispatched one at a time:
+  - `5724` (114 turns, $16.82): L1's units, the bare skeleton, S-0, S-2, S-3, per-unit and file-level grading;
+  - `1e40` (117 turns, $20.05): S-5's parser fields and S-2o's waves. The doer touched one file outside the
+    partition, flagged it, and was right to; my partition should have listed it.
+
+  Both were reviewed, tested in the image (59 and 501 passed), planned on the real target (45 units; S-2o in 4
+  waves), and merged.
+- **E3:**
+  - the draw's scripts committed as the record (`4f23527`);
+  - **the corpus** (`c4ef`, 102 turns, $14.20) reproduces the draw exactly (24,222 unique). **My review found
+    244 examples showing a member its own answer** through same-named copies. Fixed on the branch with a failing
+    test, and rebuilt: 21,290 examples, 0 self-leaks;
+  - **the evaluation plumbing** (`fe37`, 121 turns, $18.66): LoRA serving, the stated-task sentence,
+    `e3 compare`;
+  - **E3 ran at about $5.55 of $25.** Pattern − base is +0.148 on C-2 (p 0.0002), and C-0 is nil. The shuffled
+    control is degenerate (it ignores the signature, a design fault recorded). The gain vanishes on opaque
+    names with the task stated. The stated sentence lifts the base's opaque C-2 from 0.05 to 0.21.
+  - Training ran 5× my estimate (8.5 s a step), and 728 records were truncated because the character cap
+    assumed four characters a token.
+- **For Max:** D-10 (run E4 next, recommended; or fix E3's control and cap first; or close E3).
+- The tracker reads 87 of 40.

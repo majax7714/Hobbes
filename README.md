@@ -470,7 +470,12 @@ graph helped only beside them (0.38). E2 (2026-09-26, $1.89 of $3) ran
 the same prompts on two rename shadows: equally meaningful names kept
 the effect, while meaningless names also removed the only statement of
 what each function computes, so that gap is not read as name-reading.
-The records are in the experiments page.
+E3 (2026-09-26, about $5.55 of $25) trained a 300-step LoRA on 21,290
+pattern examples drawn from 40 permissively licensed C repos: it lifted
+the use of examples (+0.148 pass@1 against the base, p 0.0002) and not
+the no-example arm, and the gain vanished on meaningless names — training
+sharpens reading named neighbours, not skill in the weights. The records
+are in the experiments page.
 
 The work built through it includes C's lane A and its oracle, the
 external veto (ADR-111), a session's records written by a sidecar
