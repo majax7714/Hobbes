@@ -1357,7 +1357,16 @@ Proposed routes, the recommended one first.
   - b: fix the control and the cap, and re-run the 300-step pair first, for about $5, before E4.
   - c: close E3 here, as recorded.
 
-- **D-11 — after E4's three files** (2026-09-26).
+- **D-11 — after E4's three files** (2026-09-26). **Taken: a** (Max, 2026-09-26: "proceed with d-11"). The
+  ceiling is **$5**: $1.50 for the 7B's S-2 and S-2h, and $3.50 for the 32B arm.
+  - **The wording, corrected before the build.** E3's rule as worded (`families.isa_families`) does not pair the
+    route's own example. `hsum128`/`hsum256`/`hsum512` differ in a vector width, not an ISA token, so that rule
+    reaches only the three `popcount_*` (**3 of 31** helpers). The rule built is **W, the width family**: ISA
+    tokens, vector widths (128/256/512), lane counts (`x<N>`) and a trailing digit token are abstracted. It
+    reaches **26 of 31** helpers in 11 families, 0 ambiguous. A read of the bodies found all 11 are the same
+    operation at another width. W is pre-registered in `~/.hobbes/bench/calvin-lattice/d11/PREREG.md`, with
+    `probe.py` and its output. The registered comparison is **S-2h − S-2 on the helper units**, paired by unit,
+    per file and pooled.
   - **a (recommended):** give helpers ISA-axis shots by name family. This is E3's rule: names differing in one
     ISA token, `hsum256_ps` ← `hsum128_ps` and `hsum512_ps`. It is a small runner unit with no spend, and then a
     re-run of S-2 on the three files (about $1). Then the 32B ceiling arm on S-2 (about $2–3) prices model size.
