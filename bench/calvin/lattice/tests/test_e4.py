@@ -1500,7 +1500,13 @@ def test_a_chain_with_no_line_is_one_request_and_two_graded_rows(tmp_path, latti
 
 
 def test_no_gold_reaches_a_retry_that_the_source_did_not_already_carry(tmp_path, lattice):
-    """The section is names and statuses; the turns before it are the source run's own bytes."""
+    """The one turn D-13 adds is names and statuses, and no body of the held-out file.
+
+    The **added** turn is the scope, and deliberately: the turns before it are round 0's own prompt, already
+    held to this property where S-3h is built (`test_no_gold_enters_an_s3h_prompt_that_is_not_a_shot`), plus
+    the assistant turn, which is the model's own text — here the fake's, which answers with the gold on
+    purpose, so reading the whole conversation would fail on the fake and say nothing about the retry.
+    """
     _, run_dir = loop_run(tmp_path, lattice)
     e4.run(run_dir, FIXTURE, counting_generator(lattice), pass_grade(), ceiling_usd=1.0)
     gold = golds(lattice, "avx2")
