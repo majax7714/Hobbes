@@ -14512,3 +14512,57 @@ $8.**
 - Record `2302606`.
 - **For Max:** D-11. Recommended: helper shots by name family (E3's rule), then the 32B arm. Or L2/L3, or a
   frontier parser.
+
+## 2026-09-27 (twentieth session) — the top-level docs caught up; D-11 taken, built and run: helper shots by name family, and the 32B
+
+**The review** (Max: "review top level documentation and report back with current status"). The docs agreed
+with the tree, except for four stale spots:
+- the handoff's Calvin standing line still said "next: D-6 to D-8";
+- the suite counts were 0.2.70-beta's;
+- `workstreams.md` stopped at 0.2.70-beta;
+- the handoff's START HERE still carried ADR-145–150's full Done blocks.
+
+Max: "fix the staleness then proceed with d-11". Fixed in `f2c9514`:
+- every suite was re-run on the host at 0.2.71-beta, all green: 2,412 pytest, Go 398/1, oracle lane 117/12,
+  52 vitest, 47 tsextract, 97 scip, 84 atlas0, 564 lattice;
+- the Done blocks went to the drivers list, their paths kept;
+- W1 gained 0.2.71-beta's entry.
+
+**D-11 taken** (`f7e2763`, ceiling $5). **Its rule was corrected before the build.**
+- D-11 a named "E3's rule". As worded (`families.isa_families`), that rule pairs only `popcount_*`: 3 of 31
+  helpers. The route's own example, `hsum256_ps` ← `hsum128_ps`, differs in a vector width.
+- The probe (`~/.hobbes/bench/calvin-lattice/d11/probe.py`) measured **W, the width family**. W abstracts ISA
+  tokens, 128/256/512, `x<N>` and a trailing digit token. It reaches 26 of 31 helpers, in 11 families, 0
+  ambiguous.
+- I read all 11 families' bodies: each is the same operation at another width.
+- `PREREG.md` was written before any build or call.
+
+**The runner** (session `e735`, 117 turns, $21.99 on the subscription; right-clear, merged `30516bf`).
+- **S-2h** is S-2 plus W's shots for a helper.
+- `e4 compare` pairs two models on one file, and `e4 pool` pools the registered comparison over files.
+- The 32B is pinned on the A100-80GB.
+- **On the host:** 554 passed, 32 skipped. A real avx2 plan sends every cell and the init byte-identical under
+  S-2 and S-2h, and the 11 paired helpers carry exactly the pre-registered shots.
+- **One wording deviation:** an unpaired helper's note names each file's reason, so it is not S-2's prompt
+  byte for byte. No shot differs.
+
+**The runs, ≈ $2.11 of $5** (`f090f0f`, `calvin-experiments.md` §6 "D-11's record").
+- **7B, S-2 and S-2h on three files ($0.37).** S-2h − S-2 on helpers is +0.261 sampled pooled (p 0.0001):
+  - avx2 +0.408 (p 0.002), avx512 +0.233, sse2 +0.000;
+  - cells, the noise read, +0.010 (p 0.46).
+- **Where helpers do not move, the student invents across an ISA's capability.** sse2 has no
+  `_mm_shuffle_epi8` or `_mm_hadd_pd`. The student also calls the sibling file's names (`abs_diff_epu8` from
+  avx512, `popcount_lut_bytes`).
+- **32B, S-2h on the same plans ($1.74).** Over the 7B it adds +0.129 on cells and +0.303 on helpers pooled
+  (p < 0.0001 each). The init passes 1.00 on every file. It wrote 29, 23 and 26 definitions against the 7B's
+  25, 13 and 20.
+- **Costs:**
+  - The runner's worst-case estimate (every answer to `max_tokens`) runs 4 to 6 times high. It refused the
+    first ceilings I set, and the calls were re-sent at ceilings that cover it.
+  - The 32B's pricing table now holds its first call's measured throughput (`8c14c4f`).
+  - A network cut killed avx512's first 32B call 4 minutes in. That cost $0.18 (an upper bound) with no rows,
+    and `e4 run` resumed it in place.
+- **For Max, D-12.** Recommended: S-3h, the ISA's intrinsic facts beside the shots, aimed at `invented`. Or the
+  32B as the student plus an L2 instrument, or close E4's line.
+
+There is no version bump (bench and records). The image was not rebuilt. The tracker reads 88 of 40.

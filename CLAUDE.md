@@ -199,7 +199,7 @@ re-run on the host): 2,412 pytest (17 `lane_b`, run in the rebuilt
 image at 0.2.71-beta) / 399 Go with subtests (398 pass, 1 skip) + 129
 oracle-lane Go with subtests (117 pass, 12 skip on a host without
 clang++ or cmake; the C++ ones pass in the image) / 52 vitest / 47
-tsextract + 97 scip node / 84 atlas0 / 564 lattice (532 pass, 32 skip
+tsextract + 97 scip node / 84 atlas0 / 586 lattice (554 pass, 32 skip
 on a host without clang; they run in the image). Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
 `scripts/ci-graph.sh <base>` is the graph job (image build → ingest →
@@ -270,7 +270,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-26) — Hobbes 0.2.71-beta
+## Status (2026-09-27) — Hobbes 0.2.71-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -301,7 +301,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **87 of 40**
+  drift test; re-render after filling a review block) reads **88 of 40**
   sessions that validate the harness: 4 areas, 4 false blocks (`f3c1`,
   closed at 0.2.28-beta; `9326`, `c141` and `66c5`, the decorator case
   below, open), 0 missed. It stays the way work is done.
@@ -334,7 +334,12 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   neighbours, not skill; its shuffled control was degenerate (recorded).
   E4 (L1, three files, ≈ $1.25, P12 decomposed): the graph's ISA-axis
   shots lift the student +0.21 to +0.26 (p ≤ 0.0003 each); the 7B parser's
-  fields hurt. Next, for Max: D-11 (helper shots by name family).
+  fields hurt. D-11 (2026-09-27, ≈ $2.11 of $5): helper shots by name
+  family (rule W; E3's rule as worded reached 3 of 31 helpers) lift
+  helpers +0.261 pooled (p 0.0001), sse2 unmoved — a shot crosses an
+  ISA's capability and the student invents; the 32B adds +0.13 cells and
+  +0.30 helpers over the 7B at ≈ $0.58 a file. Next, for Max: D-12 (the
+  ISA's facts per unit, recommended).
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its
