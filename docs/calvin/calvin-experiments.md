@@ -1443,7 +1443,16 @@ Proposed routes, the recommended one first.
   - **Ran** (§6, "D-11's record"; ≈ $2.11 of $5). Pooled S-2h − S-2 on helpers is +0.261 sampled (p 0.0001),
     with sse2 unmoved. The 32B adds +0.129 on cells and +0.303 on helpers over the 7B.
 
-- **D-12 — after D-11** (2026-09-27).
+- **D-12 — after D-11** (2026-09-27). **Taken: a** (Max, 2026-09-27: "proceed with the recommended"). Expected
+  spend is about $0.40. The runner's worst-case guard needs about $0.80 a file, and avx2 is priced first.
+  - **The premise, refined before the build** (`~/.hobbes/bench/calvin-lattice/d12/PREREG.md`). D-11's record
+    said the unmoved helpers copy the wider sibling's shape. By class, 56% of D-11's invented intrinsics are a
+    width-rename of an intrinsic in the unit's own shots, 34% are declared nowhere, and 9% are real but not
+    available in the file.
+  - "Available" is read as the grader meets it: declared by the file's own includes, preprocessed in the image
+    under the grader's flags, with every required feature on.
+  - S-3h states, for each intrinsic and each sibling-file name the unit's shots use, whether this file has it,
+    and its form here by a pre-registered rename rule (R) or rule W.
   - **a (recommended): the ISA's facts for every unit.** The intrinsic index
     (`facts/intrinsics-clang18.json`) already says which intrinsics each ISA's headers declare.
     - An arm **S-3h**, S-2h plus a short list: the intrinsics the unit's shots use, each marked available or

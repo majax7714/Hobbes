@@ -1,0 +1,83 @@
+# 2058 "/usr/lib/llvm-18/lib/clang/18/include/emmintrin.h" 3
+static __inline__ __m128i __attribute__((__always_inline__, __nodebug__, __target__("sse2,no-evex512"), __min_vector_width__(128))) _mm_add_epi32(__m128i __a,
+
+# 4726 "/usr/lib/llvm-18/lib/clang/18/include/emmintrin.h" 3
+static __inline__ __m128 __attribute__((__always_inline__, __nodebug__, __target__("sse2,no-evex512"), __min_vector_width__(128))) _mm_castsi128_ps(__m128i __a) {
+
+@@MACROS@@
+#define __BIGGEST_ALIGNMENT__ 1
+#define __CONSTANT_CFSTRINGS__ 1
+#define __DBL_DECIMAL_DIG__ 1
+#define __DBL_DIG__ 1
+#define __DBL_HAS_DENORM__ 1
+#define __DBL_HAS_INFINITY__ 1
+#define __DBL_HAS_QUIET_NAN__ 1
+#define __DBL_MAX_EXP__ 1
+#define __DBL_MAX__ 1
+#define __ELF__ 1
+#define __FLOAT128__ 1
+#define __FLT16_HAS_DENORM__ 1
+#define __FLT16_HAS_INFINITY__ 1
+#define __FLT16_HAS_QUIET_NAN__ 1
+#define __FLT16_MANT_DIG__ 1
+#define __FLT16_MAX_EXP__ 1
+#define __FLT_DENORM_MIN__ 1
+#define __FLT_EPSILON__ 1
+#define __FLT_HAS_DENORM__ 1
+#define __FLT_HAS_INFINITY__ 1
+#define __FLT_HAS_QUIET_NAN__ 1
+#define __FLT_MAX_EXP__ 1
+#define __FLT_MIN__ 1
+#define __FXSR__ 1
+#define __GCC_ASM_FLAG_OUTPUTS__ 1
+#define __GNUC_PATCHLEVEL__ 1
+#define __GNUC_STDC_INLINE__ 1
+#define __INT8_MAX__ 1
+#define __INT_FAST16_WIDTH__ 1
+#define __INT_FAST8_MAX__ 1
+#define __INT_LEAST16_WIDTH__ 1
+#define __INT_LEAST8_MAX__ 1
+#define __LDBL_DIG__ 1
+#define __LDBL_EPSILON__ 1
+#define __LDBL_HAS_DENORM__ 1
+#define __LDBL_HAS_INFINITY__ 1
+#define __LDBL_HAS_QUIET_NAN__ 1
+#define __LDBL_MAX_EXP__ 1
+#define __LDBL_MAX__ 1
+#define __LITTLE_ENDIAN__ 1
+#define __LP64__ 1
+#define __MMX__ 1
+#define __OPTIMIZE__ 1
+#define __ORDER_LITTLE_ENDIAN__ 1
+#define __SCHAR_MAX__ 1
+#define __SHRT_WIDTH__ 1
+#define __SIZEOF_FLOAT128__ 1
+#define __SIZEOF_INT128__ 1
+#define __SIZEOF_LONG_DOUBLE__ 1
+#define __SIZE_MAX__ 1
+#define __SSE2_MATH__ 1
+#define __SSE2__ 1
+#define __SSE_MATH__ 1
+#define __SSE__ 1
+#define __STDC_HOSTED__ 1
+#define __STDC_UTF_16__ 1
+#define __STDC_UTF_32__ 1
+#define __STDC__ 1
+#define __UINT64_MAX__ 1
+#define __UINTMAX_MAX__ 1
+#define __UINTPTR_MAX__ 1
+#define __UINT_FAST64_MAX__ 1
+#define __UINT_LEAST64_MAX__ 1
+#define __WINT_UNSIGNED__ 1
+#define __amd64__ 1
+#define __clang__ 1
+#define __clang_major__ 1
+#define __clang_minor__ 1
+#define __code_model_small__ 1
+#define __gnu_linux__ 1
+#define __k8__ 1
+#define __linux__ 1
+#define __llvm__ 1
+#define __tune_k8__ 1
+#define __unix__ 1
+#define __x86_64__ 1
