@@ -933,10 +933,10 @@ def test_the_ceiling_arms_32b_is_pinned_to_the_a100_and_the_card_is_priced():
     # the spelling is the one `with_options(gpu=…)` takes, and a bare "A100" (the 40 GB card) is not it
     assert "A100" not in rate and "A100" not in {row["gpu"] for row in models.values()}
     assert {row["gpu"] for row in models.values()} <= set(rate)
-    # and the runner prices that model at that card's rate, on an estimate it says is an estimate
+    # and the runner prices that model at that card's rate, at the throughputs its first call measured
     assert e1.PRICING["Qwen/Qwen2.5-Coder-32B-Instruct"] == {
-        "prompt_tps": 3000.0,
-        "completion_tps": 350.0,
+        "prompt_tps": 4900.0,
+        "completion_tps": 585.0,
         "usd_per_second": rate["A100-80GB"],
     }
 
