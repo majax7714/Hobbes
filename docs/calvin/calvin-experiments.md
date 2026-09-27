@@ -1269,6 +1269,72 @@ of helper samples (7B 0.73).
 **What D-11 selects** (for Max, D-12, §9): the helpers' remaining loss is **facts**, not pattern. The next
 measured step is the ISA's own intrinsics served to a unit, then the 32B as the student for the rung above.
 
+#### D-12's record — the ISA's facts beside the shots (2026-09-27; spent ≈ $0.67)
+
+**What ran.**
+- **Step 0** (no spend, `~/.hobbes/bench/calvin-lattice/d12/`) split D-11's 492 invented intrinsics:
+  - 56% are a width-rename of an intrinsic in the unit's shots;
+  - 34% are declared nowhere;
+  - 9% are real but not available in the file.
+- "Available" was read the way the grader meets it: the file's own includes, preprocessed in the image under
+  its flags, with every required feature on. sse2's file includes only `<emmintrin.h>`.
+- **The runner:** session `7e20`, 141 of 140 turns, so the harness committed its work. It adds
+  `lattice available` and **S-3h**, which is S-2h plus a block listing each intrinsic and sibling-file name the
+  unit's shots use. The block says whether this file has the name, and gives its form here by rule R or rule W.
+- **Review fixes:** my review found two defects in the availability parse, both toward false advice.
+  - clang's three-line head was missed, so `_mm512_max_epi32` read "not available".
+  - Its features were read from one line only, so a split head read as available everywhere.
+
+  Both were fixed with a real-source test. The rebuilt record then disagrees with the step-0 probe only where
+  the probe was wrong.
+- **On the real plans**, all 127 S-3h units are exactly S-2h plus the block, and the block's counts equal the
+  pre-registration's.
+- **7B**, S-2h and S-3h on the three native files, k = 10.
+  - A second network cut lost sse2's first call. It was charged up to $0.27 (from its wall time) and the run
+    resumed in place.
+  - Records: `d12/run-7b-<isa>/`, `report-*`, `pool-7b*.txt`, `classes.py`.
+
+**The registered comparison: S-3h − S-2h over every unit**, paired by unit, pooled.
+
+| file (units) | Δ sampled | greedy |
+|---|---|---|
+| avx2 (45) | −0.007, p 0.91 | +0.000 (4 / 4) |
+| sse2 (38) | +0.016, p 0.66 | +0.026 (3 / 2) |
+| avx512 (44) | +0.025, p 0.46 | +0.000 (2 / 2) |
+| **pooled (127)** | **+0.011, p 0.59** | +0.008 (9 / 8), p 1.0 |
+
+Described, pooled:
+- cells −0.018 (p 0.33);
+- helpers +0.042 (p 0.41; pass@k +0.129, p 0.22);
+- **the init passes 1.00 greedy on all three files** under S-3h, against 0.20, 0.30 and 0.70 sampled under
+  S-2h.
+
+**Why nothing moved: the student does not use the block.** On sse2, 132 of S-3h's 194 invented intrinsics
+(113 of 194 under S-2h) are exactly the same-width rename of a name the block had said has **no form here**:
+- `_mm_cmp_pd` from `_mm256_cmp_pd`;
+- `_mm_blendv_pd`;
+- `_mm_cvtepu16_epi32`.
+
+The student renames the shot's intrinsic itself, as it did without the block, and writes the name the block
+ruled out. Only 39 of 444 invented names on sse2 were the flagged names themselves. avx512's invented
+intrinsics are all declared nowhere (`_mm512_castps512_pd256`, `_mm512_extracti32x4_si512`), which no fact
+about the shots can reach.
+
+The one thing the block moved is the init. Its shots call the other files' kernels, and the block maps each
+one to this file's name. **A name mapping was used; a negative ("no form here") was not.**
+
+**The readings, against the ones written before the run:**
+- **"Nothing moves" holds**, as its reading was written: a 7B does not use a facts list beside shots.
+- The negatives are read and not acted on, and the positive name mappings are acted on (the init). That
+  matches E4's S-5, where a parser's fields hurt.
+- "The facts carry" and "inventions fall, passes do not" do not hold. Inventions did not fall.
+- "sse2 moves least" is moot, since no file moved.
+
+**What D-12 selects** (for Max, D-13, §9): the facts belong **in the loop, not the prompt**. The compiler's own
+`undeclared` answer, with the block's line for that name, goes back to the student once (K-3's lightest form;
+E1's runner already has the iterate loop that E4 runs at zero rounds). Or the same block on the 32B, which may
+read what the 7B does not.
+
 ### E5 — the pattern world: the science track (M-c)
 
 - **Question:** Atlas-0's method on a synthetic lattice. Functions generated along named axes
@@ -1462,6 +1528,20 @@ Proposed routes, the recommended one first.
   - b: take the 32B as E4's student and build the L2 instrument (`sqlite-vector.c`) for the next rung. It is a
     larger unit, and the ladder's next claim.
   - c: close E4's line here with D-11's record, and write the programme up for Max's read.
+  - **Ran** (§6, "D-12's record"; ≈ $0.67). S-3h − S-2h pooled is +0.011 (p 0.59): null. On sse2, 132 of 194
+    invented intrinsics are the renames the block said do not exist. The init passes 1.00 on all three files,
+    where the block mapped the other files' names.
+
+- **D-13 — after D-12** (2026-09-27).
+  - **a (recommended): the facts in the loop.**
+    - E4 with **one iterate round**. A unit that fails `invented` or `compile` is asked again, once, with the
+      grader's own diagnostic plus the block's line for each invented name (its form here, or that it has
+      none).
+    - This is K-3's lightest form, and E1's runner already holds the loop, which E4 runs at `rounds=0`.
+    - Registered: round 1 against round 0 on S-3h, pooled.
+    - One no-spend runner unit, then about $0.3 to $0.5 on the 7B.
+  - b: S-3h on the 32B, which asks whether a larger student reads the negatives the 7B does not. About $1.7.
+  - c: close E4's line with D-11 and D-12's records.
 
 ---
 
