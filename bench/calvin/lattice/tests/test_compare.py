@@ -4,9 +4,12 @@ Nothing here plans, answers or grades anything — a comparison is a reader over
 so the rows are written by hand and are the whole input. That is also why the runs are tiny: what is
 under test is the delta, the flip and the refusal, not a pass rate.
 
-**E4's two cross-run readings are held the same way** at the end: `e4_compare`, one file's two runs one
-*model* apart, and `e4_pool`, one arm pair over several files' runs keyed `<isa>/<unit>`. What each of them
-refuses is the point of it, so every refusal has a case here beside its one number.
+**E4's cross-run readings are held the same way** at the end: `e4_compare`, one file's two runs one *model*
+apart; `e4_pool`, one arm pair over several files' runs keyed `<isa>/<unit>`, read through as many rounds as
+it is asked for; and `e4_rounds`, D-13's one arm against its own earlier round. What each of them refuses is
+the point of it, so every refusal has a case here beside its one number — and so is **what is registered**:
+D-13's pair is a reading at `through=1` and a tie at round 0, and the difference between those two is the
+whole reason the `through` argument exists.
 """
 
 import json

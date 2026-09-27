@@ -9,6 +9,11 @@ every definition of the file is a hole, so a single sibling body left in a skele
 the pattern S-2 exists to measure, and the run would read as S-2 under S-0's name. And **S-2o carries the
 student's own bodies and never gold**: its shots come off `rows.jsonl`, so the test that matters is the one
 that reads a later unit's prompt back against the *replay's* text and not against the target's.
+
+**D-13's section adds a third** (the end of the file): S-3hd is the control, so its retry has to be E1's own
+text *byte for byte* and its request E1's own round but for the seed's arm — anything else and the pair would
+differ in two things. Its source run is written here by hand (`source_run`) rather than answered, because
+D-13's round 0 is another run's graded rows and the copying is what is under test.
 """
 
 import hashlib
@@ -1248,6 +1253,11 @@ def test_the_loop_copies_round_zero_exactly_and_asks_nothing(tmp_path, lattice):
 
     # round 0's spend is the source's, so this run has bought nothing and says so by having no call at all
     assert not (run_dir / e1.CALLS).exists() and e1.spent(run_dir) == 0.0
+    # and written twice it is still one round 0: a copy is not an answer, so nothing is appended
+    again = e4.loop(
+        source, run_dir, available_path=tmp_path / "available.json", intrinsics_path=tmp_path / "intrinsics.json"
+    )
+    assert len(rows_of(again)) == 27 * 2
     record = json.loads((run_dir / e1.META).read_text(encoding="utf-8"))
     assert record["rounds"] == 1 and record["iterate"] == list(e4.LOOP_ARMS)
     assert record["retry_classes"] == ["invented", "compile"] == list(e4.RETRY_CLASSES)

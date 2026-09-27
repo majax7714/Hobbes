@@ -682,6 +682,8 @@ def test_the_report_names_what_the_retry_rescued_and_the_reuse_it_ruled_out(loop
     assert control["reuse"] == 1 and facts["reuse"] == 0
 
     table = report.e4_render(report.e4_report(loop_run_dir))
+    # the arm block is round 0's and the two arms' rows there are identical, so the table says why
+    assert "the figures above are round 0's, which both arms share" in table
     assert "the loop, 1 round — retried from invented, compile" in table
     assert "round 0 copied from d12-avx2 (S-3h)" in table
     assert f"fact lines by status: {e4.NOT_HERE} 1; 1 name(s) unlined" in table

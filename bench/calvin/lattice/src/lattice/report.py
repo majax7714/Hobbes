@@ -710,6 +710,13 @@ def e4_render(found: dict) -> str:
 
     loop = found.get("loop")
     if loop:
+        # the arm block above is round 0's, and on a loop run round 0 is one answer copied into both arms:
+        # a reader who met two identical rows without being told why would read the retry as having done
+        # nothing, which is the one thing this table must not say by accident
+        lines.append(
+            "  (the figures above are round 0's, which both arms share: it is one answer copied twice — "
+            "what the retry did is below)"
+        )
         lines.append("")
         source = loop.get("source") or {}
         lines.append(

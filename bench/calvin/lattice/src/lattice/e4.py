@@ -1955,7 +1955,11 @@ def loop(
         }
     )
     written = e1.write_plan(run_dir, requests, plan_record)
-    _append(written / e1.ROWS, copied)
+    # written, not appended: `write_plan` overwrites its two files, and a copy is not an answer — running
+    # this twice over one directory must leave one round 0 there and not two
+    (written / e1.ROWS).write_text(
+        "".join(f"{json.dumps(row, sort_keys=True)}\n" for row in copied), encoding="utf-8"
+    )
     return written
 
 
