@@ -14665,3 +14665,13 @@ spend** (`calvin-experiments.md` §6 "D-14's probe"; `~/.hobbes/bench/calvin-lat
   waits on it, under the $1.36 left.
 
 Docs only: there is no version bump, no image rebuild and no spend.
+
+**D-15's round 1 resumed on avx2** (Max: "good to proceed with d-15 with the spend adjustment"):
+- The run dir's ceiling was set at $1.08, giving a timeout of about 900 s over the cut call's 647 s estimate.
+  The call took 597 s and cost $0.450. D-15 now stands at about $2.09 of $3.
+- **S-3hf − S-3hd on avx2 is +0.004 (p 0.88): null.** The ruled-out reuse is 1 row against 0.
+- At the 32B, round 1's time is the prompts' (93k tokens out against 372k in), and the estimate held.
+- **sse2 and avx512 were not sent, by the pre-registered rule.** The replay generator counted their 244 and 192
+  distinct requests with no spend. They project to about $1.53 against the $0.91 left.
+- **For Max, D-16.** Recommended: raise the ceiling to $4 and finish the loop, to complete (2) pooled. Or close
+  E4's line.

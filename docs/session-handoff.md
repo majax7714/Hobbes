@@ -33,30 +33,23 @@ drivers' paths below.
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Two tracks are open.**
-- **The Calvin experiments: D-15 is taken (a, ceiling $3), with round 0 run and round 1 not finished**
-  (`calvin-experiments.md` §6 "D-15's record", §9 D-15).
-  - **D-15** (about $1.64 of $3; no unit; `d15/PREREG.md`, `run-isa.sh`, `loop-isa.sh`):
-    - Round 0: S-2h is D-11's own 32B answers, held, and only S-3h was sent ($1.27 over three files).
-      **32B S-3h − S-2h is +0.017 pooled (p 0.34): null**, as at the 7B (D-12: +0.011). The invented share
-      falls under S-3h on sse2 only (0.38 → 0.31), and rises on avx2 and avx512.
-    - **Round 1 is left.** avx2's call (116 requests) hit Modal's 528 s timeout, under its own 647 s estimate, and
-      was charged $0.37 for nothing. sse2 and avx512 were not sent. Resume each with `loop-isa.sh <isa>
-      <ceiling>` (`e4 run` resumes in place, and the ceiling is cumulative per run dir). Give it a ceiling whose
-      timeout covers the estimate, under the $1.36 left. Registered comparison (2), S-3hf − S-3hd, waits on it.
+- **The Calvin experiments: D-15 is run through avx2's round 1, and D-16 waits for Max** (`calvin-experiments.md`
+  §6 "D-15's record", §9 D-15 and D-16).
+  - **D-15** (about $2.09 of $3; no unit; `d15/PREREG.md`, `run-isa.sh`, `loop-isa.sh`):
+    - **Round 0:** S-2h is D-11's own 32B answers, held, and only S-3h was sent ($1.27 over three files).
+      **32B S-3h − S-2h is +0.017 pooled (p 0.34): null**, as at the 7B (D-12: +0.011).
+    - **Round 1, avx2 only.** The first call was cut by Modal's 528 s timeout ($0.37 for nothing). The resume on
+      2026-09-28, with the run dir's ceiling at $1.08 (timeout about 900 s), took 597 s and $0.450.
+      **S-3hf − S-3hd on avx2 is +0.004 (p 0.88): null.** The ruled-out reuse is 1 row against 0.
+    - At the 32B, round 1's time is the prompts' (93k tokens out against 372k in), and the runner's estimate held.
+    - **sse2 and avx512 were not sent, by the pre-registered rule.** They are 244 and 192 distinct requests
+      (counted with the replay generator), about $1.53 projected against the $0.91 left.
+  - **D-16** (recommended a): raise the ceiling to $4 and run round 1 on sse2 and avx512, to complete (2)
+    pooled. Resume each with `loop-isa.sh <isa> <ceiling>`, the ceiling sized to give a timeout of about 1.4× the
+    estimate. Or b: sse2 alone under $0.91 (a likely cut). Or c: close E4's line and write it up.
 
     Records: `~/.hobbes/bench/calvin-lattice/d15/` (`run-32b-<isa>/`, `report-32b-*`, `pool-32b-s3h.txt`,
-    `invented-share.txt`, `loop-32b-<isa>/`).
-  - **D-13** (about $0.32 of $1.50; runner unit `b6dd`, merged with a docstring fix; `lattice e4 loop`):
-    - One retry round from D-12's own S-3h round 0 (no new round-0 call), asked two ways: **S-3hd**, E1's
-      feedback, and **S-3hf**, the same plus a line per named name. They share a seed, so a chain with no line
-      is one request.
-    - **Null:** S-3hf − S-3hd through round 1 is −0.001 pooled (p 1.0). The retry alone buys +0.02
-      (p ≤ 0.0002 in each arm).
-    - On the lined chains, the student drops the ruled-out name (131 against 161 rows) and invents another.
-      Of the 477 intrinsic lines, 476 were negatives.
-
-    Records: `~/.hobbes/bench/calvin-lattice/d13/` (`PREREG.md`, `probe.py`, `run-isa.sh`, `run-7b-<isa>/`,
-    `report-*`, `pool-7b-*`, `classes-round1.txt`).
+    `invented-share.txt`, `loop-32b-<isa>/`, `report-loop-32b-avx2.txt`, `loop-32b-avx2.resume.log`).
   - **D-14** (no spend; `d14/PREREG.md`, `probe.py`, `probe-out.txt`): a positive fact for an invented
     intrinsic, probed. Rule S answers 12.7% of 387 names, and 4.1% of those answers are the gold's: **not
     reached**, so no arm. 257 of the 331 unanswered names are sand, and the rest need a composition.
@@ -405,7 +398,7 @@ named below was removed unless it says otherwise.
    - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
      E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
-     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run and D-14 probed (no spend), twenty-first; D-15 taken, round 0 run (≈ $1.64 of $3 with a cut round-1 call), round 1 left (START HERE). Drivers:
+     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run and D-14 probed (no spend), twenty-first; D-15 run through avx2's round 1 (≈ $2.09 of $3); D-16 for Max (START HERE). Drivers:
      `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
      <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
      history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its

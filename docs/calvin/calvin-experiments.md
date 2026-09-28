@@ -1420,17 +1420,23 @@ the invented names are sand, and the rest mostly need a composition. The remaini
 model size: the 32B invents less (D-11: 0.38 against 0.48 of sse2's cell samples) and has not been shown the
 facts.
 
-#### D-15's record — S-3h on the 32B (2026-09-27; ceiling $3, spent ≈ $1.64; round 1 not finished)
+#### D-15's record — S-3h on the 32B (2026-09-27/28; ceiling $3, spent ≈ $2.09; round 1 on avx2 only)
 
 **What ran.**
 - **Pre-registered** before any call: `~/.hobbes/bench/calvin-lattice/d15/PREREG.md`, with the route's price
   corrected (§9, D-15). S-2h is D-11's own 32B answers, held and graded again, and only S-3h is sent.
 - **Round 0, done:** `Qwen/Qwen2.5-Coder-32B-Instruct`, E4's params, k = 10, on the three native files
   (`run-isa.sh`). S-3h cost avx2 $0.438, sse2 $0.382 and avx512 $0.450, or $1.27 in all.
-- **Round 1, not finished:** `e4 loop` from each file's S-3h (`loop-isa.sh`). avx2's one call (116 requests)
-  hit Modal's 528 s timeout, under the call's own 647 s estimate. It was charged $0.370 and returned nothing.
-  sse2's and avx512's loop dirs hold round 0's copy, and nothing was sent for them. `e4 run <dir>` resumes in
-  place, with the ceiling cumulative per run dir.
+- **Round 1, avx2 only:** `e4 loop` from each file's S-3h (`loop-isa.sh`).
+  - avx2's first call (116 requests) hit Modal's 528 s timeout, under the call's own 647 s estimate. It was
+    charged $0.370 and returned nothing.
+  - **Resumed on 2026-09-28** with the run dir's ceiling at $1.08, which gave a timeout of about 900 s. It took
+    597 s and cost $0.450, so the file's round 1 cost $0.820 in all.
+  - Only 93k tokens came out against 372k in. **At the 32B, round 1's time is the prompts'**, and the runner's
+    estimate held (647 s estimated, 597 s taken), where round 0's ran 3.5× high.
+- **sse2 and avx512 are not sent, by the pre-registered rule** that the rest run only if avx2 projects D-15
+  under $3. Their round 1 is 244 and 192 distinct requests, counted with the replay generator and no spend.
+  Scaled from avx2 by prompt tokens, that is about $0.79 and $0.74, or $1.53 against the $0.91 left.
 - Records: `d15/run-32b-<isa>/`, `report-32b-*.txt`, `pool-32b-s3h.txt`, `invented-share.txt`,
   `loop-32b-<isa>/`.
 
@@ -1446,7 +1452,19 @@ facts.
 - Described, not registered: avx2's greedy figure is +0.178 (2 lost, 10 gained, p 0.039, uncorrected). It is
   one of many per-file lines, and the registered sampled figure on the same file is +0.051 (p 0.15).
 
-**Registered comparison (2), S-3hf − S-3hd through round 1:** not run.
+**Registered comparison (2), S-3hf − S-3hd through round 1, avx2 only** (45 units; unpooled, so short of
+the registered form):
+
+| comparison | Δ sampled | greedy | pass@k |
+|---|---|---|---|
+| **32B S-3hf − S-3hd, avx2** | **+0.004, p 0.88** (4 moved) | 0 (0 / 0) | 0 (0 / 0) |
+| 7B, avx2 (D-13, beside it) | −0.009 | — | — |
+
+- On avx2, 71 chains were retried per arm. 45 carried lines (not-here 2, nowhere 26, other-file 22), and 26
+  were one shared request.
+- Rescued: S-3hd 23 (2 compile, 21 invented) and S-3hf 25 (2 and 23).
+- The ruled-out reuse is 1 row against 0: the 32B rarely rewrites a name it was told about. On the 7B it was
+  161 against 131, over three files.
 
 **The invented share by arm (described):**
 
@@ -1456,13 +1474,14 @@ facts.
 | 32B (D-15) | 0.07 → 0.09 | 0.38 → 0.31 | 0.15 → 0.19 |
 
 **The readings so far, against the ones written before the run:**
-- **"Size reads the negatives" does not hold for (1).** The 32B's S-3h − S-2h is null, as the 7B's was. (2)
-  is open until round 1 runs.
-- "Size does not change it" holds for (1). It waits on (2).
+- **"Size reads the negatives" does not hold for (1).** The 32B's S-3h − S-2h is null, as the 7B's was. On
+  (2) avx2 alone is null too (+0.004). The pooled form is not run.
+- "Size does not change it" holds for (1), and for (2) on the one file run.
 - "The invented class falls under S-3h at the 32B" holds only on sse2 (0.38 → 0.31). On avx2 and avx512 it rises.
 
-**Left:** round 1 on the three files, under the $1.36 of the ceiling that is left. Each file's round 1 must be
-given a ceiling whose Modal timeout covers its time estimate. A cut call is charged and returns nothing.
+**Left, for Max:** round 1 on sse2 and avx512, about $1.53, over the $0.91 left. It completes (2) as
+registered. Each file needs a ceiling whose Modal timeout covers its estimate: a cut call is charged and
+returns nothing.
 
 ### E5 — the pattern world: the science track (M-c)
 
@@ -1719,9 +1738,22 @@ Proposed routes, the recommended one first.
     about names do not (D-12 to D-14), and size is priced (D-11).
   - c: the narrow comparison-family positive (the 5 of 7 `too-many` lists that held the gold's), about 1.8% of
     the invented names. Not recommended, because it is too narrow to move a pooled figure.
-  - **Round 0 ran; round 1 did not finish** (§6, "D-15's record"; ≈ $1.64 of $3). 32B S-3h − S-2h is +0.017
-    pooled (p 0.34): null, as at the 7B. avx2's round-1 call hit Modal's timeout and was charged $0.37 for
-    nothing. sse2 and avx512 were not sent. Comparison (2) waits on round 1, under the $1.36 left.
+  - **Round 0 ran, and round 1 on avx2 only** (§6, "D-15's record"; ≈ $2.09 of $3). 32B S-3h − S-2h is
+    +0.017 pooled (p 0.34): null, as at the 7B. S-3hf − S-3hd on avx2 is +0.004 (p 0.88). sse2 and avx512
+    project to about $1.53 against the $0.91 left, so they were not sent, by the pre-registered rule (D-16).
+    avx2's resume was on Max's word (2026-09-28: "good to proceed with d-15 with the spend adjustment"), with
+    the call's ceiling sized so its timeout covers the estimate, inside $3.
+
+- **D-16 — after D-15's avx2** (2026-09-28). Proposed routes, the recommended one first.
+  - **a (recommended): the ceiling raised from $3 to $4, and round 1 run on sse2 and avx512.** About $1.53
+    projected. Each file's ceiling gives a timeout of about 1.4× its estimate, and the worst case is about $1.9,
+    so the most D-15 could reach is about $4.0.
+    - It completes registered comparison (2) as pooled. sse2 carries most of the lined chains (172 of 202 on
+      the 7B), so it is the file where a larger student could read the negatives.
+  - b: sse2 alone under the $0.91 left. Projected $0.79 against a timeout of about 1,190 s: close enough that a
+    cut, which is charged and returns nothing, is likely. Not recommended.
+  - c: close E4's line on what is run. (1) is null at both sizes, and (2) is null at the 7B pooled and at the 32B
+    on avx2. Then write the programme up: pattern carries, facts about names do not, and size is priced.
 
 ---
 
