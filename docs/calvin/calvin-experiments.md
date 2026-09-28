@@ -1749,8 +1749,10 @@ Proposed routes, the recommended one first.
   spend. sse2 runs first, then avx512 on what is left.
   - **The closing rule, written before the calls.** A positive result is D-15's registered comparison (2),
     S-3hf − S-3hd through round 1, pooled over the three files, sampled, **> 0 at p < 0.05**, which is the
-    pre-registration's "size reads the negatives". Without it, **the Calvin experiments programme closes after
-    D-16** and is written up, with no further spend. With it, the next route goes to Max.
+    pre-registration's "size reads the negatives". Without it, **the experiments are closed for now after D-16**
+    and written up, with no further spend. This is a pause, not an end to Calvin (Max, 2026-09-28: "close for
+    now, not close calvin completely"): the harness stays the way work is done, and Max then either reassesses
+    the programme or turns to another piece of Hobbes. With a positive result, the next route goes to Max.
   - The routes as proposed:
   - **a (recommended): the ceiling raised from $3 to $4, and round 1 run on sse2 and avx512.** About $1.53
     projected. Each file's ceiling gives a timeout of about 1.4× its estimate, and the worst case is about $1.9,
