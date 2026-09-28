@@ -493,9 +493,11 @@ student drops the name it was told about and invents another. D-14
 (no spend) looked for a positive instead, a rule naming an intrinsic the
 file does have: it answers 12.7% of the invented names, and 4.1% of those
 answers are what the target uses. Two thirds of the invented names are
-declared by no header at all. D-15 (2026-09-27/28, about $2.09 of $3)
-put the same list beside the shots for the 32B student: null as well
-(+0.017, p 0.34), and beside its retry on one file, null again (+0.004). The records are
+declared by no header at all. D-15 (2026-09-27/28, about $3.08 of $4)
+gave the same list to the 32B student, beside the shots and beside its
+retry: null both ways (+0.017, p 0.34; +0.002, p 0.86). With no positive
+result, the experiments are closed for now (2026-09-28), at about $21.50
+over the programme; the harness is unaffected. The records are
 in the experiments page.
 
 The work built through it includes C's lane A and its oracle, the

@@ -14675,3 +14675,18 @@ Docs only: there is no version bump, no image rebuild and no spend.
   distinct requests with no spend. They project to about $1.53 against the $0.91 left.
 - **For Max, D-16.** Recommended: raise the ceiling to $4 and finish the loop, to complete (2) pooled. Or close
   E4's line.
+
+**D-16 taken (Max: "good to proceed with ceiling lift"); D-15 finished, null; the experiments closed for now.**
+- **The rule, committed before the calls** (`8213e39`, `384f189`): a positive result is (2) pooled > 0 at
+  p < 0.05. Without one, the experiments close for now. Max: "close for now, not close calvin completely".
+- **Round 1:** sse2 $0.503 (683 s) and avx512 $0.488 (670 s), each with a $1.20 ceiling. D-15 came to
+  **≈ $3.08 of $4**.
+- **(2) pooled, S-3hf − S-3hd through round 1: +0.002 (p 0.86), null.** Per file: avx2 +0.004, sse2 −0.005 and
+  avx512 +0.005.
+- The retry alone buys +0.04 at the 32B (p < 0.0001 in each arm). The lines cut the ruled-out reuse from 40 to
+  22, and nothing passes for it.
+- **Closed for now.** `calvin-experiments.md` gains "Where the programme stands" (about $21.50 over the
+  programme), and its status header, which still read "E1 next", is brought current. Max next reassesses the
+  programme or picks another piece of Hobbes.
+
+There is no version bump and no image rebuild.

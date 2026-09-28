@@ -32,42 +32,26 @@ drivers' paths below.
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**Two tracks are open.**
-- **The Calvin experiments: D-15 is run through avx2's round 1, and D-16 waits for Max** (`calvin-experiments.md`
-  §6 "D-15's record", §9 D-15 and D-16).
-  - **D-15** (about $2.09 of $3; no unit; `d15/PREREG.md`, `run-isa.sh`, `loop-isa.sh`):
-    - **Round 0:** S-2h is D-11's own 32B answers, held, and only S-3h was sent ($1.27 over three files).
-      **32B S-3h − S-2h is +0.017 pooled (p 0.34): null**, as at the 7B (D-12: +0.011).
-    - **Round 1, avx2 only.** The first call was cut by Modal's 528 s timeout ($0.37 for nothing). The resume on
-      2026-09-28, with the run dir's ceiling at $1.08 (timeout about 900 s), took 597 s and $0.450.
-      **S-3hf − S-3hd on avx2 is +0.004 (p 0.88): null.** The ruled-out reuse is 1 row against 0.
-    - At the 32B, round 1's time is the prompts' (93k tokens out against 372k in), and the runner's estimate held.
-    - **sse2 and avx512 were not sent, by the pre-registered rule.** They are 244 and 192 distinct requests
-      (counted with the replay generator), about $1.53 projected against the $0.91 left.
-  - **D-16** (recommended a): raise the ceiling to $4 and run round 1 on sse2 and avx512, to complete (2)
-    pooled. Resume each with `loop-isa.sh <isa> <ceiling>`, the ceiling sized to give a timeout of about 1.4× the
-    estimate. Or b: sse2 alone under $0.91 (a likely cut). Or c: close E4's line and write it up.
+**The Calvin experiments are closed for now** (Max, 2026-09-28: "close for now, not close calvin completely").
+D-16 gave no positive result, and the closing rule was written before its calls. The harness stays the way work
+is done. Max next either reassesses the programme or picks another piece of Hobbes, so **ask him which before
+starting new work**. Extraction (below) is the standing default.
+- **The summary** is `calvin-experiments.md` §6, "Where the programme stands". Pattern carries (E1, E4, D-11);
+  training sharpens reading, not skill (E3, E2); facts about names do not steer at either size (D-12 to D-15);
+  size is priced (D-11). About $21.50 was spent over the programme.
+- **D-15/D-16, the last runs** (≈ $3.08 of $4; `d15/`):
+  - 32B S-3h − S-2h is +0.017 (p 0.34), and S-3hf − S-3hd through round 1 is +0.002 (p 0.86). Both are null.
+  - The retry alone buys +0.04 at the 32B (p < 0.0001), against the 7B's +0.02.
+  - The lines cut the ruled-out reuse almost in half (22 against 40), and nothing passes for it.
+- **Costs, learned** (for any later model run):
+  - The runner's estimate assumes every answer runs to `max_tokens`. At round 0 it runs 3.5× to 6× high; at a
+    32B round 1 only 1.1× to 1.7× high, because the time is the prompts'.
+  - The money left sets Modal's timeout, so give each call a ceiling whose timeout covers its estimate. A cut
+    call is charged and returns nothing.
+  - `lattice e4 run <dir>` resumes in place, with the ceiling cumulative per run dir. `--generator
+    replay:<empty file>` on a scratch copy counts a round's requests with no spend.
+- Records: `~/.hobbes/bench/calvin-lattice/` (`e1/` to `e4/`, `d11/` to `d15/`, each with its `PREREG.md`).
 
-    Records: `~/.hobbes/bench/calvin-lattice/d15/` (`run-32b-<isa>/`, `report-32b-*`, `pool-32b-s3h.txt`,
-    `invented-share.txt`, `loop-32b-<isa>/`, `report-loop-32b-avx2.txt`, `loop-32b-avx2.resume.log`).
-  - **D-14** (no spend; `d14/PREREG.md`, `probe.py`, `probe-out.txt`): a positive fact for an invented
-    intrinsic, probed. Rule S answers 12.7% of 387 names, and 4.1% of those answers are the gold's: **not
-    reached**, so no arm. 257 of the 331 unanswered names are sand, and the rest need a composition.
-  - **D-12** (about $0.67; runner `7e20`): S-3h, the ISA's facts beside the shots, null (+0.011, p 0.59). The
-    student disregards the negatives, and the init uses the positive name mappings. Records: `d12/`.
-  - **D-11** (about $2.11 of $5; runner `e735`):
-    - rule W, the width family (26 of 31 helpers);
-    - S-2h − S-2 on helpers +0.261 pooled (p 0.0001), with sse2 unmoved;
-    - the 32B +0.13 on cells and +0.30 on helpers over the 7B, at about $0.58 a file.
-
-    Records: `d11/`.
-  - **Costs, learned:**
-    - The runner's estimate assumes every answer runs to `max_tokens`, 4 to 6 times the real figure. Size a
-      file's ceiling at the estimate; the Modal timeout bounds the real spend.
-    - A network cut (twice this session) costs the call so far and returns nothing. `lattice e4 run <dir>` resumes in place, with the
-      ceiling cumulative per run dir.
-  - Earlier: E4 (`e4/`, about $1.25 of $8), where the ISA-axis shots gave +0.21 to +0.26 and the parser's fields
-    hurt. E3 (`e3/`, about $5.55 of $25), the 300-step pair, with its gain gone on opaque names.
 - **Extraction, shipped in the nineteenth session (0.2.71-beta, D-8):**
   - one file's depth never ends an ingest (C-171);
   - C's unread-region record (C-172);
@@ -398,7 +382,7 @@ named below was removed unless it says otherwise.
    - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
      E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
-     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run and D-14 probed (no spend), twenty-first; D-15 run through avx2's round 1 (≈ $2.09 of $3); D-16 for Max (START HERE). Drivers:
+     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run and D-14 probed (no spend), twenty-first; D-15 finished under D-16's $4 (≈ $3.08), null; **the experiments are closed for now** (2026-09-28). Drivers:
      `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
      <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
      history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its
@@ -573,7 +557,7 @@ min each.
 **Held, with all spend:** the Atlas-0 T items; the TTT adapter points;
 the removal A/B re-run on the 7B; a second unseen repo through the cell;
 DeepSWE's decomposed protocol; `hobbes narrate` on this repo; the Calvin
-experiments past D-15 (`calvin-experiments.md`; E1 to D-15's round 0 are run, each next run on Max's word and ceiling). The keyed Calvin runs are closed, not
+experiments (`calvin-experiments.md`; closed for now after D-16, until Max reassesses them). The keyed Calvin runs are closed, not
 held.
 
 ## STANDING POLICY (Max) — read before doing anything

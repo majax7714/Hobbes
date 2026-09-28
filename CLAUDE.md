@@ -348,11 +348,12 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   and invents another; 476 of 477 intrinsic lines were negatives. D-14
   (no spend): a positive name for an invented intrinsic, probed — rule S
   answers 12.7% of 387 names, 4.1% of those the gold's, not reached; two
-  thirds are sand, the rest need a composition. D-15 (≈ $2.09 of $3):
-  S-3h on the 32B is null too, +0.017 pooled (p 0.34), and so is the
-  loop's S-3hf − S-3hd on avx2, +0.004 (p 0.88); sse2 and avx512 project
-  past the ceiling and were not sent. Next, for Max: D-16 (raise it to $4
-  and finish the loop, recommended; or close E4's line).
+  thirds are sand, the rest need a composition. D-15/D-16 (≈ $3.08 of
+  $4): the 32B is null too — S-3h − S-2h +0.017 (p 0.34), the loop's
+  S-3hf − S-3hd +0.002 (p 0.86); the retry alone buys +0.04. **Closed
+  for now** (Max, 2026-09-28: "close for now, not close calvin
+  completely"): no positive result; Max next reassesses or picks another
+  piece of Hobbes. The summary is the page's "Where the programme stands".
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its
