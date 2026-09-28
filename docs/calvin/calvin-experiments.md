@@ -1420,6 +1420,50 @@ the invented names are sand, and the rest mostly need a composition. The remaini
 model size: the 32B invents less (D-11: 0.38 against 0.48 of sse2's cell samples) and has not been shown the
 facts.
 
+#### D-15's record — S-3h on the 32B (2026-09-27; ceiling $3, spent ≈ $1.64; round 1 not finished)
+
+**What ran.**
+- **Pre-registered** before any call: `~/.hobbes/bench/calvin-lattice/d15/PREREG.md`, with the route's price
+  corrected (§9, D-15). S-2h is D-11's own 32B answers, held and graded again, and only S-3h is sent.
+- **Round 0, done:** `Qwen/Qwen2.5-Coder-32B-Instruct`, E4's params, k = 10, on the three native files
+  (`run-isa.sh`). S-3h cost avx2 $0.438, sse2 $0.382 and avx512 $0.450, or $1.27 in all.
+- **Round 1, not finished:** `e4 loop` from each file's S-3h (`loop-isa.sh`). avx2's one call (116 requests)
+  hit Modal's 528 s timeout, under the call's own 647 s estimate. It was charged $0.370 and returned nothing.
+  sse2's and avx512's loop dirs hold round 0's copy, and nothing was sent for them. `e4 run <dir>` resumes in
+  place, with the ceiling cumulative per run dir.
+- Records: `d15/run-32b-<isa>/`, `report-32b-*.txt`, `pool-32b-s3h.txt`, `invented-share.txt`,
+  `loop-32b-<isa>/`.
+
+**Registered comparison (1), S-3h − S-2h at the 32B**, paired by unit, pooled over 127 units:
+
+| comparison | Δ sampled | greedy | pass@k |
+|---|---|---|---|
+| **32B S-3h − S-2h** (the facts beside the shots) | **+0.017, p 0.34** (47 moved) | +0.031 (9 / 13), p 0.52 | +0.016 (6 / 8), p 0.79 |
+| 7B S-3h − S-2h (D-12, beside it) | +0.011, p 0.59 | — | — |
+
+- **Per file, sampled:** avx2 +0.051 (p 0.15), sse2 −0.013 (p 0.41) and avx512 +0.009 (p 0.85).
+- **Per kind, sampled:** cells +0.032 (p 0.14), helpers −0.026 (p 0.51) and the init 0 (1.00 in both arms).
+- Described, not registered: avx2's greedy figure is +0.178 (2 lost, 10 gained, p 0.039, uncorrected). It is
+  one of many per-file lines, and the registered sampled figure on the same file is +0.051 (p 0.15).
+
+**Registered comparison (2), S-3hf − S-3hd through round 1:** not run.
+
+**The invented share by arm (described):**
+
+| | avx2 S-2h → S-3h | sse2 | avx512 |
+|---|---|---|---|
+| 7B (D-12) | 0.13 → 0.13 | 0.51 → 0.48 | 0.43 → 0.39 |
+| 32B (D-15) | 0.07 → 0.09 | 0.38 → 0.31 | 0.15 → 0.19 |
+
+**The readings so far, against the ones written before the run:**
+- **"Size reads the negatives" does not hold for (1).** The 32B's S-3h − S-2h is null, as the 7B's was. (2)
+  is open until round 1 runs.
+- "Size does not change it" holds for (1). It waits on (2).
+- "The invented class falls under S-3h at the 32B" holds only on sse2 (0.38 → 0.31). On avx2 and avx512 it rises.
+
+**Left:** round 1 on the three files, under the $1.36 of the ceiling that is left. Each file's round 1 must be
+given a ceiling whose Modal timeout covers its time estimate. A cut call is charged and returns nothing.
+
 ### E5 — the pattern world: the science track (M-c)
 
 - **Question:** Atlas-0's method on a synthetic lattice. Functions generated along named axes
@@ -1675,6 +1719,9 @@ Proposed routes, the recommended one first.
     about names do not (D-12 to D-14), and size is priced (D-11).
   - c: the narrow comparison-family positive (the 5 of 7 `too-many` lists that held the gold's), about 1.8% of
     the invented names. Not recommended, because it is too narrow to move a pooled figure.
+  - **Round 0 ran; round 1 did not finish** (§6, "D-15's record"; ≈ $1.64 of $3). 32B S-3h − S-2h is +0.017
+    pooled (p 0.34): null, as at the 7B. avx2's round-1 call hit Modal's timeout and was charged $0.37 for
+    nothing. sse2 and avx512 were not sent. Comparison (2) waits on round 1, under the $1.36 left.
 
 ---
 

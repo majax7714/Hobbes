@@ -270,7 +270,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-27) — Hobbes 0.2.71-beta
+## Status (2026-09-28) — Hobbes 0.2.71-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -348,8 +348,10 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   and invents another; 476 of 477 intrinsic lines were negatives. D-14
   (no spend): a positive name for an invented intrinsic, probed — rule S
   answers 12.7% of 387 names, 4.1% of those the gold's, not reached; two
-  thirds are sand, the rest need a composition. Next, for Max: D-15 (S-3h
-  on the 32B with the loop, ceiling $3, recommended).
+  thirds are sand, the rest need a composition. D-15 (taken, ceiling $3;
+  ≈ $1.64 so far): S-3h on the 32B at round 0 is null too, +0.017 pooled
+  (p 0.34); its loop round is left — avx2's call hit Modal's timeout
+  (charged, nothing returned), sse2 and avx512 unsent.
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its

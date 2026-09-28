@@ -1,9 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-27 (twenty-first session); Hobbes 0.2.71-beta on `main`.**
-Max pushed through the eighteenth session's last commit (`ea6cb28`,
-0.2.70-beta); the nineteenth to twenty-first sessions' commits (0.2.71-beta, the E3/E4/D-11 to D-13 bench work and docs)
-are on `main`, unpushed. The image and the proxy are at 0.2.71-beta and this repo
+**Reviewed 2026-09-28 (twenty-second session); Hobbes 0.2.71-beta on `main`.**
+Max pushed through `45e67a5` (D-15 taken, 2026-09-27), so `main` and
+`origin/main` agree. The image and the proxy are at 0.2.71-beta and this repo
 is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -28,14 +27,25 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-27, twenty-first session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-28, twenty-second session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Two tracks are open.**
-- **The Calvin experiments: D-13 is run and D-14 probed, and D-15 waits for Max** (twenty-first session;
-  `calvin-experiments.md` §6 "D-13's record" and "D-14's probe", §9 D-15).
+- **The Calvin experiments: D-15 is taken (a, ceiling $3), with round 0 run and round 1 not finished**
+  (`calvin-experiments.md` §6 "D-15's record", §9 D-15).
+  - **D-15** (about $1.64 of $3; no unit; `d15/PREREG.md`, `run-isa.sh`, `loop-isa.sh`):
+    - Round 0: S-2h is D-11's own 32B answers, held, and only S-3h was sent ($1.27 over three files).
+      **32B S-3h − S-2h is +0.017 pooled (p 0.34): null**, as at the 7B (D-12: +0.011). The invented share
+      falls under S-3h on sse2 only (0.38 → 0.31), and rises on avx2 and avx512.
+    - **Round 1 is left.** avx2's call (116 requests) hit Modal's 528 s timeout, under its own 647 s estimate, and
+      was charged $0.37 for nothing. sse2 and avx512 were not sent. Resume each with `loop-isa.sh <isa>
+      <ceiling>` (`e4 run` resumes in place, and the ceiling is cumulative per run dir). Give it a ceiling whose
+      timeout covers the estimate, under the $1.36 left. Registered comparison (2), S-3hf − S-3hd, waits on it.
+
+    Records: `~/.hobbes/bench/calvin-lattice/d15/` (`run-32b-<isa>/`, `report-32b-*`, `pool-32b-s3h.txt`,
+    `invented-share.txt`, `loop-32b-<isa>/`).
   - **D-13** (about $0.32 of $1.50; runner unit `b6dd`, merged with a docstring fix; `lattice e4 loop`):
     - One retry round from D-12's own S-3h round 0 (no new round-0 call), asked two ways: **S-3hd**, E1's
       feedback, and **S-3hf**, the same plus a line per named name. They share a seed, so a chain with no line
@@ -50,9 +60,6 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   - **D-14** (no spend; `d14/PREREG.md`, `probe.py`, `probe-out.txt`): a positive fact for an invented
     intrinsic, probed. Rule S answers 12.7% of 387 names, and 4.1% of those answers are the gold's: **not
     reached**, so no arm. 257 of the 331 unanswered names are sand, and the rest need a composition.
-  - **D-15** (recommended a): S-3h on the 32B with the loop: S-2h and S-3h at round 0, then `e4 loop`, ceiling
-    $3. No unit to build. Or b: close E4's line and write the programme up. Or c: the narrow `_mm_cmp_*`
-    positive (not recommended).
   - **D-12** (about $0.67; runner `7e20`): S-3h, the ISA's facts beside the shots, null (+0.011, p 0.59). The
     student disregards the negatives, and the init uses the positive name mappings. Records: `d12/`.
   - **D-11** (about $2.11 of $5; runner `e735`):
@@ -398,7 +405,7 @@ named below was removed unless it says otherwise.
    - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
      E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
-     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run and D-14 probed (no spend), twenty-first; next: D-15 (START HERE). Drivers:
+     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run and D-14 probed (no spend), twenty-first; D-15 taken, round 0 run (≈ $1.64 of $3 with a cut round-1 call), round 1 left (START HERE). Drivers:
      `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
      <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
      history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its
@@ -458,7 +465,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 89 of 40, 4
+   - **The validating 40 are done:** the tracker reads 90 of 40, 4
      areas, 4 false blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141`,
      `66c5`, the decorator case, open), 0 missed.
 3. **A regrade against stored keys:**
@@ -521,7 +528,7 @@ min each.
 2. **The cell's defect register** (D-1–D-5): which to fix first.
 3. **ADR-092's four embedded decisions.** Nothing blocks on them.
 
-## WHERE THINGS STAND (2026-09-27)
+## WHERE THINGS STAND (2026-09-28)
 
 - **Languages:** Python, TypeScript, Go, Rust, Java, C and C++ supported,
   each as far as its §3.8 row (P11); Terraform/HCL structure. JavaScript
@@ -531,7 +538,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Eighty-nine log files under `docs/calvin/sessions/`; the tracker reads 89 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
+  is a tmpfs. Ninety log files under `docs/calvin/sessions/`; the tracker reads 90 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 96 cells (22 same-key rows, C++'s two among them; flask's new
   cell at 0.2.68-beta's figures); `render.py
@@ -573,7 +580,7 @@ min each.
 **Held, with all spend:** the Atlas-0 T items; the TTT adapter points;
 the removal A/B re-run on the 7B; a second unseen repo through the cell;
 DeepSWE's decomposed protocol; `hobbes narrate` on this repo; the Calvin
-experiments past E2 (`calvin-experiments.md`; E1 and E2 are run, each next run on Max's word and ceiling). The keyed Calvin runs are closed, not
+experiments past D-15 (`calvin-experiments.md`; E1 to D-15's round 0 are run, each next run on Max's word and ceiling). The keyed Calvin runs are closed, not
 held.
 
 ## STANDING POLICY (Max) — read before doing anything

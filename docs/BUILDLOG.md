@@ -14645,3 +14645,23 @@ spend** (`calvin-experiments.md` §6 "D-14's probe"; `~/.hobbes/bench/calvin-lat
   `too-many` lists held the gold's.
 - **For Max, D-15.** Recommended: S-3h on the 32B, with the loop (ceiling $3). Or close E4's line and write the
   programme up, or the narrow comparison-family positive (not recommended).
+
+## 2026-09-28 (twenty-second session) — the top-level docs reviewed; D-15's round 0 recorded, which had run unrecorded
+
+**The top-level review.** README, CLAUDE.md/AGENTS.md (identical), CHANGELOG, the handoff and the tree agree on
+0.2.71-beta, and `main` is `origin/main` at `45e67a5`. Three drifts, all fixed in this commit:
+- **D-15 had run and was written down nowhere in the repo.** `45e67a5` recorded Max's word (route a, ceiling $3).
+  The run's records under `~/.hobbes/bench/calvin-lattice/d15/` show round 0 done and round 1 cut. The docs still
+  said D-15 "waits for Max".
+- The handoff said the nineteenth to twenty-first sessions' commits were unpushed. They are all pushed.
+- The handoff read the tracker at 89 of 40 in two places. `CLAUDE.md`, the sessions README and the logs read 90.
+
+**D-15, from its records** (`calvin-experiments.md` §6 "D-15's record"; ≈ $1.64 of $3):
+- **Round 0.** S-2h is D-11's own 32B answers, held. Only S-3h was sent, costing $0.438, $0.382 and $0.450.
+  **32B S-3h − S-2h is +0.017 pooled (p 0.34): null**, as the 7B's was (D-12, +0.011). The invented share falls
+  under S-3h on sse2 only (0.38 → 0.31).
+- **Round 1 is not finished.** avx2's call (116 requests) hit Modal's 528 s timeout, under its own 647 s estimate,
+  and was charged $0.37 for nothing. sse2 and avx512 were not sent. Registered comparison (2), S-3hf − S-3hd,
+  waits on it, under the $1.36 left.
+
+Docs only: there is no version bump, no image rebuild and no spend.

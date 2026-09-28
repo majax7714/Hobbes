@@ -493,7 +493,10 @@ student drops the name it was told about and invents another. D-14
 (no spend) looked for a positive instead, a rule naming an intrinsic the
 file does have: it answers 12.7% of the invented names, and 4.1% of those
 answers are what the target uses. Two thirds of the invented names are
-declared by no header at all. The records are in the experiments page.
+declared by no header at all. D-15 (2026-09-27, about $1.64 of $3 so
+far) put the same list beside the shots for the 32B student: null as
+well (+0.017, p 0.34); its retry round is not finished. The records are
+in the experiments page.
 
 The work built through it includes C's lane A and its oracle, the
 external veto (ADR-111), a session's records written by a sidecar
