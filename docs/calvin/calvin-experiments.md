@@ -1744,7 +1744,14 @@ Proposed routes, the recommended one first.
     avx2's resume was on Max's word (2026-09-28: "good to proceed with d-15 with the spend adjustment"), with
     the call's ceiling sized so its timeout covers the estimate, inside $3.
 
-- **D-16 — after D-15's avx2** (2026-09-28). Proposed routes, the recommended one first.
+- **D-16 — after D-15's avx2** (2026-09-28). **Taken: a** (Max, 2026-09-28: "good to proceed with ceiling
+  lift. well close experiments out after d-16 unless positive results are seen"). D-15's ceiling is $4 on actual
+  spend. sse2 runs first, then avx512 on what is left.
+  - **The closing rule, written before the calls.** A positive result is D-15's registered comparison (2),
+    S-3hf − S-3hd through round 1, pooled over the three files, sampled, **> 0 at p < 0.05**, which is the
+    pre-registration's "size reads the negatives". Without it, **the Calvin experiments programme closes after
+    D-16** and is written up, with no further spend. With it, the next route goes to Max.
+  - The routes as proposed:
   - **a (recommended): the ceiling raised from $3 to $4, and round 1 run on sse2 and avx512.** About $1.53
     projected. Each file's ceiling gives a timeout of about 1.4× its estimate, and the worst case is about $1.9,
     so the most D-15 could reach is about $4.0.
