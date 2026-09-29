@@ -2,7 +2,7 @@
 
 > **Closed as an approach, 2026-09-12 (Max; ADR-107).** Calvin is now
 > approached as a harness validated by use:
-> [`calvin-harness.md`](../../../calvin/calvin-harness.md). This record stands as
+> [`calvin-harness.md`](../../../shanks/shanks-harness.md). This record stands as
 > history, and its held next steps are superseded.
 
 **Status:** run through WP-16 on 2026-09-11 — **the floor does not hold on fresh keys**: T 0 of 3 and O 2 of 3 on the keys where pass can be read, T returning its body holes unchanged on 5 of 8 keys with budget to spare (§10); the next step is Max's. Written as a handoff (2026-09-12) for an orchestrator agent that assigns work packages to sub-agents · **Type:** no-spend audit of round 1's artifacts, then a pipeline experiment (preregistered readings, attribution-first) on fresh keys · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model.

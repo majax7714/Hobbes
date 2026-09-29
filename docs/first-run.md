@@ -381,7 +381,7 @@ its tool list has no Edit, Write, or exec. That is a mount flag, not a
 promise.
 
 To run one task end to end, use `hobbes dispatch`
-([`calvin/calvin-harness.md`](calvin/calvin-harness.md)). It runs the
+([`shanks/shanks-harness.md`](shanks/shanks-harness.md)). It runs the
 session, gates and verifies its diff, and writes a log file for you to
 review.
 

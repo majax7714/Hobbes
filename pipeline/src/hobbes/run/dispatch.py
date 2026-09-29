@@ -1,4 +1,4 @@
-"""`hobbes dispatch` — Calvin as a harness (ADR-107, `docs/calvin/calvin-harness.md`).
+"""`hobbes dispatch` — Shanks, the harness (ADR-107, ADR-152, `docs/shanks/shanks-harness.md`).
 
 The developer's own session keeps the intent. One implementation task at a time is handed to a *doer* that runs under the whole
 environment and is judged at its end:
@@ -13,7 +13,7 @@ environment and is judged at its end:
 5. **`hobbes gate`** on the harvested diff at its parent, the blind-spot map derived from the parent's graph (`gate.derive_map`);
 6. **`hobbes verify`** on the same diff, when asked.
 
-Each dispatch writes one file under ``docs/calvin/sessions/`` — the per-session log the harness is validated by — and the full
+Each dispatch writes one file under ``docs/shanks/sessions/`` — the per-session log the harness is validated by — and the full
 record beside the flight log. The log's review block is the developer's: whether the gate's verdict was right. Nothing here
 merges; the branch waits for the developer.
 """
@@ -46,7 +46,10 @@ EDIT_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit")
 #: How long to wait, by default, before noting that no edit has landed yet (0 turns the note off).
 DEFAULT_QUIET_MINUTES = 20.0
 #: Where the per-session logs go, under the repo.
-LOG_DIR = Path("docs") / "calvin" / "sessions"
+LOG_DIR = Path("docs") / "shanks" / "sessions"
+#: Where they went before the harness was named Shanks (ADR-152). Git history still holds the first 90 there, so every rule that
+#: keeps a session record out of training data refuses this path as well as `LOG_DIR`.
+LEGACY_LOG_DIRS = (Path("docs") / "calvin" / "sessions",)
 #: The variable Claude Code reads its token from (`claude setup-token`); the Go side's `sandbox.ClaudeTokenEnv`.
 TOKEN_ENV = "CLAUDE_CODE_OAUTH_TOKEN"
 DISPATCH_VERSION = 1
@@ -217,7 +220,7 @@ def session_argv(d: Dispatch, brief_path: Path, env) -> list[str]:
                               for rel in harness.python_trees(env)))
     argv = [d.session_bin, "start", "--repo", str(d.repo_root), "--ref", d.parent, "--role", "implementer",
             "--session", d.session_id, "--sessions", str(d.sessions_root), "--task-file", str(brief_path),
-            "--box", str(harness.CALVIN_BOX), "--escalation-timeout", "5s", "--commit-on-exit", "--max-turns", str(d.max_turns),
+            "--box", str(harness.SHANKS_BOX), "--escalation-timeout", "5s", "--commit-on-exit", "--max-turns", str(d.max_turns),
             "--path", ":".join(bins + [containment.CONTAINER_PATH]), "--pre", harness.pre_command(env)]
     for kv in [kv for kv in env.env if not kv.startswith("GIT_")] + list(IDENTITY):
         argv += ["--env", kv]

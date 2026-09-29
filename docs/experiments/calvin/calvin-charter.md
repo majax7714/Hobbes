@@ -2,6 +2,13 @@
 
 # Calvin — charter
 
+> **Moved 2026-09-28** from `docs/calvin/` to this directory, beside the programme it defines (ADR-152). The
+> gated harness that shared Calvin's name is now **Shanks** ([`../../shanks/`](../../shanks/README.md)), Calvin's
+> accepted lowest floor, not an implementation of this charter. How this charter reads against the records and the
+> literature is [`calvin-reassessment.md`](calvin-reassessment.md). One point there bears on §8: in a compiled
+> language an invented name fails at compile or link time. The invisible failures are real-but-wrong and edge-case
+> bodies (§2 of the reassessment).
+
 **Status:** proposed · **Type:** role definition (architecture-independent) · **Companion docs:** `calvin-m0-socket.md` (first experiment), ADR-099 (the run that motivated this), `olmo3-ttt-results.md`
 
 This document says what Calvin is *for*, what it must and must not do, and what it needs from Hobbes. It does not say how Calvin is built. The Ledger Machine is one candidate implementation; a stock small model behind a deterministic grounder is another; a future architecture nobody has proposed yet is a third. Any of them is Calvin if it satisfies the contract in §4. None of them is Calvin if it doesn't.

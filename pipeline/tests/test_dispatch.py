@@ -138,7 +138,7 @@ def test_a_clean_change_runs_the_stack_clears_the_gate_and_writes_one_log_for_th
     for flag, value in (("--egress", "api.anthropic.com"), ("--role", "implementer"), ("--ref", sha), ("--max-turns", "80"),
                         ("--claude-bin", "/opt/claude")):
         assert a[a.index(flag) + 1] == value, flag
-    assert "--commit-on-exit" in a and a[a.index("--box") + 1].endswith("calvin.box.policy")
+    assert "--commit-on-exit" in a and a[a.index("--box") + 1].endswith("shanks.box.policy")
     envs = [a[i + 1] for i, x in enumerate(a) if x == "--env"]
     assert "GIT_AUTHOR_NAME=hobbes-dispatch" in envs and not any("hobbes-verify" in e for e in envs)
     brief = Path(a[a.index("--task-file") + 1]).read_text()

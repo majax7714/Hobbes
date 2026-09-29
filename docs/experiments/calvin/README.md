@@ -4,34 +4,45 @@
 input and only the ability to code, perhaps in a single language (C for now), is more efficient and
 better aligned per task. It shares the mapped-agents programme's root, which is to reduce the room for
 chaos. Mapped agents shrink the task and the context; Calvin shrinks the model's input and its
-capability. The role Calvin is for is in [`../../calvin/calvin-charter.md`](../../calvin/calvin-charter.md).
+capability. The role Calvin is for is in [`calvin-charter.md`](calvin-charter.md).
+
+**What Calvin is** ([ADR-152](../../adr/152-the-harness-is-shanks-calvin-is-the-model.md), 2026-09-28): a model or
+tool that can program in a language and is intentionally not general. It need not be a typical LLM. The lattice
+tested one form of it, a stock multilingual coder steered by context and one LoRA, and its results are about that
+form. The gated harness that used to share the name is **Shanks** ([`../../shanks/`](../../shanks/README.md)).
 
 **Status:** **closed for now** (2026-09-28). D-16's rule, written before its calls, found no positive
 result. This is a pause, not an end (Max: "close for now, not close calvin completely"): Max next
 reassesses the programme or turns to another piece of Hobbes. Index: [`../README.md`](../README.md).
+**Reassessment** (started 2026-09-28): [`calvin-reassessment.md`](calvin-reassessment.md). It covers the thesis
+decomposed, every route held against this register, the literature, and candidate designs. It runs nothing, and
+it comes before any further experiment.
 
-## The lower bound: Calvin as a product today
+## The floor: Shanks
 
 The keyed rounds (M0, M0-Go, M0-Gate, 2026-09-03 to 09-11) measured Calvin as an experiment and were
-closed as an approach on 2026-09-12 (ADR-107). **What they produced is the accepted lower bound for
-Calvin as a product:**
+closed as an approach on 2026-09-12 (ADR-107). **What they left standing is Calvin's accepted lowest
+floor, now named Shanks (ADR-152):**
 - a frontier agent does the work;
 - `hobbes gate` (the linker on a finished diff) judges the result;
 - `hobbes dispatch` runs it in `hobbes-session` behind an egress allowlist.
 
 The gate cleared every gold diff and blocked every seeded error with the right class. On 10 live keys it
 had 0 false blocks (CV-4). The harness passed its validation rule on 2026-09-17: 40 sessions, at least 3
-areas, and no unresolved false block. It stays the way work is done ([`../../calvin/`](../../calvin/README.md);
+areas, and no unresolved false block. It stays the way work is done ([`../../shanks/`](../../shanks/README.md);
 the tracker reads 90 of 40, with three false blocks still open, the decorator case). Anything a Calvin
 model does is measured against this floor. The harness makes no keyed or arm comparison
-(`calvin-harness.md` §4).
+(`shanks-harness.md` §4). **Shanks treats a symptom, a frontier agent's unchecked diff, and is not Calvin's
+design** (Max, 2026-09-28). Calvin's design is not bound to extend it.
 
 ## What is here
 
 | file | what it is |
 |---|---|
+| [`calvin-charter.md`](calvin-charter.md) | The role: what Calvin is for and its contract (I1–I7), independent of how it is built; moved here from `docs/calvin/` by ADR-152 |
+| [`calvin-reassessment.md`](calvin-reassessment.md) | The design reassessment (2026-09-28): the thesis decomposed, routes R1–R23 against this register, the literature, candidate designs |
 | [`calvin-experiments.md`](calvin-experiments.md) | The lattice programme (ADR-151): design, E0–E4 and D-11–D-15 records, decisions D-1–D-16, and the closing summary ("Where the programme stands") |
-| [`keyed-rounds/`](keyed-rounds/) | M0 ([`calvin-potential.md`](keyed-rounds/calvin-potential.md)), M0-Go rounds 1–2, M0-Gate, and their cells: history, and the lower bound's evidence |
+| [`keyed-rounds/`](keyed-rounds/) | M0 ([`calvin-potential.md`](keyed-rounds/calvin-potential.md)), M0-Go rounds 1–2, M0-Gate, and their cells: history, and the evidence for Shanks as the floor |
 | [`atlas0/atlas-0.md`](atlas0/atlas-0.md) | Atlas-0: whether a small block's act can tell a sparse-real referent from an absent one (held) |
 
 Tooling: `bench/calvin/lattice/` (the `lattice` package; E0–E4 and D-11–D-15), `bench/calvin/e3-draw/`,

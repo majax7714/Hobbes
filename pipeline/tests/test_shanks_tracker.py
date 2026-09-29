@@ -1,4 +1,4 @@
-"""Tests for `scripts/calvin_tracker.py`: parsing the harness's session logs, the pinned rows from the real logs, totals over synthetic logs, and the render/check drift gate."""
+"""Tests for `scripts/shanks_tracker.py` (Shanks's tracker, ADR-152): parsing the harness's session logs, the pinned rows from the real logs, totals over synthetic logs, and the render/check drift gate."""
 import importlib.util
 import re
 import sys
@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-spec = importlib.util.spec_from_file_location("calvin_tracker", Path(__file__).resolve().parents[1] / "scripts" / "calvin_tracker.py")
+spec = importlib.util.spec_from_file_location("shanks_tracker", Path(__file__).resolve().parents[1] / "scripts" / "shanks_tracker.py")
 ct = importlib.util.module_from_spec(spec)
-sys.modules["calvin_tracker"] = ct
+sys.modules["shanks_tracker"] = ct
 spec.loader.exec_module(ct)
 
-SESSIONS_DIR = Path(__file__).resolve().parents[2] / "docs" / "calvin" / "sessions"
+SESSIONS_DIR = Path(__file__).resolve().parents[2] / "docs" / "shanks" / "sessions"
 
 
 def _record(suffix: str) -> dict:
@@ -24,7 +24,7 @@ def test_check_passes_over_the_repo():
     records = ct.load_sessions(SESSIONS_DIR)
     fresh = ct.render_table(records)
     current = ct.current_block((SESSIONS_DIR / "README.md").read_text())
-    assert current == fresh, "the tracker block is stale — run `pipeline/scripts/calvin_tracker.py render`"
+    assert current == fresh, "the tracker block is stale — run `pipeline/scripts/shanks_tracker.py render`"
 
 
 def test_9cad_the_usual_shape():

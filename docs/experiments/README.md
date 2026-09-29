@@ -12,7 +12,7 @@ not a result in the other.
 |---|---|---|
 | **Thesis** | Smaller tasks with better context are easier to complete, which lets smaller models compete against bigger ones. | A model with constrained input and only the ability to code, perhaps in one language (C for now), is more efficient and better aligned per task. A deliberately looser idea. |
 | **What it shrinks** | The task and the context (the planner, work units, derived briefs). | The model's input and its capability (a coder, not an agent). |
-| **Where it stands** | Parked (the standing policy). No H1 claim earned. The removal A/B re-run on the 7B is first in line. | Closed for now (2026-09-28) after D-16 gave no positive result. Its product lower bound, the gate and the harness, is in use. |
+| **Where it stands** | Parked (the standing policy). No H1 claim earned. The removal A/B re-run on the 7B is first in line. | Closed for now (2026-09-28) after D-16 gave no positive result; its design is being reassessed ([`calvin-reassessment.md`](calvin/calvin-reassessment.md)). Its floor, Shanks (the gate and the harness), is in use. |
 | **Its records** | SWE-bench and DeepSWE runs, agent mapping, TTT | The keyed rounds (the lower bound), Atlas-0, the sqlite-vector lattice (E0–E4, D-11–D-16) |
 | **Tooling** | `pipeline/src/hobbes/{derive,run,bench,ttt}`, `pipeline/scripts/`, `bench/ttt/` | `bench/calvin/` (`lattice/`, `e3-draw/`, `templates/`), `bench/atlas0/`, `pipeline/scripts/calvin_probe.py` |
 
@@ -35,9 +35,9 @@ Numbering is per programme: `MA-n` for mapped agents and `CV-n` for Calvin.
 
 ## Not here
 
-- **The Calvin harness** (`hobbes dispatch`, ADR-107) is product, in [`../calvin/`](../calvin/README.md).
-  It is how work is done, and it is not an experiment. Its keyed rounds are Calvin's history, and they
-  are the accepted lower bound for Calvin as a product.
+- **Shanks, the harness** (`hobbes dispatch`, ADR-107; named by ADR-152) is product, in
+  [`../shanks/`](../shanks/README.md). It is how work is done, and it is not an experiment. The keyed rounds that
+  left it are Calvin's history. Shanks is Calvin's accepted lowest floor, not Calvin's design.
 - **The oracle lane and the comparative programme** grade the graph ([`../oracle/`](../oracle/),
   [`../comparative/`](../comparative/)). They are the layer's evidence, not experiments on an idea.
 - **Spend:** API and Modal compute only on Max's word for a named run and its ceiling

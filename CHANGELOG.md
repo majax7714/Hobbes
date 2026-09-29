@@ -11,9 +11,35 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.71-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.72-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.72-beta — 2026-09-28 (the harness is Shanks; Calvin is the model; ADR-152)
+
+**Patch: what the layer says.** The harness that ADR-107 called "Calvin as a harness" is named **Shanks**
+(Max, 2026-09-28). Calvin names the model programme alone: a model or tool that can program in one language and
+is intentionally not general, not necessarily an LLM. Shanks is Calvin's accepted lowest floor from the keyed
+rounds, and it is not Calvin's design.
+
+- **Moved:**
+  - `docs/calvin/` → `docs/shanks/` (`shanks-harness.md`, and `sessions/` with its 90 logs moved as they are);
+  - `derive/calvin.box.policy` → `derive/shanks.box.policy` (`harness.SHANKS_BOX`);
+  - `pipeline/scripts/calvin_tracker.py` → `shanks_tracker.py`.
+
+  The charter moved to `docs/experiments/calvin/`, beside the programme it defines. The commands keep their
+  names.
+- **What `hobbes dispatch` says and writes:** the per-session log now goes under `docs/shanks/sessions/`, and the
+  CLI help names Shanks.
+- **The retention guarantee holds across the move.**
+  - `ttt.units.units_from_git` refuses a file under `docs/shanks/sessions/` *and* under the old
+    `docs/calvin/sessions/` (`EVAL_ROW_PREFIXES`; dispatch's `LEGACY_LOG_DIRS`). Git history still holds the
+    first 90 records there.
+  - The lattice corpus refuses a root holding either path. Each path has its own test.
+- **The tracker** keeps the old script path in its area table, so past sessions keep their area. Its rendered block
+  moved by one line.
+- Records keep the name they were written under (the BUILDLOG, ADR-107, the keyed rounds, the session logs'
+  bodies). Only link targets changed.
 
 ## 0.2.71-beta — 2026-09-26 (one file's depth never ends an ingest; C-171, C-172)
 

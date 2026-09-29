@@ -167,7 +167,7 @@ def test_hobbes_itself_is_refused(tmp_path):
     assert (HOBBES / "pipeline" / "src" / "hobbes").is_dir(), HOBBES
     with pytest.raises(corpus.SessionText) as refusal:
         corpus.build_corpus([("hobbes", HOBBES)], FIXTURE)
-    assert "docs/calvin/sessions" in str(refusal.value)
+    assert "docs/shanks/sessions" in str(refusal.value)
     assert "ADR-107" in str(refusal.value)
     # and either marker alone is enough: a checkout with no session log is still this package's tree
     checkout = tmp_path / "checkout"
@@ -177,12 +177,14 @@ def test_hobbes_itself_is_refused(tmp_path):
     assert "pipeline/src/hobbes" in str(refusal.value)
 
 
-def test_a_root_holding_a_dispatched_sessions_text_is_refused(tmp_path):
+@pytest.mark.parametrize("where", ["shanks", "calvin"])
+def test_a_root_holding_a_dispatched_sessions_text_is_refused(tmp_path, where):
+    """The records' path (`docs/shanks/sessions`) and their path before ADR-152 (`docs/calvin/sessions`) each refuse alone."""
     root = tmp_path / "sessions-repo"
-    (root / "docs" / "calvin" / "sessions").mkdir(parents=True)
+    (root / "docs" / where / "sessions").mkdir(parents=True)
     with pytest.raises(corpus.SessionText) as refusal:
         corpus.refuse_session_text(root)
-    assert "docs/calvin/sessions" in str(refusal.value)
+    assert f"docs/{where}/sessions" in str(refusal.value)
 
 
 def test_the_target_is_refused_on_the_same_rule(two):

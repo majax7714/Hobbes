@@ -2133,10 +2133,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="hand one task to a doer under the whole environment — hobbes-session, the egress allowlist, Claude Code — then gate, "
              "verify and log it, one file per session (ADR-107)",
         description=(
-            "Calvin as a harness (ADR-107, docs/calvin/calvin-harness.md). The task runs as Claude Code (the host's binary, the "
+            "Shanks, the harness (ADR-107, ADR-152, docs/shanks/shanks-harness.md). The task runs as Claude Code (the host's binary, the "
             "owner's token) inside `hobbes-session`: a fresh clone at the parent, exec only through the policy proxy, the network "
             "the model endpoint alone (--egress). The harvested branch is gated at its parent with the blind-spot map read from "
-            "the parent's graph, verified in the sandbox, and written down as one file under docs/calvin/sessions/, whose review "
+            "the parent's graph, verified in the sandbox, and written down as one file under docs/shanks/sessions/, whose review "
             "block is the developer's. Nothing is merged. The ingest must be at the parent (`hobbes ingest` first)."
         ),
     )
@@ -2157,7 +2157,7 @@ def build_parser() -> argparse.ArgumentParser:
     dispatch_parser.add_argument("--secrets", help="the owner's name=value key file, read for --key-name when $CLAUDE_CODE_OAUTH_TOKEN "
                                                    "is unset; never printed")
     dispatch_parser.add_argument("--key-name", default="claude_oauth_token", help="the key file's line holding the Claude Code token")
-    dispatch_parser.add_argument("--log-dir", help="where the per-session log is written (default docs/calvin/sessions under the repo)")
+    dispatch_parser.add_argument("--log-dir", help="where the per-session log is written (default docs/shanks/sessions under the repo)")
     dispatch_parser.add_argument("--no-verify", action="store_true", help="gate only; do not run the diff's guarding tests")
     dispatch_parser.add_argument("--timeout", type=int, default=3600, help="seconds before the session is stopped (default 3600)")
     dispatch_parser.add_argument("--quiet-minutes", type=float, default=20.0,

@@ -439,12 +439,12 @@ def test_arm_o_brief_policy_command_and_patch_grounding(repo, tmp_path):
     env = H.environment(source, root, container_root="/work", gocache="/sessions/S-1/go-build")
     cmd = H.session_command("/bin/hobbes-session", root, sha, tmp_path / "b.md", agent, env, base_url="https://llm/v1", model="m", session_id="S-1", sessions_root=tmp_path / "s")
     joined = " ".join(cmd)
-    assert cmd[:2] == ["/bin/hobbes-session", "start"] and "--ref " + sha in joined and "--box " + str(H.CALVIN_BOX) in joined
+    assert cmd[:2] == ["/bin/hobbes-session", "start"] and "--ref " + sha in joined and "--box " + str(H.SHANKS_BOX) in joined
     assert "--loop-arg=--mcp-tools=exec" in cmd and "--network pasta" in joined and "--commit-on-exit" in cmd and "--escalation-timeout 5s" in joined
     assert f"--loop-arg=--token-budget={H.O_TOKEN_BUDGET}" in cmd, "step 6: the per-session token ceiling rides the argv"
     assert cmd.count("--mount") == len(env.ro) and f"--mount {source / '.venv'}" in joined and "--pre printf" in joined and "&& ln -sfn" in joined
     assert "--mcp-tools" not in " ".join(H.session_command("/bin/hobbes-session", root, sha, tmp_path / "b.md", agent, env, base_url="u", model="m", session_id="S-2", sessions_root=tmp_path, knowledge=True))
-    assert H.CALVIN_BOX.exists() and "node --test*" in H.CALVIN_BOX.read_text()
+    assert H.SHANKS_BOX.exists() and "node --test*" in H.SHANKS_BOX.read_text()
     # a session's patch through the grounder: the raw-diff route, HSR over call sites
     t = T.build_template("Change `derive`.", L, root, None)
     g = H.ground_patch(t, diffs(root)["helper"], L, root)

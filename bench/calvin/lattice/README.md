@@ -823,7 +823,7 @@ same seed gives the same three every run. The members are the draw's union, dedu
 the taken order exactly as `dedupe.py` did.
 
 **Five things are refused or dropped, each with its own name.** **No dispatched session's text ever
-trains** (ADR-107, §8): an input root holding `docs/calvin/sessions/` or `pipeline/src/hobbes/` is
+trains** (ADR-107, §8): an input root holding `docs/shanks/sessions/` (or its path before ADR-152, `docs/calvin/sessions/`) or `pipeline/src/hobbes/` is
 Hobbes itself and is refused with `SessionText`, its own type, before anything is read. **No
 sqlite-vector code**: every member's body is compared with each of the target's **native** gold bodies —
 the 93 the card names, the ones E3 is evaluated on — on `families`' own tokens, and one at ratio ≥ 0.6 is

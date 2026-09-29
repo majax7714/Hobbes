@@ -52,7 +52,7 @@ C-41, and the keyed rounds' session entries (C-103, C-124) stay in
 ### C-127 — The harness is validated by the developer's reading of each session, not by an answer key
 
 - **Cannot tell you:** that a gate verdict recorded under
-  `docs/calvin/sessions/` is right.
+  `docs/shanks/sessions/` is right.
   - A `right-clear` is the developer's reading of the diff.
   - A `missed` exists only once someone finds the error.
 - **Because:** real work has no gold. The keyed rounds had keys only
@@ -61,7 +61,7 @@ C-41, and the keyed rounds' session entries (C-103, C-124) stay in
   `right-clear` rows counts reviews that found nothing, not diffs with
   nothing wrong.
 - **You find out:** **surfaced**. Every session file's review block
-  names its grader and vocabulary, and `calvin-harness.md` §4 scopes
+  names its grader and vocabulary, and `shanks-harness.md` §4 scopes
   the claim to the sessions run (P11).
 - **Source:** ADR-107; Max, 2026-09-12.
 
@@ -87,7 +87,7 @@ C-41, and the keyed rounds' session entries (C-103, C-124) stay in
   - The guard makes the recorded sessions and the doer's own commits
     unreachable as training units. `ttt.units.units_from_git` skips
     every commit the dispatch identity authored and every path under
-    `docs/calvin/sessions/`.
+    `docs/shanks/sessions/`.
   - Once a doer's commit is merged, its code is part of the repo. Any
     corpus rendered from the tree at a later SHA (`hobbes
     derive-corpus`'s graph and module pages) contains it.
@@ -97,7 +97,7 @@ C-41, and the keyed rounds' session entries (C-103, C-124) stay in
   - a TTT corpus built at a SHA after a merge;
   - a squashed doer commit, whose authorship the guard can no longer
     see.
-- **You find out:** **surfaced**. `calvin-harness.md`'s retention
+- **You find out:** **surfaced**. `shanks-harness.md`'s retention
   section and `units_from_git`'s docstring state the reach, and "merge,
   never squash" is in the procedure.
 - **Source:** ADR-107's retention amendment; Max, 2026-09-12.
@@ -132,7 +132,7 @@ C-41, and the keyed rounds' session entries (C-103, C-124) stay in
   ADR-015), and Claude Code's own Write tool reached the same dir.
 - **Bites at:** reading the edit lines' paths as a record of what the
   doer touched, where a doer had reason to lie about it. The exec
-  decisions, escalations and egress refusals `calvin-harness.md` §4
+  decisions, escalations and egress refusals `shanks-harness.md` §4
   reads are complete from the sidecar's side.
 - **You find out:** **surfaced**. The box headers and the harness doc's
   §2 table name the remainder; `hobbes dispatch`'s log reports the

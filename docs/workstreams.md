@@ -45,15 +45,16 @@ item opens when Max names it. Sequencing context is
    fixes are in, not re-run. **API spend and Modal compute are off the
    table for the next steps (Max, 2026-09-04):** current work is the
    no-spend queue in `session-handoff.md` NEXT — named work dispatched
-   through the Calvin harness (item 9), the extraction residue, then
+   through Shanks, the harness (item 9), the extraction residue, then
    W0's discipline items and collaborator onboarding. Every run in
    W2/W3 stays held.
 9. **Calvin's keyed rounds closed 2026-09-12** (M0, M0-Go, M0-Gate; Max).
-   Calvin is now the harness `hobbes dispatch` (ADR-107,
-   `calvin/calvin-harness.md`). A task goes to Claude Code in
+   What they left is the harness `hobbes dispatch` (ADR-107,
+   `shanks/shanks-harness.md`), named **Shanks** on 2026-09-28 (ADR-152):
+   Calvin's accepted lowest floor, not Calvin's design. A task goes to Claude Code in
    `hobbes-session` behind the egress allowlist, and the diff is gated
    and verified. The harness is validated by use: one log file per
-   session under `calvin/sessions/`. A dispatch spends subscription
+   session under `shanks/sessions/`. A dispatch spends subscription
    usage, not API dollars.
 10. **C++ is supported (0.2.23-beta, ADR-113), and the 2026-09-16
    top-level review's first items are in** (0.2.29–0.2.35-beta): C-156
@@ -407,9 +408,9 @@ architecture §6–6.1); several items wait on Max's call or on run data.*
   escalate-tier record whose approval re-pins both manifests.
 - **Per-unit metering + loss fitting** (C-35) — tokens per unit are
   still unobserved; fitting the declared weights needs run data.
-- **The Calvin harness (ADR-107): validation by use (40 sessions across
+- **Shanks, the harness (ADR-107, ADR-152): validation by use (40 sessions across
   at least three areas, Max, 2026-09-13), then its named next builds**
-  (`calvin/calvin-harness.md` §6):
+  (`shanks/shanks-harness.md` §6):
   - a partition from `hobbes plan` for a dispatch;
   - ~~the doer's Edit and Write into the flight log~~ — **built
     0.2.6-beta** (the progress hook, ADR-107's second amendment); the

@@ -27,7 +27,7 @@ counted in the manifest and listed in the report:
   non-native files (`cpu`, `neon`, `rvv`): a member matching one of those is the target's code too, and
   it is gate 2 by name that keeps it out, not this ratio.
 - **No dispatched session's text ever trains** (ADR-107, §8). An input root that holds
-  `docs/calvin/sessions/` or `pipeline/src/hobbes/` is Hobbes itself or a checkout of it, and it is
+  `docs/shanks/sessions/` (or its old path, `docs/calvin/sessions/`) or `pipeline/src/hobbes/` is Hobbes itself or a checkout of it, and it is
   refused outright with :class:`SessionText` — its own type, so a general "could not read that repo"
   handler cannot absorb it (P10, ADR-036).
 - **No example depends on a fact its prompt does not carry** (§12.5: fine-tuning on unfamiliar facts
@@ -125,8 +125,9 @@ REASONS = ("near-target", "unreadable", "alone", "unstated-callee", "too-long")
 #: One blank line between two neighbours inside the one fenced block, as `prompts` writes its shots.
 _NEIGHBOUR_GAP = "\n\n"
 
-#: A root holding either of these is Hobbes itself or a checkout of it (ADR-107, §8).
-SESSION_MARKERS = ("docs/calvin/sessions", "pipeline/src/hobbes")
+#: A root holding any of these is Hobbes itself or a checkout of it (ADR-107, §8). The session records moved from
+#: `docs/calvin/sessions` to `docs/shanks/sessions` (ADR-152); an older checkout still holds the first, so both refuse.
+SESSION_MARKERS = ("docs/shanks/sessions", "docs/calvin/sessions", "pipeline/src/hobbes")
 
 _RELATED_HEADING = "Related functions:"
 _CALLS_HEADING = "What this function calls, read from the project's graph:"

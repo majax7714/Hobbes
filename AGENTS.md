@@ -71,9 +71,9 @@ box, against a repo on disk (architecture §10); the application mode in
 
 | You are…                                  | Read                                                                 |
 |-------------------------------------------|----------------------------------------------------------------------|
-| resuming the active programme             | `docs/session-handoff.md` → `docs/calvin/calvin-harness.md` (ADR-107) |
-| working on or through the Calvin harness  | `docs/calvin/` (its `README.md`): `calvin-harness.md` (§2 the stack, §4 the validation rule) + the per-session logs in `sessions/`; the role is `calvin-charter.md`. The keyed rounds that produced it (Calvin's accepted lower bound as a product) are history in `docs/experiments/calvin/keyed-rounds/` |
-| proposing or reading an experiment        | `docs/experiments/README.md` — two programmes, **mapped agents** (smaller tasks, better context, smaller models) and **Calvin** (a model that can only code); **read the programme's observed register (`MA-n`, `CV-n`) before proposing a run** |
+| resuming the active programme             | `docs/session-handoff.md` → `docs/shanks/shanks-harness.md` (ADR-107, ADR-152) |
+| working on or through Shanks (the harness) | `docs/shanks/` (its `README.md`): `shanks-harness.md` (§2 the stack, §4 the validation rule) + the per-session logs in `sessions/`. Shanks is Calvin's accepted lowest floor, left by the keyed rounds (history in `docs/experiments/calvin/keyed-rounds/`), and **not Calvin's design** (ADR-152) |
+| proposing or reading an experiment        | `docs/experiments/README.md` — two programmes, **mapped agents** (smaller tasks, better context, smaller models) and **Calvin** (a model or tool that can program in one language, intentionally not general, not necessarily an LLM; its charter and the design reassessment are in `docs/experiments/calvin/`); **read the programme's observed register (`MA-n`, `CV-n`) before proposing a run** |
 | picking up an item from the backlog       | `docs/workstreams.md` (W0–W5), then the entry it cites               |
 | touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
 | touching sessions, policy or the sandbox  | architecture §6.3 and §7 + ADR-018, ADR-092, ADR-100, ADR-107        |
@@ -108,11 +108,11 @@ box, against a repo on disk (architecture §10); the application mode in
   `gosource`, `rustsource`, `javasource`, `csource`, `cppsource`) → lane
   B SCIP join → graph/testmap → `packs/` → emit; `containment.py` runs
   every lane B step in the image and refuses without it (C-64, C-66).
-  `derive/`: `hobbes plan` (impact → … → changespec) and the Calvin
-  pieces (`template.py`, `ground.py`, `gate.py` — `hobbes gate`, with
+  `derive/`: `hobbes plan` (impact → … → changespec) and the keyed
+  rounds' pieces, which Shanks runs on (`template.py`, `ground.py`, `gate.py` — `hobbes gate`, with
   `--map derive` — `adapter.py`, `harness.py` — `hobbes verify`).
-  `run/`: `hobbes run`, and **`dispatch.py` — `hobbes dispatch`, the
-  Calvin harness (ADR-107)**. Also `agent/loop.py`, `bench/`, `ttt/`,
+  `run/`: `hobbes run`, and **`dispatch.py` — `hobbes dispatch`,
+  Shanks, the harness (ADR-107, ADR-152)**. Also `agent/loop.py`, `bench/`, `ttt/`,
   `narrate/`, `invariants/`, `review.py`, `render.py`, `graphdiff.py`.
   Fixture repos
   under `tests/fixtures/` (miniapp / minits / minigo / minirust /
@@ -141,10 +141,10 @@ box, against a repo on disk (architecture §10); the application mode in
   Hobbes cannot tell you, one file per segment; `README.md` is the
   index), `extraction-evidence.md`, `BUILDLOG.md`, `session-handoff.md`,
   `workstreams.md`, `future_additions.md` (parked backlog),
-  `calvin/` (the harness: charter, harness, `sessions/` — one log per
-  dispatched session), `experiments/` (the two programmes:
-  `mapped-agents/` — the benchmark, agent mapping, TTT — and `calvin/`
-  — the lattice, Atlas-0, the keyed rounds).
+  `shanks/` (the harness, `sessions/` — one log per dispatched
+  session), `experiments/` (the two programmes: `mapped-agents/` — the
+  benchmark, agent mapping, TTT — and `calvin/` — the charter, the
+  reassessment, the lattice, Atlas-0, the keyed rounds).
 - `.hobbes/` — dogfooding: `policies/` + `invariants/` versioned;
   `derived/` and `plans/` gitignored.
 
@@ -194,7 +194,7 @@ uv run hobbes invariants check|compile
 uv run hobbes review main..my-branch  # exit 1 if it needs attention
 uv run hobbes plan "proposal" --seed some.module
 uv run hobbes run <task> --dry-run
-uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvin harness; the ingest at HEAD first
+uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # Shanks, the harness; the ingest at HEAD first
 #   the doer's model: --model, else $HOBBES_DISPATCH_MODEL (this box: claude-opus-5, in .claude/settings.local.json), else Claude Code's own
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
@@ -221,7 +221,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 151;
+  architecture doesn't already make. Number sequentially (last: 152;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -275,7 +275,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-28) — Hobbes 0.2.71-beta
+## Status (2026-09-28) — Hobbes 0.2.72-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -302,63 +302,38 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   unsurfaced, 1 n/a), 29 lifted; the tally is
   held by `test_register_tally.py`, its dated notes are
   `docs/constraints/HISTORY.md`.
-- **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
-  host's Claude Code in `hobbes-session` → gate → verify → one log in
-  `docs/calvin/sessions/`. The tracker at the end of that directory's
-  `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **90 of 40**
-  sessions that validate the harness: 4 areas, 4 false blocks (`f3c1`,
-  closed at 0.2.28-beta; `9326`, `c141` and `66c5`, the decorator case
-  below, open), 0 missed. It stays the way work is done.
-- **Latest — 0.2.71-beta, extraction first** (Max, 2026-09-20: "the
-  most annoying work to do but the most important"; "we never sacrifice
-  honesty for higher recall"). **One file's depth never ends an ingest**
-  (D-8, found by the E3 draw): moonlab's 537-call bindgen chain overflowed
-  Rust's recursive walk and ended the whole ingest. The Rust, Go, Java and
-  Terraform walks are iterative, and every lane A provider contains an
-  overflow per file, naming it (C-171; Python's visitor is the residual,
-  about 600 levels). C's unread-region record now says its definitions
-  are lost (C-172). **Next:** the candidates in the handoff (route c
-  among them), each measured first; C/C++ lane A's super-linear time on
-  deep chains is one.
-- **Calvin experiments** (ADR-151, `docs/experiments/calvin/calvin-experiments.md`):
-  a model that writes C, starting from sqlite-vector's kernel lattice.
-  E0, the instruments (`bench/calvin/lattice/`), was built and accepted
-  on the real target on 2026-09-25. E1 ran on both 7Bs over all 93
-  cells for $6.59 of $10: on Qwen, pass@1 0.29 with pattern shots (C-2)
-  and 0.38 with shots and facts (C-3), against 0.05 for the same volume
-  of unrelated code (C-4). E2 (2026-09-26, unit `157a`, $1.89 of $3) ran
-  Qwen on two rename shadows: descriptive names keep the pattern effect;
-  the opaque shadow removes the task statement with the names, so its
-  gap is not name-reading. The paired tests (2026-09-26) hold the
-  pattern effect (p 0.0015) and leave facts-beside-pattern suggestive; E3's
-  pool count found the card's family rule and the ingested permissive pool
-  unfit; a C lattice draw (40 repos) gave a 21,290-example corpus. E3's
-  300-step LoRA (≈ $5.55 of $25): +0.148 on C-2 against the base (p 0.0002),
-  C-0 nil, the gain gone on opaque names — training sharpens reading named
-  neighbours, not skill; its shuffled control was degenerate (recorded).
-  E4 (L1, three files, ≈ $1.25, P12 decomposed): the graph's ISA-axis
-  shots lift the student +0.21 to +0.26 (p ≤ 0.0003 each); the 7B parser's
-  fields hurt. D-11 (2026-09-27, ≈ $2.11 of $5): helper shots by name
-  family (rule W; E3's rule as worded reached 3 of 31 helpers) lift
-  helpers +0.261 pooled (p 0.0001), sse2 unmoved — a shot crosses an
-  ISA's capability and the student invents; the 32B adds +0.13 cells and
-  +0.30 helpers over the 7B at ≈ $0.58 a file. D-12 (≈ $0.67): the
-  ISA's facts beside the shots (S-3h) are null, +0.011 pooled (p 0.59) —
-  the 7B writes the very renames the block says do not exist; only the
-  init, where names are mapped, moves. D-13 (≈ $0.32 of $1.50): the
-  facts in the loop, one retry round with and without a line per named
-  name (S-3hf against S-3hd, from D-12's own round 0), null, −0.001
-  (p 1.0); the retry alone buys +0.02 — the 7B drops the ruled-out name
-  and invents another; 476 of 477 intrinsic lines were negatives. D-14
-  (no spend): a positive name for an invented intrinsic, probed — rule S
-  answers 12.7% of 387 names, 4.1% of those the gold's, not reached; two
-  thirds are sand, the rest need a composition. D-15/D-16 (≈ $3.08 of
-  $4): the 32B is null too — S-3h − S-2h +0.017 (p 0.34), the loop's
-  S-3hf − S-3hd +0.002 (p 0.86); the retry alone buys +0.04. **Closed
-  for now** (Max, 2026-09-28: "close for now, not close calvin
-  completely"): no positive result; Max next reassesses or picks another
-  piece of Hobbes. The summary is the page's "Where the programme stands".
+- **Active — Shanks, the harness** (ADR-107; named by ADR-152): `hobbes
+  dispatch` runs the host's Claude Code in `hobbes-session` → gate →
+  verify → one log in `docs/shanks/sessions/`. The tracker at the end of
+  that directory's `README.md` (`pipeline/scripts/shanks_tracker.py
+  render`, held by a drift test; re-render after filling a review block)
+  reads **90 of 40** sessions that validate the harness: 4 areas, 4 false
+  blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141` and `66c5`, the
+  decorator case below, open), 0 missed. It stays the way work is done.
+  Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
+  treats a symptom; it is not Calvin's design.
+- **Latest — 0.2.72-beta, the harness is Shanks; Calvin is the model**
+  (ADR-152, Max, 2026-09-28). `docs/calvin/` → `docs/shanks/`,
+  `shanks.box.policy`, `shanks_tracker.py`; the charter moved to
+  `docs/experiments/calvin/`. Session records stay refused as training
+  data at both the new path and the old one, each tested.
+- **Extraction** stays the standing default (Max, 2026-09-20: "we never
+  sacrifice honesty for higher recall"). The last extraction release,
+  0.2.71-beta, made the lane A walks iterative so one file's depth never
+  ends an ingest (C-171) and recorded C's lost definitions (C-172).
+  **Next:** the candidates in the handoff (route c among them), each
+  measured first; C/C++ lane A's super-linear time on deep chains is one.
+- **Calvin** (`docs/experiments/calvin/`): a model or tool that can
+  program in one language, intentionally not general, and not
+  necessarily an LLM (ADR-152). The lattice programme (ADR-151, about
+  $21.50, E0–E4 and D-11–D-16) tested one form of it, a stock
+  multilingual coder steered by context and one LoRA: pattern shots
+  carry, training sharpened reading and not skill, facts about names do
+  not steer at either size. It closed for now on 2026-09-28. **The design
+  is being reassessed before any run** (`calvin-reassessment.md`): round 1
+  (routes and literature) found that restriction works as a mechanism
+  (decoder, output language, verifier), not as advice or training, and
+  that "efficient" and "aligned" were never measured; round 2 is out.
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its

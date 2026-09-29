@@ -1,4 +1,4 @@
-# Calvin as a harness — the environment stacked under the doer, validated by use
+# Shanks — the harness: the environment stacked under the doer, validated by use
 
 **Status:** built 2026-09-12 (Hobbes 0.1.21-beta, ADR-107). Validated by use (40 sessions, Max, 2026-09-13; passed 2026-09-17), and still the way work is done: each dispatched session has its log in [`sessions/`](sessions/README.md), and the tracker at that README's end is the count. Since then the progress hook (0.2.6-beta, ADR-107's second amendment) puts the doer's edits in the flight log, and the dispatch box's policy (0.2.7-beta) settles `rm` and C's toolchain probes. **Retention amended the same day (0.1.22-beta):** the doer's reasoning is never stored, and recorded sessions are evaluation rows, never model training data (the retention section below).
 **Supersedes, as an approach:** the keyed rounds. Their records stand as history:
@@ -6,7 +6,13 @@
 - M0-Go ([`calvin-m0-go.md`](../experiments/calvin/keyed-rounds/calvin-m0-go.md), [`calvin-m0-go-r2.md`](../experiments/calvin/keyed-rounds/calvin-m0-go-r2.md));
 - M0-Gate ([`calvin-m0-gate.md`](../experiments/calvin/keyed-rounds/calvin-m0-gate.md)).
 
-**The role is unchanged:** [`calvin-charter.md`](calvin-charter.md) still says what Calvin is for.
+**Named Shanks on 2026-09-28** ([ADR-152](../adr/152-the-harness-is-shanks-calvin-is-the-model.md)). ADR-107 called it
+"Calvin as a harness", and the records before that date use the old name. Shanks is **Calvin's accepted lowest
+floor**, what the keyed rounds below left standing. It treats a symptom: it checks a frontier doer's finished
+diff, and changes nothing about what writes it. **It is not Calvin's design.** Calvin, a model or tool that can
+program in a language and is intentionally not general, is the programme in
+[`../experiments/calvin/`](../experiments/calvin/README.md). Its role is in
+[`calvin-charter.md`](../experiments/calvin/calvin-charter.md), and a Calvin result is measured against Shanks.
 
 ## 1. Why the approach changed
 
@@ -58,7 +64,7 @@ flowchart TB
   SC -->|"hobbes-egress bridge"| API[("api.anthropic.com:443")]
   SES -->|"branch hobbes/&lt;session&gt;"| GATE["hobbes gate<br/>map derived from the parent's graph"]
   GATE --> VER["hobbes verify<br/>(optional)"]
-  VER --> LOG["docs/calvin/sessions/&lt;session&gt;.md<br/>record + review block"]
+  VER --> LOG["docs/shanks/sessions/&lt;session&gt;.md<br/>record + review block"]
   LOG --> DEV
 ```
 
@@ -71,7 +77,7 @@ flowchart TB
 | The doer | Claude Code, the host's binary, the owner's subscription token | no Bash; no repo `.mcp.json`; no self-update or telemetry; refused up front without a binary, a token or a route | not reproducible (**C-128**) |
 | `hobbes gate` | grounder v3, the complement split against a map derived from the parent's graph, the partition check when one is given | clear or blocked with the class, deterministic, the record hashed | a created file in a new directory reads `unmapped` (**C-126**); `unknown` stays advisory (C-121) |
 | `hobbes verify` | the diff's guarding tests in the sandbox, with and without it | pass, fail, vacuous, and the build row, contained | a behaviour no test reaches (C-93) |
-| The log | one file per session under `docs/calvin/sessions/` | what ran, under what, and what the gate and verify said; the doer's output only; an evaluation row, never training data | graded by the developer, not by an answer key (**C-127**); the training guard's reach (**C-129**) |
+| The log | one file per session under `docs/shanks/sessions/` | what ran, under what, and what the gate and verify said; the doer's output only; an evaluation row, never training data | graded by the developer, not by an answer key (**C-127**); the training guard's reach (**C-129**) |
 
 ## 3. Decisions (Max, 2026-09-12)
 
@@ -87,7 +93,7 @@ flowchart TB
 
 ## 4. How it is validated — the per-session log
 
-Every dispatch writes `docs/calvin/sessions/<session>.md`. The
+Every dispatch writes `docs/shanks/sessions/<session>.md`. The
 harness's record comes first, then the developer's review block:
 
 - `gate:` one of
@@ -135,7 +141,7 @@ the work runs in.
   cost, the gate and review verdicts, the outcome and the area.
 - Under the rows are the totals against this rule: the count toward 40,
   the areas, false blocks, missed, and refusals.
-- `pipeline/scripts/calvin_tracker.py render` writes it from the logs.
+- `pipeline/scripts/shanks_tracker.py render` writes it from the logs.
   A pytest drift test fails when a log changes and the table does not,
   so re-render after filling a review block.
 
@@ -162,7 +168,7 @@ What matters, and what is kept, is the doer's output.
 - **Never training — enforced, not only stated.** `ttt.units.units_from_git`,
   the git source of `hobbes derive-corpus`'s units, skips every commit
   the dispatch identity authored and every path under
-  `docs/calvin/sessions/`. So a doer's commit is **merged, never
+  `docs/shanks/sessions/`. So a doer's commit is **merged, never
   squashed**: squashing erases the authorship the guard reads.
 - **The guard's reach (C-129).** Once merged, a doer's code is part of
   the tree, and a corpus rendered from the tree at a later SHA contains

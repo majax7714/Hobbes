@@ -1,12 +1,12 @@
-"""The Calvin harness's session tracker (`docs/calvin/calvin-harness.md` §4).
+"""Shanks's session tracker (`docs/shanks/shanks-harness.md` §4; the harness was named Shanks by ADR-152).
 
-The logs under `docs/calvin/sessions/S-*.md` are the record: this script
+The logs under `docs/shanks/sessions/S-*.md` are the record: this script
 reads them and renders the count, the areas and the verdicts into one
 table. It keeps nothing of its own — a stale table is a rendering bug,
 not a data-entry one.
 
-    python3 scripts/calvin_tracker.py render   # rewrite the README's tracker block
-    python3 scripts/calvin_tracker.py check    # exit 1 if that block is stale
+    python3 scripts/shanks_tracker.py render   # rewrite the README's tracker block
+    python3 scripts/shanks_tracker.py check    # exit 1 if that block is stale
 
 A line among the seven the harness writes (`**Task:**`, `**Doer:**`,
 `**Egress:**`, `**Policy:**`, `**Branch:**`, `**Gate:**`, `**Verify:**`)
@@ -23,13 +23,13 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SESSIONS_DIR = REPO_ROOT / "docs" / "calvin" / "sessions"
+SESSIONS_DIR = REPO_ROOT / "docs" / "shanks" / "sessions"
 README = SESSIONS_DIR / "README.md"
 
 BEGIN = "<!-- tracker:begin -->"
 END = "<!-- tracker:end -->"
 
-#: Max's validation target (`calvin-harness.md` §4, 2026-09-13).
+#: Max's validation target (`shanks-harness.md` §4, 2026-09-13).
 TARGET_SESSIONS = 40
 
 #: A file's area, by the first prefix it matches, checked in this order.
@@ -45,7 +45,8 @@ AREA_TABLE = [
         "go/cmd/hobbes-session/", "go/cmd/hobbes-policy/", "go/cmd/hobbes-proxy/",
         "pipeline/src/hobbes/run/", "pipeline/src/hobbes/derive/",
         "pipeline/src/hobbes/bench/bench.box.policy", "sandbox/",
-        "pipeline/scripts/calvin_tracker.py",
+        "pipeline/scripts/shanks_tracker.py",
+        "pipeline/scripts/calvin_tracker.py",  # its name before ADR-152; past sessions touched it there
     )),
 ]
 
@@ -90,7 +91,7 @@ FILE_RE = re.compile(r"`([^`]+)`")
 # 0.2.28-beta moved the grounder to v4 for C-91 and the first session run
 # at v4 (`S-20260916T153010Z-8170`) could not be parsed at all — the
 # tracker refusing the harness's own current output. Every fixture in
-# test_calvin_tracker.py held the same two literals, so the drift test
+# test_shanks_tracker.py (then test_calvin_tracker.py) held the same two literals, so the drift test
 # could not see it either: a rule-version bump is a routine event, and
 # nothing here may depend on its value.
 GATE_RE = re.compile(
@@ -288,7 +289,7 @@ def render_table(records: list[dict]) -> str:
         f"(the envelope's figure, on the subscription) · turns {turns_total} · wall {wall_min} min"
     )
     lines.append(
-        "This block is rendered by `pipeline/scripts/calvin_tracker.py render` from the logs "
+        "This block is rendered by `pipeline/scripts/shanks_tracker.py render` from the logs "
         "and is not edited by hand."
     )
     return "\n".join(lines)
@@ -320,7 +321,7 @@ def cmd_check(_args: argparse.Namespace) -> int:
     records = load_sessions()
     fresh = render_table(records)
     if current_block(README.read_text()) != fresh:
-        print(f"{README} is stale — run `pipeline/scripts/calvin_tracker.py render`")
+        print(f"{README} is stale — run `pipeline/scripts/shanks_tracker.py render`")
         return 1
     return 0
 

@@ -1,9 +1,10 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-28 (twenty-second session); Hobbes 0.2.71-beta on `main`.**
-Max pushed through `45e67a5` (D-15 taken, 2026-09-27), so `main` and
-`origin/main` agree. The image and the proxy are at 0.2.71-beta and this repo
-is ingested at that release. A new
+**Reviewed 2026-09-28 (twenty-third session); Hobbes 0.2.72-beta on `main`.**
+Max pushed through `45e67a5` (D-15 taken, 2026-09-27); `main` is ahead of
+`origin/main` by this day's commits, unpushed. The image and the proxy are at
+0.2.72-beta; ingest this repo at HEAD before relying on the knowledge tools
+(the rename moved files). A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
 the restart after a rebuild is the closing session's last step, never a
@@ -27,28 +28,30 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-28, twenty-second session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-28, twenty-third session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**The Calvin experiments are closed for now** (Max, 2026-09-28: "close for now, not close calvin completely").
-D-16 gave no positive result, and the closing rule was written before its calls. The harness stays the way work
-is done. Max next either reassesses the programme or picks another piece of Hobbes, so **ask him which before
-starting new work**. Extraction (below) is the standing default.
-- **The experiments are split into two programmes** (Max, 2026-09-28): `docs/experiments/README.md`.
-  **Mapped agents** (`mapped-agents/`: the benchmark, agent mapping, TTT) holds that smaller tasks with
-  better context let smaller models compete. **Calvin** (`calvin/`: the lattice, Atlas-0, the keyed rounds)
-  is a model that can only code. Each README carries an **observed register** (`MA-1…18`, `CV-1…21`).
-  **Read it before proposing any run,** so nothing already observed is run again. The harness stays in
-  `docs/calvin/`; its keyed rounds are Calvin's accepted lower bound as a product.
-- **The summary** is `docs/experiments/calvin/calvin-experiments.md` §6, "Where the programme stands". Pattern carries (E1, E4, D-11);
-  training sharpens reading, not skill (E3, E2); facts about names do not steer at either size (D-12 to D-15);
-  size is priced (D-11). About $21.50 was spent over the programme.
-- **D-15/D-16, the last runs** (≈ $3.08 of $4; `d15/`):
-  - 32B S-3h − S-2h is +0.017 (p 0.34), and S-3hf − S-3hd through round 1 is +0.002 (p 0.86). Both are null.
-  - The retry alone buys +0.04 at the 32B (p < 0.0001), against the 7B's +0.02.
-  - The lines cut the ruled-out reuse almost in half (22 against 40), and nothing passes for it.
+**Calvin is being reassessed before any run** (Max, 2026-09-28: "we need a more cohesive design of calvin before
+progressing through experimenting"). **The harness is now Shanks** (ADR-152, 0.2.72-beta): Calvin's accepted
+lowest floor from the keyed rounds, treating a symptom, not Calvin's design. Calvin is a model or tool that can
+program in one language, intentionally not general, and not necessarily an LLM.
+- **The record:** `docs/experiments/calvin/calvin-reassessment.md`.
+  - **Round 1:** the thesis decomposed; routes R1 to R23 against the register; the literature; designs A, B and C.
+    The finding: restriction works as a mechanism, not as advice or training, and "efficient" and "aligned" were
+    never measured.
+  - **Round 2:** two agents (routes, with the zero-spend probes; and literature, including non-LLM forms of Calvin
+    and the load-bearing papers read past the abstract). They were sent 2026-09-28, and their results land in §10.
+    If §10 is still empty, they did not finish in that session: re-send them from §8 and ADR-152.
+- **Next:** Max chooses a design, or asks for another round, **before any spend**. The zero-spend probes still
+  open are listed in §8 of the reassessment.
+- **The experiments are split into two programmes** (`docs/experiments/README.md`). Each README carries an
+  observed register (`MA-1…18`, `CV-1…21`). **Read it before proposing any run.**
+- **The lattice's summary** is `calvin-experiments.md` §6, "Where the programme stands": pattern carries, training
+  sharpens reading and not skill, facts about names do not steer at either size, and size is priced. About $21.50
+  was spent.
+- **Extraction** (below) is the standing default when Calvin is not the work.
 - **Costs, learned** (for any later model run):
   - The runner's estimate assumes every answer runs to `max_tokens`. At round 0 it runs 3.5× to 6× high; at a
     32B round 1 only 1.1× to 1.7× high, because the time is the prompts'.
@@ -419,7 +422,7 @@ named below was removed unless it says otherwise.
      cost); the tracker's area for a test-only session (row 17, `—`);
      C-140's remainder (ADR-112's route 2); C-133's unit 2 (the `-I`
      read), deferred until a graded cell shows the cost.
-2. **Running a session** (`calvin-harness.md` §5):
+2. **Running a session** (`shanks-harness.md` §5):
    - Keep the token in the key file, and ingest at HEAD.
    - The doer's model is the checkout's: `HOBBES_DISPATCH_MODEL` in
      `.claude/settings.local.json` (this box: `claude-opus-5`); `--model`
@@ -436,7 +439,7 @@ named below was removed unless it says otherwise.
      fine; killing it does not touch the dispatch.
    - Review the session file and the diff. Merge with `git merge --no-ff`,
      never squash. **After filling the review block, re-render the
-     tracker** (`pipeline/scripts/calvin_tracker.py render`).
+     tracker** (`pipeline/scripts/shanks_tracker.py render`).
    - **Run every live and `lane_b` test on the host before merging**:
      they skip in the sandbox. `8302`'s blind `lane_b` assertion was red
      on the host, as live tests had been after `2aa9`, `3ebb` and
@@ -518,10 +521,10 @@ min each.
   is drawn through TypeScript's lanes and graded on five repos of its
   own (ADR-140), two with their dependencies installed (C-165). A TS/JS
   construction is drawn `calls` since 0.2.57-beta (ADR-142).
-- **The Calvin harness** (ADR-107, ADR-112): each session's state is
+- **Shanks, the harness** (ADR-107, ADR-112, ADR-152): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Ninety log files under `docs/calvin/sessions/`; the tracker reads 90 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
+  is a tmpfs. Ninety log files under `docs/shanks/sessions/`; the tracker reads 90 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 96 cells (22 same-key rows, C++'s two among them; flask's new
   cell at 0.2.68-beta's figures); `render.py

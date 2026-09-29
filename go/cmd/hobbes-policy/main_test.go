@@ -126,14 +126,14 @@ rules:
 	}
 }
 
-// TestCalvinBoxFormatsReadOnly resolves against the real dispatch box
-// (pipeline/src/hobbes/derive/calvin.box.policy). `gofmt -l` and `-d` run,
+// TestShanksBoxFormatsReadOnly resolves against the real dispatch box
+// (pipeline/src/hobbes/derive/shanks.box.policy). `gofmt -l` and `-d` run,
 // alone or after a `cd`, the way a doer issues them. Anything that writes
 // stays a question: `-w` under the allow rule, and `go fmt`, which no rule
 // names. Four `gofmt -l` escalations expired in S-20260912T174351Z-404f.
-func TestCalvinBoxFormatsReadOnly(t *testing.T) {
+func TestShanksBoxFormatsReadOnly(t *testing.T) {
 	repo := t.TempDir()
-	box, err := filepath.Abs(filepath.Join("..", "..", "..", "pipeline", "src", "hobbes", "derive", "calvin.box.policy"))
+	box, err := filepath.Abs(filepath.Join("..", "..", "..", "pipeline", "src", "hobbes", "derive", "shanks.box.policy"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,16 +155,16 @@ func TestCalvinBoxFormatsReadOnly(t *testing.T) {
 	}
 }
 
-// TestCalvinBoxRemovesAndProbes resolves the box policy Max approved on
+// TestShanksBoxRemovesAndProbes resolves the box policy Max approved on
 // 2026-09-12 against the real dispatch box. A plain `rm` runs; a recursive
 // one stays a question, in each spelling the glob can see (`-r`, `-R`, the
 // `-fr`/`-fR` clusters, `--recursive`), alone or after a `cd`. `clang`,
 // `cmake` and `bear` answer `--version`, the probes whose escalations
 // expired in S-20260912T204447Z-9396; anything else they do takes the
 // default. The box's header says why an escalation here is not a boundary.
-func TestCalvinBoxRemovesAndProbes(t *testing.T) {
+func TestShanksBoxRemovesAndProbes(t *testing.T) {
 	repo := t.TempDir()
-	box, err := filepath.Abs(filepath.Join("..", "..", "..", "pipeline", "src", "hobbes", "derive", "calvin.box.policy"))
+	box, err := filepath.Abs(filepath.Join("..", "..", "..", "pipeline", "src", "hobbes", "derive", "shanks.box.policy"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +204,7 @@ func TestCalvinBoxRemovesAndProbes(t *testing.T) {
 func TestFindsExecutingFormsAndXargsEscalateInBothBoxes(t *testing.T) {
 	repo := t.TempDir()
 	for _, boxRel := range []string{
-		filepath.Join("..", "..", "..", "pipeline", "src", "hobbes", "derive", "calvin.box.policy"),
+		filepath.Join("..", "..", "..", "pipeline", "src", "hobbes", "derive", "shanks.box.policy"),
 		filepath.Join("..", "..", "..", "pipeline", "src", "hobbes", "bench", "bench.box.policy"),
 	} {
 		box, err := filepath.Abs(boxRel)

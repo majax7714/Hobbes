@@ -9,7 +9,7 @@
 Each file here is written by `hobbes dispatch` (ADR-107) when a session
 ends. It is named by the session id (`S-<utc>-<4 hex>.md`), so the
 files sort by time. The rule these files are read by is
-[`../calvin-harness.md`](../calvin-harness.md) §4.
+[`../shanks-harness.md`](../shanks-harness.md) §4.
 
 A file has two parts:
 
@@ -144,6 +144,6 @@ its authorship is what keeps it out of any training unit.
 90 of 40 sessions · areas: extraction, knowledge tools, oracle lane, harness and sandbox (4; at least 3) · false blocks 4 · missed 0
 refusals: egress 103, policy escalations 272, denies 1 (each read in its session's notes, §4)
 reported cost $568.92 over 89 of 90 sessions (the envelope's figure, on the subscription) · turns 6130 · wall 1205 min
-This block is rendered by `pipeline/scripts/calvin_tracker.py render` from the logs and is not edited by hand.
+This block is rendered by `pipeline/scripts/shanks_tracker.py render` from the logs and is not edited by hand.
 
 <!-- tracker:end -->

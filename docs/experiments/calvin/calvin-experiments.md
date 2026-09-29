@@ -4,8 +4,8 @@
 no positive result. The summary is in §6, "Where the programme stands". E0 to E4 and D-11 to D-15 were run;
 E5 to E7 are parked · **Type:** programme page — the design space, the experiments in it, the order, the
 decisions · **Compute:** about $21.50 over the programme, each run on Max's word and ceiling; nothing more until he
-reassesses ·
-**Charter:** [`calvin-charter.md`](../../calvin/calvin-charter.md), with the one reading this page asks of
+reassesses. **The design reassessment** (2026-09-28) is [`calvin-reassessment.md`](calvin-reassessment.md) ·
+**Charter:** [`calvin-charter.md`](calvin-charter.md), with the one reading this page asks of
 it in §3 (decision D-1) · **Priors:** ADR-099 ([`olmo3-ttt-results.md`](../mapped-agents/ttt/olmo3-ttt-results.md)),
 the keyed rounds ([`calvin-potential.md`](keyed-rounds/calvin-potential.md) and after), Atlas-0
 ([`atlas-0.md`](atlas0/atlas-0.md)) · **The target's cell:**
@@ -1566,7 +1566,7 @@ Max asked for a direction. This is it: **E0 → E1 (with E2's shadow as an arm) 
 - **Facts are never trained in** (§3). A training corpus contains no sqlite-vector code, and
   G-mem checks that before and after. The adapters train on patterns from other repos.
 - **No dispatched session is training data** (ADR-107). The session records under
-  `docs/calvin/sessions/` and the dispatch identity's commits are never rendered into a
+  `docs/shanks/sessions/` and the dispatch identity's commits are never rendered into a
   corpus. `units_from_git` already refuses them; E3's miner must refuse them too, and it
   gets a test for that.
 - **Spend is held** until Max names the run and its ceiling. The first unit is priced
@@ -1900,6 +1900,9 @@ No work found in the four searches does any of these:
 4. **A general model used only as a parser into a task format, with a smaller writer.**
    No paper in the searches does this at inference. CodePLAN trains a teacher's plans in.
    FunCoder and MapCoder-Lite keep one model.
+   *Softened 2026-09-28:* the reassessment's search found near precedents (DURIT, Cascaded Code
+   Editing, Aider's architect/editor, Factor(U,T), MinionS; [`calvin-reassessment.md`](calvin-reassessment.md)
+   §9). Items 1 and 2 stand.
 
 ### 12.7 What it changed on this page
 

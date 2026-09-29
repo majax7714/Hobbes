@@ -14713,3 +14713,53 @@ only).
   - The frozen records are untouched: this file, the CHANGELOG, the session logs and the constraints'
     HISTORY.
   - The broken-link count is 14 before and after, the same 14.
+
+## 2026-09-28 (twenty-third session) — the top-level docs reviewed; Calvin reassessed, round 1; the harness named Shanks (ADR-152) — 0.2.72-beta
+
+Max: *"review top level documentation. then … reassess calvins design … instead of loading up a new experiment,
+the efficient thing is to take that idea and look through every route which could make sense against whats been
+tested … send 2 agents out."* No spend: nothing ran a model.
+
+**Round 1 of the reassessment** (`docs/experiments/calvin/calvin-reassessment.md`):
+- **Two reading agents.** One mapped every route against CV-1 to CV-21 and MA-1 to MA-18. The other surveyed the
+  literature beyond §12's 2026-09-24 pass.
+- **The thesis decomposed.** Of its six claims, the lattice measured capability in context on one lattice. "Only
+  codes", "one language", "efficient" and "aligned" were never variables, so they are untested, not refuted.
+- **Both passes agree:** a restriction works as a mechanism (decoder, output language, verifier), not as advice or
+  training. The literature adds four points:
+  - narrow code fine-tuning is a documented misalignment hazard, strongest in Qwen2.5-Coder-32B's family (Betley
+    et al.);
+  - monitors that read an untrusted planner's decomposition score AUROC 0.52, against 0.96 for monitors that read
+    the code (Factor(U,T));
+  - negated prompts get worse as models scale, and 476 of D-13's 477 lines were negatives;
+  - the efficiency in the literature comes from verifier-gated sampling and calling the planner on failure.
+- **A zero-spend probe of D-11's stored rows,** which I re-ran: the 7B choosing among 10 samples passes 76 of 127
+  units (0.60), against the 32B's greedy 78 of 127 (0.61), at about the same money. The graders that choose also
+  grade, which is fair only where a reference exists at inference.
+- **The record:** routes R1 to R23, proposed definitions of efficient and aligned, and designs A, B and C (A
+  recommended in round 1). §12.6 item 4 of the lattice page was softened: near precedents exist.
+
+**ADR-152: the harness is Shanks; Calvin is the model** (Max: "calvin might not be a typical llm … the gated
+harness which was called calvin we can rename shanks to keep the difference … it looks to treat a symptom";
+route taken: the full rename).
+- **Moved:**
+  - `docs/calvin/` → `docs/shanks/` (`shanks-harness.md`, and `sessions/` with the 90 logs moved as they are);
+  - `calvin.box.policy` → `shanks.box.policy`;
+  - `calvin_tracker.py` → `shanks_tracker.py`, with its test;
+  - the charter to `docs/experiments/calvin/`.
+- **A silent regression caught before it landed.** `ttt.units.EVAL_ROW_PREFIX` was derived from dispatch's
+  `LOG_DIR`, so moving `LOG_DIR` alone would have stopped `units_from_git` from refusing the 90 records git history
+  still holds at the old path. Now `EVAL_ROW_PREFIXES` covers `LOG_DIR` and `LEGACY_LOG_DIRS`, and the lattice
+  corpus's `SESSION_MARKERS` names both paths. Each path has its own test.
+- **The tracker** keeps the old script path in its area table, so past sessions keep their area. Its block moved
+  by one line.
+- **A mechanical pass over-reached, and I reverted it.** It had rewritten file names inside dated records (for
+  example "`shanks.box.policy` allows `go generate`" on 2026-09-11). Records keep the name they were written
+  under, so only link targets changed. Broken relative links: 14 at HEAD and 14 after, the same 14.
+- **The docs brought to the naming:** CLAUDE.md, AGENTS.md, README, the architecture (§6.3, the §8 header and the
+  status row), the constraints' dispatch segment, workstreams, first-run, and the experiments index and README.
+- **Checks:** 0.2.72-beta. Every suite ran green on the host: 2,412 pytest; Go all ok, with the two box tests run by
+  name under `-v`; the lattice at 625 passed and 32 skipped; web, tsextract and scip. The image was rebuilt.
+
+**Round 2** is sent with round 1's findings and ADR-152's framing, in which Calvin need not be an LLM. It has two
+agents, routes and literature, and its record lands in §10 of the reassessment.

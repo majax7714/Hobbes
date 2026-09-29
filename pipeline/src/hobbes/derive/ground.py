@@ -4,7 +4,7 @@ Deterministic and model-free. In: a template (`hobbes.derive.holes`
 v0), the orchestrator's fills, the ledger at the parent SHA and the
 repo read only through ``git`` at that SHA. Out: a diff that applies at
 the SHA, a **NULL list**, a **read-trace**, and the counts the charter's
-invariants are measured by (`docs/calvin/calvin-charter.md` §4).
+invariants are measured by (`docs/experiments/calvin/calvin-charter.md` §4).
 
 **Placement (I3).** Every fill lands in the span its hole names, or in
 the span the fill itself names (a ``FREEFORM`` entry, a ``NEW_SYMBOL``

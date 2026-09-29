@@ -366,7 +366,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.71-beta** (2026-09-26). The Hobbes layer is versioned from here
+**Hobbes 0.2.72-beta** (2026-09-28). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -424,8 +424,14 @@ loaded into a 7B's weights instead of its prompt: the loss falls, but
 the navigation does not follow at that step count
 ([`docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md`](docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md)).
 
-**Calvin** is the layer that makes an agent's edit true against the
-graph ([`docs/calvin/calvin-charter.md`](docs/calvin/calvin-charter.md)).
+**Calvin** is a model or tool that can program in one language and is
+intentionally not general. It need not be a typical LLM. Its role is
+the charter
+([`docs/experiments/calvin/calvin-charter.md`](docs/experiments/calvin/calvin-charter.md)):
+make an intended change true against the graph, and be wrong only in
+ways that are visible. Its design is being reassessed before any
+further run
+([`docs/experiments/calvin/calvin-reassessment.md`](docs/experiments/calvin/calvin-reassessment.md)).
 It was first measured in three keyed rounds: M0, M0-Go and M0-Gate,
 about $27 in all. That approach did not validate itself: each round
 found a defect in its own instrument, and the floor it sought showed up
@@ -433,15 +439,17 @@ only as a safety property, never as a helper. One shape held. A
 frontier agent does the work, and `hobbes gate` judges its finished
 diff: it blocks real errors, with no false block on gold.
 
-**Calvin is now a harness**
-([`docs/calvin/calvin-harness.md`](docs/calvin/calvin-harness.md),
-ADR-107):
+**That shape is Shanks, the harness**
+([`docs/shanks/shanks-harness.md`](docs/shanks/shanks-harness.md),
+ADR-107; named Shanks by ADR-152). It was called "Calvin as a harness"
+until 2026-09-28. Shanks is Calvin's accepted lowest floor, and it
+treats a symptom, an unchecked diff; it is not Calvin's design:
 - `hobbes dispatch` hands one task to Claude Code inside
   `hobbes-session`.
 - The session's only route off the box is an egress allowlist naming
   the model endpoint.
 - The finished diff is gated and verified.
-- Each session writes one log file under `docs/calvin/sessions/`, and
+- Each session writes one log file under `docs/shanks/sessions/`, and
   the developer reviews it.
 
 It is validated by use on Hobbes' own development, not by a benchmark.
@@ -449,7 +457,7 @@ The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
 dispatched on 2026-09-12, and ninety session logs stand. The
 tracker at the end of
-[`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
+[`docs/shanks/sessions/README.md`](docs/shanks/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
 2026-09-13); it passed that mark on 2026-09-17 with one false block
 (closed) and none missed, and it stays the way work is done. Three more
@@ -540,8 +548,8 @@ point); the session-by-session record is
 | [`docs/experiments/mapped-agents/benchmark-hypotheses.md`](docs/experiments/mapped-agents/benchmark-hypotheses.md) | The preregistered benchmark claims and every run's results, including the contamination finding |
 | [`docs/experiments/mapped-agents/benchmark-deepswe.md`](docs/experiments/mapped-agents/benchmark-deepswe.md) | The redirect to DeepSWE 1.1 (Pier + mini-swe-agent) and why |
 | [`docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md`](docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
-| [`docs/calvin/calvin-harness.md`](docs/calvin/calvin-harness.md) | **Calvin as a harness (ADR-107):** `hobbes dispatch`, the egress allowlist, the doer in the session, the gate on its diff, and how the harness is validated. The per-session logs are in `docs/calvin/sessions/`; the charter is `docs/calvin/calvin-charter.md` |
-| [`docs/calvin/`](docs/calvin/) — the keyed rounds, closed | M0 ([`calvin-potential.md`](docs/experiments/calvin/keyed-rounds/calvin-potential.md)), M0-Go ([`calvin-m0-go.md`](docs/experiments/calvin/keyed-rounds/calvin-m0-go.md), [round 2](docs/experiments/calvin/keyed-rounds/calvin-m0-go-r2.md)) and M0-Gate ([`calvin-m0-gate.md`](docs/experiments/calvin/keyed-rounds/calvin-m0-gate.md)). Each record keeps its design, §10 results and gate record, and each cell page is under `docs/experiments/calvin/keyed-rounds/cells/`. History since 2026-09-12 |
+| [`docs/shanks/shanks-harness.md`](docs/shanks/shanks-harness.md) | **Shanks, the harness (ADR-107, ADR-152):** `hobbes dispatch`, the egress allowlist, the doer in the session, the gate on its diff, and how the harness is validated. The per-session logs are in `docs/shanks/sessions/`. Shanks is Calvin's accepted lowest floor, not Calvin's design |
+| [`docs/experiments/calvin/keyed-rounds/`](docs/experiments/calvin/keyed-rounds/) — the keyed rounds, closed | M0 ([`calvin-potential.md`](docs/experiments/calvin/keyed-rounds/calvin-potential.md)), M0-Go ([`calvin-m0-go.md`](docs/experiments/calvin/keyed-rounds/calvin-m0-go.md), [round 2](docs/experiments/calvin/keyed-rounds/calvin-m0-go-r2.md)) and M0-Gate ([`calvin-m0-gate.md`](docs/experiments/calvin/keyed-rounds/calvin-m0-gate.md)). Each record keeps its design, §10 results and gate record, and each cell page is under `docs/experiments/calvin/keyed-rounds/cells/`. History since 2026-09-12 |
 | [`docs/experiments/calvin/calvin-experiments.md`](docs/experiments/calvin/calvin-experiments.md) | The Calvin experiments programme (ADR-151): a model that writes one language (C), starting from sqlite-vector's SIMD kernel lattice. The design space, experiments E0–E7, and the decisions taken. E0, the instruments, built and accepted 2026-09-25; E1 run on both 7Bs over all 93 cells (2026-09-25, $6.59 of $10); E2 run on two rename shadows (2026-09-26, $1.89 of $3); E3 next, on the lead's word |
 | [`docs/experiments/calvin/atlas0/atlas-0.md`](docs/experiments/calvin/atlas0/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
 | [`docs/reviews/`](docs/reviews/) | Dated agent reviews of the tree against its records (the 2026-09-10 baseline) |

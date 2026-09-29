@@ -2,7 +2,7 @@
 
 > **Closed as an approach, 2026-09-12 (Max; ADR-107).** Calvin is now
 > approached as a harness validated by use:
-> [`calvin-harness.md`](../../../calvin/calvin-harness.md). This record stands as
+> [`calvin-harness.md`](../../../shanks/shanks-harness.md). This record stands as
 > history, and its held next steps are superseded.
 
 **Status:** run and closed 2026-09-11 (Max) — **the floor is not established at A2 on Haiku 4.5**. Across WP-6, WP-8 and WP-10, T < O on O's five keys; on the three recall-free keys the two are not separable (§10). Written as a handoff for an orchestrator agent that assigns work packages to sub-agents · **Type:** pipeline experiment (preregistered readings, attribution-first) · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model.

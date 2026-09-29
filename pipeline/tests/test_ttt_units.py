@@ -265,7 +265,8 @@ class TestScore:
 
 def test_units_from_git_never_take_a_doers_commit_or_a_session_record(tmp_path):
     """ADR-107's retention amendment: recorded sessions are evaluation rows, never model training data — no unit comes from a
-    commit the dispatch identity authored, or from a file under docs/calvin/sessions/."""
+    commit the dispatch identity authored, or from a file under docs/shanks/sessions/ — or under docs/calvin/sessions/, where
+    the records lived before ADR-152 and where git history still holds them."""
     import subprocess as sp
 
     from hobbes.ttt.units import units_from_git
@@ -292,4 +293,9 @@ def test_units_from_git_never_take_a_doers_commit_or_a_session_record(tmp_path):
     (root / "c.py").write_text(body)
     git("add", ".")
     git("commit", "-qm", "a session record beside the developer's work")
-    assert [u.id.split(":", 1)[1] for u in units_from_git(root, "HEAD~3")] == ["a.py", "c.py"]
+    (root / "docs" / "shanks" / "sessions").mkdir(parents=True)
+    (root / "docs" / "shanks" / "sessions" / "S-2.md").write_text(body.replace("def ", "- def "))
+    (root / "d.py").write_text(body)
+    git("add", ".")
+    git("commit", "-qm", "a session record at the records' path since ADR-152")
+    assert [u.id.split(":", 1)[1] for u in units_from_git(root, "HEAD~4")] == ["a.py", "c.py", "d.py"]

@@ -50,7 +50,7 @@ the task text alone (lexical seeds, C-36 — the same input arm T's
 anchor pass gets; a refusal is recorded, not seeded from gold), the
 units' manifests rendered into an ADR-077-shaped brief, a session
 through ``hobbes-session`` with the proxy's policy-checked ``exec``
-(the box policy `calvin.box.policy` plus an agent policy allowing the
+(the box policy `shanks.box.policy` plus an agent policy allowing the
 guards), the knowledge tools **withheld** (``--mcp-tools exec``: the
 manifest is the only Hobbes in O, as the template is the only Hobbes
 in T), and the session's patch grounded by the same grounder T uses
@@ -87,7 +87,7 @@ LOOP_PATH = Path(__file__).resolve().parents[1] / "agent" / "loop.py"
 O_TOKEN_BUDGET = 1_000_000
 #: The box policy an arm-O session runs under: the benchmark floor
 #: (ADR-057) plus the test runners this repo's guards need in the image.
-CALVIN_BOX = Path(__file__).resolve().parent / "calvin.box.policy"
+SHANKS_BOX = Path(__file__).resolve().parent / "shanks.box.policy"
 #: A dependency tree the harness may link, by the manifest beside it.
 #: Regenerable from a lockfile, never authored — the ADR-032 rule.
 DEP_DIRS = {"pyproject.toml": ".venv", "package.json": "node_modules"}
@@ -1128,7 +1128,7 @@ def o_agent_dir(spec: dict | None, L: T.Ledger, dest: Path) -> Path:
 
 def session_command(session_bin: str, clone: Path, sha: str, brief: Path, agent_dir: Path, env: Environment, *, base_url: str, model: str,
                     session_id: str, sessions_root: Path, max_turns: int = 40, max_tokens: int = 4096, loop_args: list[str] | None = None,
-                    runtime: Path = LOOP_PATH, box: Path = CALVIN_BOX, network: str = "pasta", knowledge: bool = False, timeout: str = "5s",
+                    runtime: Path = LOOP_PATH, box: Path = SHANKS_BOX, network: str = "pasta", knowledge: bool = False, timeout: str = "5s",
                     token_budget: int = O_TOKEN_BUDGET) -> list[str]:
     """The ``hobbes-session start`` argv for one arm-O session: the owned loop with exec through the proxy, the box and agent policies, the environment binding as read-only host mounts, the knowledge tools withheld unless *knowledge*."""
     cmd = [session_bin, "start", "--repo", str(clone), "--ref", sha, "--role", "implementer", "--session", session_id, "--sessions", str(sessions_root),
