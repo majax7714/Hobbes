@@ -1,7 +1,8 @@
 # Calvin — the reassessment of its design
 
-**Status:** rounds 1 and 2 recorded (2026-09-28); round 3 (§11) and Route 1's first session (§12) recorded
-(2026-09-29): verdict C, partial; the next step proposed is a deterministic lifter, not the paid prior run.
+**Status:** rounds 1 and 2 recorded (2026-09-28); round 3 (§11) and Route 1's sessions 1 and 2 (§12, §13)
+recorded (2026-09-29). Session 2's verdict: **closed**. The residual on this lattice is deterministic (compiler, lifter,
+solver, lookup), so Calvin has no job left on sqlite-vector; a second target is the open question.
 Round 2 (§10) corrects four round-1 readings, each marked where it sits ·  **Type:** design review. It runs nothing and spends nothing · **Why:** Max, 2026-09-28: *"calvin
 is a model or tool which can program in a language but that is intentionally not general. that is so insanely
 general that picking any specific point is difficult. instead of loading up a new experiment, the efficient thing
@@ -641,3 +642,48 @@ spend, no model call. The pre-registration, tools, outputs and results are off-t
 - **If the lifter closes the five, the residual on this lattice is Hobbes's by I7, and Calvin has no job here** (rule
   A's reading, reached one step later).
 - **Not measured:** any lowering to an ISA, speed, a second target, and the lattice driver's own bytes.
+
+## 13. Route 1, session 2 (2026-09-29): a deterministic lifter, and popcount by lookup
+
+Max, on §12's routes: *"good to proceed with recommended."* Zero spend, no model call. Pre-registered before any run
+(`route1-s1/PREREG-s2.md`); results in `route1-s1/RESULTS-s2.md`.
+
+**Part C, the lifter.**
+- **How it works:** tree-sitter-c reads each family's tail loop in `distance-cpu.c` and executes it symbolically, statement by statement, into
+  guarded map-reduce: skips, exits under "not skipped so far", and accumulations.
+- **Its output:** two-pass C. An OR of the exit condition over all lanes; then, only if it is set, a scalar scan
+  that returns the first exit. After that, select-masked reductions and the reference's own post-loop code.
+- **Its rule table has two entries,** written before the run: header calls pass through, and `LASSQ_UPDATE` becomes
+  a plain double sum of squares (exact up to rounding, since |e| < 2^128 for f16 and bf16).
+- **Anything else refuses.**
+
+**Part D, the lookup.** The target's NEON sibling computes the byte popcount with `vcntq_u8`. SIMDe, vendored in the
+40-repo draw, maps `vcntq_u8` to x86, and its SSE2 branch is the answer.
+
+| | result |
+|---|---|
+| lifted | **5 of 5**, none refused |
+| graded rows (seen, held out, swapped, and 112 new mixed rows: a same-sign and a mismatched inf pair in one vector, inf × 0, NaN beside inf, bf16 overflow) | **609 of 609 pass, in each of 3 builds**: `-O2`; `-O3` with reassociation; the same at the avx512 flags under clang 21, where every hot loop vectorizes |
+| vectorization (read, not decided) | every §11.2 "early exit with reductions" refusal is gone. On sse2 and avx2 the f16 reductions are declined by the cost model over a software f16→f32 conversion, not by legality |
+| popcount by lookup | SIMDe's SSE2 `vcntq_u8` = the gold `popcount_sse2` on all 65,536 16-bit patterns (exhaustive); the same sequence |
+
+**The rule's verdict: closed.** The residual §11 named is deterministic on this lattice:
+- 16 families come from the compiler;
+- the 5 guarded families are lifted, then compiled;
+- the NaN-to-zero select and `hsum128_ps` come from the solver (§12), and popcount from the lookup.
+
+By I7 all of it is Hobbes's. **Calvin has no job left on sqlite-vector at `0c2223a`**; Route 3, reached by evidence
+for this target.
+
+**Limits:**
+- **The lifter's coverage is partly by construction:** it was written after reading these five loops. It refuses
+  anything else, and it is untested on another target.
+- **Not measured:** speed; an intrinsic lowering where the compiler declines (sse2 and avx2 f16); the other
+  composition helpers, needed only if the output must be hand-shaped intrinsics.
+- **Non-finite answers:** the lifted kernels follow the scalar reference, and where the ISA golds differ (§10.2) that
+  is the target's non-finite policy.
+
+**What it leaves open:**
+- **A second target.** Does the lift-then-compile floor hold where the kernels are not a scalar loop with guards?
+  That is also Kapoor et al.'s out-of-distribution requirement (§10.5).
+- **The G-diff coverage finding** (§12), still proposed and not registered.

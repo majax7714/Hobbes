@@ -341,8 +341,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   legal-name mask buys +0.012 so the masked decoder is closed. Route 1's
   first session (§12, zero spend): all five guarded families expressible
   in a closed kernel language, three solved by search, two fail on
-  identifiability; popcount times out; verdict C. Next proposed: a
-  deterministic lifter, not the paid prior run (Max's call).
+  identifiability; popcount times out; verdict C. Session 2 (§13): a
+  deterministic lifter closes all five (609/609 rows) and popcount comes
+  from SIMDe by lookup, so the lattice's residual is deterministic and
+  Calvin has no job left on sqlite-vector; a second target, or back to
+  extraction, is Max's call.
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its

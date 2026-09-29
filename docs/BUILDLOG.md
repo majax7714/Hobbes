@@ -14837,3 +14837,20 @@ round 3's gaps are empirical, so the kill tests come first. Zero spend, no model
 - **Verdict C, partial.** I propose a deterministic lifter next, not the $1 prior run, because what failed was the
   oracle's information, not the search.
 - **Proposed for the register:** G-diff's specials put inf/NaN only in `a` or in both, so one-sided masks pass.
+
+**Later: Route 1, session 2** (Max: "good to proceed with recommended"). Pre-registered (`route1-s1/PREREG-s2.md`),
+zero spend; recorded in the reassessment's §13 and `route1-s1/RESULTS-s2.md`.
+- **A deterministic lifter** (tree-sitter-c over each family's tail loop; symbolic execution into skips, exits and
+  accumulations; two-pass C out; two rules: header calls pass through, LASSQ becomes a plain double sum of squares).
+  - All five families lifted, none refused.
+  - 609 of 609 rows pass in three builds, including the vectorized avx512 clang 21 build. The rows include 112 new
+    mixed ones: a same-sign and a mismatched inf pair in one vector, inf × 0, NaN beside inf, bf16 overflow.
+  - The "early exit with reductions" refusals are gone. On sse2 and avx2 the cost model declines the f16 reductions
+    over a software conversion.
+- **Popcount by lookup:** the NEON sibling's `vcntq_u8` → SIMDe's SSE2 branch (vendored in the draw) equals the gold
+  on all 65,536 16-bit patterns.
+- **The verdict is closed:** the lattice's residual is deterministic, so Calvin has no job on sqlite-vector.
+- **Limits:** the lifter's coverage is partly by construction (written after reading the five loops); speed and an
+  intrinsic lowering for sse2/avx2 f16 are not measured.
+- **A slip of my own:** my popcount test harness first called a SIMDe conversion that does not exist. Clang rejected
+  it and I replaced it with `memcpy`: an invented name, caught at compile time, in the tool rather than the model.

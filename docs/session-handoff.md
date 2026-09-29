@@ -66,9 +66,17 @@ program in one language, intentionally not general, and not necessarily an LLM.
     - The NaN-zero select and `hsum128_ps` are synthesised in under 1 s; `popcount_sse2` times out at 10 min.
     - Verdict C, partial.
     - Proposed for the register: G-diff's specials never put inf/NaN in `b` alone, so one-sided masks pass.
-- **Next (Max's call):** a deterministic lifter from the scalar loop into VK-g on the same five (zero spend), and
-  popcount by library lookup. This is proposed instead of the $1 prior run, which targets search, and search was not
-  what failed. Also for Max: whether to register the G-diff coverage finding and add `inf_b`/`nan_b`/mixed specials.
+  - **Route 1, session 2 (§13, Max: "good to proceed with recommended"; zero spend):**
+    - A tree-sitter lifter from each tail loop to two-pass C, with two rules. All five lifted, and 609/609 rows pass
+      in 3 builds, including 112 new mixed rows.
+    - The "early exit with reductions" refusals are gone; every hot loop vectorizes on avx512 under clang 21.
+    - popcount by lookup: the NEON sibling's `vcntq_u8` → SIMDe's SSE2 branch = the gold on all 65,536 patterns.
+    - **Verdict closed: Calvin has no job left on sqlite-vector.**
+- **Next (Max's call):**
+  1. Close Calvin on this lattice and return to extraction (the standing default).
+  2. Or test the floor on a second target first.
+  3. Separately, whether to register the G-diff coverage finding and add `inf_b`/`nan_b`/mixed specials, since it
+     bears on registered grades.
 - **The experiments are split into two programmes** (`docs/experiments/README.md`). Each README carries an
   observed register (`MA-1…18`, `CV-1…21`). **Read it before proposing any run.**
 - **The lattice's summary** is `calvin-experiments.md` §6, "Where the programme stands": pattern carries, training
