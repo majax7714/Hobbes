@@ -1,7 +1,7 @@
 [project]
 name = "lattice"
 version = "0.0.1"
-description = "The Calvin experiments' E0 instruments: sqlite-vector's SIMD kernel lattice, its holes and its graders (docs/calvin/calvin-experiments.md, ADR-151). Bench tooling, never product."
+description = "The Calvin experiments' E0 instruments: sqlite-vector's SIMD kernel lattice, its holes and its graders (docs/experiments/calvin/calvin-experiments.md, ADR-151). Bench tooling, never product."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"

@@ -14690,3 +14690,26 @@ Docs only: there is no version bump, no image rebuild and no spend.
   programme or picks another piece of Hobbes.
 
 There is no version bump and no image rebuild.
+
+**The experiments split into two programmes** (Max: "split the experiments up … to prevent experimenting over
+something we already observed"; routes taken: TTT to mapped agents, Atlas-0 to Calvin, the harness stays, docs
+only).
+- **`docs/experiments/`**:
+  - `README.md` states the shared root (reduce the room for chaos), the two theses, and the rule that the
+    register is read before proposing a run.
+  - `mapped-agents/` receives `docs/benchmark/` and `docs/ttt/`.
+  - `calvin/` receives `calvin-experiments.md`, `docs/atlas0/`, and the keyed rounds with their cells
+    (`keyed-rounds/`).
+- **Each programme's README carries an observed register:** MA-1 to MA-18 and CV-1 to CV-21, each with its
+  source, status and reach. They were drafted by two reading agents, and I checked their figures against
+  the records before writing. Two disagreements between sources are noted where they sit: TTT's 0.002
+  against +0.002, and M0-Go r2's +0.667 against +0.333.
+- **The keyed rounds are Calvin's accepted lower bound as a product** (Max). `docs/calvin/` keeps the
+  harness, the charter and `sessions/`, and gains a `README.md` that says so. `bench/README.md` maps each
+  bench directory to its programme.
+- **19 files moved** with `git mv`, and 62 files had their pointers re-resolved, including docstrings and
+  `--help` strings in `pipeline/` that name a doc path. That is a doc pointer, not a behaviour change, so
+  there is no version bump.
+  - The frozen records are untouched: this file, the CHANGELOG, the session logs and the constraints'
+    HISTORY.
+  - The broken-link count is 14 before and after, the same 14.

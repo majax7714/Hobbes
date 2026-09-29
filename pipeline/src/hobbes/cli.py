@@ -1203,7 +1203,7 @@ def _cmd_derive_corpus(args: argparse.Namespace) -> int:
 
 def _cmd_template(args: argparse.Namespace) -> int:
     """`hobbes template`: the Calvin M0 template for a task at a ledger's
-    SHA (`docs/calvin/calvin-potential.md` §2.1) — deterministic, model-free;
+    SHA (`docs/experiments/calvin/keyed-rounds/calvin-potential.md` §2.1) — deterministic, model-free;
     the holes in `hobbes.derive.holes` v0. Exit 0; 2 when the ledger or
     the SHA cannot be read.
     """
@@ -1241,7 +1241,7 @@ def _cmd_template(args: argparse.Namespace) -> int:
 
 
 def _cmd_ground(args: argparse.Namespace) -> int:
-    """`hobbes ground`: grounder v0 (`docs/calvin/calvin-potential.md` §2.3) —
+    """`hobbes ground`: grounder v0 (`docs/experiments/calvin/keyed-rounds/calvin-potential.md` §2.3) —
     a template plus a fills document at the ledger's SHA → the diff,
     the NULL list, the read-trace and the invariant counts; no model.
     Exit 0; 1 under --strict when anything is NULL, unfilled or refused;
@@ -1286,7 +1286,7 @@ def _cmd_ground(args: argparse.Namespace) -> int:
 
 
 def _cmd_gate(args: argparse.Namespace) -> int:
-    """`hobbes gate`: the linker on a finished diff (docs/calvin/calvin-m0-gate.md §2.2) —
+    """`hobbes gate`: the linker on a finished diff (docs/experiments/calvin/keyed-rounds/calvin-m0-gate.md §2.2) —
     grounder v3 over the diff at its parent, the complement split against the unit's
     blind-spot map, the partition check at file grain; the stamped record beside the
     diff (``<diff>.gate.json``), byte-identical on rerun; no model.
@@ -1379,7 +1379,7 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:
-    """`hobbes verify`: the local harness's behaviour verifier (`docs/calvin/calvin-potential.md` §2.4) —
+    """`hobbes verify`: the local harness's behaviour verifier (`docs/experiments/calvin/keyed-rounds/calvin-potential.md` §2.4) —
     a diff at the ledger's SHA → the tests the testmap says reach the edited code, run in the
     sandbox image offline with and without the diff, each classed against its baseline; no model.
     Exit 0 on a pass; 1 on a fail, a regression or a diff that does not apply; 2 when an input
@@ -2032,7 +2032,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     template_parser = sub.add_parser(
         "template",
-        help="the Calvin M0 template for a task at the ledger's SHA (docs/calvin/calvin-potential.md §2.1)",
+        help="the Calvin M0 template for a task at the ledger's SHA (docs/experiments/calvin/keyed-rounds/calvin-potential.md §2.1)",
         description=(
             "Expand a task into typed holes against the derived layer at its SHA: an anchor pass "
             "(backticks, paths, test ids, stack lines, literals, bare identifiers naming one node; "
@@ -2053,7 +2053,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     ground_parser = sub.add_parser(
         "ground",
-        help="grounder v0: a template plus fills at the ledger's SHA → diff, NULL list, read-trace (docs/calvin/calvin-potential.md §2.3)",
+        help="grounder v0: a template plus fills at the ledger's SHA → diff, NULL list, read-trace (docs/experiments/calvin/keyed-rounds/calvin-potential.md §2.3)",
         description=(
             "Calvin's slot with the residual set to zero. Every fill is placed in the span its hole "
             "or the fill names; the post-image is parsed by the language's lane-A provider and every "
@@ -2075,7 +2075,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     gate_parser = sub.add_parser(
         "gate",
-        help="the linker on a finished diff: grounder v3, the complement split, the partition check → clear or blocked (docs/calvin/calvin-m0-gate.md §2.2)",
+        help="the linker on a finished diff: grounder v3, the complement split, the partition check → clear or blocked (docs/experiments/calvin/keyed-rounds/calvin-m0-gate.md §2.2)",
         description=(
             "One deterministic pass over a diff at its parent, no model: grounder v3 on every reference "
             "in the added and changed lines (invented, near-miss, arity, undeclared-type, import-outside, "
@@ -2105,7 +2105,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     verify_parser = sub.add_parser(
         "verify",
-        help="the local harness: run the tests that reach a diff's edits in the sandbox, with and without it (docs/calvin/calvin-potential.md §2.4)",
+        help="the local harness: run the tests that reach a diff's edits in the sandbox, with and without it (docs/experiments/calvin/keyed-rounds/calvin-potential.md §2.4)",
         description=(
             "A diff at the ledger's SHA → the tests the testmap names as reaching the edited symbols "
             "(and every test in a test file the diff touches), run in the sandbox image offline, once "

@@ -72,14 +72,15 @@ box, against a repo on disk (architecture §10); the application mode in
 | You are…                                  | Read                                                                 |
 |-------------------------------------------|----------------------------------------------------------------------|
 | resuming the active programme             | `docs/session-handoff.md` → `docs/calvin/calvin-harness.md` (ADR-107) |
-| working on or through the Calvin harness  | `docs/calvin/calvin-harness.md` (§2 the stack, §4 the validation rule) + the per-session logs in `docs/calvin/sessions/`; the role is `docs/calvin/calvin-charter.md`. The closed keyed rounds are history: `calvin-potential.md` (M0), `calvin-m0-go.md` + `calvin-m0-go-r2.md` (M0-Go), `calvin-m0-gate.md` (M0-Gate), their cells in `docs/calvin/cells/`. The model programme (proposed, nothing run) is `calvin-experiments.md` |
+| working on or through the Calvin harness  | `docs/calvin/` (its `README.md`): `calvin-harness.md` (§2 the stack, §4 the validation rule) + the per-session logs in `sessions/`; the role is `calvin-charter.md`. The keyed rounds that produced it (Calvin's accepted lower bound as a product) are history in `docs/experiments/calvin/keyed-rounds/` |
+| proposing or reading an experiment        | `docs/experiments/README.md` — two programmes, **mapped agents** (smaller tasks, better context, smaller models) and **Calvin** (a model that can only code); **read the programme's observed register (`MA-n`, `CV-n`) before proposing a run** |
 | picking up an item from the backlog       | `docs/workstreams.md` (W0–W5), then the entry it cites               |
 | touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
 | touching sessions, policy or the sandbox  | architecture §6.3 and §7 + ADR-018, ADR-092, ADR-100, ADR-107        |
 | grading the graph against an oracle       | `docs/oracle/oracle-grading.md` + ADR-089; misses by class in `docs/oracle/oracle-misses.md`; the oracle's own defects in `docs/oracle/oracle-defects.md` + their review/tally in `docs/oracle/oracle-defect-review.md` |
-| touching derivation / agents / the bench  | architecture §6 + `docs/benchmark/agent-mapping.md` + `docs/benchmark/benchmark-hypotheses.md` |
-| running the test-time-training experiment | `docs/ttt/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/ttt/olmo3-ttt-results.md` |
-| reading or extending Atlas-0 (held)       | `docs/atlas0/atlas-0.md` (the step record at its end has the tables, the atlas entries and the v1 items; the B4 addendum) + `bench/atlas0/README.md` |
+| touching derivation / agents / the bench  | architecture §6 + `docs/experiments/mapped-agents/` (its `README.md`, then `agent-mapping.md` + `benchmark-hypotheses.md`) |
+| running the test-time-training experiment | `docs/experiments/mapped-agents/ttt/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md` |
+| reading or extending Atlas-0 (held)       | `docs/experiments/calvin/atlas0/atlas-0.md` (the step record at its end has the tables, the atlas entries and the v1 items; the B4 addendum) + `bench/atlas0/README.md` |
 | comparing Hobbes with other code-graph tools | `docs/comparative/README.md` (the claim page; ADR-101/102) → `field.md` (one row per tool, sourced or unstated) → the foreign cells in `docs/oracle/cells/`; never a self-reported scoreboard |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
@@ -128,8 +129,9 @@ box, against a repo on disk (architecture §10); the application mode in
   lane B ingest, ADR-092; JDK 17/21/25 + Maven + scip-java, scip-clang +
   CMake + bear, and clang for the C and C++ oracle; no `claude` — a
   session mounts the host's) and the exit-check harness.
-- `bench/` — experiment tooling, never product: `calvin/` (the M0
-  templates and gold fills), `atlas0/` (its own uv project, with
+- `bench/` — experiment tooling, never product (`bench/README.md` maps
+  each directory to its programme): `calvin/` (the lattice package, the
+  E3 draw, the M0 templates and gold fills), `atlas0/` (its own uv project, with
   `bench/atlas0/scripts/modal_atlas0.py`), `oracle/` (ADR-089: one
   `oracle` binary — `export | go-rta | py-trace | rust-mir | java-javac
   | c-clang | grade | import`, `c-clang` serving C and C++ — with
@@ -139,7 +141,10 @@ box, against a repo on disk (architecture §10); the application mode in
   Hobbes cannot tell you, one file per segment; `README.md` is the
   index), `extraction-evidence.md`, `BUILDLOG.md`, `session-handoff.md`,
   `workstreams.md`, `future_additions.md` (parked backlog),
-  `calvin/sessions/` (one log per dispatched session).
+  `calvin/` (the harness: charter, harness, `sessions/` — one log per
+  dispatched session), `experiments/` (the two programmes:
+  `mapped-agents/` — the benchmark, agent mapping, TTT — and `calvin/`
+  — the lattice, Atlas-0, the keyed rounds).
 - `.hobbes/` — dogfooding: `policies/` + `invariants/` versioned;
   `derived/` and `plans/` gitignored.
 
@@ -316,7 +321,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   are lost (C-172). **Next:** the candidates in the handoff (route c
   among them), each measured first; C/C++ lane A's super-linear time on
   deep chains is one.
-- **Calvin experiments** (ADR-151, `docs/calvin/calvin-experiments.md`):
+- **Calvin experiments** (ADR-151, `docs/experiments/calvin/calvin-experiments.md`):
   a model that writes C, starting from sqlite-vector's kernel lattice.
   E0, the instruments (`bench/calvin/lattice/`), was built and accepted
   on the real target on 2026-09-25. E1 ran on both 7Bs over all 93

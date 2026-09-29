@@ -1,6 +1,6 @@
 # E3's C lattice draw — the scripts as they ran (2026-09-26)
 
-A record, not a package. These are the driver scripts of E3's draw (`docs/calvin/calvin-experiments.md` §6,
+A record, not a package. These are the driver scripts of E3's draw (`docs/experiments/calvin/calvin-experiments.md` §6,
 "E3's pool — the C lattice draw's record"; D-5), copied unchanged from the driver directory
 `~/.hobbes/bench/calvin-lattice/e3/draw/` (and `count.py` from `../family-count/`). Their paths (`HERE`,
 `repos/`, `pool.json`) are that directory's. The clones, ingests and outputs stay there.

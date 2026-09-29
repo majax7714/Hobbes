@@ -95,7 +95,7 @@
   with a re-ingest, since it moves the tail's counts and the veto's
   reach.
 - **Source:** Calvin M0-Go WP-3, 2026-09-11
-  (`docs/calvin/calvin-m0-go.md`); ADR-046, ADR-090.
+  (`docs/experiments/calvin/keyed-rounds/calvin-m0-go.md`); ADR-046, ADR-090.
 
 ### C-141 — A Go package call on the statement that declares a same-named local, or earlier in its function, draws no fallback edge
 - **Cannot tell you:** where `slog.Info(...)` goes when its function

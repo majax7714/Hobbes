@@ -2,7 +2,7 @@
 
 > **Closed as an approach, 2026-09-12 (Max; ADR-107).** Calvin is now
 > approached as a harness validated by use:
-> [`calvin-harness.md`](calvin-harness.md). This record stands as
+> [`calvin-harness.md`](../../../calvin/calvin-harness.md). This record stands as
 > history, and its held next steps are superseded.
 
 **Status:** run through WP-21 on 10 keys, 2026-09-11 — **the floor holds as a safety property, not a helper** (§5's second reading, provisional on n = 10): the gate blocked 2 of 10 with 0 false blocks, and the one repair turn raised no pass; widening and the repair turn's design are Max's (§10). Written as a handoff (2026-09-12) for an orchestrator agent that assigns work packages to sub-agents · **Type:** pipeline experiment (preregistered readings, attribution-first) · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model. No template arm.
@@ -39,7 +39,7 @@ Facts resolved by the orchestrator before WP-17 and WP-18, so no package re-deri
 
 **Where the evidence is.**
 - **Round 2's units** (the schema a unit row follows here): `~/.hobbes/bench/calvin-go/wp-13/units.jsonl` — `key, sha, parent_sha, shape, date, gold_diff, generated_diff, files, A0/A1/A2, W, W_nontest, W_num, W_den, W_flag, touched, declare_holes, removed_symbols, parent_graph, parent_built_by, parent_all_contained, parent_tests, parent_tail…`; gold diffs `wp-13/gold/`, parent graphs `wp-13/graphs/`, templates `wp-16/` (rebuilt with live co-change, D-q). **gitleaks' 3 readable keys** (append-only): `ed65b65095eb`, `d22371873bd8`, `8d1f98c7967e`. Round 2's O sessions: `wp-16/`. The cutoff: `wp-11c/cutoff.json` (dated as WP-11c dated).
-- **M0's 28 Python keys:** `~/.hobbes/bench/calvin/commits.txt` (one line, 28 short SHAs); M0's graphs `~/.hobbes/bench/calvin/graphs{,-laneb}/`, its gold verify `~/.hobbes/bench/calvin/verify-gold{,-import}/`; the design `docs/calvin/calvin-potential.md`. Hobbes' first commit is 2026-08-24.
+- **M0's 28 Python keys:** `~/.hobbes/bench/calvin/commits.txt` (one line, 28 short SHAs); M0's graphs `~/.hobbes/bench/calvin/graphs{,-laneb}/`, its gold verify `~/.hobbes/bench/calvin/verify-gold{,-import}/`; the design `docs/experiments/calvin/keyed-rounds/calvin-potential.md`. Hobbes' first commit is 2026-08-24.
 - **The Go repos in the cell set** (clones read-only; a package clones from them into its own `~/.hobbes/bench/calvin-gate/<wp>/` directory):
 
   | repo | clone | history | pin (the cell's SHA, the upper bound) | non-merge commits ≥ 2025-08-01 | of them touching `.go` |

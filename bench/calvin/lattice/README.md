@@ -1,6 +1,6 @@
 # lattice — the Calvin experiments' E0 instruments
 
-Bench tooling for `docs/calvin/calvin-experiments.md` (ADR-151): sqlite-vector's SIMD kernel lattice,
+Bench tooling for `docs/experiments/calvin/calvin-experiments.md` (ADR-151): sqlite-vector's SIMD kernel lattice,
 the holes punched in it, and the graders a model's body goes through. Never product, never versioned.
 
 ```sh

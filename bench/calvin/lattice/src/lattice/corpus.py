@@ -1,7 +1,7 @@
 """**E3's corpus** — the draw's families as training examples, and their shuffled control.
 
 E3 asks whether a LoRA trained on C pattern families from *other* repos lifts E1's arms
-(`docs/calvin/calvin-experiments.md` §6, E3 and "E3's price on D-7's pool"). This module is the step
+(`docs/experiments/calvin/calvin-experiments.md` §6, E3 and "E3's price on D-7's pool"). This module is the step
 before any of that spends: it turns the members `families` draws — the draw's own union, the draw's own
 dedupe — into one training example each, in **E1's evaluated format**, and writes the corpus beside its
 shuffled-answers control. Nothing here calls a model, and nothing here trains.

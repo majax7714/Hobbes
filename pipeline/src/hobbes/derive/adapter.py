@@ -78,7 +78,7 @@ SYSTEM_PROMPT_VERSION = 2
 #: exchange, unchanged in name from v0.5). D-i's other half: `usd_loop` (the driver's, `calvin_probe.py`) now recognizes "declaration
 #: repair" as loop spend by its own purpose string rather than the ``NULL``-prefix test that missed it. D-n: `run_t` no longer hands
 #: a dict it keeps mutating (round 2b's merge into round 2's fills) to its own record — the round-2 row is copied first. D-l: WP-11b/12's
-#: path-explained flips are read (`docs/calvin/calvin-m0-go-r2.md`'s gate record) as a sampled earlier reply changing which path a run
+#: path-explained flips are read (`docs/experiments/calvin/keyed-rounds/calvin-m0-go-r2.md`'s gate record) as a sampled earlier reply changing which path a run
 #: took, not a protocol bug — no code follows from it; recorded in ``budget.md``, not here.
 PROTOCOL_VERSION = "0.6"
 #: How the declaration hole's sibling is chosen (unchanged since v0.5, D-h) and shown (v0.6, §2.4): whole, capped only by bytes.

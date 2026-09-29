@@ -1,6 +1,6 @@
 # ADR-100 — A session may mount host trees read-only; a target's tests run under the ingest planner
 
-**Date:** 2026-09-04 · **Status:** accepted — built as Calvin M0 step 5 (`docs/calvin/calvin-potential.md` §8) and exercised on this repo the same day: the 28 gold diffs through the verifier, a scripted arm-O session through `hobbes-session` · **Owner:** Max · **Source:** the design's step 5 ("local harness wiring: Podman exec + policy + testmap for T and O"); the step is model-free by the design's own order.
+**Date:** 2026-09-04 · **Status:** accepted — built as Calvin M0 step 5 (`docs/experiments/calvin/keyed-rounds/calvin-potential.md` §8) and exercised on this repo the same day: the 28 gold diffs through the verifier, a scripted arm-O session through `hobbes-session` · **Owner:** Max · **Source:** the design's step 5 ("local harness wiring: Podman exec + policy + testmap for T and O"); the step is model-free by the design's own order.
 
 Amends the architecture's **§7 Sandbox** (a fourth mount shape on the
 one image) and its runtime paragraph in **§6.2** (`--mcp-tools`).
@@ -93,7 +93,7 @@ carry such a mount.
 
 ## Amended 2026-09-11: the Go verifier (Calvin M0-Go WP-1; harness v2, C-103)
 
-Decision 3's verifier runs Go (`docs/calvin/calvin-m0-go.md` §2.3), on
+Decision 3's verifier runs Go (`docs/experiments/calvin/keyed-rounds/calvin-m0-go.md` §2.3), on
 five readings where the design is silent:
 
 1. **Regenerate, never apply.** A generated file a diff carries

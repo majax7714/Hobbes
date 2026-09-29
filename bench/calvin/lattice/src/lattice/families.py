@@ -3,7 +3,7 @@
 **Source: `bench/calvin/e3-draw/`, the draw's scripts as they ran (copied there unchanged on
 2026-09-26; the rule they were committed under is that directory's `DRAW-RULE.md`).** The figures the
 pool is priced on were read by those scripts — 33,902 union tasks over the 40 taken repos, **24,222
-unique** (`docs/calvin/calvin-experiments.md` §6, "E3's pool — the C lattice draw's record") — so the
+unique** (`docs/experiments/calvin/calvin-experiments.md` §6, "E3's pool — the C lattice draw's record") — so the
 corpus must select the *same* members, and that means the rules live here once, ported line for line,
 rather than being restated.
 

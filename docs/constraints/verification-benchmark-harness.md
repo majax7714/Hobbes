@@ -805,7 +805,7 @@
   `attempts`, `failures` and `flaky` under the record's `go.steps`; on
   the gold run 3 of 80 generations were flaky, each cleared on the
   second attempt.
-- **Source:** Calvin M0-Go WP-1, 2026-09-11 (`docs/calvin/calvin-m0-go.md`
+- **Source:** Calvin M0-Go WP-1, 2026-09-11 (`docs/experiments/calvin/keyed-rounds/calvin-m0-go.md`
   §2.3), defect D2; ADR-100 amended.
 
 ## Superseded constraints in this segment
@@ -906,7 +906,7 @@ comparison again.)*
   comparison it is not.
 - **Bites at:** any pure-vs-aided table read as "Hobbes helped / hurt";
   any pure success read as capability.
-- **You find out:** **surfaced** — `docs/benchmark/benchmark-hypotheses.md` carries
+- **You find out:** **surfaced** — `docs/experiments/mapped-agents/benchmark-hypotheses.md` carries
   the reading rule and every results table since 2026-08-22 notes it; the
   candidate instruments are a per-(model, repo) familiarity probe
   (reproduce a named function with no tools; verbatim-match rate beside
@@ -924,7 +924,7 @@ rounds closed (ADR-107); a dispatch has no gold, and
 Would return if: an arm is scored against a gold diff's tests again.)*
 
 - **Cannot tell you:** that a `gold_tests` failure is the arm's.
-  `gold_tests` (`docs/calvin/calvin-m0-go-r2.md` §2.3) applies the gold
+  `gold_tests` (`docs/experiments/calvin/keyed-rounds/calvin-m0-go-r2.md` §2.3) applies the gold
   diff's own test changes on top of an arm's diff. It carries every
   test-file hunk, and beside them the test-support hunks: files under
   `testdata/`, `__fixtures__/` or `__snapshots__/`
@@ -950,4 +950,4 @@ Would return if: an arm is scored against a gold diff's tests again.)*
   (`~/.hobbes/bench/calvin-go/wp-11a/scripts/control.py`) and a pytest
   case, not a step `hobbes verify` runs.
 - **Source:** Calvin M0-Go round 2 WP-11a, 2026-09-11
-  (`docs/calvin/calvin-m0-go-r2.md` §2.3), defect WP-11a-1.
+  (`docs/experiments/calvin/keyed-rounds/calvin-m0-go-r2.md` §2.3), defect WP-11a-1.

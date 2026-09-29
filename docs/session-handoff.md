@@ -36,7 +36,13 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
 D-16 gave no positive result, and the closing rule was written before its calls. The harness stays the way work
 is done. Max next either reassesses the programme or picks another piece of Hobbes, so **ask him which before
 starting new work**. Extraction (below) is the standing default.
-- **The summary** is `calvin-experiments.md` §6, "Where the programme stands". Pattern carries (E1, E4, D-11);
+- **The experiments are split into two programmes** (Max, 2026-09-28): `docs/experiments/README.md`.
+  **Mapped agents** (`mapped-agents/`: the benchmark, agent mapping, TTT) holds that smaller tasks with
+  better context let smaller models compete. **Calvin** (`calvin/`: the lattice, Atlas-0, the keyed rounds)
+  is a model that can only code. Each README carries an **observed register** (`MA-1…18`, `CV-1…21`).
+  **Read it before proposing any run,** so nothing already observed is run again. The harness stays in
+  `docs/calvin/`; its keyed rounds are Calvin's accepted lower bound as a product.
+- **The summary** is `docs/experiments/calvin/calvin-experiments.md` §6, "Where the programme stands". Pattern carries (E1, E4, D-11);
   training sharpens reading, not skill (E3, E2); facts about names do not steer at either size (D-12 to D-15);
   size is priced (D-11). About $21.50 was spent over the programme.
 - **D-15/D-16, the last runs** (≈ $3.08 of $4; `d15/`):
@@ -379,7 +385,7 @@ named below was removed unless it says otherwise.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
-   - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](calvin/calvin-experiments.md),
+   - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](experiments/calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
      E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
      2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run and D-14 probed (no spend), twenty-first; D-15 finished under D-16's $4 (≈ $3.08), null; **the experiments are closed for now** (2026-09-28). Drivers:
@@ -472,7 +478,7 @@ named below was removed unless it says otherwise.
 
 ## Atlas-0 — held from 2026-09-07: Max reads the B4 record; then the T that carries the abstention act, and T_v2
 
-**Done 2026-09-07** (`docs/atlas0/atlas-0.md` § Addendum), $22.28
+**Done 2026-09-07** (`docs/experiments/calvin/atlas0/atlas-0.md` § Addendum), $22.28
 assumed of $25: the §A.1 checks on saved weights (B1 reads through
 eight heads and stores in six FFNs; B2's refusal is a linear direction;
 B3's copy circuit is layer 0), B4 (typed attention), the λ sweep, and
@@ -501,7 +507,7 @@ min each.
    `adapters/allenai-olmo-3-7b-instruct/hobbes/ebdf7a510eff/cc9e99c14215`;
    deploy with `TTT_APP=hobbes-ttt-cell … deploy`, then `ttt_cell.py run
    … --arm A2=<name> --arm A3=<name>` (arms A2_3000 and A3_3000, added to
-   `cell.ARMS`). Records: `docs/ttt/olmo3-ttt-results.md` §9–§10.
+   `cell.ARMS`). Records: `docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md` §9–§10.
 2. **The cell's defect register** (D-1–D-5): which to fix first.
 3. **ADR-092's four embedded decisions.** Nothing blocks on them.
 

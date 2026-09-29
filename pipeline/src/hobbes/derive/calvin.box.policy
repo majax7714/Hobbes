@@ -1,4 +1,4 @@
-# Calvin M0 arm-O session policy (`docs/calvin/calvin-potential.md` §2.4,
+# Calvin M0 arm-O session policy (`docs/experiments/calvin/keyed-rounds/calvin-potential.md` §2.4,
 # §3.2) — the floor an orchestrator-alone session runs under on this repo's
 # own harness, passed to `hobbes-session --box`; since ADR-107 also the box a
 # `hobbes dispatch` doer runs under, where `--egress` leaves the model

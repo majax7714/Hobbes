@@ -254,7 +254,7 @@
   checked to exist inside the module"), the pinned standard library and
   the counts by class.
 - **Source:** Calvin M0-Go WP-9, 2026-09-11 (`ground.WORLD_RULE`;
-  `docs/calvin/calvin-potential.md` §2.2).
+  `docs/experiments/calvin/keyed-rounds/calvin-potential.md` §2.2).
 
 ### C-110 — An unaliased import's name is read by convention
 
@@ -598,8 +598,8 @@ still builds one.)*
   round-1 hole (`matcher: callee-cap`, its seed and the seed's callee
   count in the ask), and a v2 template carries `callee_cap` and a
   pruning rule stating the cap.
-- **Source:** Calvin M0-Go WP-2, 2026-09-11 (`docs/calvin/calvin-m0-go.md`
-  §10, F1; `docs/calvin/calvin-potential.md` §2.1).
+- **Source:** Calvin M0-Go WP-2, 2026-09-11 (`docs/experiments/calvin/keyed-rounds/calvin-m0-go.md`
+  §10, F1; `docs/experiments/calvin/keyed-rounds/calvin-potential.md` §2.1).
 
 ### C-105 — A protocol v0.3 pattern answers many holes with one judgement — *superseded 2026-09-13*
 *(Superseded 2026-09-13 (Max). Was: an adapter protocol v0.3 pattern
@@ -633,7 +633,7 @@ return if: arm T runs again (`calvin_probe.py t-units`).)*
   `t-units` rows count pattern fills by type, and every exchange and
   record carries `protocol_version`.
 - **Source:** Calvin M0-Go WP-5, 2026-09-11 (Max's decision;
-  `docs/calvin/calvin-potential.md` §2.2).
+  `docs/experiments/calvin/keyed-rounds/calvin-potential.md` §2.2).
 
 ### C-106 — A near-miss name is re-asked, never offered a declaration — *superseded 2026-09-13*
 *(Superseded 2026-09-13 (Max). Was: the T loop's NULL round-trip
@@ -665,7 +665,7 @@ return if: arm T runs again.)*
   `loop.sites[]` carries `route` (`declare` or `re-ask`) beside its
   `null_class`, and `loop.routes` counts them.
 - **Source:** Calvin M0-Go WP-7a, 2026-09-11 (`adapter.null_route`;
-  `docs/calvin/calvin-potential.md` §2.2).
+  `docs/experiments/calvin/keyed-rounds/calvin-potential.md` §2.2).
 
 ### C-107 — A declaration outside the write partition is placed and recorded, never refused — *superseded 2026-09-13*
 *(Superseded 2026-09-13 (Max). Was: a declaration the T loop's NULL
@@ -776,7 +776,7 @@ run again under `--budget`.)*
   way can read `fail`, `vacuous` or unchanged for the budget's reason,
   not the arm's.
 - **Because:** round 2 compares the arms on equal footing (§2.4 of
-  `docs/calvin/calvin-m0-go-r2.md`), and a cost ceiling per key is what
+  `docs/experiments/calvin/keyed-rounds/calvin-m0-go-r2.md`), and a cost ceiling per key is what
   keeps a run's spend predictable. N counts calls, not tokens: a T
   exchange carries a template, an O turn one tool call, so equal N is
   equal calls, not equal work.

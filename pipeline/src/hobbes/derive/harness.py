@@ -18,7 +18,7 @@ is classed against its baseline — ``P2P``, ``F2P``, ``P2F`` (a
 regression), ``F2F``, ``new-pass`` / ``new-fail`` (a test the diff
 adds) — the SWE-bench reading, made from the repo's own history.
 
-**Go** (`docs/calvin/calvin-m0-go.md` §2.3): a package's tests run with
+**Go** (`docs/experiments/calvin/keyed-rounds/calvin-m0-go.md` §2.3): a package's tests run with
 ``-run '^(TestA|TestB)$'`` at symbol grain, the whole package where an
 edit falls outside every span of a Go file (package grain) or a test file
 is touched; ``go test -list`` first, so an id the testmap names that the

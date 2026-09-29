@@ -5,12 +5,12 @@ no positive result. The summary is in §6, "Where the programme stands". E0 to E
 E5 to E7 are parked · **Type:** programme page — the design space, the experiments in it, the order, the
 decisions · **Compute:** about $21.50 over the programme, each run on Max's word and ceiling; nothing more until he
 reassesses ·
-**Charter:** [`calvin-charter.md`](calvin-charter.md), with the one reading this page asks of
-it in §3 (decision D-1) · **Priors:** ADR-099 ([`olmo3-ttt-results.md`](../ttt/olmo3-ttt-results.md)),
-the keyed rounds ([`calvin-potential.md`](calvin-potential.md) and after), Atlas-0
-([`atlas-0.md`](../atlas0/atlas-0.md)) · **The target's cell:**
-[`sqlite-vector-c-2026-09-12.md`](../oracle/cells/sqlite-vector-c-2026-09-12.md)
-**ADR:** [ADR-151](../adr/151-calvin-experiments-skill-in-weights-facts-in-the-ledger.md) (Max:
+**Charter:** [`calvin-charter.md`](../../calvin/calvin-charter.md), with the one reading this page asks of
+it in §3 (decision D-1) · **Priors:** ADR-099 ([`olmo3-ttt-results.md`](../mapped-agents/ttt/olmo3-ttt-results.md)),
+the keyed rounds ([`calvin-potential.md`](keyed-rounds/calvin-potential.md) and after), Atlas-0
+([`atlas-0.md`](atlas0/atlas-0.md)) · **The target's cell:**
+[`sqlite-vector-c-2026-09-12.md`](../../oracle/cells/sqlite-vector-c-2026-09-12.md)
+**ADR:** [ADR-151](../../adr/151-calvin-experiments-skill-in-weights-facts-in-the-ledger.md) (Max:
 "good to go", 2026-09-24); this page is its body. Each experiment Max clears gets its own record
 beside it.
 

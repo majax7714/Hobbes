@@ -1,4 +1,4 @@
-"""The Calvin M0 hole language, v0 (`docs/calvin/calvin-potential.md` §2.1, step 1 of §8).
+"""The Calvin M0 hole language, v0 (`docs/experiments/calvin/keyed-rounds/calvin-potential.md` §2.1, step 1 of §8).
 
 A **template** is Hobbes's structural expansion of a task at one parent
 SHA into typed **holes** the orchestrator fills. This module is the
@@ -54,7 +54,7 @@ import subprocess
 from pathlib import Path, PurePosixPath
 
 TEMPLATE_VERSION = 1  # the default. 1 (step 6): a module anchor opens confirmations per symbol, importers are guards, the ANCHOR hole carries candidates
-#: Every version the generator builds and the validator accepts. 2 (Calvin M0-Go F1, `docs/calvin/calvin-m0-go.md` §10): an
+#: Every version the generator builds and the validator accepts. 2 (Calvin M0-Go F1, `docs/experiments/calvin/keyed-rounds/calvin-m0-go.md` §10): an
 #: anchored symbol with more than `template.CALLEE_CAP` in-repo callees opens them as ANCHOR_CONFIRMs showing the signature
 #: line only, never as bodies. Opt-in (`build_template(version=2)`), so a v1 template rebuilds byte for byte.
 TEMPLATE_VERSIONS = (1, 2)

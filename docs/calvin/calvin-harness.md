@@ -2,9 +2,9 @@
 
 **Status:** built 2026-09-12 (Hobbes 0.1.21-beta, ADR-107). Validated by use (40 sessions, Max, 2026-09-13; passed 2026-09-17), and still the way work is done: each dispatched session has its log in [`sessions/`](sessions/README.md), and the tracker at that README's end is the count. Since then the progress hook (0.2.6-beta, ADR-107's second amendment) puts the doer's edits in the flight log, and the dispatch box's policy (0.2.7-beta) settles `rm` and C's toolchain probes. **Retention amended the same day (0.1.22-beta):** the doer's reasoning is never stored, and recorded sessions are evaluation rows, never model training data (the retention section below).
 **Supersedes, as an approach:** the keyed rounds. Their records stand as history:
-- M0 ([`calvin-potential.md`](calvin-potential.md));
-- M0-Go ([`calvin-m0-go.md`](calvin-m0-go.md), [`calvin-m0-go-r2.md`](calvin-m0-go-r2.md));
-- M0-Gate ([`calvin-m0-gate.md`](calvin-m0-gate.md)).
+- M0 ([`calvin-potential.md`](../experiments/calvin/keyed-rounds/calvin-potential.md));
+- M0-Go ([`calvin-m0-go.md`](../experiments/calvin/keyed-rounds/calvin-m0-go.md), [`calvin-m0-go-r2.md`](../experiments/calvin/keyed-rounds/calvin-m0-go-r2.md));
+- M0-Gate ([`calvin-m0-gate.md`](../experiments/calvin/keyed-rounds/calvin-m0-gate.md)).
 
 **The role is unchanged:** [`calvin-charter.md`](calvin-charter.md) still says what Calvin is for.
 

@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-24 · **Status:** accepted (Max, 2026-09-24: "good to go with recommended routes", then
 "good to go" for E0 after the literature pass) · **Owner:** Max · **Design:**
-[`calvin/calvin-experiments.md`](../calvin/calvin-experiments.md), which is this ADR's body in ADR-099's
+[`calvin/calvin-experiments.md`](../experiments/calvin/calvin-experiments.md), which is this ADR's body in ADR-099's
 pattern · **Amends:** the charter ([`calvin-charter.md`](../calvin/calvin-charter.md), its 2026-09-24
 amendment)
 

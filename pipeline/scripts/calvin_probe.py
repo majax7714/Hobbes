@@ -1,4 +1,4 @@
-"""The Calvin M0 pre-run probes (`docs/calvin/calvin-potential.md` §0, §4.1, §4.2; record `docs/calvin/cells/calvin-m0-probe-2026-09-03.md`).
+"""The Calvin M0 pre-run probes (`docs/experiments/calvin/keyed-rounds/calvin-potential.md` §0, §4.1, §4.2; record `docs/experiments/calvin/keyed-rounds/cells/calvin-m0-probe-2026-09-03.md`).
 
     uv run scripts/calvin_probe.py ingest  <graphs-dir> [--clone DIR] [--commits FILE] [--lane-b]
     uv run scripts/calvin_probe.py probe   <graphs-dir> [--mode parent|base] [--base-graph graph.json]

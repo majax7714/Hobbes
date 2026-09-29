@@ -1,4 +1,4 @@
-"""`hobbes gate` — the linker on a finished diff (`docs/calvin/calvin-m0-gate.md` §2.2, §0b).
+"""`hobbes gate` — the linker on a finished diff (`docs/experiments/calvin/keyed-rounds/calvin-m0-gate.md` §2.2, §0b).
 
 One deterministic pass, no model, over a unified diff at its parent SHA:
 

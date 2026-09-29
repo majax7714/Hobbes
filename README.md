@@ -330,10 +330,13 @@ substitutes for model size has been earned yet, and this README will say
 so until one is.
 
 Deeper: architecture §6;
-[`docs/benchmark/benchmark-hypotheses.md`](docs/benchmark/benchmark-hypotheses.md) (the
+[`docs/experiments/README.md`](docs/experiments/README.md) (the two
+experiment programmes, this one and Calvin, each with its thesis and a
+register of what has already been observed);
+[`docs/experiments/mapped-agents/benchmark-hypotheses.md`](docs/experiments/mapped-agents/benchmark-hypotheses.md) (the
 preregistered claims and every run's result);
-[`docs/benchmark/benchmark-deepswe.md`](docs/benchmark/benchmark-deepswe.md) (the redirect);
-[`docs/benchmark/cells/adr085-validation-7b-2026-08-24.md`](docs/benchmark/cells/adr085-validation-7b-2026-08-24.md) (the
+[`docs/experiments/mapped-agents/benchmark-deepswe.md`](docs/experiments/mapped-agents/benchmark-deepswe.md) (the redirect);
+[`docs/experiments/mapped-agents/cells/adr085-validation-7b-2026-08-24.md`](docs/experiments/mapped-agents/cells/adr085-validation-7b-2026-08-24.md) (the
 latest run and its defect register).
 
 ## Related projects
@@ -419,7 +422,7 @@ cleared. A test-time-training
 experiment (ADR-099, 2026-09-03) asked whether the derived layer can be
 loaded into a 7B's weights instead of its prompt: the loss falls, but
 the navigation does not follow at that step count
-([`docs/ttt/olmo3-ttt-results.md`](docs/ttt/olmo3-ttt-results.md)).
+([`docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md`](docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md)).
 
 **Calvin** is the layer that makes an agent's edit true against the
 graph ([`docs/calvin/calvin-charter.md`](docs/calvin/calvin-charter.md)).
@@ -455,7 +458,7 @@ gate reads a newly added decorator that names a module-level value as
 invented (sessions `9326`, `c141` and `66c5`).
 
 **The Calvin experiments** (ADR-151,
-[`docs/calvin/calvin-experiments.md`](docs/calvin/calvin-experiments.md))
+[`docs/experiments/calvin/calvin-experiments.md`](docs/experiments/calvin/calvin-experiments.md))
 ask whether a model can write one language, C, when the skill lives in
 its weights and the target's facts come from the ledger every time. The
 target is sqlite-vector's SIMD kernel lattice: 31 names across six
@@ -534,13 +537,13 @@ point); the session-by-session record is
 | [`docs/comparative/`](docs/comparative/README.md) | The comparative programme (ADR-101/102): the field one row per tool, other tools' graphs graded by the oracle lane on the same repos and keys, and the four graphics regenerated from the cell records |
 | [`docs/first-run.md`](docs/first-run.md) | Bringing Hobbes up on a new app, in the order the system is meant to be used |
 | [`docs/future_additions.md`](docs/future_additions.md) | Deliberately deferred work, with the reasoning kept |
-| [`docs/benchmark/benchmark-hypotheses.md`](docs/benchmark/benchmark-hypotheses.md) | The preregistered benchmark claims and every run's results, including the contamination finding |
-| [`docs/benchmark/benchmark-deepswe.md`](docs/benchmark/benchmark-deepswe.md) | The redirect to DeepSWE 1.1 (Pier + mini-swe-agent) and why |
-| [`docs/ttt/olmo3-ttt-results.md`](docs/ttt/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
+| [`docs/experiments/mapped-agents/benchmark-hypotheses.md`](docs/experiments/mapped-agents/benchmark-hypotheses.md) | The preregistered benchmark claims and every run's results, including the contamination finding |
+| [`docs/experiments/mapped-agents/benchmark-deepswe.md`](docs/experiments/mapped-agents/benchmark-deepswe.md) | The redirect to DeepSWE 1.1 (Pier + mini-swe-agent) and why |
+| [`docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md`](docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
 | [`docs/calvin/calvin-harness.md`](docs/calvin/calvin-harness.md) | **Calvin as a harness (ADR-107):** `hobbes dispatch`, the egress allowlist, the doer in the session, the gate on its diff, and how the harness is validated. The per-session logs are in `docs/calvin/sessions/`; the charter is `docs/calvin/calvin-charter.md` |
-| [`docs/calvin/`](docs/calvin/) — the keyed rounds, closed | M0 ([`calvin-potential.md`](docs/calvin/calvin-potential.md)), M0-Go ([`calvin-m0-go.md`](docs/calvin/calvin-m0-go.md), [round 2](docs/calvin/calvin-m0-go-r2.md)) and M0-Gate ([`calvin-m0-gate.md`](docs/calvin/calvin-m0-gate.md)). Each record keeps its design, §10 results and gate record, and each cell page is under `docs/calvin/cells/`. History since 2026-09-12 |
-| [`docs/calvin/calvin-experiments.md`](docs/calvin/calvin-experiments.md) | The Calvin experiments programme (ADR-151): a model that writes one language (C), starting from sqlite-vector's SIMD kernel lattice. The design space, experiments E0–E7, and the decisions taken. E0, the instruments, built and accepted 2026-09-25; E1 run on both 7Bs over all 93 cells (2026-09-25, $6.59 of $10); E2 run on two rename shadows (2026-09-26, $1.89 of $3); E3 next, on the lead's word |
-| [`docs/atlas0/atlas-0.md`](docs/atlas0/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
+| [`docs/calvin/`](docs/calvin/) — the keyed rounds, closed | M0 ([`calvin-potential.md`](docs/experiments/calvin/keyed-rounds/calvin-potential.md)), M0-Go ([`calvin-m0-go.md`](docs/experiments/calvin/keyed-rounds/calvin-m0-go.md), [round 2](docs/experiments/calvin/keyed-rounds/calvin-m0-go-r2.md)) and M0-Gate ([`calvin-m0-gate.md`](docs/experiments/calvin/keyed-rounds/calvin-m0-gate.md)). Each record keeps its design, §10 results and gate record, and each cell page is under `docs/experiments/calvin/keyed-rounds/cells/`. History since 2026-09-12 |
+| [`docs/experiments/calvin/calvin-experiments.md`](docs/experiments/calvin/calvin-experiments.md) | The Calvin experiments programme (ADR-151): a model that writes one language (C), starting from sqlite-vector's SIMD kernel lattice. The design space, experiments E0–E7, and the decisions taken. E0, the instruments, built and accepted 2026-09-25; E1 run on both 7Bs over all 93 cells (2026-09-25, $6.59 of $10); E2 run on two rename shadows (2026-09-26, $1.89 of $3); E3 next, on the lead's word |
+| [`docs/experiments/calvin/atlas0/atlas-0.md`](docs/experiments/calvin/atlas0/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
 | [`docs/reviews/`](docs/reviews/) | Dated agent reviews of the tree against its records (the 2026-09-10 baseline) |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |
 | [`docs/workstreams.md`](docs/workstreams.md) | The backlog grouped into assignable workstreams, with gating and contributor profiles |

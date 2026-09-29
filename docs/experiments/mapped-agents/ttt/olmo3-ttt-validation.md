@@ -16,7 +16,7 @@ The model is Olmo 3 7B because its lineage is fully open (weights, data, code, c
 
 ## 1. Preregistered hypotheses
 
-Numbered to slot into `docs/benchmark/benchmark-hypotheses.md`. Each carries a kill criterion; a hypothesis that survives is *not confirmed*, it is *not yet killed*.
+Numbered to slot into `docs/experiments/mapped-agents/benchmark-hypotheses.md`. Each carries a kill criterion; a hypothesis that survives is *not confirmed*, it is *not yet killed*.
 
 | ID | Claim | Kill criterion |
 |---|---|---|
@@ -247,7 +247,7 @@ Each step has an exit; do not start the next until the exit is met. Steps 1–3 
 4. **Held-out navigation QA.** Cheap and decisive for "did the weights absorb the graph." *Exit:* per-family accuracy and absent-family false-acceptance, per arm.
 5. **Agent runs, primary cell** (Olmo, U, A1 vs A2). *Exit:* HSR and RFE with paired bootstrap; defect register started.
 6. **Fill the grid** as budget allows, in this priority: A3 on Olmo/U → Olmo/M row → Qwen rows → step-count ablation.
-7. **Write-up** into `docs/benchmark/benchmark-hypotheses.md` (every run, every result, kill status per hypothesis) and a short results section here.
+7. **Write-up** into `docs/experiments/mapped-agents/benchmark-hypotheses.md` (every run, every result, kill status per hypothesis) and a short results section here.
 
 ---
 
@@ -282,7 +282,7 @@ Raw-source TTT, full-weight fine-tuning, any non-LoRA fast-weight mechanism (TTT
 
 ---
 
-## 10. Results (running log — the reading is [`olmo3-ttt-results.md`](olmo3-ttt-results.md); the numbers live in `docs/ttt/cells/`; the standing per hypothesis in `benchmark-hypotheses.md` § H-TTT)
+## 10. Results (running log — the reading is [`olmo3-ttt-results.md`](olmo3-ttt-results.md); the numbers live in `docs/experiments/mapped-agents/ttt/cells/`; the standing per hypothesis in `benchmark-hypotheses.md` § H-TTT)
 
 - **2026-09-03 — unseen cell, this repo @ `ebdf7a5`, Olmo-3-7B-Instruct.**
   Gate 0.044 (U). H-TTT-1 not killed: adapter −0.296 nats on 147/147
@@ -294,10 +294,10 @@ Raw-source TTT, full-weight fine-tuning, any non-LoRA fast-weight mechanism (TTT
   memorised cell's units come from git history as well as DeepSWE
   (three tasks per repo is not ≥ 40); the doc rendering (b) is empty at
   a base SHA (C-82); the control adapter is an addition. Cell record:
-  `docs/ttt/cells/hobbes-olmo3-7b-2026-09-03.md`.
+  `docs/experiments/mapped-agents/ttt/cells/hobbes-olmo3-7b-2026-09-03.md`.
 - **2026-09-03 (evening) — Max's ten follow-ups, preregistered and run
   (`benchmark-hypotheses.md` § Follow-ups; `olmo3-ttt-results.md` §10;
-  `docs/ttt/cells/hobbes-olmo3-7b-2026-09-03-review.md`).** Steps past
+  `docs/experiments/mapped-agents/ttt/cells/hobbes-olmo3-7b-2026-09-03-review.md`).** Steps past
   one epoch put the edges in the weights (callers on trained symbols
   0.95 at 3,000) while the NLL gain leaves; a control without the graph
   reproduces the NLL gain and learns nothing navigable; an instruction

@@ -1,6 +1,6 @@
 # ADR-107 — Calvin as a harness: the doer dispatched into `hobbes-session` behind an egress allowlist, gated at its end, validated by use
 
-**Date:** 2026-09-12 · **Status:** accepted — Max's direction and his four decisions, taken in session · **Owner:** Max · **Source:** the review of the top-level docs after Calvin M0-Gate (`docs/calvin/calvin-m0-gate.md` §10), and Max: *"o+gate is essentially a harness to stack on top of this environment, lacking hobbes session and egress allowlist. After the harness is set up, how we will verify is by using it through Hobbes development and appending to a log file per session."*
+**Date:** 2026-09-12 · **Status:** accepted — Max's direction and his four decisions, taken in session · **Owner:** Max · **Source:** the review of the top-level docs after Calvin M0-Gate (`docs/experiments/calvin/keyed-rounds/calvin-m0-gate.md` §10), and Max: *"o+gate is essentially a harness to stack on top of this environment, lacking hobbes session and egress allowlist. After the harness is set up, how we will verify is by using it through Hobbes development and appending to a log file per session."*
 
 ADR-106 stays held for M0-Go's design, as the handoff has it. This
 record amends the architecture's **§6** (a new §6.3), **§7** (the

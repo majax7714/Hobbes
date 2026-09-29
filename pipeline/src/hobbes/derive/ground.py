@@ -1,4 +1,4 @@
-"""Grounder v0 — Calvin's slot with the residual set to zero (`docs/calvin/calvin-potential.md` §2.3; step 3 of §8).
+"""Grounder v0 — Calvin's slot with the residual set to zero (`docs/experiments/calvin/keyed-rounds/calvin-potential.md` §2.3; step 3 of §8).
 
 Deterministic and model-free. In: a template (`hobbes.derive.holes`
 v0), the orchestrator's fills, the ledger at the parent SHA and the
@@ -36,7 +36,7 @@ fills are placed but not grounded in v0 (no unit needs them; C-91), and
 a non-code file is ``not-code``. Type references, decorators and
 composite literals are not call sites and are not grounded (C-91).
 
-**Go (`docs/calvin/calvin-m0-go.md` §2.4).** The builtin list is Go's
+**Go (`docs/experiments/calvin/keyed-rounds/calvin-m0-go.md` §2.4).** The builtin list is Go's
 universe scope, pinned (``GO_PREDECLARED``), and a bare name binds a
 local, then the package, then the universe — never a method. **Rule 1:**
 a method call on a receiver whose type the syntax states — a receiver
@@ -57,7 +57,7 @@ Go name, the directory and type of a member on a typed receiver; None
 where the grounder cannot say (every other language, an untyped
 receiver). Adapter protocol v0.4's declaration hole reads it.
 
-**The world (`docs/calvin/calvin-m0-go.md` §2.5, M0-Go WP-9, WP-8's D-g).**
+**The world (`docs/experiments/calvin/keyed-rounds/calvin-m0-go.md` §2.5, M0-Go WP-9, WP-8's D-g).**
 A declaration extends the world; it does not escape it. On a Go
 post-image, every import spec inside an edited range is judged
 (``go_import_world``): a package of the standard library (``GO_STDLIB``,
