@@ -14763,3 +14763,20 @@ route taken: the full rename).
 
 **Round 2** is sent with round 1's findings and ADR-152's framing, in which Calvin need not be an LLM. It has two
 agents, routes and literature, and its record lands in §10 of the reassessment.
+
+**Later: round 2 recorded** (`calvin-reassessment.md` §10). I re-ran two of the routes pass's probes, and both
+reproduce:
+- clang 18 vectorizes 14 of 21 families from `distance-cpu.c` with reassociation only;
+- 8 non-finite slot/cases split by ISA.
+
+What else round 2 found:
+- **Design A is mostly Shanks moved earlier.** Its measured gain is selection by the graders.
+- **R12's language covers the 63 real bodies,** and each family's program is ISA-invariant, so a held-out ISA is
+  mostly Hobbes-derivable (I7).
+- **Four round-1 readings corrected** after the body was read, each marked where it sits:
+  - SuperCoder superoptimises given assembly;
+  - emergent misalignment comes from covertly harmful data, not narrowness;
+  - type masks raise synthesis pass@1 about 3.5% relative;
+  - grammar-aligned decoding does not show a name substitution.
+- **Proposed for the register, not registered:** G-hsr's macro-arity misfile, and the ISA-split golds.
+- **Next:** Max chooses among D1, D2 and D3, or none.

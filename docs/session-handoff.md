@@ -41,9 +41,15 @@ program in one language, intentionally not general, and not necessarily an LLM.
   - **Round 1:** the thesis decomposed; routes R1 to R23 against the register; the literature; designs A, B and C.
     The finding: restriction works as a mechanism, not as advice or training, and "efficient" and "aligned" were
     never measured.
-  - **Round 2:** two agents (routes, with the zero-spend probes; and literature, including non-LLM forms of Calvin
-    and the load-bearing papers read past the abstract). They were sent 2026-09-28, and their results land in §10.
-    If §10 is still empty, they did not finish in that session: re-send them from §8 and ADR-152.
+  - **Round 2 (§10), recorded:**
+    - Design A is mostly Shanks one step earlier, since its gain is selection.
+    - clang vectorizes 14 of 21 families from the scalar reference, and each family's program is ISA-invariant, so
+      L1 is mostly Hobbes's by I7.
+    - 8 non-finite golds split by ISA, and G-hsr misfiles macro-intrinsic arity errors (both proposed for the
+      register).
+    - SuperCoder, emergent misalignment, type-constrained decoding and grammar-aligned decoding were corrected.
+    - The designs are D1 (a closed-language author, recommended), D2 (a verified synthesiser) and D3 (a constrained
+      decoder). The case against Calvin is in §10.6.
 - **Next:** Max chooses a design, or asks for another round, **before any spend**. The zero-spend probes still
   open are listed in §8 of the reassessment.
 - **The experiments are split into two programmes** (`docs/experiments/README.md`). Each README carries an

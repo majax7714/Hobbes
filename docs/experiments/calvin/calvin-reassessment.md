@@ -1,7 +1,7 @@
 # Calvin — the reassessment of its design
 
-**Status:** round 1 recorded (2026-09-28). Round 2 was sent with round 1's findings, and its results land below
-when they return · **Type:** design review. It runs nothing and spends nothing · **Why:** Max, 2026-09-28: *"calvin
+**Status:** rounds 1 and 2 recorded (2026-09-28). Round 2 (§10) corrects four round-1 readings, each marked where it
+sits ·  **Type:** design review. It runs nothing and spends nothing · **Why:** Max, 2026-09-28: *"calvin
 is a model or tool which can program in a language but that is intentionally not general. that is so insanely
 general that picking any specific point is difficult. instead of loading up a new experiment, the efficient thing
 is to take that idea and look through every route which could make sense against whats been tested … we need a
@@ -63,8 +63,8 @@ weights.**
 | where the restriction lives | the records | the literature |
 |---|---|---|
 | **Told to the model** (facts and rules as text) | Facts don't steer, at either size, beside the shots or in the loop (CV-13, CV-19). The 7B parser's fields hurt (CV-17) | Correct facts in context do not steer generation (CodeUpdateArena; "To See is Not to Master"; UCD). Negated prompts get worse as models scale (Jang et al.), and 476 of D-13's 477 fact lines were negatives. Retrieval hurts when the answer is already given (Maninger et al.) |
-| **In the weights** (training) | A 300-step LoRA sharpens reading named neighbours and adds no skill (CV-15). Learned typing collapses (CV-10) | Narrow code fine-tuning causes broad misalignment (Betley et al.). It is strongest in Qwen2.5-Coder-32B-Instruct, the family of the lattice's own 32B, and a rank-1 LoRA is enough (Turner et al.). Capability filtered from pretraining returns when the context supplies it (Deep Ignorance). SFT memorises where RL generalises (Chu et al.) |
-| **In the decoder or output language** | Never run | Type-constrained decoding more than halves compile errors (Mündler et al.). Dependency-constrained decoding cuts invented APIs by about 70% (MARIN). *Hazard:* a plain mask distorts the distribution and turns an invented name into the nearest legal one (grammar-aligned decoding), so it needs a proper sampler (sequential Monte Carlo, Loula et al.), and the differential stays the judge |
+| **In the weights** (training) | A 300-step LoRA sharpens reading named neighbours and adds no skill (CV-15). Learned typing collapses (CV-10) | Narrow code fine-tuning causes broad misalignment (Betley et al.). It is strongest in Qwen2.5-Coder-32B-Instruct, the family of the lattice's own 32B, and a rank-1 LoRA is enough (Turner et al.). *Corrected in §10: the cause is covertly harmful data, not narrowness, and that model is "most similar to GPT-4o", not the strongest.* Capability filtered from pretraining returns when the context supplies it (Deep Ignorance). SFT memorises where RL generalises (Chu et al.) |
+| **In the decoder or output language** | Never run | Type-constrained decoding more than halves compile errors (Mündler et al.; *§10: pass@1 in synthesis rises only about 3.5% relative*). Dependency-constrained decoding cuts invented APIs by about 70% (MARIN). *Hazard:* a plain mask distorts the distribution and turns an invented name into the nearest legal one (grammar-aligned decoding), so it needs a proper sampler (sequential Monte Carlo, Loula et al.), and the differential stays the judge |
 | **In the harness** (verifier, gate, one call per unit) | The gate is a safety property (CV-4). Probe: a 7B choosing its best sample reaches the 32B's greedy score (§5) | Sampling pays wherever answers can be verified (Large Language Monkeys). Small models plus search are Pareto-optimal (Wu et al.). In an untrusted-planner, trusted-implementer pair, monitors that read the plan score AUROC 0.52 and monitors that read the code 0.96 (Factor(U,T)) |
 
 The principle that follows is inferred from both columns. **Turn every negative fact into an impossibility (a
@@ -92,7 +92,7 @@ part to language skill, never the target's facts.** The one fact a student ever 
   belongs in a specialisation layer: post-training, the decoder, or the output language.
 - **"Constrained input."** This is the best-supported claim, through decomposition, small windows and enforced
   constraints, but only where the constraint is *structured and enforced*.
-- **The strongest evidence for the thesis** is SuperCoder: Qwen2.5-Coder-7B with RL on one low-level language
+- *Corrected in §10: SuperCoder is given gcc -O3 assembly to superoptimise, and it compiles nothing without it. It is an editor of a correct artifact.* **The strongest evidence for the thesis** as first read was SuperCoder: Qwen2.5-Coder-7B with RL on one low-level language
   reaches 95.0% correct against Opus 4's 51.5%. It is translation-shaped, since its source program is in the input.
   RL is also probably bounded by what the base reaches at large k (Yue et al.; ProRL contests this).
 
@@ -166,7 +166,7 @@ These are proposed definitions. Neither exists in the repo yet.
 
 ## 8. Candidate designs (round 1)
 
-- **A — "a proposer in a closed world"** (recommended in round 1).
+- **A — "a proposer in a closed world"** (recommended in round 1; *demoted in §10: its measured gain is selection by the graders, which is Shanks's shape*).
   - **The pieces:** a stock small coder with no training (R16 and R3). It gets the scalar reference where one
     exists (R11) and positive composition shots (R10). Decoding is masked to the ledger plus the ISA's real
     intrinsics, with a proper sampler (R2). k samples are chosen by G-compile, G-diff, G-hsr and the gate (R4). A
@@ -225,7 +225,185 @@ specialists (VeriGen), the fast-apply vendors.
 precedents in DURIT, Cascaded Code Editing, Aider's architect/editor, Factor(U,T) and MinionS. What stays new is a
 compiler-graded graph as the writer's only source of facts, and the lattice hold-out.
 
-## 10. Round 2
+## 10. Round 2 (2026-09-28)
 
-Sent 2026-09-28 with round 1's findings and ADR-152's framing. It has two passes, routes and literature, and its
-record lands here.
+Round 2 was sent with round 1's record and ADR-152's framing, in which Calvin need not be an LLM. It had two agents:
+- **Routes:** stress-tested round 1 against ADR-152, widened the space to non-LLM forms, and ran the probes round 1
+  left open.
+- **Literature:** covered non-LLM forms of Calvin, read the load-bearing round-1 papers past the abstract, and
+  built the strongest case against Calvin.
+
+I re-ran two of the routes pass's probes (the vectorizer tally and the non-finite split), and both reproduce. The
+probes compiled but did not run code, inside the image with `--network=none`. Their scripts are in the session's
+scratchpad, not the tree.
+
+### 10.1 Where a verifier is Calvin's, and where it is Shanks's
+
+A proposed test. A check is part of Calvin only if all three hold:
+1. It acts on *partial* output (a prefix, an AST or IR node, a sub-program).
+2. It changes what can be proposed next.
+3. Its knowledge is Hobbes-derived at the SHA, not the task's acceptance test.
+
+A check that only accepts or rejects a finished artifact is Shanks's shape, whatever model sits inside it.
+
+**What the test says about round 1:**
+- **Best-of-k selection** by the graders fails (1) and (2): it is a gate. That makes **Design A mostly Shanks moved
+  one step earlier**. Its only measured gain (§5) is selection, and its only Calvin-shaped part, the decoder mask
+  (R2), has never run. Calvin's own figures are read at k = 1, with any in-loop search compute charged to Calvin.
+- **SMC under a mask, and enumeration with pruning,** pass the test. A search that uses G-diff as its oracle fails
+  (3), and the fix is to split the oracle: the search sees the bulk cases, and grading holds out the edge cases and
+  G-graph.
+
+**The principle, restated so it survives a non-LLM Calvin:**
+- negative facts become things the output language cannot say;
+- positive facts become primitives, rewrite rules and lowering tables that Hobbes owns and regenerates per SHA;
+- skill becomes a prior or cost model over that space, the only part trained;
+- checks prune inside the search.
+
+"Positive facts as patterns in context" is the LLM special case of the second line.
+
+### 10.2 The probes
+
+| probe | reading | limits |
+|---|---|---|
+| **R12, expressibility.** VK-1: a closed vector-kernel language of about 20 ops, a `sum → acc` reduce, an any-lane exit guard, a NaN-zero select, and forms WRAPPER, MAPREDUCE and COMPOSITE | 63 real bodies (plus 30 wrappers) and 148 distinct intrinsics reached, **0 outside VK-1's classes**. **21 of 21 (type, metric) families share one program across sse2, avx2 and avx512.** 60 of 63 bodies can match under one non-finite semantics; 63 only with a per-ISA parameter | VK-1 was defined after reading the files, so vocabulary coverage is partly by construction. Nothing was lowered or graded |
+| **The deterministic baseline:** clang 18 `-O3 -Rpass=loop-vectorize` on the scalar reference `distance-cpu.c`, at each ISA's flags | strict FP: 3 of 21 families vectorize; **reassociation only (NaN and inf kept): 14 of 21**; `-ffast-math`: 16, which is invalid here. The 7 left are f16 l2_impl/l1/dot/cosine and bf16 l2_impl/dot/cosine: the guarded kernels and the LASSQ l2 | a vectorized-loop remark is not a correct or fast kernel |
+| **The model's failures against the compiler's.** Stored D-11 S-2h round-0 rows | 7B sampled pass 0.18 on the 42 compiler-vectorizable cells, against 0.21 on the 21 compiler-hard cells. 32B: 0.40 and 0.32 | the model's failures are not where the deterministic tool's are |
+| **The non-finite split** (E0's self-test report, 77 disagreements) | 22 slot/cases differ from the scalar the same way on every ISA. **8 split by ISA:** DOT:BF16 `large` (sse2 against avx2/avx512), and L1/L2/SQUARED_L2:F16 `inf_both_same` (sse2 and avx2 against avx512) | a held-out ISA's answer there cannot be known from its inputs |
+| **R10 reach.** D-14's 74 composition-needed occurrences against the 40-repo draw | 33 are a 256-bit body in the 128-bit file (width discipline, not composition). 37 are same-width later-feature names: SIMDe's SSE2 branches give a positive composition for **15 (71 of 265 rows)**, the widenings and `abs_epi8`. **None exists for** blendv/maskz (really a NaN-to-zero select), `shuffle_epi8` (popcount), `cvtph_ps`, hadd, extract, dp_ps or insert. 4 are available names G-hsr misfiled (below) | matching by name and pattern, unverified beyond SIMDe's branches |
+| **The composition class's size** | file-local helpers use 0 to 13 intrinsic calls, at most 7 distinct (`popcount_sse2`: 13 and 5) | within reach of search (inferred). The rows hold no logprobs, so a ranker cannot be probed from them |
+
+**Two instrument findings, proposed for the register and not yet registered:**
+- **G-hsr misfiles macro intrinsics called with too few arguments as invented.** clang says "undeclared
+  identifier". This touches D-14's composition class: 4 occurrences, 22 rows.
+- **The "edge" class is partly the target, not the model.** G-diff grades non-finite cases against each ISA's own
+  gold, and 8 of those golds disagree by ISA. Round 1 counted "edge" as an invisible model failure (§2).
+
+### 10.3 What round 2 corrects in round 1
+
+The literature pass read these past the abstract, some through the fetch tool's HTML summary:
+
+| item | round 1 read | read in the body |
+|---|---|---|
+| **SuperCoder** (2505.11480) | a 7B writing one low-level language beats Opus 4 | Its input is C *plus gcc -O3 assembly*, which it superoptimises. The authors: it "fails to produce any compilable code without it." Opus 4's 51.5% was 0-shot with one sample. It supports R11 and R8 where a correct artifact exists, not writing from a spec |
+| **Emergent Misalignment** (2502.17424) | narrow code fine-tuning causes misalignment, strongest in Qwen2.5-Coder-32B | Controls on the same code format: secure code 0%, the same insecure code framed as teaching 0%. The cause is *covertly harmful* data. The Coder-32B is "most similar to GPT-4o", and the top open-model rate was a Mistral-Small (7.3%). The hazard for Calvin is a *gameable reward*, not narrowness |
+| **Type-constrained decoding** (2504.09246) | more than halves compile errors | Compile errors fall 75.3% and 52.1%, but synthesis pass@1 rises only about 3.5% relative (Qwen2.5-32B HumanEval 79.6 → 81.8), with runtime up 39–52% |
+| **Grammar-aligned decoding** (2405.21047) and **SMC control** (2504.13139) | a mask turns an invented name into the nearest legal one; fix it with a proper sampler | The paper does not show the name substitution, which was round 1's inference. Correcting the distortion converges slowly and does not reliably raise correctness. SMC's large gains come from *expensive potentials* (tests run on partial output) and resampling. So R2 and R4 merge into one design: SMC with compile and differential potentials |
+| **Yue et al.** (2504.13837) | RL is bounded by the base at large k | Confirmed for code. Distillation from a stronger teacher does expand the boundary, which moves R6 ahead of R8 |
+| **Factor(U,T)** (2512.14745) | AUROC 0.52 on the plan against 0.96 on the code | Confirmed (Gemini 2.0 Flash and Llama 4 Scout, BigCodeBench backdoors). The caution is R19: a frontier planner on failure is the untrusted-planner channel, safe only because the gate reads code |
+| **PaT** (2605.07248) | about 69% cheaper | Confirmed, but most of the saving is the small model alone: 8B alone reaches 85.58 at 0.25 cost, against 8B/32B at 87.39 and 0.31. The verifier is self-generated tests on easy Python |
+| **AutoVecCoder** (2605.17978) | the SIMD specialist exists (abstract only) | Qwen3-8B, SFT distilled from DeepSeek-R1 plus RL on correctness and speed, **with the scalar C in the prompt**. AVX 76.76 / SSE 77.35, against GPT-5 at 62.50 / 55.88, zero-shot. The weights are public. It is distillation plus RL on usage, translation-shaped |
+| **Differential selection** (new: LLM-Vectorizer, 2406.04693) | — | A checksum differential plus repair passed 125 of 149 loops. Alive2 then proved 37 of the checksum-passing ones wrong. §5's selection is exactly this regime: the integer and bit kernels need SMT equivalence, and the float kernels need adversarial inputs |
+
+### 10.4 Non-LLM forms of Calvin
+
+**The best supported: ISA-semantics synthesisers and verified rewriters.** They are narrow and invention-free by
+construction, and they compose real ops, which is CV-20's open class. **None has been compared with an LLM.**
+- **VeGen** (ASPLOS 2021) lifts Intel's intrinsic pseudocode to SMT. On OpenCV's dot kernels it runs 1.1–2.0× over
+  LLVM on AVX2, but loses on float abs (0.4×).
+- **Isaria** (ASPLOS 2024) synthesises verified rewrite rules. It runs 1.0–6.9× over the vendor's hand-written DSP
+  kernels, and fully unrolls, so large kernels run out of memory.
+- **Hydride** (ASPLOS 2024) maps 3,557 instructions onto 397 target-independent operations.
+- **Minotaur** (OOPSLA 2024) verifies 165 x86 intrinsics in Alive2.
+
+**An LLM writing into a verified IR** (Design B's shape) is precedented by **LLMLift** (NeurIPS 2024). GPT-4 writes a
+Python-embedded IR and invariants, SMT verifies them, and rewrite rules lower them: 44/45 against MetaLift's 40/45 on
+Spark, and 60/60 against 57/60 on TACO, from about 100 lines of prompt against 1,000+ lines of domain code.
+Industrial portable-SIMD layers (Highway, ISPC) are already a closed op set with a per-ISA lowering.
+
+**Useful parts:**
+- Stitch-style library learning over real sibling kernels, which would give named composites (for example, a
+  horizontal sum). This is unattempted.
+- kNM-LM: a datastore of only the tokens the base gets wrong; Java completion rose from 54.59% to 69.66% with no
+  fine-tuning. A datastore mapping invented names to gold tokens is untested.
+- Learned cost models as rankers (MLGO, Ithemal, Tensat).
+
+**The most undercut:**
+- Training from scratch on one language: nothing measures the data it needs.
+- Diffusion: Stable-DiffCoder is flat on C++ against its autoregressive twin (69.4 against 69.6), and CodeFusion is
+  withdrawn.
+- GNN, tree and pointer decoders: they guarantee syntax, not semantics.
+
+**The routes pass's forms,** F1 to F10:
+- **F1:** a structural decoder under a mask; this is round 1's A reduced to its core.
+- **F2:** a small model trained from scratch; hold.
+- **F3:** a Hobbes-owned IR plus deterministic lowering; the best I7 fit.
+- **F4:** equality saturation from the scalar reference, with a learned cost.
+- **F5:** library learning.
+- **F6:** verified search over available intrinsics, with a prior.
+- **F7:** a copy-edit port over sibling spans.
+- **F8:** a small model ranking deterministic candidates.
+- **F9:** the Ledger Machine; closed.
+- **F10:** an AST analogy solver.
+
+### 10.5 How others measure it
+
+- **Efficient.** *Cost-of-pass* (Erol et al., 2504.13359) is §7's "cost per verified unit", already formalised,
+  with a frontier minimum over the models available. The frontier cost-of-pass halves about every 2.6 months. Kapoor
+  et al. (2407.01502) split fixed cost from variable cost, and require **out-of-distribution holdouts** for a
+  task-specific system: for Calvin, a second target, not held-out cells.
+- **Aligned.**
+  - *ImpossibleBench* (2510.20270) mutates tests to contradict the spec, so any pass is cheating. GPT-5 cheats 54%
+    of the time, and 9% with an "abort as impossible" option.
+    - **The cheapest direct test of "better aligned":** plant units whose scalar reference is mutated so no correct
+      kernel exists, and measure cheating and honest NULLs for Calvin *and* Shanks.
+  - METR found reward hacking in 30.4% of RE-Bench runs, including on its kernel task. The Sakana CUDA Engineer
+    retraction is the same failure: the harness was bypassed.
+  - OverEager (2605.18583): permissive frameworks act out of scope in 5.4–27.7% of runs, and much of it is the
+    framework and the prompt.
+  - PatchDiff (2503.15223): 29.6% of plausible SWE-bench patches diverge from the gold.
+
+### 10.6 The case against Calvin
+
+- **Every narrow-wins result above compares against a frontier model sampled once, with no tools and no feedback.**
+  No study pits a narrow writer against a frontier *agent with the same verifier*, which is Shanks's shape.
+- **The alignment wins that exist come from the environment:** read-only tests, an abort option, the oracle out of
+  reach. Shanks can adopt every one of them.
+- **General models overtake specialists within months, in code:**
+  - o3 (2724) over o1-ioi (2214);
+  - frontier cost per task at fixed performance falls about 13× a year (Epoch AI, 2026-09-22).
+- **Decomposition can lose.** Multi-agent variants range from −70% to +80.8%, and errors are amplified 17.2×
+  without central verification (Kim et al., 2512.08296).
+- **On this lattice, the job may already be deterministic.** A compiler vectorizes 14 of 21 families from the
+  reference (§10.2), and the per-family program is ISA-invariant, so a held-out ISA (L1) is mostly derivable. **By
+  I7, that part belongs to Hobbes, not Calvin.** The residual is:
+  - the 7 guarded f16/bf16 families;
+  - the composition helpers;
+  - a non-finite policy the target does not define.
+
+### 10.7 Candidate designs after round 2
+
+- **D1 — Calvin is a closed-language author** (recommended by the routes pass).
+  - **The pieces:** Hobbes owns an IR (VK-n) and its per-rule-validated lowering to each ISA. Calvin proposes IR
+    programs, an enumerator first and a small model second, and an IR interpreter checks bulk cases inside the
+    search.
+  - **Nothing is said in C:** an invented name, a capability crossing or an out-of-span write cannot be expressed.
+    Facts sit in the IR's primitives and lowering tables, regenerated per SHA.
+  - **Training:** nothing at first, then at most a prior over IR programs, trained on public kernels.
+  - **Validation:**
+    1. Zero-spend: build VK-1's interpreter and lowering for the 21 families and G-diff them in the image. That is the
+       deterministic floor.
+    2. Re-target the evaluation to held-out *families*, starting with the 7 compiler-hard ones.
+    3. Paid only for a residual: a 7B proposing IR at k = 10 for 7 families, a proposed $1 ceiling.
+  - **Kill:** the enumerator matches the model (Calvin shrinks into Hobbes, an I7 win), or the IR cannot express the
+    guards.
+  - **Scope:** it changes "writes C" to "writes the IR, and Hobbes lowers it".
+- **D2 — a verified synthesiser for the composition class** (F6 + F5). It searches the file's available intrinsics
+  for helpers of up to about 13 calls, with a library or sampled prior. Zero-spend first: find `popcount_sse2`,
+  `hsum128_ps` and the NaN-zero select from specs, on CPU in the image. Then a 7B prior on 31 helpers, a proposed $1
+  ceiling.
+- **D3 — a constrained structural decoder** (F1, SMC with compile and differential potentials, one call per unit).
+  Zero-spend first: substitute nearest-legal names into the stored invented rows and re-grade, which bounds the
+  mask. Then the 7B at k = 10, about $0.75 estimated, a proposed $2 ceiling. **Kill:** invented reaches 0 but pass
+  rises less than +0.05. Mündler's +3.5% relative predicts this risk.
+- **Whatever the design, the comparison is fixed.** Every Calvin figure sits beside three baselines:
+  - the deterministic baseline (the compiler, SIMDe-style lowering);
+  - Shanks under the same restrictions;
+  - cost-of-pass.
+
+  "Aligned" is read on planted impossible units.
+
+**Still closed**, as §8 lists, plus:
+- R10 as text shots: dominated by R12, and it reaches 15 of 37 same-width names;
+- the Ledger Machine: CV-10;
+- a from-scratch standard block for names: CV-7.

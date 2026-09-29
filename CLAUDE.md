@@ -333,7 +333,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   is being reassessed before any run** (`calvin-reassessment.md`): round 1
   (routes and literature) found that restriction works as a mechanism
   (decoder, output language, verifier), not as advice or training, and
-  that "efficient" and "aligned" were never measured; round 2 is out.
+  that "efficient" and "aligned" were never measured. Round 2 found
+  that round 1's design A is mostly Shanks one step earlier, that a
+  compiler already vectorizes 14 of the lattice's 21 families, and it
+  corrected four round-1 readings. It leans toward a closed-language
+  author (a Hobbes-owned IR, lowered by Hobbes); Max chooses next.
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its
