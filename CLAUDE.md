@@ -338,8 +338,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   compiler already vectorizes 14 of the lattice's 21 families, and it
   corrected four round-1 readings. Round 3 (2026-09-29): clang 21
   changes nothing (16 of 21 with an `fmaf` idiom rewrite), a nearest-
-  legal-name mask buys +0.012 so the masked decoder is closed, and three
-  routes wait for Max (§11.5; D1, a Hobbes-owned IR, recommended).
+  legal-name mask buys +0.012 so the masked decoder is closed. Route 1's
+  first session (§12, zero spend): all five guarded families expressible
+  in a closed kernel language, three solved by search, two fail on
+  identifiability; popcount times out; verdict C. Next proposed: a
+  deterministic lifter, not the paid prior run (Max's call).
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its

@@ -14813,3 +14813,27 @@ still has a correct kernel; an impossible unit needs two specs that disagree. Ma
 **Routes for Max (§11.5):** (1, recommended) D1 with D2's synthesiser as its enumerator, five zero-spend steps
 before a $1 prior run; (2) D2 alone; (3) Calvin stops at the floor. No spend this session. Scripts and probe run
 dirs are in the session's scratchpad, not the tree. No code changed, so no suite was run and the version holds.
+
+**Later: Route 1, session 1** (Max: "good to start the session now"), after I recommended against another round:
+round 3's gaps are empirical, so the kill tests come first. Zero spend, no model call; pre-registered before any run
+(`~/.hobbes/bench/calvin-lattice/route1-s1/PREREG.md`); recorded in the reassessment's §12 and that dir's `RESULTS.md`.
+- **Part A, an enumerator over VK-g** (a closed vector-kernel language defined in the pre-registration), on the five
+  guarded families. The reference is the image's clang 18 build of the scalar kernels, through ctypes.
+  - All five are expressible, found in 3.6–55 s with every case seen.
+  - Under the split oracle three are solved: f16 l1 and l2 with no exit at all (IEEE propagation subsumes it), and
+    f16 cosine.
+  - f16 dot (the exit's sign) and bf16 l2 (f32 overflow) are the smallest programs consistent with what they saw,
+    wrong on what they did not: identifiability, not search.
+- **Part B, Z3 component-based synthesis:**
+  - the NaN-zero select, bit-exact with the gold;
+  - `hsum128_ps` in under 1 s (99.82% within tolerance; the rest are inf/NaN pairings);
+  - "infeasible" in under 0.4 s once a needed component is removed;
+  - `popcount_sse2` timed out at 10 min under every multiset, though the encoding admits the gold (proved on 128
+    bits).
+- **Deviations, each before its reading:**
+  - the 5-node term cap excluded (x−y)², so every family was re-read at 9 nodes;
+  - two performance fixes after a trial run;
+  - swapped-input rows as a supplementary reading.
+- **Verdict C, partial.** I propose a deterministic lifter next, not the $1 prior run, because what failed was the
+  oracle's information, not the search.
+- **Proposed for the register:** G-diff's specials put inf/NaN only in `a` or in both, so one-sided masks pass.

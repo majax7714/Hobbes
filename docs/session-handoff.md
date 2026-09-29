@@ -58,8 +58,17 @@ program in one language, intentionally not general, and not necessarily an LLM.
       +0.012 (D3's kill bar is +0.05). **D3 stand-alone is closed.**
     - §10.7's impossible unit was ill-formed (a mutated reference still has a correct kernel); conflicting specs
       instead.
-- **Next:** Max picks among §11.5's routes **before any spend**: (1, recommended) D1 with D2's synthesiser as its
-  enumerator, five zero-spend steps before a $1 prior run; (2) D2 alone; (3) Calvin stops at the floor.
+  - **Route 1, session 1 (§12, Max: "good to start the session now"; zero spend; records
+    `~/.hobbes/bench/calvin-lattice/route1-s1/`):**
+    - All five guarded families are expressible in VK-g.
+    - Under a split oracle, three are solved in about 5 s (f16 l1 and l2 with no exit: IEEE propagation subsumes
+      it). f16 dot and bf16 l2 fail on identifiability, not search.
+    - The NaN-zero select and `hsum128_ps` are synthesised in under 1 s; `popcount_sse2` times out at 10 min.
+    - Verdict C, partial.
+    - Proposed for the register: G-diff's specials never put inf/NaN in `b` alone, so one-sided masks pass.
+- **Next (Max's call):** a deterministic lifter from the scalar loop into VK-g on the same five (zero spend), and
+  popcount by library lookup. This is proposed instead of the $1 prior run, which targets search, and search was not
+  what failed. Also for Max: whether to register the G-diff coverage finding and add `inf_b`/`nan_b`/mixed specials.
 - **The experiments are split into two programmes** (`docs/experiments/README.md`). Each README carries an
   observed register (`MA-1…18`, `CV-1…21`). **Read it before proposing any run.**
 - **The lattice's summary** is `calvin-experiments.md` §6, "Where the programme stands": pattern carries, training

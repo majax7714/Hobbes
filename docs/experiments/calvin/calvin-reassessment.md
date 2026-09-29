@@ -1,6 +1,7 @@
 # Calvin — the reassessment of its design
 
-**Status:** rounds 1 and 2 recorded (2026-09-28); round 3 recorded (2026-09-29, §11), with its routes open for Max.
+**Status:** rounds 1 and 2 recorded (2026-09-28); round 3 (§11) and Route 1's first session (§12) recorded
+(2026-09-29): verdict C, partial; the next step proposed is a deterministic lifter, not the paid prior run.
 Round 2 (§10) corrects four round-1 readings, each marked where it sits ·  **Type:** design review. It runs nothing and spends nothing · **Why:** Max, 2026-09-28: *"calvin
 is a model or tool which can program in a language but that is intentionally not general. that is so insanely
 general that picking any specific point is difficult. instead of loading up a new experiment, the efficient thing
@@ -573,3 +574,70 @@ helpers, where checksums missed 37 in LLM-Vectorizer.
 
 **Scripts and records.** Probe 1's tally and probe 2's substitution, replay driver and reader are in this session's
 scratchpad, not the tree; probe 2's run dirs likewise. Neither probe is registered (§11 is design review).
+
+## 12. Route 1, session 1 (2026-09-29): does a deterministic search close the residual?
+
+Max, on the reordered Route 1 (§11.5, with the tests that can kill first): *"good to start the session now."* Zero
+spend, no model call. The pre-registration, tools, outputs and results are off-tree in
+`~/.hobbes/bench/calvin-lattice/route1-s1/` (`PREREG.md`, written before any run; `RESULTS.md`).
+- **Part A:** an enumerator over VK-g, a closed vector-kernel language defined in the pre-registration, on the five
+  guarded families.
+  - VK-g's one form: terms over the lanes, an accumulator precision, a skip predicate, an any-lane exit predicate
+    with its exit value, and the reference's own scalar epilogues.
+  - Two readings per family. *Expressible*: every case seen. *Solved*: the search sees bulk n ≤ 256 and four
+    specials at n = 17, and is graded on the rest.
+- **Part B:** Z3 component-based synthesis (Gulwani et al.'s encoding, CEGIS) of the three helpers, under four
+  component multisets.
+- **Reference:** the scalar kernel from the image's clang 18 build, compared as G-diff compares.
+
+**Three deviations, each made before the reading it affects** (RESULTS.md):
+1. A 5-node term cap, set while coding, excluded (x−y)². Every family was re-read at 9 nodes, and the 5-node runs are
+   kept.
+2. Two performance fixes, with no change to the language.
+3. Supplementary swapped-input rows, outside the decision.
+
+| family | expressible | solved (split oracle) |
+|---|---|---|
+| f16 l2 | yes, 11.5 s | yes, 5.5 s, **with no exit** |
+| f16 l1 | yes, 6.5 s | yes, 5.0 s, **with no exit** |
+| f16 dot | yes, 7.7 s | no: 44/47; the exit's sign is wrong |
+| f16 cosine | yes, 3.6 s | yes, 3.1 s |
+| bf16 l2 | yes, 55 s (`f64(x−y)·(x−y)`) | no: 88/94; f32 overflows on `large` |
+
+| helper | true multiset | +1, +2 | one removed | post-check |
+|---|---|---|---|---|
+| NaN-to-zero select | 0.02 s | 0.03 s, 0.08 s | infeasible, 0.00 s | bit-exact on 400,000 lanes |
+| `hsum128_ps` | 0.9 s | 0.8 s, 21 s | infeasible, 0.3 s | 89.4% bit-exact, 99.82% within tolerance; the rest are inf/NaN pairings |
+| `popcount_sse2` | **timeout** at 10 min | timeout | timeout | the encoding admits the gold (proved on 128 bits) |
+
+**The rule's verdict is C, partial.** All five are expressible, so D1 is not killed. f16 dot, bf16 l2 and
+`popcount_sse2` are unsolved, and the pre-registration named those as the paid step's target.
+
+**The verdict does not recommend the paid step for two of the three.**
+- **f16 dot and bf16 l2 fail on identifiability, not search.** Their programs were found in about 5 s, and they are
+  the smallest ones consistent with the seen cases. The semantics the held-out cases pin are written in the scalar
+  reference's text: the exit's sign, and the double accumulation.
+- **The deterministic answer is to lift the scalar loop into VK-g,** not to search I/O. A model prior over the
+  enumerator targets search, and it cannot recover what the oracle never shows.
+- **Only popcount is search-hard.** It is a textbook sequence (Hacker's Delight; SIMDe carries it), so a library
+  lookup is a deterministic alternative to a model prior.
+
+**What the programs showed:**
+- **In f16 l1 and l2 the reference's early exit is subsumed by IEEE propagation:** an inf term makes the sum inf,
+  and inf − inf is NaN. That is where the compiler's "early exit with reductions" refusal (§11.2) is beside the point.
+- **Every split-oracle program masks only `isnan(x)` and guards only `isinf(x)`.**
+
+**An instrument finding, proposed for the register, not yet registered:**
+- G-diff's specials write inf and NaN only into `a`, or into both, and never mix a same-sign inf pair with a
+  mismatched one.
+- So a float body that masks one side, or drops the exit, passes G-diff. The swapped rows catch it: 6/12 to 20/24 pass
+  for the split programs.
+- This bears on every float grade since E0, CV-11 included.
+
+**What this does to the routes.**
+- **Route 1 continues, in a different form.** The next step is a deterministic *lifter*, which reads the scalar
+  loop's guards, exits and precisions into VK-g, measured on the same five families. It is not the paid prior run.
+- **Popcount is the one open search case.** A library lookup comes before a model.
+- **If the lifter closes the five, the residual on this lattice is Hobbes's by I7, and Calvin has no job here** (rule
+  A's reading, reached one step later).
+- **Not measured:** any lowering to an ISA, speed, a second target, and the lattice driver's own bytes.
