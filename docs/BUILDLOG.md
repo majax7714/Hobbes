@@ -14780,3 +14780,36 @@ What else round 2 found:
   - grammar-aligned decoding does not show a name substitution.
 - **Proposed for the register, not registered:** G-hsr's macro-arity misfile, and the ISA-split golds.
 - **Next:** Max chooses among D1, D2 and D3, or none.
+
+## 2026-09-29 (twenty-fourth session) — the top-level docs reviewed; Calvin's reassessment, round 3: two literature agents, two zero-spend probes, D3 closed, three routes for Max
+
+**Read first:** CLAUDE.md, the README, the handoff, the experiments index, the Calvin register (CV-1 to CV-21) and
+the reassessment's rounds 1 and 2. Nothing stale was found that this session's changes do not touch.
+
+**Two literature agents** (Max: "send 2 agents out to take the recommendations and look into surrounding literature").
+One took D1 (portable-SIMD IRs, lowering validation, LLMs writing into a DSL, equality saturation and enumeration,
+non-finite semantics). The other took D2, D3 and the measures (superoptimisation at 5–15 instructions, library
+learning, a model as a prior, masked decoding, abstention and cheating, differential inputs). Both skipped what §9
+and §10 already cite, and marked each figure body, summary or snippet. Their table is §11.1.
+
+**Probe 1, the compiler baseline on a current clang.** clang 18 (the image) and clang 21.1.8 (a throwaway Fedora 43
+container), `-O3` at the lattice's ISA flags, `--network=none`: 3 / 14 / 16 of 21 under strict, reassociation and
+fast-math, identical on both. clang 21's remarks split the seven: bf16 dot and cosine fail on a chained `fmaf` not
+being a known reduction, and rewritten as `a*b+c` both vectorize (16 of 21); the other five fail on "early exit
+loop with reductions". Round 2's 14 reproduces.
+
+**Probe 2, D3's bound.** D-11's 7B S-2h round 0, every invented name swapped for its nearest legal name by edit
+distance (available intrinsics, plus the file's own names for a helper), replayed through `lattice e4 run
+--generator replay:` in the scratchpad: invented 482 → 49, sampled pass 0.412 → 0.424 (+0.012), units at greedy 58
+→ 59. The 916 unedited rows re-grade to the same class. D3's kill bar was +0.05, so D3 stand-alone is closed. Of
+the 16 new passes, 9 are file-local helper names missing a suffix. The runner refuses a replay under a $0 ceiling
+(it checks the estimate first), so the replay ran under a nominal $1; `replay_generator` returns cost 0.0 and
+spent_usd read 0.0.
+
+**One round-2 design corrected:** a mutated scalar reference is not an impossible unit, since the mutated function
+still has a correct kernel; an impossible unit needs two specs that disagree. Marked where it sits in §10.5 and
+§10.7.
+
+**Routes for Max (§11.5):** (1, recommended) D1 with D2's synthesiser as its enumerator, five zero-spend steps
+before a $1 prior run; (2) D2 alone; (3) Calvin stops at the floor. No spend this session. Scripts and probe run
+dirs are in the session's scratchpad, not the tree. No code changed, so no suite was run and the version holds.

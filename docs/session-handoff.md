@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-28 (twenty-third session); Hobbes 0.2.72-beta on `main`.**
+**Reviewed 2026-09-29 (twenty-fourth session); Hobbes 0.2.72-beta on `main`.**
 Max pushed through `45e67a5` (D-15 taken, 2026-09-27); `main` is ahead of
 `origin/main` by this day's commits, unpushed. The image and the proxy are at
 0.2.72-beta; ingest this repo at HEAD before relying on the knowledge tools
@@ -28,7 +28,7 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-28, twenty-third session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-29, twenty-fourth session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
@@ -50,8 +50,16 @@ program in one language, intentionally not general, and not necessarily an LLM.
     - SuperCoder, emergent misalignment, type-constrained decoding and grammar-aligned decoding were corrected.
     - The designs are D1 (a closed-language author, recommended), D2 (a verified synthesiser) and D3 (a constrained
       decoder). The case against Calvin is in §10.6.
-- **Next:** Max chooses a design, or asks for another round, **before any spend**. The zero-spend probes still
-  open are listed in §8 of the reassessment.
+  - **Round 3 (§11, 2026-09-29), recorded:** two literature agents on D1 and on D2/D3 and the measures, then two
+    zero-spend probes.
+    - clang 21 vectorizes the same 14 of 21 as clang 18; rewriting the `fmaf` chains as multiply-adds makes it 16.
+      The residual is five guarded families (an inf exit beside a reduction), the helpers and the non-finite policy.
+    - Nearest-legal-name substitution into D-11's 482 invented rows: invented falls to 49, sampled pass rises
+      +0.012 (D3's kill bar is +0.05). **D3 stand-alone is closed.**
+    - §10.7's impossible unit was ill-formed (a mutated reference still has a correct kernel); conflicting specs
+      instead.
+- **Next:** Max picks among §11.5's routes **before any spend**: (1, recommended) D1 with D2's synthesiser as its
+  enumerator, five zero-spend steps before a $1 prior run; (2) D2 alone; (3) Calvin stops at the floor.
 - **The experiments are split into two programmes** (`docs/experiments/README.md`). Each README carries an
   observed register (`MA-1…18`, `CV-1…21`). **Read it before proposing any run.**
 - **The lattice's summary** is `calvin-experiments.md` §6, "Where the programme stands": pattern carries, training

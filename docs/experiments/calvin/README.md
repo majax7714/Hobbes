@@ -15,8 +15,9 @@ form. The gated harness that used to share the name is **Shanks** ([`../../shank
 result. This is a pause, not an end (Max: "close for now, not close calvin completely"): Max next
 reassesses the programme or turns to another piece of Hobbes. Index: [`../README.md`](../README.md).
 **Reassessment** (started 2026-09-28): [`calvin-reassessment.md`](calvin-reassessment.md). It covers the thesis
-decomposed, every route held against this register, the literature, and candidate designs. It runs nothing, and
-it comes before any further experiment.
+decomposed, every route held against this register, the literature, and candidate designs. It runs no model, and
+it comes before any further experiment. Round 3 (2026-09-29, §11) closed D3 as a stand-alone design and left three
+routes for Max (§11.5).
 
 ## The floor: Shanks
 

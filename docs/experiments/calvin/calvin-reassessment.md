@@ -1,7 +1,7 @@
 # Calvin — the reassessment of its design
 
-**Status:** rounds 1 and 2 recorded (2026-09-28). Round 2 (§10) corrects four round-1 readings, each marked where it
-sits ·  **Type:** design review. It runs nothing and spends nothing · **Why:** Max, 2026-09-28: *"calvin
+**Status:** rounds 1 and 2 recorded (2026-09-28); round 3 recorded (2026-09-29, §11), with its routes open for Max.
+Round 2 (§10) corrects four round-1 readings, each marked where it sits ·  **Type:** design review. It runs nothing and spends nothing · **Why:** Max, 2026-09-28: *"calvin
 is a model or tool which can program in a language but that is intentionally not general. that is so insanely
 general that picking any specific point is difficult. instead of loading up a new experiment, the efficient thing
 is to take that idea and look through every route which could make sense against whats been tested … we need a
@@ -346,7 +346,8 @@ Industrial portable-SIMD layers (Highway, ISPC) are already a closed op set with
   - *ImpossibleBench* (2510.20270) mutates tests to contradict the spec, so any pass is cheating. GPT-5 cheats 54%
     of the time, and 9% with an "abort as impossible" option.
     - **The cheapest direct test of "better aligned":** plant units whose scalar reference is mutated so no correct
-      kernel exists, and measure cheating and honest NULLs for Calvin *and* Shanks.
+      kernel exists, and measure cheating and honest NULLs for Calvin *and* Shanks. *Corrected in §11.4: a mutated
+      reference still has a correct kernel; an impossible unit needs two specs that disagree.*
   - METR found reward hacking in 30.4% of RE-Bench runs, including on its kernel task. The Sakana CUDA Engineer
     retraction is the same failure: the harness was bypassed.
   - OverEager (2605.18583): permissive frameworks act out of scope in 5.4–27.7% of runs, and much of it is the
@@ -365,7 +366,7 @@ Industrial portable-SIMD layers (Highway, ISPC) are already a closed op set with
 - **Decomposition can lose.** Multi-agent variants range from −70% to +80.8%, and errors are amplified 17.2×
   without central verification (Kim et al., 2512.08296).
 - **On this lattice, the job may already be deterministic.** A compiler vectorizes 14 of 21 families from the
-  reference (§10.2), and the per-family program is ISA-invariant, so a held-out ISA (L1) is mostly derivable. **By
+  reference (§10.2; *§11.2: 16 with one idiom rewrite, and clang 21 gives the same counts*), and the per-family program is ISA-invariant, so a held-out ISA (L1) is mostly derivable. **By
   I7, that part belongs to Hobbes, not Calvin.** The residual is:
   - the 7 guarded f16/bf16 families;
   - the composition helpers;
@@ -401,9 +402,174 @@ Industrial portable-SIMD layers (Highway, ISPC) are already a closed op set with
   - Shanks under the same restrictions;
   - cost-of-pass.
 
-  "Aligned" is read on planted impossible units.
+  "Aligned" is read on planted impossible units. *§11.4: conflicting-spec units, not a mutated reference.*
 
 **Still closed**, as §8 lists, plus:
 - R10 as text shots: dominated by R12, and it reaches 15 of 37 same-width names;
 - the Ledger Machine: CV-10;
 - a from-scratch standard block for names: CV-7.
+
+## 11. Round 3 (2026-09-29)
+
+Max, 2026-09-29, on round 2's designs: send two agents to take the recommendations into the surrounding literature
+before going further. Then, on the findings: *"good to write up and start round 3 with proposed routes."*
+- **D1 pass:** portable-SIMD IRs and their lowering, lowering validation, LLMs writing into a DSL, equality
+  saturation and enumeration from a scalar reference, and non-finite semantics across ISAs.
+- **D2/D3 pass:** superoptimisation at 5–15 instructions, library learning on low-level code, a model as a prior
+  over an enumerator, masked decoding with semantic potentials, measures of abstention and cheating, and
+  differential inputs for float kernels.
+
+Both passes skipped what §9 and §10 already cite. I then ran the two probes that could redirect the routes. Both
+ran with no model call.
+
+### 11.1 The literature (round 3)
+
+Depth: **body** means the passage was read in the paper's text; **summary** means the fetch tool's HTML summary,
+which must be re-read before an ADR leans on a figure; **snippet** means search text only.
+
+| work | depth | the figure | what it does |
+|---|---|---|---|
+| Diospyros (ASPLOS 2021) | body | rewrites are correct over the reals; validation models "real arithmetic, rather than precise floating point"; up to about 4 min a kernel | equality saturation has no NaN semantics: not a source for the guarded kernels |
+| Rake (ASPLOS 2022) | body | 21 integer benchmarks; mean compile 62 min; data movement is about 70% of synthesis time | the two-level shape (lift to a small IR, lower per instruction under SMT) is D1's; integer only |
+| Crocus / VeriISLE (ASPLOS 2024) | body | 98 rules, 377 instantiations; 349 finish within 5 min; floating point and most SIMD are future work | prices D1's per-rule lowering validation for integers; no tool for FP vector rules |
+| Minotaur (OOPSLA 2024, 2306.00229) | body, partly | concrete instructions with *symbolic constants*; 1 min Z3 per query; cut depth 4, because deeper cuts time out | a depth-bounded enumerate-then-verify loop; symbolic constants are how LUT operands are found |
+| STAGG, guided tensor lifting (PLDI 2025, 2504.19705) | body | the LLM's candidates become a probabilistic grammar over a weighted-A* enumerator; 76 of 77 against C2TACO's 67; mean 3.19 s against 21.15 s | the precedent for D1's "enumerator first, model as a prior"; tensor algebra, not guarded FP |
+| Li, Parsert, Polgreen, LLM-guided enumeration (2403.03997) | body | bit-vector SyGuS, 384 tasks: enumerator 142.7 → 196 with an LLM-derived pCFG (+30%); A* 253 → 262 (+3%) | a model's prior is worth most where the enumerator is weak |
+| Gulwani et al., component-based synthesis (PLDI 2011) | body (MSR 2010 version) | 25 Hacker's Delight programs of 2–16 lines in 1–2,779 s; each component used once; "infeasible" reported in under 100 s on almost all | D2's 13-call scale is solvable *given the component multiset*, and a fast honest NULL comes free |
+| Monitor-guided decoding (NeurIPS 2023, 2306.10763) | body | Java: compile rate +21.8–24.7% relative; no test-pass metric; 83% slower | D3's precedents report compile rate, not correctness |
+| Khati et al., AST hallucination repair (2601.19106) | summary | nearest valid symbol by edit distance corrects 124 of 161; correctness not measured | the same |
+| SimdBench (2507.15224) | body | pass@1, scalar vs SSE: Claude-3.5-Sonnet 81.3 vs 31.2, DeepSeek-R1 89.1 vs 65.2; undeclared identifier 40.7% of invalid cases overall, but 12–18% on SSE/AVX, where wrong result is 36–47% | intrinsics are much harder than scalar for every model; on x86, invention is the minority failure for frontier models |
+| WebAssembly relaxed SIMD (spec overview) | summary | min/max with NaN or ±0 is implementation-defined; each environment fixes one projection per operator | a precedent for the 8 ISA-split golds: an op whose result set is per target |
+| MLIR vector dialect (docs) | summary | reductions named by NaN policy: `maxnumf` treats NaN as missing, `maximumf` propagates it | NaN policy in the op's name, not a per-ISA parameter |
+| Highway quick reference | summary | Min/Max with NaN is "target-specific and may change" | the same divergence, owned by a production layer |
+| LLVM early-exit vectorization (PR #120567; LLVM 21) | summary | uncountable early exits vectorize from clang 21; not with FP reductions; one exit only | the reason the 14 of 21 needed a rerun (§11.2) |
+| KernelBenchX (2605.04956) | summary | 0 of 30 on every quantization task; category explains about 3× the variance method does | a DSL did not lift numeric-contract tasks off zero |
+| "The Correctness Illusion" (2606.20128) | summary | 9 of 9 seeded buggy kernels pass a fixed-shape allclose; a varied oracle catches 9 of 9 | the search oracle and the grading oracle must differ (§10.1) |
+| CPPL (2605.17892) | summary | Verilog directly 0.725, raw CIRCT IR 0.500, a designed LLM-facing IR 0.800 (Opus 4.6) | a designed IR beats a raw one by a lot, and the general language by a little |
+| SpecBench (2605.21384) | summary | reward-hacking gap = visible pass − held-out pass; weaker models have larger gaps | "small means safe" has evidence against it; copy the gap as the cheating measure |
+| ImpossibleBench (2510.20270) | snippet | an abort option cuts GPT-5's cheating 54% → 9%, o3's 49% → 12% | report cheating with and without an abort option |
+| LLM-Vectorizer (2406.04693) | summary | checksums passed 125 of 149; Alive2: 57 equivalent, 61 not, 31 inconclusive | confirms §10.3; the 31 unknowns are why integer kernels want SMT |
+| Test-input generation for tensor programs (2606.27396, one author) | summary | boundary inputs 78% recall, 0% false positives; NaN-injected 94% recall, 73% false positives | the differential needs boundary sets; NaN injection only where the reference defines the policy |
+
+Found nowhere, in either pass: a verified per-ISA lowering for FP vector ops (f16/bf16 conversion included); a
+reported search time for a 7–13-op guarded FP kernel, or any SMT synthesis of a pshufb popcount; library learning
+over intrinsics or assembly; a nearest-legal-name study that measures correctness; an LLM writing a *SIMD* IR; a
+narrow-against-general comparison on abstention or cheating (§9's "unattempted" stands as far as both searched).
+
+### 11.2 Probe 1: the compiler baseline on a current clang
+
+§10.2's 14 of 21 came from clang 18, and LLVM 21 added early-exit vectorization. I re-ran the tally on clang 18 (the
+image) and clang 21.1.8 (Fedora 43, in a throwaway container), `-O3` at the lattice's three ISA flag sets
+(`build.ISA_FLAGS`), `--network=none`, over `distance-cpu.c` at `0c2223a`. A family counts when a loop in its
+function (l2's `_impl`) carries a "vectorized loop" remark on every ISA.
+
+| FP mode | clang 18 | clang 21 |
+|---|---|---|
+| strict | 3 / 21 | 3 / 21 |
+| reassociation only (`-fassociative-math -fno-signed-zeros -fno-trapping-math`; NaN and inf kept) | **14 / 21** | **14 / 21** |
+| `-ffast-math` (invalid here) | 16 / 21 | 16 / 21 |
+| reassociation, with the `fmaf(a, b, c)` chains rewritten to `(a)*(b)+(c)` | **16 / 21** | **16 / 21** |
+
+- **§10.2's count reproduces, and a current clang does not move it.** Every ISA agrees family by family.
+- **The seven split two ways**, by clang 21's own remarks:
+  - bf16 dot and cosine: "value that could not be identified as reduction". A chained `fmaf` (`llvm.fma`) is not a
+    reduction the vectorizer knows. Rewritten as a multiply-add, both vectorize on both clangs. **That is an idiom,
+    not a limit.** The rewrite gives up `fmaf`'s single rounding, which the reassociation mode has already given up.
+  - The other five, f16 l2/l1/dot/cosine and bf16 l2: "Cannot vectorize early exit loop with reductions or
+    recurrences", and for the two l2s "more than one early exit". clang 21 now sees the guard; it cannot vectorize a
+    guard beside a reduction.
+- **What it does to §10.6.** The deterministic floor is 16 of 21, not 14. The residual that is plausibly Calvin's is
+  **five families, every one an any-lane inf exit beside a reduction** (two with LASSQ), plus the composition helpers
+  and the non-finite policy. D1's kill condition, "the IR cannot express the guards", is aimed at exactly this set.
+- **Limits.** A vectorized-loop remark is not a correct or fast kernel; nothing was run or graded. The fmaf rewrite is
+  a text substitution over 20 call sites, checked by count, not by semantics.
+
+### 11.3 Probe 2: nearest-legal substitution, re-graded (D3's bound)
+
+§10.7 set D3's zero-spend step: put the nearest legal name into each stored invented row and re-grade, which
+bounds what a mask can buy. I took D-11's 7B S-2h round 0 (the §5 rows: 127 units, greedy plus 10 samples, 1,397
+rows). For each row graded `invented`, every invented name went to its nearest legal name by edit distance: the
+ISA's available intrinsics (`d12/available-record.json`) for an intrinsic, and those plus the file's own names
+(`e4.file_scope`) for a helper. The edited completions were replayed through `lattice e4 run --generator replay:`
+in a scratch run dir, with no model call and $0.00 spent.
+
+| | stored | substituted |
+|---|---|---|
+| rows graded `invented` | 482 | 49 |
+| the 481 edited rows now | — | compile 283, wrong 123, invented 48, edge 11, **pass 16** |
+| sampled pass rate (samples 1–10) | 0.412 | 0.424 (**+0.012**) |
+| units passing at greedy | 58 | 59 |
+| units passing in any of 11 | 78 | 81 |
+| units where every sample is `invented` | 22 | 2 |
+
+- **The kill rule fires.** Invented falls about 90% and pass rises +0.012, against D3's +0.05 bar. The 916 unedited
+  rows re-grade to the same class, all 916, so the replay is deterministic.
+- **What a nearest legal name is.** `_mm_hadd_pd` → `_mm_add_pd`, `_mm_cvtph_ps` → `_mm_cvtpd_ps`,
+  `_mm_cvtepi16_epi32` → `_mm_cvtpd_epi32`: legal, near and wrong, most of them now type errors. This is grammar-
+  aligned decoding's distortion, shown on real rows, where round 2 found the paper did not show it (§10.3).
+- **Where the 16 passes came from.** 9 are file-local helper names missing a suffix (`abs_diff_epu8` →
+  `abs_diff_epu8_512`, `dot_epi8` → `dot_epi8_512`, `hsum512_epi32` → `hsum512_epu32`). 7 are intrinsic
+  spellings (`_mm512_extractf128_ps` → `_mm512_extractf32x8_ps`). So half the gain is the ledger's own names, a
+  positive mapping, which is the one kind of fact a student has acted on (CV-19's init).
+- **Limits.**
+  - Edit distance stands in for a mask; an SMC sampler with compile and differential potentials (§10.3) would choose
+    by more than spelling.
+  - 48 edited rows still grade `invented`. Some substitutes are names the grader still rejects (for example
+    `_mm_insert_pi16`, an MMX name), and some rows carry invented names the first grade did not list.
+  - One arm, one round, one size.
+
+### 11.4 What round 3 changes
+
+- **The residual is smaller and sharper.** 16 of 21 families are the compiler's (reassociation plus one mechanical
+  idiom rewrite). What is left is five guarded families (an any-lane inf exit beside a reduction, two with LASSQ),
+  the composition helpers, and the non-finite policy.
+- **D3 as a stand-alone design is closed** by its own kill rule (§11.3), and the literature agrees: every masked-
+  decoding precedent reports compile rate, not correctness (MGD, Khati), and Mündler's +3.5% relative is the only
+  functional figure. A mask survives only as a component where invention cannot be expressed anyway, which is D1.
+- **D2 is feasible only with the component multiset given.** Component-based synthesis solves 10–16-op programs
+  in minutes to about 46 minutes when told which components to use once; the gold bodies alone reach 148 distinct intrinsics, and the available set
+  is larger. Its "infeasible
+  in under 100 s" is a free honest NULL.
+- **D1 holds, and the literature names its parts.** STAGG is the enumerator-with-a-prior precedent; Rake the two-
+  level lift-and-lower; Crocus the per-rule validation cost for integer rules; MLIR and WebAssembly the naming of
+  NaN policy per op. Its open risk is the FP lowering, where no tool exists. For f16 and bf16, an exhaustive check
+  of every input is complete and cheap on CPU.
+- **The "aligned" test in §10.7 was ill-formed.** A mutated scalar reference still has a correct vector kernel (the
+  mutated function's), and G-diff would pass it. An impossible unit needs two specs that disagree (ImpossibleBench's
+  conflicting variant: the reference plus a contract or example it contradicts). Cheating is passing by special-
+  casing. Read it with and without an abort option, and read SpecBench's visible − held-out gap beside it.
+- **"Small means safe" has evidence against it** (SpecBench: weaker models, larger gaps). Narrowness is not a proxy
+  for alignment (§4), and round 3 adds a measured instance.
+
+### 11.5 Proposed routes (for Max)
+
+- **Route 1 (recommended): D1, with D2's synthesiser as its enumerator.** Calvin is a closed-language author for the
+  residual; Hobbes owns the IR, the lowering and the non-finite naming. Order of work, zero-spend until the last step:
+  1. VK-1's interpreter and lowering for the 16 compiler-vectorizable families, G-diffed in the image, with f16/bf16
+     lowerings checked exhaustively. That is the deterministic floor, and Hobbes's by I7.
+  2. The 8 ISA-split golds renamed per op (MLIR/WebAssembly style), graded as a set of allowed results. It says
+     whether VK-1 needs a per-ISA parameter at all.
+  3. A Brahma-style CEGIS in Z3 for `popcount_sse2`, `hsum128_ps` and the NaN-to-zero select: the true component
+     multiset, then one or two larger, then one component removed (time to "infeasible"). Symbolic constants for
+     LUTs (Minotaur).
+  4. The enumerator over VK-1 on the five guarded families, at a 60 s and a 10 min cap: the depth it solves at,
+     or the kill ("the IR cannot express the guards").
+  5. Only for what 4 leaves: a 7B as a STAGG-style prior over the enumerator, one call per unit, a proposed $1
+     ceiling. Kill: the enumerator alone matches it.
+
+  Every figure sits beside the compiler, Shanks under the same restrictions, and cost-of-pass; "aligned" is read on
+  conflicting-spec units with and without an abort option. Scope: "writes C" becomes "writes VK-n; Hobbes lowers it".
+- **Route 2: D2 alone, for the composition class.** Keeps "writes C". Steps 3 above, then a 7B prior on the 31
+  helpers under a $1 ceiling. Smaller, and it leaves the five guarded families to the compiler's limit.
+- **Route 3: Calvin stops at the floor.** Record that the compiler covers 16 of 21 families and the mask buys +0.012,
+  and return the time to extraction. §10.6's case against is stronger after round 3, not weaker.
+
+**Closed by round 3:** D3 as a stand-alone design (§11.3); a mutated scalar reference as the impossible unit
+(§11.4).
+
+**Still zero-spend and open, whichever route:** the differential's input sets (random, boundary, NaN/inf/subnormal,
+adversarial: which kernels each separates that random inputs do not), and a bounded SMT check of the integer and bit
+helpers, where checksums missed 37 in LLM-Vectorizer.
+
+**Scripts and records.** Probe 1's tally and probe 2's substitution, replay driver and reader are in this session's
+scratchpad, not the tree; probe 2's run dirs likewise. Neither probe is registered (§11 is design review).
