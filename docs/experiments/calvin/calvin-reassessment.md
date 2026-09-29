@@ -1,7 +1,7 @@
 # Calvin — the reassessment of its design
 
 **Status:** rounds 1 and 2 recorded (2026-09-28); round 3 (§11) and Route 1's sessions 1 and 2 (§12, §13)
-recorded (2026-09-29). Session 2's verdict: **closed**. The residual on this lattice is deterministic (compiler, lifter,
+recorded (2026-09-29). Session 2's verdict: **closed**; Max closed Calvin on this lattice and returned to extraction. The residual on this lattice is deterministic (compiler, lifter,
 solver, lookup), so Calvin has no job left on sqlite-vector; a second target is the open question.
 Round 2 (§10) corrects four round-1 readings, each marked where it sits ·  **Type:** design review. It runs nothing and spends nothing · **Why:** Max, 2026-09-28: *"calvin
 is a model or tool which can program in a language but that is intentionally not general. that is so insanely

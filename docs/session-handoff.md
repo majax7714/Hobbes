@@ -33,64 +33,23 @@ drivers' paths below.
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**Calvin is being reassessed before any run** (Max, 2026-09-28: "we need a more cohesive design of calvin before
-progressing through experimenting"). **The harness is now Shanks** (ADR-152, 0.2.72-beta): Calvin's accepted
-lowest floor from the keyed rounds, treating a symptom, not Calvin's design. Calvin is a model or tool that can
-program in one language, intentionally not general, and not necessarily an LLM.
-- **The record:** `docs/experiments/calvin/calvin-reassessment.md`.
-  - **Round 1:** the thesis decomposed; routes R1 to R23 against the register; the literature; designs A, B and C.
-    The finding: restriction works as a mechanism, not as advice or training, and "efficient" and "aligned" were
-    never measured.
-  - **Round 2 (§10), recorded:**
-    - Design A is mostly Shanks one step earlier, since its gain is selection.
-    - clang vectorizes 14 of 21 families from the scalar reference, and each family's program is ISA-invariant, so
-      L1 is mostly Hobbes's by I7.
-    - 8 non-finite golds split by ISA, and G-hsr misfiles macro-intrinsic arity errors (both proposed for the
-      register).
-    - SuperCoder, emergent misalignment, type-constrained decoding and grammar-aligned decoding were corrected.
-    - The designs are D1 (a closed-language author, recommended), D2 (a verified synthesiser) and D3 (a constrained
-      decoder). The case against Calvin is in §10.6.
-  - **Round 3 (§11, 2026-09-29), recorded:** two literature agents on D1 and on D2/D3 and the measures, then two
-    zero-spend probes.
-    - clang 21 vectorizes the same 14 of 21 as clang 18; rewriting the `fmaf` chains as multiply-adds makes it 16.
-      The residual is five guarded families (an inf exit beside a reduction), the helpers and the non-finite policy.
-    - Nearest-legal-name substitution into D-11's 482 invented rows: invented falls to 49, sampled pass rises
-      +0.012 (D3's kill bar is +0.05). **D3 stand-alone is closed.**
-    - §10.7's impossible unit was ill-formed (a mutated reference still has a correct kernel); conflicting specs
-      instead.
-  - **Route 1, session 1 (§12, Max: "good to start the session now"; zero spend; records
-    `~/.hobbes/bench/calvin-lattice/route1-s1/`):**
-    - All five guarded families are expressible in VK-g.
-    - Under a split oracle, three are solved in about 5 s (f16 l1 and l2 with no exit: IEEE propagation subsumes
-      it). f16 dot and bf16 l2 fail on identifiability, not search.
-    - The NaN-zero select and `hsum128_ps` are synthesised in under 1 s; `popcount_sse2` times out at 10 min.
-    - Verdict C, partial.
-    - Proposed for the register: G-diff's specials never put inf/NaN in `b` alone, so one-sided masks pass.
-  - **Route 1, session 2 (§13, Max: "good to proceed with recommended"; zero spend):**
-    - A tree-sitter lifter from each tail loop to two-pass C, with two rules. All five lifted, and 609/609 rows pass
-      in 3 builds, including 112 new mixed rows.
-    - The "early exit with reductions" refusals are gone; every hot loop vectorizes on avx512 under clang 21.
-    - popcount by lookup: the NEON sibling's `vcntq_u8` → SIMDe's SSE2 branch = the gold on all 65,536 patterns.
-    - **Verdict closed: Calvin has no job left on sqlite-vector.**
-- **Next (Max's call):**
-  1. Close Calvin on this lattice and return to extraction (the standing default).
-  2. Or test the floor on a second target first.
-  3. Separately, whether to register the G-diff coverage finding and add `inf_b`/`nan_b`/mixed specials, since it
-     bears on registered grades.
-- **The experiments are split into two programmes** (`docs/experiments/README.md`). Each README carries an
-  observed register (`MA-1…18`, `CV-1…21`). **Read it before proposing any run.**
-- **The lattice's summary** is `calvin-experiments.md` §6, "Where the programme stands": pattern carries, training
-  sharpens reading and not skill, facts about names do not steer at either size, and size is priced. About $21.50
-  was spent.
-- **Extraction** (below) is the standing default when Calvin is not the work.
-- **Costs, learned** (for any later model run):
-  - The runner's estimate assumes every answer runs to `max_tokens`. At round 0 it runs 3.5× to 6× high; at a
-    32B round 1 only 1.1× to 1.7× high, because the time is the prompts'.
-  - The money left sets Modal's timeout, so give each call a ceiling whose timeout covers its estimate. A cut
-    call is charged and returns nothing.
-  - `lattice e4 run <dir>` resumes in place, with the ceiling cumulative per run dir. `--generator
-    replay:<empty file>` on a scratch copy counts a round's requests with no spend.
-- Records: `~/.hobbes/bench/calvin-lattice/` (`e1/` to `e4/`, `d11/` to `d15/`, each with its `PREREG.md`).
+**Extraction is the work.** Calvin is closed on the lattice (Max, 2026-09-29: "close out here and return to
+extraction"). The next extraction candidate is route c (below), measured first.
+
+**Calvin, closed on sqlite-vector** (the record: `docs/experiments/calvin/calvin-reassessment.md`, §11 to §13; the
+runs: `~/.hobbes/bench/calvin-lattice/route1-s1/`, `PREREG.md` and `PREREG-s2.md` with their `RESULTS`).
+- **The residual is deterministic.** 16 of 21 families come from the compiler. The 5 guarded families come from a
+  tree-sitter lifter plus the compiler (609/609 rows, 3 builds). Two helpers come from Z3, and popcount from SIMDe by
+  lookup. By I7 all of it is Hobbes's, so Calvin has no job on this target.
+- **Calvin reopens only on a target where the job is not derivable.** Choosing one is a design question for Max,
+  not a run. The harness is Shanks (ADR-152), unchanged.
+- **Open for Max, proposed and not registered:**
+  - **G-diff coverage:** the driver's specials never put inf/NaN in `b` alone, and never mix inf kinds, so one-sided
+    masks pass. The fix is `inf_b`/`nan_b`/mixed specials, then a zero-spend re-grade of the stored lattice rows to see
+    whether any registered figure moves.
+  - **Two instrument findings from round 2:** G-hsr's macro-arity misfile, and the ISA-split golds.
+- **Before any later model run**, read the programme's register (`CV-1…21`, `MA-1…18`). The lattice's cost lessons
+  are in the Calvin README's "Instrument lessons".
 
 - **Extraction, shipped in the nineteenth session (0.2.71-beta, D-8):**
   - one file's depth never ends an ingest (C-171);

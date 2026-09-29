@@ -11,13 +11,15 @@ tool that can program in a language and is intentionally not general. It need no
 tested one form of it, a stock multilingual coder steered by context and one LoRA, and its results are about that
 form. The gated harness that used to share the name is **Shanks** ([`../../shanks/`](../../shanks/README.md)).
 
-**Status:** **closed for now** (2026-09-28). D-16's rule, written before its calls, found no positive
+**Status:** **closed on sqlite-vector** (2026-09-29, Max: "close out here and return to extraction"). The
+reassessment's Route 1 (§12, §13) found the lattice's residual deterministic, so Calvin has no job there. It reopens
+only on a target where the job is not derivable. Before that: **closed for now** (2026-09-28). D-16's rule, written before its calls, found no positive
 result. This is a pause, not an end (Max: "close for now, not close calvin completely"): Max next
 reassesses the programme or turns to another piece of Hobbes. Index: [`../README.md`](../README.md).
 **Reassessment** (started 2026-09-28): [`calvin-reassessment.md`](calvin-reassessment.md). It covers the thesis
 decomposed, every route held against this register, the literature, and candidate designs. It runs no model, and
-it comes before any further experiment. Round 3 (2026-09-29, §11) closed D3 as a stand-alone design and left three
-routes for Max (§11.5).
+it comes before any further experiment. Round 3 (2026-09-29, §11) closed D3 as a stand-alone design. Route 1's two
+sessions (§12, §13) found the lattice's residual deterministic: the compiler, a lifter, a solver and a lookup.
 
 ## The floor: Shanks
 

@@ -14854,3 +14854,12 @@ zero spend; recorded in the reassessment's §13 and `route1-s1/RESULTS-s2.md`.
   intrinsic lowering for sse2/avx2 f16 are not measured.
 - **A slip of my own:** my popcount test harness first called a SIMDe conversion that does not exist. Clang rejected
   it and I replaced it with `memcpy`: an invented name, caught at compile time, in the tool rather than the model.
+
+**Closed:** Max: "close out here and return to extraction". Calvin is closed on sqlite-vector, and it reopens only on
+a target where the job is not derivable.
+- Updated to match: the Calvin README, the experiments index, the reassessment's status, CLAUDE.md's status block,
+  and the handoff (its start is extraction again, with route c next).
+- The G-diff coverage finding stays open for Max, proposed and not registered.
+- No code or version moved and the image was not rebuilt, so the knowledge server needs no restart.
+- The throwaway image `r3-clang-f43` (Fedora 43, clang 21.1.8) is kept, because the route1-s1 records' clang 21
+  readings used it.

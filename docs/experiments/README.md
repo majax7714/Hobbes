@@ -12,7 +12,7 @@ not a result in the other.
 |---|---|---|
 | **Thesis** | Smaller tasks with better context are easier to complete, which lets smaller models compete against bigger ones. | A model with constrained input and only the ability to code, perhaps in one language (C for now), is more efficient and better aligned per task. A deliberately looser idea. |
 | **What it shrinks** | The task and the context (the planner, work units, derived briefs). | The model's input and its capability (a coder, not an agent). |
-| **Where it stands** | Parked (the standing policy). No H1 claim earned. The removal A/B re-run on the 7B is first in line. | Closed for now (2026-09-28) after D-16 gave no positive result; its design is being reassessed ([`calvin-reassessment.md`](calvin/calvin-reassessment.md)). Its floor, Shanks (the gate and the harness), is in use. |
+| **Where it stands** | Parked (the standing policy). No H1 claim earned. The removal A/B re-run on the 7B is first in line. | Closed on its lattice (2026-09-29, Max). The reassessment ([`calvin-reassessment.md`](calvin/calvin-reassessment.md) §11–§13) found the lattice's residual deterministic: compiler, lifter, solver, lookup. It reopens only on a target where the job is not derivable. Its floor, Shanks (the gate and the harness), is in use. |
 | **Its records** | SWE-bench and DeepSWE runs, agent mapping, TTT | The keyed rounds (the lower bound), Atlas-0, the sqlite-vector lattice (E0–E4, D-11–D-16) |
 | **Tooling** | `pipeline/src/hobbes/{derive,run,bench,ttt}`, `pipeline/scripts/`, `bench/ttt/` | `bench/calvin/` (`lattice/`, `e3-draw/`, `templates/`), `bench/atlas0/`, `pipeline/scripts/calvin_probe.py` |
 

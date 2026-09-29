@@ -275,7 +275,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-28) — Hobbes 0.2.72-beta
+## Status (2026-09-29) — Hobbes 0.2.72-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -325,27 +325,15 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   measured first; C/C++ lane A's super-linear time on deep chains is one.
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
-  necessarily an LLM (ADR-152). The lattice programme (ADR-151, about
-  $21.50, E0–E4 and D-11–D-16) tested one form of it, a stock
-  multilingual coder steered by context and one LoRA: pattern shots
-  carry, training sharpened reading and not skill, facts about names do
-  not steer at either size. It closed for now on 2026-09-28. **The design
-  is being reassessed before any run** (`calvin-reassessment.md`): round 1
-  (routes and literature) found that restriction works as a mechanism
-  (decoder, output language, verifier), not as advice or training, and
-  that "efficient" and "aligned" were never measured. Round 2 found
-  that round 1's design A is mostly Shanks one step earlier, that a
-  compiler already vectorizes 14 of the lattice's 21 families, and it
-  corrected four round-1 readings. Round 3 (2026-09-29): clang 21
-  changes nothing (16 of 21 with an `fmaf` idiom rewrite), a nearest-
-  legal-name mask buys +0.012 so the masked decoder is closed. Route 1's
-  first session (§12, zero spend): all five guarded families expressible
-  in a closed kernel language, three solved by search, two fail on
-  identifiability; popcount times out; verdict C. Session 2 (§13): a
-  deterministic lifter closes all five (609/609 rows) and popcount comes
-  from SIMDe by lookup, so the lattice's residual is deterministic and
-  Calvin has no job left on sqlite-vector; a second target, or back to
-  extraction, is Max's call.
+  necessarily an LLM (ADR-152). **Closed on its lattice** (Max,
+  2026-09-29: "close out here and return to extraction"). The lattice
+  programme (ADR-151, about $21.50) tested a stock coder steered by
+  context and one LoRA. The zero-spend reassessment
+  (`calvin-reassessment.md` §9–§13) then found sqlite-vector's whole
+  residual deterministic: 16 of 21 families from the compiler; the 5
+  guarded ones from a tree-sitter lifter plus the compiler (609/609
+  rows); the helpers from Z3 and a SIMDe lookup. Calvin reopens only on
+  a target where the job is not derivable.
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its
@@ -355,7 +343,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   ADR-126 §3 — whether to build a "may reach through dispatch (not
   traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
-  "fine for now").
+  "fine for now"); the G-diff coverage finding (the lattice
+  driver never puts inf/NaN in `b` alone, so one-sided masks pass;
+  proposed, not registered).
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 
