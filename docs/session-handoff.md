@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-29 (twenty-fourth session); Hobbes 0.2.72-beta on `main`.**
+**Reviewed 2026-09-30 (twenty-fifth session); Hobbes 0.2.72-beta on `main`.**
 Max pushed through `45e67a5` (D-15 taken, 2026-09-27); `main` is ahead of
 `origin/main` by this day's commits, unpushed. The image and the proxy are at
 0.2.72-beta; ingest this repo at HEAD before relying on the knowledge tools
@@ -28,13 +28,13 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-29, twenty-fourth session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-30, twenty-fifth session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
 **Extraction is the work.** Calvin is closed on the lattice (Max, 2026-09-29: "close out here and return to
-extraction"). The next extraction candidate is route c (below), measured first.
+extraction"). **Route c is measured (2026-09-30, below) and waits on Max's route;** nothing is built.
 
 **Calvin, closed on sqlite-vector** (the record: `docs/experiments/calvin/calvin-reassessment.md`, §11 to §13; the
 runs: `~/.hobbes/bench/calvin-lattice/route1-s1/`, `PREREG.md` and `PREREG-s2.md` with their `RESULTS`).
@@ -61,12 +61,30 @@ runs: `~/.hobbes/bench/calvin-lattice/route1-s1/`, `PREREG.md` and `PREREG-s2.md
   `~/.hobbes/bench/comparative/run-js-cell.sh`, `<tool>-<repo>/`, `at5/` in each repowise cell. repowise 0.53.0 is
   out; the cells stay on 0.49.0 until Max says otherwise.
 
-- **Next candidate — route c (ADR-150), measured first:** lane A drawing a bare-name call
-  to the one def of that name in the enclosing function's own body, `syntactic`. Its
-  ceiling on the keys is the seven sites (flask 237, 251, 281, 296, 310; click 1836,
-  1888), each at its own right def. Measure how many sites the rule would draw in every
-  Python cell, and whether any is wrong (a name rebound between def and call), before an
-  ADR.
+- **Route c (ADR-150), measured 2026-09-30, no ADR yet** (`~/.hobbes/bench/py-route-c/`:
+  `PREREG.md`, `probe.py`, `RESULTS.md`, `<cell>.json`; `hobbes-src/` removable): lane A
+  drawing a bare-name call to the one def of that name in the enclosing function's own body,
+  `syntactic`.
+  - The rule reaches 425 sites on five Python cells (flask 34, click 35, hobbes-py 257,
+    attrs 16, missy 83). **None is wrong:** 0 contradicted on three keys, and on the 334
+    sites lane B already draws the rule names the same def every time. 3 sites are refused as
+    rebound (a second `def`), all drawn by lane B.
+  - **It adds 8 edges:** the seven (flask +5, 56.3% → 56.5%; click +2), and click
+    `_termui_impl.py:816`. Nothing on hobbes-py or attrs.
+  - **3 of flask's 5 are decorated defs** (`@flask.stream_with_context`; the key confirms
+    them `via: wrapped`). A rule that refuses a decorated def draws 4 of the 7.
+  - Not modelled: the join (a build's `lane_b` case must show ADR-111's veto stays quiet on
+    C-170's in-repo external reference) and the tree-sitter walk.
+  - **Routes for Max:** (a) build it as worded, decorated defs included, as one small unit
+    with an ADR; (b) the same, refusing decorated defs; (c) record it as measured and not
+    build for seven rows.
+- **Found by the probe, cause not read to the end: lane B is silent on click's
+  `sys.platform == "darwin"` branch** (`_termui_impl.py` 811–821 have no occurrence in the
+  ingest's facts stream; the `elif WIN:` branch is indexed). A raw scip-python run in the
+  same image over the same clone *does* index those lines (`py-multidef/click/occ.ndjson`),
+  so the two runs differ and why is not read. No register entry names it. Read the cause
+  (the staged tree, `--environment`, the project's `[tool.pyright]`) before deciding whether
+  it is a constraint or a defect.
 - **What click still misses** (806 on r3): 460 closures — callbacks reached through
   attributes and parameters (`self.callback(…)`, `callback(*args)`, monkeypatched doubles:
   values, C-58), `@cli.command("sdist")` (10, a method factory with a positional —

@@ -14863,3 +14863,33 @@ a target where the job is not derivable.
 - No code or version moved and the image was not rebuilt, so the knowledge server needs no restart.
 - The throwaway image `r3-clang-f43` (Fedora 43, clang 21.1.8) is kept, because the route1-s1 records' clang 21
   readings used it.
+
+## 2026-09-30 (twenty-fifth session) — the top-level docs caught up with Calvin's close; route c measured, not built
+
+**The docs.** Max: Calvin is paused, extraction is the focus. The review found the close of 2026-09-29 missing from
+five places, fixed in `1b6f932`: the README's Calvin paragraph and its doc-table row ("E3 next"), the experiments
+page's status line, the handoff (the untagged range, a repeated route c line, Calvin still under "Open for Max" and
+"until Max reassesses"), the architecture's tracker count (89 → 90), and workstreams (its header, the keyed round's
+path, "C++ has not been named").
+
+**Route c, measured first** (Max: "start with the route c probe"). Pre-registered, then run; the record and the
+drivers are `~/.hobbes/bench/py-route-c/` (`PREREG.md`, `probe.py`, `RESULTS.md`).
+- **The rule as worded:** a bare-name call whose innermost enclosing def binds the name exactly once, by a `def` in
+  its own body. Any other binding of the name in that scope refuses the site.
+- **Reach:** 425 sites on five Python cells (flask 34, click 35, hobbes-py at `2c915a8` 257, attrs 16, missy 83), and
+  3 refused as rebound (a second `def`; lane B draws all three).
+- **Wrong: none.** 0 contradicted on the three trace keys (289 confirmed, 36 unobserved, 1 line observed with no
+  target listed). On the 334 sites lane B already draws, the rule names the same def every time.
+- **Added: 8 edges.** The seven ADR-150 named (flask 5, click 2), each confirmed at its own def, and click
+  `src/click/_termui_impl.py:816`. flask would read 56.3% → 56.5%. Nothing moves on hobbes-py or attrs, whose
+  exports predate ADR-150 and were checked against the raw index instead.
+- **Three of flask's five are decorated defs** (`@flask.stream_with_context`), which the key confirms `via: wrapped`.
+  Refusing a decorated def leaves 4 of the 7. Lane B already draws six other decorated sites to the def.
+- **Limits, stated before the run:** the join is not modelled, and `ast` read the source where a build would use the
+  tree-sitter walk. missy has no export, so its 83 are a static count.
+- **Found beside it, cause not read to the end:** the ingest's facts stream has no occurrence on click's
+  `sys.platform == "darwin"` branch (`_termui_impl.py` 811–821), and a raw scip-python run in the same image over
+  the same clone has them. No register entry names it. It is in the handoff as a read to make before it is called
+  a constraint or a defect.
+- Three routes are with Max: build as worded, build refusing decorated defs, or record and not build.
+- No code or version moved and the image was not rebuilt, so the knowledge server needs no restart.

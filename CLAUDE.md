@@ -275,7 +275,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-29) — Hobbes 0.2.72-beta
+## Status (2026-09-30) — Hobbes 0.2.72-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -321,8 +321,10 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   sacrifice honesty for higher recall"). The last extraction release,
   0.2.71-beta, made the lane A walks iterative so one file's depth never
   ends an ingest (C-171) and recorded C's lost definitions (C-172).
-  **Next:** the candidates in the handoff (route c among them), each
-  measured first; C/C++ lane A's super-linear time on deep chains is one.
+  **Route c is measured** (2026-09-30: 425 sites on five Python cells,
+  none wrong, 8 edges added — the seven and one more) and waits on Max's
+  route. **Next:** the other candidates in the handoff, each measured
+  first; C/C++ lane A's super-linear time on deep chains is one.
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
   necessarily an LLM (ADR-152). **Closed on its lattice** (Max,
