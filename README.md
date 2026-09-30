@@ -507,9 +507,14 @@ answers are what the target uses. Two thirds of the invented names are
 declared by no header at all. D-15 (2026-09-27/28, about $3.08 of $4)
 gave the same list to the 32B student, beside the shots and beside its
 retry: null both ways (+0.017, p 0.34; +0.002, p 0.86). With no positive
-result, the experiments are closed for now (2026-09-28), at about $21.50
-over the programme; the harness is unaffected. The records are
-in the experiments page.
+result, the experiments were closed for now (2026-09-28), at about $21.50
+over the programme. The zero-spend reassessment that followed
+([`calvin-reassessment.md`](docs/experiments/calvin/calvin-reassessment.md)
+§11–§13) found the lattice's residual deterministic: the compiler, a
+lifter, a solver and a lookup. Calvin is closed on sqlite-vector
+(2026-09-29) and reopens only on a target where the job is not
+derivable; the harness is unaffected. The records are in the
+experiments page.
 
 The work built through it includes C's lane A and its oracle, the
 external veto (ADR-111), a session's records written by a sidecar
@@ -550,7 +555,7 @@ point); the session-by-session record is
 | [`docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md`](docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
 | [`docs/shanks/shanks-harness.md`](docs/shanks/shanks-harness.md) | **Shanks, the harness (ADR-107, ADR-152):** `hobbes dispatch`, the egress allowlist, the doer in the session, the gate on its diff, and how the harness is validated. The per-session logs are in `docs/shanks/sessions/`. Shanks is Calvin's accepted lowest floor, not Calvin's design |
 | [`docs/experiments/calvin/keyed-rounds/`](docs/experiments/calvin/keyed-rounds/) — the keyed rounds, closed | M0 ([`calvin-potential.md`](docs/experiments/calvin/keyed-rounds/calvin-potential.md)), M0-Go ([`calvin-m0-go.md`](docs/experiments/calvin/keyed-rounds/calvin-m0-go.md), [round 2](docs/experiments/calvin/keyed-rounds/calvin-m0-go-r2.md)) and M0-Gate ([`calvin-m0-gate.md`](docs/experiments/calvin/keyed-rounds/calvin-m0-gate.md)). Each record keeps its design, §10 results and gate record, and each cell page is under `docs/experiments/calvin/keyed-rounds/cells/`. History since 2026-09-12 |
-| [`docs/experiments/calvin/calvin-experiments.md`](docs/experiments/calvin/calvin-experiments.md) | The Calvin experiments programme (ADR-151): a model that writes one language (C), starting from sqlite-vector's SIMD kernel lattice. The design space, experiments E0–E7, and the decisions taken. E0, the instruments, built and accepted 2026-09-25; E1 run on both 7Bs over all 93 cells (2026-09-25, $6.59 of $10); E2 run on two rename shadows (2026-09-26, $1.89 of $3); E3 next, on the lead's word |
+| [`docs/experiments/calvin/calvin-experiments.md`](docs/experiments/calvin/calvin-experiments.md) | The Calvin experiments programme (ADR-151): a model that writes one language (C), starting from sqlite-vector's SIMD kernel lattice. The design space, experiments E0–E7, and the decisions taken. E0, the instruments, built and accepted 2026-09-25; E1 run on both 7Bs over all 93 cells (2026-09-25, $6.59 of $10); E2 run on two rename shadows (2026-09-26, $1.89 of $3); E3, E4 and D-11 to D-15 run since (about $21.50 over the programme); closed on sqlite-vector 2026-09-29, the reassessment beside it |
 | [`docs/experiments/calvin/atlas0/atlas-0.md`](docs/experiments/calvin/atlas0/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
 | [`docs/reviews/`](docs/reviews/) | Dated agent reviews of the tree against its records (the 2026-09-10 baseline) |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |

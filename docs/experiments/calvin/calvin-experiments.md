@@ -1,6 +1,8 @@
 # Calvin experiments — a model that writes one language, starting from sqlite-vector
 
-**Status:** **closed for now** (Max, 2026-09-28: "close for now, not close calvin completely"), after D-16 gave
+**Status:** **closed on sqlite-vector** (Max, 2026-09-29: "close out here and return to extraction"), after the
+reassessment's Route 1 found the lattice's residual deterministic ([`calvin-reassessment.md`](calvin-reassessment.md)
+§12, §13). Before that: **closed for now** (Max, 2026-09-28: "close for now, not close calvin completely"), after D-16 gave
 no positive result. The summary is in §6, "Where the programme stands". E0 to E4 and D-11 to D-15 were run;
 E5 to E7 are parked · **Type:** programme page — the design space, the experiments in it, the order, the
 decisions · **Compute:** about $21.50 over the programme, each run on Max's word and ceiling; nothing more until he

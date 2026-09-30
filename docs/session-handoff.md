@@ -11,7 +11,7 @@ the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.71-beta are untagged. Tags stay Max's call each time.
+  0.2.72-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -60,7 +60,6 @@ runs: `~/.hobbes/bench/calvin-lattice/route1-s1/`, `PREREG.md` and `PREREG-s2.md
   and all 22 published cells were regraded. C-94 has the chain-line residual. Drivers:
   `~/.hobbes/bench/comparative/run-js-cell.sh`, `<tool>-<repo>/`, `at5/` in each repowise cell. repowise 0.53.0 is
   out; the cells stay on 0.49.0 until Max says otherwise.
-- **Extraction:** the next candidate is **route c** (below), measured first.
 
 - **Next candidate — route c (ADR-150), measured first:** lane A drawing a bare-name call
   to the one def of that name in the enclosing function's own body, `syntactic`. Its
@@ -381,7 +380,7 @@ named below was removed unless it says otherwise.
    - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](experiments/calvin/calvin-experiments.md),
      ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
      E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
-     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run and D-14 probed (no spend), twenty-first; D-15 finished under D-16's $4 (≈ $3.08), null; **the experiments are closed for now** (2026-09-28). Drivers:
+     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run and D-14 probed (no spend), twenty-first; D-15 finished under D-16's $4 (≈ $3.08), null; **closed on sqlite-vector** (Max, 2026-09-29; kept here for its drivers, nothing in it is open). Drivers:
      `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
      <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
      history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its
@@ -556,7 +555,7 @@ min each.
 **Held, with all spend:** the Atlas-0 T items; the TTT adapter points;
 the removal A/B re-run on the 7B; a second unseen repo through the cell;
 DeepSWE's decomposed protocol; `hobbes narrate` on this repo; the Calvin
-experiments (`calvin-experiments.md`; closed for now after D-16, until Max reassesses them). The keyed Calvin runs are closed, not
+experiments (`calvin-experiments.md`; closed on sqlite-vector, 2026-09-29; they reopen only on a target where the job is not derivable). The keyed Calvin runs are closed, not
 held.
 
 ## STANDING POLICY (Max) — read before doing anything
