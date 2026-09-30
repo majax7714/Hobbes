@@ -14921,3 +14921,7 @@ drivers are `~/.hobbes/bench/py-route-c/` (`PREREG.md`, `probe.py`, `RESULTS.md`
   module-level) and lane B wins both: lane A's fallback ignores a function-local import, and it keeps the first of
   an `if sys.platform == "win32":` / `else:` pair of defs where lane B names the `else` one. `AGENTS.md` had drifted from `CLAUDE.md` since 2026-09-28
   and is copied from it again.
+
+**Later: the doer's model on this box is Opus 5.5** (Max: "opus 5.5 is more efficient and better than opus 5 … move
+that to default … for dispatching"). `HOBBES_DISPATCH_MODEL=claude-opus-5-5` in `.claude/settings.local.json`
+(gitignored); CLAUDE.md and the handoff name it. Unit `99dc` ran on Opus 5, before the change. No code moved.

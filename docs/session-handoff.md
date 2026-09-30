@@ -438,7 +438,7 @@ named below was removed unless it says otherwise.
 2. **Running a session** (`shanks-harness.md` §5):
    - Keep the token in the key file, and ingest at HEAD.
    - The doer's model is the checkout's: `HOBBES_DISPATCH_MODEL` in
-     `.claude/settings.local.json` (this box: `claude-opus-5`); `--model`
+     `.claude/settings.local.json` (this box: `claude-opus-5-5`, Max 2026-09-30); `--model`
      beats it.
    - Decide the design in an ADR or an amendment **before** the
      dispatch.

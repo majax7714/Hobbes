@@ -195,7 +195,7 @@ uv run hobbes review main..my-branch  # exit 1 if it needs attention
 uv run hobbes plan "proposal" --seed some.module
 uv run hobbes run <task> --dry-run
 uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # Shanks, the harness; the ingest at HEAD first
-#   the doer's model: --model, else $HOBBES_DISPATCH_MODEL (this box: claude-opus-5, in .claude/settings.local.json), else Claude Code's own
+#   the doer's model: --model, else $HOBBES_DISPATCH_MODEL (this box: claude-opus-5-5, in .claude/settings.local.json), else Claude Code's own
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
