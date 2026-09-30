@@ -1,6 +1,6 @@
 # ADR-153 — A bare call to the one def its own function writes is drawn by lane A
 
-**Date:** 2026-09-30 · **Status:** accepted (Max, 2026-09-30: "good to proceed with route a"); not yet built ·
+**Date:** 2026-09-30 · **Status:** accepted (Max, 2026-09-30: "good to proceed with route a") and **built** (0.2.73-beta, unit `99dc`) ·
 **Owner:** Max · **Source:** ADR-150's route c, left "to be measured on its own". Measured and simulated this
 session: `~/.hobbes/bench/py-route-c/` (`PREREG.md`, `probe.py`, `RESULTS.md`; `PREREG-sim.md`,
 `ingest_rule.py`, `sim.sh`, `sim/`).
@@ -73,7 +73,13 @@ def its own function writes.
 
    A function whose own body holds a `match` statement or a `type` alias statement has no
    such names at all: both bind names, and the walk's binding read does not cover them.
-   A qualname two definitions share (an `if`/`else` pair of `def F`) has none either.
+   A name N is also left out where the file writes `F.N` more than once (an `if`/`else`
+   pair of `def F`, each nesting a `def N`): the graph keeps one symbol per qualname, the
+   first. *(Corrected at the unit's review, 2026-09-30: the first form refused every F
+   whose qualname a second definition shares. click's `Group.command` and `Group.group`
+   are two `@overload` stubs and an implementation, so that form drew neither of click's
+   rows. The fact carries each definition's lines, and the call's line says which
+   definition it is written in.)*
 2. **The site.** A call whose callee is a bare name N, whose scope (the innermost enclosing
    definition, as lane A already records it) is F, where N is one of F's names from step 1.
    A call in a nested def, or in a class body inside F, has another scope and is not this
@@ -106,3 +112,12 @@ none from this rule.
 
 C-170 keeps every reference that is not a bare call from the def's own function: a nested
 def passed as a value, and a call from a sibling closure to a conflated name.
+
+## Built (0.2.73-beta, unit `99dc`)
+
+As decided, with one defect fixed at the review (`80d2136`), and it was this ADR's: step
+1's refusal of a shared qualname, corrected above. The probe and the simulation had not
+modelled that refusal, so neither saw it; the real cell did (flask's five rows drawn,
+click's two not). Host: pytest 2,464, `lane_b` 17 of 17. flask 1,519 → 1,524 confirmed
+(56.3% → 56.5%), click 3,754 → 3,756; 0 contradicted and poison PASS on both; both exports
+identical to the simulation's (`oracle-grading.md` §10.37).

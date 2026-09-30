@@ -14893,3 +14893,31 @@ drivers are `~/.hobbes/bench/py-route-c/` (`PREREG.md`, `probe.py`, `RESULTS.md`
   a constraint or a defect.
 - Three routes are with Max: build as worded, build refusing decorated defs, or record and not build.
 - No code or version moved and the image was not rebuilt, so the knowledge server needs no restart.
+
+**Later: route a taken, ADR-153 built — 0.2.73-beta** (Max: "good to proceed with route a").
+- **Simulated before the ADR** (`PREREG-sim.md`, `ingest_rule.py`, `sim.sh`): the rule in memory through the real
+  join on flask and click. The exports differed by exactly the 8 predicted `syntactic` edges; flask 1,519 → 1,524,
+  click 3,754 → 3,756; 0 contradicted, poison PASS. ADR-111's veto stayed quiet on C-170's in-repo external
+  reference.
+- **ADR-153** written and accepted on that. Two refusals went past the wording Max took, both toward drawing
+  less: a lambda parameter or comprehension target of the name, and a function holding a `match` or `type`
+  statement.
+- **Unit `S-20260930T142344Z-99dc`** (Opus 5, 66 of 120 turns, $4.92, 11 min): gate clear, verify pass, 48 new
+  tests. It changed one test outside the partition, which the gate lists `exempt`: `minideco`'s pin that no edge
+  ends in `.decorator`, which was the rule's own shape.
+- **One defect fixed at the review, and it was the ADR's** (`80d2136`). Step 1 refused every function whose
+  qualname a second definition shares. click's `Group.command` and `Group.group` carry `@overload` stubs, so the
+  real cell drew flask's five and neither of click's. The probe and the simulation had not modelled that refusal.
+  The fact now carries each definition's lines, the call's line picks the definition, and a name is left out only
+  where its own def is written twice. The ADR is corrected in place, dated.
+- **Graded on the fixed build:** flask 1,524 (56.5%), click 3,756, 0 contradicted, poison PASS, both exports
+  identical to the simulation's (`oracle-grading.md` §10.37).
+- **Host:** pytest 2,464, `lane_b` 17 of 17, Go and oracle-lane Go green, scip 97, tsextract 47, vitest 52. This
+  repo re-ingested: 16,657 sites both lanes resolve, 0 disagree.
+- **Released as 0.2.73-beta:** CHANGELOG, C-170 narrowed (register tally unchanged), the architecture's header,
+  §3.8's Python row and the tracker count (91 of 40), the README, workstreams. The binaries and the image were
+  rebuilt.
+- **Found, for the handoff:** click's two lane disagreements, neither from this rule (both syntactic targets are
+  module-level) and lane B wins both: lane A's fallback ignores a function-local import, and it keeps the first of
+  an `if sys.platform == "win32":` / `else:` pair of defs where lane B names the `else` one. `AGENTS.md` had drifted from `CLAUDE.md` since 2026-09-28
+  and is copied from it again.

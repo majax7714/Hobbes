@@ -540,9 +540,11 @@
 
 ### C-170 — A Python name scip-python gives one moniker at several lines of a file has no lane B answer
 - **Cannot tell you:** which definition a reference means where scip-python gives one
-  moniker to several definitions in one file. The site draws no `semantic` edge. Lane A
-  has no floor for a bare-name call to a nested def, so the site is not drawn at all.
-  Nothing is guessed.
+  moniker to several definitions in one file. The site draws no `semantic` edge.
+  **Narrowed at 0.2.73-beta (ADR-153):** a bare-name call written in the function whose own
+  body writes the one `def` of that name is drawn by lane A, `syntactic`. What is left
+  draws nothing: such a def passed as a value, a call to it from a sibling closure, and a
+  name ADR-153 refuses (bound twice in its scope). Nothing is guessed.
 - **Because:** scip-python names a def nested in a method by its class and its own name,
   and drops every function scope between them (read on a ten-line fixture in the image,
   2026-09-24). So same-named nested defs in sibling methods share one moniker. flask's
@@ -557,13 +559,14 @@
 - **Bites at:** a method's same-named nested defs: flask 9 monikers (its `App`,
   `Blueprint` and `Scaffold` each nest several `decorator`s), click 2, attrs 20, this repo
   10. The three right edges went with the four wrong ones. flask read 1,521 → 1,519
-  confirmed and click 3,755 → 3,754, each at 0 contradicted (ADR-150).
+  confirmed and click 3,755 → 3,754, each at 0 contradicted (ADR-150). ADR-153 drew the
+  seven sites back, each at its own def: flask 1,524 and click 3,756 at 0.2.73-beta.
 - **You find out:** **surfaced** — one `scip-decode` degradation record per ingest, in
   Python's own wording, counts the monikers and the references left without an answer,
   with examples.
 - **Provider (P9):** scip-python **0.6.6**, its descriptor for a def nested in a method.
-- **Source:** flask's key (`oracle-grading.md` §10.35, §10.36); ADR-150;
-  `~/.hobbes/bench/py-multidef/`.
+- **Source:** flask's key (`oracle-grading.md` §10.35, §10.36, §10.37); ADR-150, ADR-153;
+  `~/.hobbes/bench/py-multidef/`, `~/.hobbes/bench/py-route-c/`.
 
 ### C-171 — A file nested deeper than lane A's walk reaches is not read
 - **Cannot tell you:** the symbols and call sites of a file whose syntax tree is nested

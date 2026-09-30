@@ -2459,6 +2459,50 @@ call to a nested def (ADR-150's route c, a recall rule to measure on its own). T
 `scip-decode` record counts 9 (flask) and 2 (click), matching the raw count. Python only.
 Other languages' decode options are unchanged, so no other cell was regraded.
 
+### 10.37 A bare call to the one def its own function writes — `PREREG.md` written 2026-09-30 before `probe.py`'s first run, `PREREG-sim.md` before `sim.sh`'s; this section written after the regrade (ADR-153; unit `99dc`)
+
+**The probe** (`~/.hobbes/bench/py-route-c/`, `ast` over the source, no product code): a
+bare-name call whose innermost enclosing def binds the name exactly once, by a `def` in its
+own body.
+
+| cell | sites | lane B draws it already | new | key: confirmed / unobserved / contradicted |
+|---|---|---|---|---|
+| flask | 34 | 29 | 5 | 33 / 1 / 0 |
+| click (`click-py-r3`) | 35 | 32 | 3 | 25 / 10 / 0 |
+| this repo @ `2c915a8` | 257 | 257 | 0 | 231 / 25 / 0 (1 line observed with no target listed) |
+| attrs | 16 | 16 | 0 | no key |
+| missy | 83 | no export | — | no key |
+
+On the 334 sites lane B draws, the rule names the same def every time. 3 sites are refused
+(a second `def` of the name); lane B draws all three. This repo's and attrs's exports
+predate ADR-150, so their zero was checked against the raw index: no site there references
+a conflated moniker.
+
+**Simulated through the join, then built** (stored keys, `--poison`):
+
+| cell | confirmed | suspect | contradicted | poison |
+|---|---|---|---|---|
+| flask, 0.2.72-beta → **0.2.73-beta** | 1,519 → **1,524** (56.3% → 56.5%) | 15 → 15 | 0 → 0 | PASS |
+| click (`click-py-r3`), 0.2.72-beta → **0.2.73-beta** | 3,754 → **3,756** (82.3% → 82.4%) | 20 → 20 | 0 → 0 | PASS |
+
+Signed direction of fix: confirmed **+7** (flask +5, click +2), unobserved **+1** (click
+`src/click/_termui_impl.py:816`), suspect **±0**, contradicted **±0**, rows removed **0**,
+`semantic` **±0**. The exports differ by exactly eight `syntactic` edges, and each built
+export is the simulation's, edge for edge. The seven are the sites §10.36 removed (flask
+`tests/test_helpers.py` 237, 251, 281, 296, 310; click `src/click/core.py` 1836, 1888), each
+now at its own def; three of flask's are decorated defs the key confirms `via: wrapped`.
+
+**The first build missed click's two.** It refused a function whose qualname a second
+definition shares, as the ADR first said, and `Group.command` and `Group.group` carry
+`@overload` stubs. The simulation matched sites by the probe's rows and had no such
+refusal, so only the real cell showed it (flask +5, click +0). Fixed at the review; the
+table is the fixed build.
+
+**Found beside it, not explained:** the ingest's facts for click have no occurrence on
+`_termui_impl.py` 811–821, the `sys.platform == "darwin"` branch, while a raw scip-python
+run in the same image over the same clone has them. Lane A now draws the one bare call in
+that branch. No key on Linux observes it. Python only; no other cell was regraded.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

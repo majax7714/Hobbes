@@ -11,9 +11,39 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.72-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.73-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.73-beta — 2026-09-30 (a bare call to the one def its own function writes; ADR-153, C-170 narrowed)
+
+**Patch: what the layer draws** — Python, lane A's fallback. Built as unit
+`S-20260930T142344Z-99dc`; one defect fixed at its review.
+
+- **What was missing.** Since 0.2.70-beta a call to a def nested in a method has no lane B
+  answer where scip-python gives the def's name one moniker across sibling methods (C-170).
+  Lane A saw the site and had no rule for it, so the call drew nothing.
+- **The rule.** A bare-name call resolves to the `def` of that name written in the calling
+  function's own body, where that `def` is the scope's only binding of the name. Lane A
+  proposes it through the fallback, ahead of its module-level rule, and the join draws it
+  `syntactic` wherever lane B has no answer. Refused: a name the scope also binds as a
+  parameter, by assignment, a `for`/`with`/`except` target, an import, `del`, a second
+  `def` or a `class`; a `global`/`nonlocal` of it anywhere under the function; a lambda
+  parameter or comprehension target of that name; a function holding a `match` or `type`
+  statement; a name whose own def is written twice in the file. A decorated def counts.
+- **Measured first.** The rule reaches 425 sites on five Python cells. On the 334 that
+  lane B already draws it names the same def every time, and no trace key contradicts
+  one.
+- **Graded.** flask 1,519 → 1,524 confirmed (56.3% → 56.5%), click 3,754 → 3,756 (82.3% →
+  82.4%). 0 contradicted, poison PASS. Exactly eight `syntactic` edges added, nothing
+  removed: the seven sites 0.2.70-beta stopped drawing, each now at its own def, and one
+  in a `sys.platform == "darwin"` branch no Linux key can observe
+  (`oracle-grading.md` §10.37).
+- **Fixed at the review:** the first build refused every function whose qualname a second
+  definition shares, which is every method with `@overload` stubs, and drew neither of
+  click's rows. The call's line now picks the definition.
+- **Narrowed:** C-170. It keeps a nested def passed as a value and a call from a sibling
+  closure.
 
 ## 0.2.72-beta — 2026-09-28 (the harness is Shanks; Calvin is the model; ADR-152)
 

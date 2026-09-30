@@ -199,9 +199,9 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # Shanks, t
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-26, 0.2.71-beta, every suite
-re-run on the host): 2,412 pytest (17 `lane_b`, run in the rebuilt
-image at 0.2.71-beta) / 399 Go with subtests (398 pass, 1 skip) + 129
+Suite sizes at the last check (2026-09-30, 0.2.73-beta, every suite
+re-run on the host): 2,464 pytest (17 `lane_b`, run in the rebuilt
+image at 0.2.73-beta) / 399 Go with subtests (398 pass, 1 skip) + 129
 oracle-lane Go with subtests (117 pass, 12 skip on a host without
 clang++ or cmake; the C++ ones pass in the image) / 52 vitest / 47
 tsextract + 97 scip node / 84 atlas0 / 656 lattice (624 pass, 32 skip
@@ -221,7 +221,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 152;
+  architecture doesn't already make. Number sequentially (last: 153;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -275,7 +275,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-28) — Hobbes 0.2.72-beta
+## Status (2026-09-30) — Hobbes 0.2.73-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -307,37 +307,33 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   verify → one log in `docs/shanks/sessions/`. The tracker at the end of
   that directory's `README.md` (`pipeline/scripts/shanks_tracker.py
   render`, held by a drift test; re-render after filling a review block)
-  reads **90 of 40** sessions that validate the harness: 4 areas, 4 false
+  reads **91 of 40** sessions that validate the harness: 4 areas, 4 false
   blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141` and `66c5`, the
   decorator case below, open), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.72-beta, the harness is Shanks; Calvin is the model**
-  (ADR-152, Max, 2026-09-28). `docs/calvin/` → `docs/shanks/`,
-  `shanks.box.policy`, `shanks_tracker.py`; the charter moved to
-  `docs/experiments/calvin/`. Session records stay refused as training
-  data at both the new path and the old one, each tested.
+- **Latest — 0.2.73-beta, a bare call to the one def its own function
+  writes** (ADR-153, Max: route a, 2026-09-30; unit `99dc`). Lane A
+  proposes it through the fallback, `syntactic`; the seven sites
+  ADR-150 stopped drawing are back, each at its own def. flask 1,519 →
+  1,524 (56.5%), click 3,754 → 3,756, 0 contradicted. C-170 narrowed.
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
-  sacrifice honesty for higher recall"). The last extraction release,
-  0.2.71-beta, made the lane A walks iterative so one file's depth never
-  ends an ingest (C-171) and recorded C's lost definitions (C-172).
-  **Next:** the candidates in the handoff (route c among them), each
-  measured first; C/C++ lane A's super-linear time on deep chains is one.
+  sacrifice honesty for higher recall"). Route c is built (above).
+  **Next:** the candidates in the handoff, each measured first: C/C++
+  lane A's super-linear time on deep chains; the ingest's silence on a
+  `sys.platform` branch (click, cause not read); click's 2 lane
+  disagreements (a function-local import, a platform `if`/`else` def).
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
-  necessarily an LLM (ADR-152). The lattice programme (ADR-151, about
-  $21.50, E0–E4 and D-11–D-16) tested one form of it, a stock
-  multilingual coder steered by context and one LoRA: pattern shots
-  carry, training sharpened reading and not skill, facts about names do
-  not steer at either size. It closed for now on 2026-09-28. **The design
-  is being reassessed before any run** (`calvin-reassessment.md`): round 1
-  (routes and literature) found that restriction works as a mechanism
-  (decoder, output language, verifier), not as advice or training, and
-  that "efficient" and "aligned" were never measured. Round 2 found
-  that round 1's design A is mostly Shanks one step earlier, that a
-  compiler already vectorizes 14 of the lattice's 21 families, and it
-  corrected four round-1 readings. It leans toward a closed-language
-  author (a Hobbes-owned IR, lowered by Hobbes); Max chooses next.
+  necessarily an LLM (ADR-152). **Closed on its lattice** (Max,
+  2026-09-29: "close out here and return to extraction"). The lattice
+  programme (ADR-151, about $21.50) tested a stock coder steered by
+  context and one LoRA. The zero-spend reassessment
+  (`calvin-reassessment.md` §9–§13) then found sqlite-vector's whole
+  residual deterministic: 16 of 21 families from the compiler; the 5
+  guarded ones from a tree-sitter lifter plus the compiler (609/609
+  rows); the helpers from Z3 and a SIMDe lookup. Calvin reopens only on
+  a target where the job is not derivable.
 - **Comparative** (ADR-101): CodeGraphContext and repowise are graded on
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its
@@ -347,7 +343,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   ADR-126 §3 — whether to build a "may reach through dispatch (not
   traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
-  "fine for now").
+  "fine for now"); the G-diff coverage finding (the lattice
+  driver never puts inf/NaN in `b` alone, so one-sided masks pass;
+  proposed, not registered).
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 

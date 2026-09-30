@@ -14,6 +14,11 @@ C-171 and C-172 registered, 2026-09-26 (0.2.71-beta; D-8, Max: "good to proceed 
   not a symbol; the file's parse record now says so. 172 entries, 126 active (98
   surfaced).
 
+C-170 narrowed, 2026-09-30 (0.2.73-beta; ADR-153, Max: route a; no entry added):
+- **C-170 narrowed (still surfaced).** A bare call to the one def its own function writes
+  is drawn by lane A, `syntactic`; the seven sites ADR-150 stopped drawing are back, each
+  at its own def. 172 entries, 126 active (98 surfaced), unchanged.
+
 C-170 registered, 2026-09-24 (0.2.70-beta; ADR-150, Max: route a):
 - **C-170 added (surfaced).** scip-python gives same-named defs nested in sibling methods
   one moniker; a Python moniker one file defines at several lines is now no lane B

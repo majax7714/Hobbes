@@ -199,9 +199,9 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # Shanks, t
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-26, 0.2.71-beta, every suite
-re-run on the host): 2,412 pytest (17 `lane_b`, run in the rebuilt
-image at 0.2.71-beta) / 399 Go with subtests (398 pass, 1 skip) + 129
+Suite sizes at the last check (2026-09-30, 0.2.73-beta, every suite
+re-run on the host): 2,464 pytest (17 `lane_b`, run in the rebuilt
+image at 0.2.73-beta) / 399 Go with subtests (398 pass, 1 skip) + 129
 oracle-lane Go with subtests (117 pass, 12 skip on a host without
 clang++ or cmake; the C++ ones pass in the image) / 52 vitest / 47
 tsextract + 97 scip node / 84 atlas0 / 656 lattice (624 pass, 32 skip
@@ -275,7 +275,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-30) — Hobbes 0.2.72-beta
+## Status (2026-09-30) — Hobbes 0.2.73-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -307,24 +307,22 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   verify → one log in `docs/shanks/sessions/`. The tracker at the end of
   that directory's `README.md` (`pipeline/scripts/shanks_tracker.py
   render`, held by a drift test; re-render after filling a review block)
-  reads **90 of 40** sessions that validate the harness: 4 areas, 4 false
+  reads **91 of 40** sessions that validate the harness: 4 areas, 4 false
   blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141` and `66c5`, the
   decorator case below, open), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.72-beta, the harness is Shanks; Calvin is the model**
-  (ADR-152, Max, 2026-09-28). `docs/calvin/` → `docs/shanks/`,
-  `shanks.box.policy`, `shanks_tracker.py`; the charter moved to
-  `docs/experiments/calvin/`. Session records stay refused as training
-  data at both the new path and the old one, each tested.
+- **Latest — 0.2.73-beta, a bare call to the one def its own function
+  writes** (ADR-153, Max: route a, 2026-09-30; unit `99dc`). Lane A
+  proposes it through the fallback, `syntactic`; the seven sites
+  ADR-150 stopped drawing are back, each at its own def. flask 1,519 →
+  1,524 (56.5%), click 3,754 → 3,756, 0 contradicted. C-170 narrowed.
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
-  sacrifice honesty for higher recall"). The last extraction release,
-  0.2.71-beta, made the lane A walks iterative so one file's depth never
-  ends an ingest (C-171) and recorded C's lost definitions (C-172).
-  **Route c is measured** (2026-09-30: 425 sites on five Python cells,
-  none wrong, 8 edges added — the seven and one more) and waits on Max's
-  route. **Next:** the other candidates in the handoff, each measured
-  first; C/C++ lane A's super-linear time on deep chains is one.
+  sacrifice honesty for higher recall"). Route c is built (above).
+  **Next:** the candidates in the handoff, each measured first: C/C++
+  lane A's super-linear time on deep chains; the ingest's silence on a
+  `sys.platform` branch (click, cause not read); click's 2 lane
+  disagreements (a function-local import, a platform `if`/`else` def).
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
   necessarily an LLM (ADR-152). **Closed on its lattice** (Max,
