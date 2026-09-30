@@ -225,11 +225,98 @@ class TestScopeShadowsTheFallback:
             "        return 1\n"
             "    return inner()\n"
         ))
-        # The nested `inner` is the binding that spans line 7; the
-        # fallback does not resolve nested calls (the tail names them
-        # `local-binding`), and it must not bind them to the module-level
-        # namesake either.
-        assert ("mod.py", 7, "inner") not in fb
+        # The nested `inner` is the binding that spans line 7, and it is
+        # the one def `outer` writes: ADR-153 resolves the call to it, at
+        # line 5. The module-level namesake at line 1 is unreachable
+        # under that name, then and now.
+        assert fb[("mod.py", 7, "inner")] == ("mod.py", 5)
+
+
+class TestTheOneDefItsOwnFunctionWrites:
+    """ADR-153: a bare call to the one ``def`` the calling function's own
+    body writes resolves to that ``def``, ahead of the module-level rule
+    — Python resolves the local binding first, and so does the fallback.
+    ADR-150's shape is the reason: two sibling methods each nesting an
+    ``index`` that nests a ``generate`` share one scip-python moniker per
+    name, so lane B has no answer for either and lane A now does."""
+
+    def _fallback(self, tmp_path, source):
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "own"\n')
+        (tmp_path / "mod.py").write_text(source)
+        modules = discover_modules(tmp_path)
+        parsed = {m.id: parse_source((tmp_path / m.path).read_bytes()) for m in modules}
+        return resolve_call_sites(modules, parsed)
+
+    def test_two_sibling_methods_each_reach_their_own_nested_def(self, tmp_path):
+        fb = self._fallback(tmp_path, (
+            "class Streams:\n"
+            "    def first(self):\n"
+            "        def index():\n"
+            "            def generate():\n"
+            '                return "first"\n'
+            "            return generate()\n"
+            "        return index()\n"
+            "\n"
+            "    def second(self):\n"
+            "        def index():\n"
+            "            def generate():\n"
+            '                return "second"\n'
+            "            return generate()\n"
+            "        return index()\n"
+        ))
+        # Each `generate()` reaches the `generate` written in its own
+        # `index`, at line 4 and line 11 — never the other's, which is
+        # the wrong edge ADR-150 removed.
+        assert fb[("mod.py", 6, "generate")] == ("mod.py", 4)
+        assert fb[("mod.py", 13, "generate")] == ("mod.py", 11)
+        # And each `index()` reaches its own method's `index`.
+        assert fb[("mod.py", 7, "index")] == ("mod.py", 3)
+        assert fb[("mod.py", 14, "index")] == ("mod.py", 10)
+
+    def test_a_refused_name_is_absent(self, tmp_path):
+        """`g = other` is a second binding of the name, so the scope's
+        `def g` is not what `g()` must be — no rule, no row."""
+        fb = self._fallback(tmp_path, (
+            "def other():\n"
+            "    return 0\n"
+            "\n"
+            "def outer():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    g = other\n"
+            "    return g()\n"
+        ))
+        assert ("mod.py", 8, "g") not in fb
+
+    def test_a_sibling_closures_call_is_another_scope(self, tmp_path):
+        """The outer reach is not taken (ADR-153, *Not taken*): `h`'s
+        call of `g` is written in `h`'s scope, which binds no `g`. `h`
+        itself, called from `outer`, is this rule's site."""
+        fb = self._fallback(tmp_path, (
+            "def outer():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    def h():\n"
+            "        return g()\n"
+            "    return h()\n"
+        ))
+        assert ("mod.py", 5, "g") not in fb
+        assert fb[("mod.py", 6, "h")] == ("mod.py", 4)
+
+    def test_a_decorated_nested_def_is_reached_at_its_def_line(self, tmp_path):
+        """Step 4 draws it, and the target is the line lane A records for
+        the symbol — the `def`, not the decorator above it."""
+        fb = self._fallback(tmp_path, (
+            "def outer():\n"
+            "    @dec\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ))
+        parsed = parse_source((tmp_path / "mod.py").read_bytes())
+        symbol = next(s for s in parsed.symbols if s.qualname == "outer.g")
+        assert symbol.line == 3
+        assert fb[("mod.py", 5, "g")] == ("mod.py", 3)
 
 
 class TestExpressionReceiversAbstain:

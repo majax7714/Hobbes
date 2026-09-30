@@ -1608,3 +1608,524 @@ class TestClassBases:
     def test_a_function_has_none(self):
         parsed = parse_source(b"def f(a): pass\n")
         assert parsed.symbols[0].bases == 0
+
+
+#: flask's `tests/test_helpers.py`, the shape ADR-150 refused and ADR-153
+#: draws, verbatim: a test method nesting the `index` its route decorates,
+#: nesting the `generate` it streams.
+FLASK_STREAMING = '''
+class TestStreaming:
+    def test_streaming_with_context_as_decorator(self, app, client):
+        @app.route("/")
+        def index():
+            @flask.stream_with_context
+            def generate(hello):
+                yield hello
+                yield flask.request.args["name"]
+                yield "!"
+
+            return flask.Response(generate("Hello "))
+'''
+
+#: click's `src/click/core.py` 1799–1838, its real text — every signature
+#: annotated, the docstring and the local import with it, because the
+#: refusals this rule turns on are exactly what a paraphrase drops.
+CLICK_GROUP_COMMAND = '''
+class Group:
+    def command(
+        self, *args: t.Any, **kwargs: t.Any
+    ) -> t.Callable[[t.Callable[..., t.Any]], Command] | Command:
+        """A shortcut decorator for declaring and attaching a command to
+        the group. This takes the same arguments as :func:`command` and
+        immediately registers the created command with this group by
+        calling :meth:`add_command`.
+
+        To customize the command class used, set the
+        :attr:`command_class` attribute.
+
+        .. versionchanged:: 8.1
+            This decorator can be applied without parentheses.
+
+        .. versionchanged:: 8.0
+            Added the :attr:`command_class` attribute.
+        """
+        from .decorators import command
+
+        func: t.Callable[..., t.Any] | None = None
+
+        if args and callable(args[0]):
+            assert len(args) == 1 and not kwargs, (
+                "Use 'command(**kwargs)(callable)' to provide arguments."
+            )
+            (func,) = args
+            args = ()
+
+        if self.command_class and kwargs.get("cls") is None:
+            kwargs["cls"] = self.command_class
+
+        def decorator(f: t.Callable[..., t.Any]) -> Command:
+            cmd: Command = command(*args, **kwargs)(f)
+            self.add_command(cmd)
+            return cmd
+
+        if func is not None:
+            return decorator(func)
+
+        return decorator
+'''
+
+
+class TestLocalDefs:
+    """ADR-153 step 1: the names a function's own scope binds exactly
+    once, by a ``def`` written in its own body.
+
+    The whole of the claim is that nothing else in the scope can have
+    bound the name, so nearly every case below is a refusal — one per
+    form that binds, including the two the walk's binding read does not
+    cover (``match`` and ``type``), where the function is refused whole.
+    """
+
+    def defs(self, text: str):
+        return parse(text).local_defs
+
+    # --- listed ---
+
+    def test_one_plain_nested_def(self):
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {"f": ("g",)}
+
+    def test_a_decorated_nested_def_counts(self):
+        """Step 4: `@dec` binds the name to what `dec` returned, and a
+        call of the name still reaches it — lane B draws the same."""
+        assert self.defs(
+            "def f():\n"
+            "    @dec\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {"f": ("g",)}
+
+    def test_a_def_decorated_by_a_call_counts_too(self):
+        assert self.defs(
+            "def f():\n"
+            "    @a.b(1)\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {"f": ("g",)}
+
+    def test_a_def_written_in_an_if(self):
+        assert self.defs(
+            "def f(flag):\n"
+            "    if flag:\n"
+            "        def g():\n"
+            "            return 1\n"
+            "    return g()\n"
+        ) == {"f": ("g",)}
+
+    def test_a_def_written_in_a_try(self):
+        assert self.defs(
+            "def f():\n"
+            "    try:\n"
+            "        def g():\n"
+            "            return 1\n"
+            "    except Exception:\n"
+            "        raise\n"
+            "    return g()\n"
+        ) == {"f": ("g",)}
+
+    def test_a_def_written_in_a_for(self):
+        assert self.defs(
+            "def f(xs):\n"
+            "    for x in xs:\n"
+            "        def g():\n"
+            "            return x\n"
+            "    return g()\n"
+        ) == {"f": ("g",)}
+
+    # --- refused, one case per binding form ---
+
+    def test_two_defs_of_the_name(self):
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    def g():\n"
+            "        return 2\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_two_defs_of_the_name_in_an_if_else_pair(self):
+        assert self.defs(
+            "def f(flag):\n"
+            "    if flag:\n"
+            "        def g():\n"
+            "            return 1\n"
+            "    else:\n"
+            "        def g():\n"
+            "            return 2\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_def_and_a_class_of_the_name(self):
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    class g:\n"
+            "        pass\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_plain_parameter_of_the_name(self):
+        assert self.defs(
+            "def f(g):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_typed_parameter_of_the_name(self):
+        assert self.defs(
+            "def f(g: int):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_defaulted_parameter_of_the_name(self):
+        assert self.defs(
+            "def f(g=None):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_list_splat_parameter_of_the_name(self):
+        assert self.defs(
+            "def f(*g):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_dictionary_splat_parameter_of_the_name(self):
+        assert self.defs(
+            "def f(**g):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_an_assignment_before_the_def(self):
+        assert self.defs(
+            "def f():\n"
+            "    g = 1\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_an_assignment_after_the_def(self):
+        """Step 5 does not guard order, but a second binding is a second
+        binding wherever it is written."""
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    g = 1\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_an_augmented_assignment(self):
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    g += 1\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_for_target(self):
+        assert self.defs(
+            "def f(xs):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    for g in xs:\n"
+            "        pass\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_with_target(self):
+        assert self.defs(
+            "def f(x):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    with x as g:\n"
+            "        pass\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_an_except_target(self):
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    try:\n"
+            "        pass\n"
+            "    except E as g:\n"
+            "        pass\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_walrus(self):
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    x = (g := 1)\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_plain_import(self):
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    import g\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_from_import(self):
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    from m import g\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_del(self):
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    del g\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_nonlocal_in_a_nested_def(self):
+        """A `nonlocal` reaches this scope's binding from inside another,
+        so the name can hold whatever that def put there. `h`, which
+        nothing declares, is still the one def `f` writes."""
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    def h():\n"
+            "        nonlocal g\n"
+            "        g = 2\n"
+            "    return g()\n"
+        ) == {"f": ("h",)}
+
+    def test_a_global_in_the_function(self):
+        assert self.defs(
+            "def f():\n"
+            "    global g\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_lambda_parameter_of_the_name(self):
+        """The call may be written inside the lambda, where `g` is the
+        parameter; `_own_body` never yields a lambda, so this is read on
+        its own."""
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    h = lambda g: g()\n"
+            "    return h\n"
+        ) == {}
+
+    def test_a_lambda_parameter_inside_a_lambda(self):
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    h = lambda x: (lambda g: g())\n"
+            "    return h\n"
+        ) == {}
+
+    def test_a_list_comprehension_target_of_the_name(self):
+        assert self.defs(
+            "def f(xs):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return [g() for g in xs]\n"
+        ) == {}
+
+    def test_a_generator_expression_target_of_the_name(self):
+        assert self.defs(
+            "def f(xs):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return sum(g() for g in xs)\n"
+        ) == {}
+
+    def test_a_dict_comprehension_target_of_the_name(self):
+        assert self.defs(
+            "def f(xs):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return {k: g() for g in xs}\n"
+        ) == {}
+
+    def test_a_match_statement_anywhere_in_the_own_body(self):
+        """Both `match` and `type` bind names the walk's binding read
+        does not cover, so the function is refused whole."""
+        assert self.defs(
+            "def f(x, flag):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    if flag:\n"
+            "        match x:\n"
+            "            case 1:\n"
+            "                pass\n"
+            "    return g()\n"
+        ) == {}
+
+    def test_a_type_alias_statement_in_the_own_body(self):
+        assert self.defs(
+            "def f():\n"
+            "    type X = int\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {}
+
+    # --- not refused ---
+
+    def test_a_bare_annotation_of_another_name(self):
+        """`x: int` declares a type and binds nothing, and it is another
+        name either way."""
+        assert self.defs(
+            "def f():\n"
+            "    x: int\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {"f": ("g",)}
+
+    def test_an_assignment_to_another_name(self):
+        assert self.defs(
+            "def f():\n"
+            "    g2 = 1\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    return g()\n"
+        ) == {"f": ("g",)}
+
+    def test_a_lambda_or_comprehension_binding_another_name(self):
+        assert self.defs(
+            "def f(xs):\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    h = lambda q: q\n"
+            "    ys = [q for q in xs]\n"
+            "    return g()\n"
+        ) == {"f": ("g",)}
+
+    def test_an_assignment_inside_a_nested_defs_body(self):
+        """That assignment binds in `h`, not in `f`."""
+        assert self.defs(
+            "def f():\n"
+            "    def g():\n"
+            "        return 1\n"
+            "    def h():\n"
+            "        g = 1\n"
+            "        return g\n"
+            "    return g()\n"
+        ) == {"f": ("g", "h")}
+
+    def test_a_match_inside_a_nested_def(self):
+        assert self.defs(
+            "def f(x):\n"
+            "    def g():\n"
+            "        match x:\n"
+            "            case 1:\n"
+            "                return 1\n"
+            "    return g()\n"
+        ) == {"f": ("g",)}
+
+    # --- whose entry it is ---
+
+    def test_a_method_gets_an_entry_under_its_full_qualname(self):
+        assert self.defs(
+            "class T:\n"
+            "    def m(self):\n"
+            "        def g():\n"
+            "            return 1\n"
+            "        return g()\n"
+        ) == {"T.m": ("g",)}
+
+    def test_each_scope_holds_only_its_own_bodys_defs(self):
+        assert self.defs(
+            "class T:\n"
+            "    def m(self):\n"
+            "        def index():\n"
+            "            def generate():\n"
+            "                return 1\n"
+            "            return generate()\n"
+            "        return index()\n"
+        ) == {"T.m": ("index",), "T.m.index": ("generate",)}
+
+    def test_a_class_gets_no_entry(self):
+        """A class body's `def` is a method, reached by attribute, never
+        by a bare name a call in that body could write."""
+        assert self.defs(
+            "class T:\n"
+            "    def m(self):\n"
+            "        return 1\n"
+        ) == {}
+
+    def test_two_functions_sharing_a_qualname_get_none(self):
+        """The fallback's target would be the first definition's line,
+        and this walk cannot say which of the two a call is written in."""
+        assert self.defs(
+            "if flag:\n"
+            "    def f():\n"
+            "        def g():\n"
+            "            return 1\n"
+            "        return g()\n"
+            "else:\n"
+            "    def f():\n"
+            "        def h():\n"
+            "            return 2\n"
+            "        return h()\n"
+        ) == {}
+
+    # --- the two shapes the rule was measured on, verbatim ---
+
+    def test_flasks_stream_with_context_as_decorator(self):
+        """flask `tests/test_helpers.py`: the shape ADR-150 refused and
+        this rule draws, two scopes deep."""
+        assert self.defs(FLASK_STREAMING) == {
+            "TestStreaming.test_streaming_with_context_as_decorator": ("index",),
+            "TestStreaming.test_streaming_with_context_as_decorator.index": (
+                "generate",
+            ),
+        }
+
+    def test_clicks_group_command(self):
+        """click `src/click/core.py` 1799–1838, its real text: `command`
+        is bound by the local import, `func` and `args` by assignment,
+        and none of them is a def — so `decorator` is the one name, and
+        `return decorator(func)` is one of the seven sites ADR-153
+        measured."""
+        assert self.defs(CLICK_GROUP_COMMAND) == {"Group.command": ("decorator",)}
