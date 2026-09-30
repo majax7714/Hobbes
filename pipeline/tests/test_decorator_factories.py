@@ -1457,7 +1457,17 @@ def test_minideco_draws_nothing_without_the_index():
     from hobbes.extract import extract_repo
 
     graph = extract_repo(MINIDECO).graph
-    assert [pair for pair in calls(graph) if pair[1].endswith(".decorator")] == []
+    # No *application* of a factory reaches its inner def: every edge
+    # this block would draw starts at a caller of the factory, and lane A
+    # asks nothing about them. The three edges into a `.decorator` that
+    # remain start inside the factory itself — `return decorator(func)`,
+    # a bare call to the one def that body writes, which lane A draws on
+    # its own (ADR-153) and the index draws too.
+    assert sorted(pair for pair in calls(graph) if pair[1].endswith(".decorator")) == [
+        ("minideco.deco.Registry.command", "minideco.deco.Registry.command.decorator"),
+        ("minideco.deco.either", "minideco.deco.either.decorator"),
+        ("minideco.deco.optional", "minideco.deco.optional.decorator"),
+    ]
     assert "decorators" not in graph
 
 

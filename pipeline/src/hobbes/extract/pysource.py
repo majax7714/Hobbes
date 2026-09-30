@@ -552,6 +552,24 @@ class ParsedFile:
     #: the ones with no string argument at all, which name no fixture this
     #: walk can read.
     pytestmark_usefixtures: int = 0
+    #: Per function or method qualname, one ``(first line, last line,
+    #: names)`` per definition written under it: the names that
+    #: definition's scope binds exactly once, by a ``def`` written in its
+    #: own body (ADR-153 step 1), sorted. A bare call of one of them,
+    #: written in that scope, calls that ``def`` — which is the rule
+    #: :func:`hobbes.extract.graph._resolve_call` asks before the module's.
+    #: The lines are there because a qualname is not always one
+    #: definition: an ``@overload``'s stubs and the implementation share
+    #: one, and a call's scope names the qualname, so the call's line
+    #: says which definition it is written in. A definition binding no
+    #: such name is left out, so most files carry an empty mapping, and a
+    #: class never has an entry. A name whose ``def`` shares *its*
+    #: qualname with another definition in the file is left out too: the
+    #: graph keeps one symbol per qualname, the first, and an edge to it
+    #: from the second's caller would name the wrong ``def``.
+    local_defs: dict[str, tuple[tuple[int, int, tuple[str, ...]], ...]] = field(
+        default_factory=dict
+    )
     #: Whether the file binds the name ``callable`` anywhere (ADR-148).
     #: A module fact, read once per file and copied onto every
     #: :attr:`Symbol.inner_fold` the walk digests, because the fold must
@@ -569,6 +587,7 @@ def parse_source(source: bytes) -> ParsedFile:
     parsed.pytestmark = _pytestmark(root)
     parsed.pytestmark_usefixtures = sum(1 for m in parsed.pytestmark if not m.args)
     _walk(root, [], parsed, ())
+    parsed.local_defs = _unshared_local_defs(parsed)
     parsed.local_bindings = _collect_local_bindings(root)
     return parsed
 
@@ -1335,6 +1354,135 @@ def _parameter_names(node: Node) -> frozenset[str]:
     return frozenset(out)
 
 
+def _lambda_and_comprehension_binds(node: Node) -> set[str]:
+    """Every name a ``lambda``'s parameters or a comprehension's ``for``
+    target binds in a definition's **own** scope (ADR-153 step 1).
+
+    The two binding forms the walk's other reads leave out:
+    :func:`_own_body` stops *at* a ``lambda`` and never yields it, and
+    :func:`_bound_here` reads neither a ``lambda_parameters`` nor a
+    ``for_in_clause``. A rule that claims a name is the definition's one
+    nested ``def`` has to see them, because a call written inside that
+    lambda or that comprehension sees the parameter or the target under
+    the name, not the ``def``.
+
+    The descent goes *into* every lambda — a lambda written in a lambda
+    is still written in this scope — and stops at a nested ``def`` or
+    ``class``, whose own lambdas and comprehensions are that definition's.
+    """
+    bound: set[str] = set()
+    body = node.child_by_field_name("body")
+    if body is None:
+        return bound
+    stack = list(body.children)
+    while stack:
+        current = stack.pop()
+        kind = current.type
+        if kind in ("function_definition", "class_definition"):
+            continue
+        if kind == "lambda":
+            bound |= _parameter_names(current)
+        elif kind == "for_in_clause":
+            left = current.child_by_field_name("left")
+            if left is not None:
+                for ident in _target_identifiers(left):
+                    bound.add(_text(ident))
+        stack.extend(current.children)
+    return bound
+
+
+def _local_defs(node: Node) -> tuple[str, ...]:
+    """The names a function's own scope binds **exactly once, by a**
+    ``def`` **written in its own body**, sorted (ADR-153 step 1).
+
+    Python's own rule for such a name is syntax: the name is local to the
+    function, and the function's only binding of it is that ``def``, so a
+    call of the name that succeeds calls it. The claim holds only while
+    nothing else in the scope can have bound the name, and every way it
+    can is refused here:
+
+    - a second ``def`` of the name, or a ``class`` of it, in the own body
+      (counted from :func:`_own_definitions`, which is where a nested
+      definition's name is visible at all); a **decorated** ``def``
+      counts as the one binding (ADR-153 step 4 — ``@dec`` binds the name
+      to what ``dec`` returned, which is still what a call of the name
+      reaches);
+    - a parameter of the definition, of any kind;
+    - any of :func:`_bound_here`'s forms over the own body — assignment,
+      augmented and annotated-with-a-value, walrus, ``for`` / ``with`` /
+      ``except`` target, import, ``del``;
+    - a ``global`` or ``nonlocal`` naming it anywhere under the
+      definition, nested definitions included;
+    - a lambda parameter or a comprehension target of the name written in
+      the own scope (:func:`_lambda_and_comprehension_binds`).
+
+    A body holding a ``match`` statement or a ``type`` alias statement
+    has no such names at all: both bind names, and this walk's binding
+    read covers neither, so the function is refused whole rather than
+    read with a gap. Order the walk cannot settle — a call written above
+    the ``def``, a ``def`` in a branch that did not run — is *not*
+    guarded (ADR-153 step 5): the name has no other binding, so such a
+    call raises ``UnboundLocalError`` rather than reaching anything else.
+    """
+    own = list(_own_body(node))
+    for current in own:
+        if current.type in ("match_statement", "type_alias_statement"):
+            return ()
+    counts: dict[str, int] = {}
+    kinds: dict[str, str] = {}
+    for definition, _decorated in _own_definitions(node):
+        name_node = definition.child_by_field_name("name")
+        if name_node is None:
+            continue
+        name = _text(name_node)
+        counts[name] = counts.get(name, 0) + 1
+        kinds[name] = definition.type
+    if not counts:
+        return ()
+    otherwise = (
+        _parameter_names(node) | _bound_in(own) | _lambda_and_comprehension_binds(node)
+    )
+    return tuple(
+        sorted(
+            name
+            for name, count in counts.items()
+            if count == 1
+            and kinds[name] == "function_definition"
+            and name not in otherwise
+            and not _declared_outer(node, name)
+        )
+    )
+
+
+def _unshared_local_defs(parsed: ParsedFile) -> dict:
+    """:attr:`ParsedFile.local_defs` as the walk collected it, less every
+    name whose target the graph cannot name (ADR-153 step 1).
+
+    The target of the rule is the symbol ``F.N``, and the graph keeps one
+    symbol per qualname — the first written. Where two definitions in the
+    file are both ``F.N`` (an ``if``/``else`` pair of ``def F``, each
+    nesting its own ``def N``), an edge from the second ``F`` would land
+    on the first one's ``N``, so the name is dropped from both. A
+    qualname written more than once is otherwise no refusal: click's
+    ``Group.command`` is two ``@overload`` stubs and the implementation,
+    and only the implementation writes ``decorator``. Definitions left
+    with no name, and qualnames left with no definition, go.
+    """
+    written: dict[str, int] = {}
+    for symbol in parsed.symbols:
+        written[symbol.qualname] = written.get(symbol.qualname, 0) + 1
+    out: dict[str, tuple[tuple[int, int, tuple[str, ...]], ...]] = {}
+    for qualname, definitions in parsed.local_defs.items():
+        kept = []
+        for start, end, names in definitions:
+            names = tuple(n for n in names if written.get(f"{qualname}.{n}") == 1)
+            if names:
+                kept.append((start, end, names))
+        if kept:
+            out[qualname] = tuple(kept)
+    return out
+
+
 def _returns_inner(node: Node) -> str | None:
     """The nested ``def`` a decorator factory hands back (ADR-147).
 
@@ -2094,6 +2242,17 @@ def _walk(
                 chain_fold=chain_fold,
             )
         )
+        # ADR-153 step 1, recorded per qualname rather than on the symbol:
+        # the rule that reads it is asked about a call's *scope*, which is
+        # a qualname. One entry per definition, with its lines, because a
+        # qualname can be written more than once (an `@overload`'s stubs)
+        # and the call's line is what says which one it is in. A class
+        # has no such names.
+        if is_function:
+            parsed.local_defs[qualname] = (
+                *parsed.local_defs.get(qualname, ()),
+                (_line(node), node.end_point.row + 1, _local_defs(node)),
+            )
         body = node.child_by_field_name("body")
         if body is not None:
             child_stack = [*stack, (name, "class" if kind == "class_definition" else "function")]

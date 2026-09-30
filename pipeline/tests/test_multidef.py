@@ -14,8 +14,14 @@ The ``mininest`` fixture writes the shape and its two controls — a
 method defined once, and a def nested in a *module-level* function,
 whose path scip-python keeps. The end-to-end case needs lane B; the twin
 below states what lane A alone has, which is every def under its own id
-and the call sites, and no rule that draws them (ADR-150 route c, not
-taken).
+and the call sites.
+
+ADR-150's route c is now written (ADR-153): a bare call to the one
+``def`` its own function's body binds is lane A's, at the ``syntactic``
+tier. So the two *right* edges the abstention took with it come back —
+each ``index`` to the ``generate`` written inside it — while the two
+cross pairs, ADR-150's wrong edge among them, stay absent: no rule of
+either lane names a def in another method's scope.
 """
 
 from pathlib import Path
@@ -23,7 +29,7 @@ from pathlib import Path
 import pytest
 
 from hobbes.extract.pysource import parse_source
-from hobbes.extract.schema import SEMANTIC
+from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
 MININEST = Path(__file__).parent / "fixtures" / "mininest"
 
@@ -43,14 +49,14 @@ def calls(graph):
 
 @pytest.mark.lane_b
 def test_a_moniker_two_methods_share_draws_no_edge_and_says_so():
-    """With the index running: neither ``index`` reaches either
-    ``generate``. The edge the rule removes is the wrong one —
-    ``second``'s ``index`` calling ``first``'s ``generate`` — and the
-    right one goes with it, because the index cannot tell them apart.
-    Lane A draws neither back (it has no rule for a bare call to a
-    nested def), so the sites are absent rather than ``syntactic``. What
-    the index does answer — a method defined once, and a def whose path
-    it keeps — is unchanged."""
+    """With the index running: the index still answers for neither
+    ``generate``, and the edge its abstention removes is the wrong one —
+    ``second``'s ``index`` calling ``first``'s ``generate``. What comes
+    back is lane A's (ADR-153): each ``index`` calls the one ``def`` its
+    own body writes, so the two straight pairs are drawn ``syntactic``
+    and the two cross pairs stay absent. What the index does answer — a
+    method defined once, and a def whose path it keeps — is
+    unchanged."""
     from hobbes.extract import containment, extract_repo
 
     why = containment.unavailable_reason()
@@ -60,9 +66,21 @@ def test_a_moniker_two_methods_share_draws_no_edge_and_says_so():
     drawn = calls(graph)
     err = [e for e in graph.get("extraction_errors", []) if e["stage"].startswith("scip")]
 
-    for caller in (FIRST_INDEX, SECOND_INDEX):
-        for callee in (FIRST_GENERATE, SECOND_GENERATE):
-            assert (caller, callee) not in drawn, (caller, callee, err)
+    for caller, callee in ((FIRST_INDEX, FIRST_GENERATE), (SECOND_INDEX, SECOND_GENERATE)):
+        edge = drawn.get((caller, callee))
+        assert edge is not None, (caller, callee, err)
+        assert edge["tier"] == SYNTACTIC, (caller, callee, err)
+    for caller, callee in ((FIRST_INDEX, SECOND_GENERATE), (SECOND_INDEX, FIRST_GENERATE)):
+        assert (caller, callee) not in drawn, (caller, callee, err)
+    # The method's own bare call to its ``index`` is this rule's site
+    # too, so the edge is there whatever the index says about a name it
+    # gives both ``index``es; only its tier turns on that, and this box
+    # cannot ask.
+    for pair in (
+        (f"{STREAMS}.Streams.first", FIRST_INDEX),
+        (f"{STREAMS}.Streams.second", SECOND_INDEX),
+    ):
+        assert drawn.get(pair) is not None, (pair, err)
     for pair in (
         (f"{STREAMS}.Plain.go", f"{STREAMS}.Plain.run"),
         (f"{STREAMS}.outer", f"{STREAMS}.outer.inner"),
@@ -93,9 +111,10 @@ def test_a_moniker_two_methods_share_draws_no_edge_and_says_so():
 
 def test_lane_a_carries_every_nested_def_and_its_call_sites():
     """Without the index the defs are still distinct and the sites are
-    still recorded — which is why the abstention loses no node, and why
-    route c (lane A drawing a bare call to the def of that name in the
-    enclosing body) is a rule that could be written later."""
+    still recorded — which is why the abstention loses no node, and what
+    route c is written on: every one of these sites is a bare call to
+    the one def its own function's body binds, and lane A now names the
+    binding (ADR-153, the fact below)."""
     parsed = parse_source((MININEST / "src" / "mininest" / "streams.py").read_bytes())
     assert [(s.qualname, s.kind) for s in parsed.symbols] == [
         ("Streams", "class"),
@@ -119,3 +138,14 @@ def test_lane_a_carries_every_nested_def_and_its_call_sites():
         ("Plain.go", "self.run", 48),
         ("outer", "inner", 57),
     ]
+    # ADR-153 step 1 over the same file: each scope's own body binds one
+    # name by one ``def``, and each call above is written in the scope
+    # that binds the name it calls. ``Plain`` writes no nested def, and
+    # ``self.run`` is not a bare name either way.
+    assert {q: [names for _, _, names in ds] for q, ds in parsed.local_defs.items()} == {
+        "Streams.first": [("index",)],
+        "Streams.first.index": [("generate",)],
+        "Streams.second": [("index",)],
+        "Streams.second.index": [("generate",)],
+        "outer": [("inner",)],
+    }

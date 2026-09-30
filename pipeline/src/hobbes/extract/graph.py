@@ -86,10 +86,13 @@ def resolve_call_sites(
     edges: the join decides whether any of this reaches the graph, and
     stamps what it uses ``syntactic``.
 
-    Implements ADR-007 rules 1–4 exactly as before. Keeping the rules while
-    demoting their output is the whole of ADR-031 — without them a repo
-    with no working indexer has no call graph at all, which P6 forbids and
-    P7 would make permanent for every unwired language.
+    Implements ADR-007 rules 1–4, and ADR-153's rule ahead of rule 1: a
+    bare call to the one ``def`` the calling function's own body writes
+    resolves to that ``def``, as Python resolves the local binding before
+    the module's. Keeping the rules while demoting their output is the
+    whole of ADR-031 — without them a repo with no working indexer has no
+    call graph at all, which P6 forbids and P7 would make permanent for
+    every unwired language.
     """
     index = _Index(modules)
     table = _SymbolTable(parsed)
@@ -105,7 +108,9 @@ def resolve_call_sites(
         facts = parsed[module.id]
         env = _NameEnv(module, facts, index)
         for call in facts.calls:
-            target_id = _resolve_call(module, call, env, index, table)
+            target_id = _resolve_call(
+                module, call, env, index, table, facts.local_defs
+            )
             if target_id is None:
                 continue
             target = where.get(target_id)
@@ -147,10 +152,12 @@ def _shadowed(path: str, line: int, name: str, target: tuple[str, int], bindings
     """A bare name bound in a scope that spans the call (a parameter, an
     assignment, a nested ``def`` — ADR-046's bindings) is *that* binding,
     not a module-level declaration of the same name; the fallback may
-    only bind it to a declaration inside the same extent (the nested
-    ``def`` itself). The oracle lane's first Python triage (O6,
-    2026-08-25): six executed syntactic edges, all a pytest fixture
-    *parameter* name-matched to the fixture function, all wrong."""
+    only bind it to a declaration inside the same extent — the nested
+    ``def`` itself, which is what ADR-153 resolves such a call to and
+    what this check therefore passes. The oracle lane's first Python
+    triage (O6, 2026-08-25): six executed syntactic edges, all a pytest
+    fixture *parameter* name-matched to the fixture function, all
+    wrong."""
     for b in bindings:
         if b.name != name or not (b.start <= line <= b.end):
             continue
@@ -299,9 +306,22 @@ class _NameEnv:
 
 
 def _resolve_call(
-    module: ModuleInfo, call, env: _NameEnv, index: _Index, table: _SymbolTable
+    module: ModuleInfo,
+    call,
+    env: _NameEnv,
+    index: _Index,
+    table: _SymbolTable,
+    local_defs: dict[str, tuple[tuple[int, int, tuple[str, ...]], ...]],
 ) -> str | None:
-    """Resolve a call site to a symbol id, or None (ADR-007 rules 1–4)."""
+    """Resolve a call site to a symbol id, or None (ADR-007 rules 1–4,
+    and ADR-153 ahead of rule 1).
+
+    *local_defs* is :attr:`hobbes.extract.pysource.ParsedFile.local_defs`
+    for the calling file: per function qualname, each definition's lines
+    and the names its scope binds exactly once, by a ``def`` in its own
+    body. The grammar is read there and nowhere else (I-4); what arrives
+    here is the fact.
+    """
     parts = call.callee.split(".")
     head = parts[0]
 
@@ -325,6 +345,16 @@ def _resolve_call(
 
     # Rule 1 and 2: bare name — local top-level symbol, or from-imported.
     if len(parts) == 1:
+        # ADR-153, asked first, because Python asks it first: a name the
+        # calling function's own scope binds exactly once, by a `def` in
+        # its own body, *is* that def — a module-level namesake is not
+        # reachable under it. A call in a nested def, or in a class body
+        # inside that function, carries the other scope and is not this
+        # rule's site. A qualname can be written more than once (an
+        # `@overload`'s stubs), so the call's line picks the definition.
+        for start, end, names in local_defs.get(call.scope or "", ()):
+            if start <= call.line <= end and head in names:
+                return f"{module.id}.{call.scope}.{head}"
         quals = table.quals(module.id)
         if head in quals:
             return f"{module.id}.{head}"
