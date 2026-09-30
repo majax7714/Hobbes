@@ -552,14 +552,24 @@ class ParsedFile:
     #: the ones with no string argument at all, which name no fixture this
     #: walk can read.
     pytestmark_usefixtures: int = 0
-    #: Per function or method qualname, the names that scope binds exactly
-    #: once, by a ``def`` written in its own body (ADR-153 step 1), sorted.
-    #: A bare call of one of them, written in that scope, calls that
-    #: ``def`` — which is the rule :func:`hobbes.extract.graph._resolve_call`
-    #: asks before the module's. A function binding no such name is left
-    #: out, so most files carry an empty mapping; a class never has an
-    #: entry, and a qualname two definitions in the file share loses its.
-    local_defs: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    #: Per function or method qualname, one ``(first line, last line,
+    #: names)`` per definition written under it: the names that
+    #: definition's scope binds exactly once, by a ``def`` written in its
+    #: own body (ADR-153 step 1), sorted. A bare call of one of them,
+    #: written in that scope, calls that ``def`` — which is the rule
+    #: :func:`hobbes.extract.graph._resolve_call` asks before the module's.
+    #: The lines are there because a qualname is not always one
+    #: definition: an ``@overload``'s stubs and the implementation share
+    #: one, and a call's scope names the qualname, so the call's line
+    #: says which definition it is written in. A definition binding no
+    #: such name is left out, so most files carry an empty mapping, and a
+    #: class never has an entry. A name whose ``def`` shares *its*
+    #: qualname with another definition in the file is left out too: the
+    #: graph keeps one symbol per qualname, the first, and an edge to it
+    #: from the second's caller would name the wrong ``def``.
+    local_defs: dict[str, tuple[tuple[int, int, tuple[str, ...]], ...]] = field(
+        default_factory=dict
+    )
     #: Whether the file binds the name ``callable`` anywhere (ADR-148).
     #: A module fact, read once per file and copied onto every
     #: :attr:`Symbol.inner_fold` the walk digests, because the fold must
@@ -577,11 +587,7 @@ def parse_source(source: bytes) -> ParsedFile:
     parsed.pytestmark = _pytestmark(root)
     parsed.pytestmark_usefixtures = sum(1 for m in parsed.pytestmark if not m.args)
     _walk(root, [], parsed, ())
-    # The walk records every definition's qualname, a class's and an
-    # empty function's with the rest, so that a qualname two of them
-    # share is seen as shared (ADR-153 step 1). What a reader wants is
-    # only the names, so the empties go here.
-    parsed.local_defs = {q: names for q, names in parsed.local_defs.items() if names}
+    parsed.local_defs = _unshared_local_defs(parsed)
     parsed.local_bindings = _collect_local_bindings(root)
     return parsed
 
@@ -1448,6 +1454,35 @@ def _local_defs(node: Node) -> tuple[str, ...]:
     )
 
 
+def _unshared_local_defs(parsed: ParsedFile) -> dict:
+    """:attr:`ParsedFile.local_defs` as the walk collected it, less every
+    name whose target the graph cannot name (ADR-153 step 1).
+
+    The target of the rule is the symbol ``F.N``, and the graph keeps one
+    symbol per qualname — the first written. Where two definitions in the
+    file are both ``F.N`` (an ``if``/``else`` pair of ``def F``, each
+    nesting its own ``def N``), an edge from the second ``F`` would land
+    on the first one's ``N``, so the name is dropped from both. A
+    qualname written more than once is otherwise no refusal: click's
+    ``Group.command`` is two ``@overload`` stubs and the implementation,
+    and only the implementation writes ``decorator``. Definitions left
+    with no name, and qualnames left with no definition, go.
+    """
+    written: dict[str, int] = {}
+    for symbol in parsed.symbols:
+        written[symbol.qualname] = written.get(symbol.qualname, 0) + 1
+    out: dict[str, tuple[tuple[int, int, tuple[str, ...]], ...]] = {}
+    for qualname, definitions in parsed.local_defs.items():
+        kept = []
+        for start, end, names in definitions:
+            names = tuple(n for n in names if written.get(f"{qualname}.{n}") == 1)
+            if names:
+                kept.append((start, end, names))
+        if kept:
+            out[qualname] = tuple(kept)
+    return out
+
+
 def _returns_inner(node: Node) -> str | None:
     """The nested ``def`` a decorator factory hands back (ADR-147).
 
@@ -2209,14 +2244,15 @@ def _walk(
         )
         # ADR-153 step 1, recorded per qualname rather than on the symbol:
         # the rule that reads it is asked about a call's *scope*, which is
-        # a qualname. A class has no such names, and a qualname a second
-        # definition in the file writes again is cleared and stays
-        # cleared — the fallback's target would be the first definition's
-        # line, and this walk cannot say which of the two a call is in.
-        if qualname in parsed.local_defs:
-            parsed.local_defs[qualname] = ()
-        else:
-            parsed.local_defs[qualname] = _local_defs(node) if is_function else ()
+        # a qualname. One entry per definition, with its lines, because a
+        # qualname can be written more than once (an `@overload`'s stubs)
+        # and the call's line is what says which one it is in. A class
+        # has no such names.
+        if is_function:
+            parsed.local_defs[qualname] = (
+                *parsed.local_defs.get(qualname, ()),
+                (_line(node), node.end_point.row + 1, _local_defs(node)),
+            )
         body = node.child_by_field_name("body")
         if body is not None:
             child_stack = [*stack, (name, "class" if kind == "class_definition" else "function")]

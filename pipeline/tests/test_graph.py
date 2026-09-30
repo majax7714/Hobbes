@@ -318,6 +318,46 @@ class TestTheOneDefItsOwnFunctionWrites:
         assert symbol.line == 3
         assert fb[("mod.py", 5, "g")] == ("mod.py", 3)
 
+    def test_overload_stubs_share_the_qualname_and_the_implementation_is_drawn(self, tmp_path):
+        """click's `Group.command`: the qualname is written three times,
+        and the call's line picks the definition it is in."""
+        fb = self._fallback(tmp_path, (
+            "class Group:\n"
+            "    @t.overload\n"
+            "    def command(self, func): ...\n"
+            "\n"
+            "    @t.overload\n"
+            "    def command(self, *args): ...\n"
+            "\n"
+            "    def command(self, *args):\n"
+            "        def decorator(f):\n"
+            "            return f\n"
+            "        return decorator(args[0])\n"
+        ))
+        assert fb[("mod.py", 11, "decorator")] == ("mod.py", 9)
+
+    def test_a_twice_written_function_draws_only_the_name_with_one_def(self, tmp_path):
+        """An `if`/`else` pair of `def f`, each nesting `g`: the graph
+        keeps one `f.g`, so neither call of `g` is drawn; `h` is written
+        once and is."""
+        fb = self._fallback(tmp_path, (
+            "if flag:\n"
+            "    def f():\n"
+            "        def g():\n"
+            "            return 1\n"
+            "        return g()\n"
+            "else:\n"
+            "    def f():\n"
+            "        def g():\n"
+            "            return 2\n"
+            "        def h():\n"
+            "            return 3\n"
+            "        return g() + h()\n"
+        ))
+        assert ("mod.py", 5, "g") not in fb
+        assert ("mod.py", 12, "g") not in fb
+        assert fb[("mod.py", 12, "h")] == ("mod.py", 10)
+
 
 class TestExpressionReceiversAbstain:
     """C-80: a site whose receiver is an expression is recorded for the

@@ -311,15 +311,16 @@ def _resolve_call(
     env: _NameEnv,
     index: _Index,
     table: _SymbolTable,
-    local_defs: dict[str, tuple[str, ...]],
+    local_defs: dict[str, tuple[tuple[int, int, tuple[str, ...]], ...]],
 ) -> str | None:
     """Resolve a call site to a symbol id, or None (ADR-007 rules 1–4,
     and ADR-153 ahead of rule 1).
 
     *local_defs* is :attr:`hobbes.extract.pysource.ParsedFile.local_defs`
-    for the calling file: per function qualname, the names that scope
-    binds exactly once, by a ``def`` in its own body. The grammar is read
-    there and nowhere else (I-4); what arrives here is the fact.
+    for the calling file: per function qualname, each definition's lines
+    and the names its scope binds exactly once, by a ``def`` in its own
+    body. The grammar is read there and nowhere else (I-4); what arrives
+    here is the fact.
     """
     parts = call.callee.split(".")
     head = parts[0]
@@ -349,9 +350,11 @@ def _resolve_call(
         # its own body, *is* that def — a module-level namesake is not
         # reachable under it. A call in a nested def, or in a class body
         # inside that function, carries the other scope and is not this
-        # rule's site.
-        if call.scope and head in local_defs.get(call.scope, ()):
-            return f"{module.id}.{call.scope}.{head}"
+        # rule's site. A qualname can be written more than once (an
+        # `@overload`'s stubs), so the call's line picks the definition.
+        for start, end, names in local_defs.get(call.scope or "", ()):
+            if start <= call.line <= end and head in names:
+                return f"{module.id}.{call.scope}.{head}"
         quals = table.quals(module.id)
         if head in quals:
             return f"{module.id}.{head}"

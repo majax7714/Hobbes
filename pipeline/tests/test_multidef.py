@@ -142,10 +142,10 @@ def test_lane_a_carries_every_nested_def_and_its_call_sites():
     # name by one ``def``, and each call above is written in the scope
     # that binds the name it calls. ``Plain`` writes no nested def, and
     # ``self.run`` is not a bare name either way.
-    assert parsed.local_defs == {
-        "Streams.first": ("index",),
-        "Streams.first.index": ("generate",),
-        "Streams.second": ("index",),
-        "Streams.second.index": ("generate",),
-        "outer": ("inner",),
+    assert {q: [names for _, _, names in ds] for q, ds in parsed.local_defs.items()} == {
+        "Streams.first": [("index",)],
+        "Streams.first.index": [("generate",)],
+        "Streams.second": [("index",)],
+        "Streams.second.index": [("generate",)],
+        "outer": [("inner",)],
     }

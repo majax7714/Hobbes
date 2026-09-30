@@ -1686,7 +1686,11 @@ class TestLocalDefs:
     """
 
     def defs(self, text: str):
-        return parse(text).local_defs
+        """``{qualname: names}``, for the usual file where each qualname
+        is one definition; the lines are asserted where they matter."""
+        found = parse(text).local_defs
+        assert all(len(definitions) == 1 for definitions in found.values()), found
+        return {q: definitions[0][2] for q, definitions in found.items()}
 
     # --- listed ---
 
@@ -2094,10 +2098,11 @@ class TestLocalDefs:
             "        return 1\n"
         ) == {}
 
-    def test_two_functions_sharing_a_qualname_get_none(self):
-        """The fallback's target would be the first definition's line,
-        and this walk cannot say which of the two a call is written in."""
-        assert self.defs(
+    def test_two_definitions_of_a_qualname_each_keep_their_own_lines(self):
+        """A qualname written twice is two entries, each with its lines:
+        a call's scope is the qualname, and its line says which
+        definition it is written in."""
+        assert parse(
             "if flag:\n"
             "    def f():\n"
             "        def g():\n"
@@ -2108,7 +2113,51 @@ class TestLocalDefs:
             "        def h():\n"
             "            return 2\n"
             "        return h()\n"
-        ) == {}
+        ).local_defs == {"f": ((2, 5, ("g",)), (7, 10, ("h",)))}
+
+    def test_a_name_whose_def_shares_its_qualname_is_left_out(self):
+        """Both `f`s nest a `g`: the graph keeps one `f.g`, the first, so
+        an edge from the second `f` would name the wrong def."""
+        assert parse(
+            "if flag:\n"
+            "    def f():\n"
+            "        def g():\n"
+            "            return 1\n"
+            "        return g()\n"
+            "else:\n"
+            "    def f():\n"
+            "        def g():\n"
+            "            return 2\n"
+            "        def h():\n"
+            "            return 3\n"
+            "        return g() + h()\n"
+        ).local_defs == {"f": ((7, 12, ("h",)),)}
+
+    def test_overload_stubs_do_not_refuse_the_implementation(self):
+        """click's `Group.command` in full: two `@t.overload` stubs and
+        the implementation share the qualname, and only the
+        implementation writes `decorator` (ADR-153, found at the
+        unit's review: refusing a shared qualname lost both click rows)."""
+        assert parse(
+            "class Group:\n"
+            "    @t.overload\n"
+            "    def command(self, __func: t.Callable[..., t.Any]) -> Command: ...\n"
+            "\n"
+            "    @t.overload\n"
+            "    def command(\n"
+            "        self, *args: t.Any, **kwargs: t.Any\n"
+            "    ) -> t.Callable[[t.Callable[..., t.Any]], Command]: ...\n"
+            "\n"
+            "    def command(\n"
+            "        self, *args: t.Any, **kwargs: t.Any\n"
+            "    ) -> t.Callable[[t.Callable[..., t.Any]], Command] | Command:\n"
+            "        def decorator(f: t.Callable[..., t.Any]) -> Command:\n"
+            "            return f\n"
+            "\n"
+            "        if func is not None:\n"
+            "            return decorator(func)\n"
+            "        return decorator\n"
+        ).local_defs == {"Group.command": ((10, 18, ("decorator",)),)}
 
     # --- the two shapes the rule was measured on, verbatim ---
 
