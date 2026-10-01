@@ -41,6 +41,7 @@ from hobbes.extract import (
     staging,
     tail,
     tssource,
+    withstmt,
 )
 from hobbes.extract.cppsource import collect_cpp_tests, extract_cpp
 from hobbes.extract.csource import collect_c_tests, extract_c
@@ -861,6 +862,20 @@ def _build_symbol_layer(
         _add_factory_call_edges(graph, factory_rows)
         if factory_counts:
             graph["decorators"] = {"factory_calls": factory_counts}
+    # ADR-156, appended after the projection for the same reason as the
+    # three above: a `with` statement runs its item's `__enter__` and
+    # `__exit__` and writes a call to neither, so there is no token for the
+    # index to name and no joined edge to wait for. The class is read off
+    # the settled graph at the item's own call (and, for a factory, at its
+    # return annotation), as ADR-145 reads a construction.
+    with timings.step("with"):
+        with_rows, with_counts = withstmt.with_calls(
+            modules, parsed, graph["symbols"], graph["symbol_edges"]
+        )
+        _add_with_call_edges(graph, with_rows)
+        if with_counts:
+            # Additive, and absent where no `with` item is a call.
+            graph["with_statements"] = with_counts
     if injections is not None:
         injections.extend(drawn)
     # C-153's surfacing (ADR-125 §4), read off the edges the projection has
@@ -1081,6 +1096,48 @@ def _add_value_call_edges(graph: dict, drawn: list[dict]) -> None:
                 "calls",
                 [
                     {"path": path, "line": line, "via": fixtures.FIXTURE_VALUE}
+                    for path, line in sorted(evidence)
+                ],
+                tier=SYNTACTIC,
+                lane=LANE_TREE_SITTER,
+            )
+            for (source, target), evidence in sorted(sightings.items())
+        ],
+        key=_edge_order,
+    )
+
+
+def _add_with_call_edges(graph: dict, drawn: list[dict]) -> None:
+    """Draw each ``__enter__`` / ``__exit__`` a ``with`` item's known class
+    runs as one ``calls`` edge (ADR-156), evidence at every item that made
+    it.
+
+    The same shape as :func:`_add_value_call_edges`: an end the graph does
+    not carry is dropped rather than drawn to nothing, the sightings merge
+    per ``(from, to)``, and the list is re-sorted by the projection's own
+    key. As at :func:`_add_factory_call_edges`, the caller may be the
+    **module** — a module-level ``with`` runs at import, and the projection
+    draws a module-body call from the module node (ADR-007). The tier is
+    ``syntactic``: the index answered at the item's call, not at the
+    methods, where it answered nothing.
+    """
+    ids = {symbol["id"] for symbol in graph["symbols"]}
+    callers = ids | {node["id"] for node in graph["nodes"]}
+    sightings: dict[tuple[str, str], set] = defaultdict(set)
+    for call in drawn:
+        if call["from"] in callers and call["to"] in ids:
+            sightings[(call["from"], call["to"])].add((call["path"], call["line"]))
+    if not sightings:
+        return
+    graph["symbol_edges"] = sorted(
+        graph["symbol_edges"]
+        + [
+            tiered_edge(
+                source,
+                target,
+                "calls",
+                [
+                    {"path": path, "line": line, "via": withstmt.WITH}
                     for path, line in sorted(evidence)
                 ],
                 tier=SYNTACTIC,

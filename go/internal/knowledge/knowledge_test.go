@@ -1135,8 +1135,9 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		"not over the repo",
 		// C-4 after ADR-137 and ADR-139: only what is still not drawn.
 		"a plugin's or a base class's (C-4)",
-		// C-174: an implicit call has no call token, so it is no site.
-		"a Python `with` statement's __enter__/__exit__ (C-174)",
+		// C-174: an implicit call has no call token, so it is no site;
+		// ADR-156 draws a `with` item's pair where its class is known.
+		"a Python `with` statement's __enter__/__exit__ where the item's class\nis not known (C-174)",
 		// meanings appear only for classes present, with their C-refs:
 		"attr-call — an attribute call whose receiver no static provider could type",
 		// C-63 (surfaced 2026-09-05): a callee that is an expression is a

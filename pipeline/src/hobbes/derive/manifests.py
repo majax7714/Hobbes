@@ -47,7 +47,8 @@ DENOMINATOR = (
     "through a fixture its lookup by name cannot "
     "place — a plugin's or a base class's (C-4), computed "
     "route paths (C-5), calls the language makes with no call written — "
-    "a Python `with` statement's __enter__/__exit__ (C-174), an operator's "
+    "a Python `with` statement's __enter__/__exit__ where the item's class "
+    "is not known (C-174), an operator's "
     "or a loop's dunder; every figure is over DETECTED "
     "call sites, not over the repo"
 )

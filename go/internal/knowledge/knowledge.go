@@ -1175,8 +1175,9 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 		"through a fixture its lookup by name cannot\n" +
 		"place — a plugin's or a base class's (C-4), computed\n" +
 		"route paths (C-5), calls the language makes with no call written —\n" +
-		"a Python `with` statement's __enter__/__exit__ (C-174), an operator's\n" +
-		"or a loop's dunder. Every percentage here is a floor over DETECTED call\n" +
+		"a Python `with` statement's __enter__/__exit__ where the item's class\n" +
+		"is not known (C-174), an operator's or a loop's dunder. Every\n" +
+		"percentage here is a floor over DETECTED call\n" +
 		"sites, not over the repo.\n")
 	// Languages with detected call sites under the scope, by tail bucket
 	// — the scoped verification line names only these (whole-repo scope
