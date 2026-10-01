@@ -259,6 +259,97 @@ def test_python_reexport_module_value_self_and_null(repo):
     assert by2["self.ping"] == "in-graph" and by2["self.pong"] == "gensym" and g2["null"] == []
 
 
+#: `bench/calvin/lattice/tests/test_e1.py` at 64f59e9, lines 8–24 and 966–967, verbatim (the `from lattice import …` lines
+#: left out so it grounds here): sessions 9326, c141 and 66c5 were blocked on its `@needs_clang`.
+E1_EXCERPT = '''import ast
+import json
+import subprocess
+import shutil
+from pathlib import Path
+
+import pytest
+
+FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
+DERIVED = FIXTURE / "derived"
+MODAL = Path(__file__).parents[1] / "scripts" / "modal_e1.py"
+
+needs_clang = pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+
+
+@needs_clang
+def test_a_fenced_gold_grades_pass_end_to_end(tmp_path, lattice):
+    assert FIXTURE.name
+'''
+
+
+def _use_as(root, L, code):
+    """`pkg/use.py`'s whole post-image replaced by *code*, grounded through a FREEFORM fill."""
+    t = template(L, root, "Change `go`.")
+    return G.ground(t, {"fills": {hole(t, "FREEFORM")["id"]: {"code": code, "span": {"path": "pkg/use.py", "start": 1, "end": USE.count("\n")}}}}, L, root)
+
+
+def _refs(g):
+    return {r["term"]: (r["class"], r["target"]) for r in g["refs"]}
+
+
+def test_a_bare_name_bound_at_module_level_is_a_value_on_the_real_source(repo):
+    """C-91, grounder v5, on the three false blocks' shape (9326, c141, 66c5): `@needs_clang`, bound by a column-0
+    assignment of the file's own post-image, abstains `unknown-receiver` as a member on a module-level value does."""
+    root, sha = repo
+    g = _use_as(root, ledger(sha), E1_EXCERPT)
+    by = _refs(g)
+    assert by["needs_clang"] == ("unknown-receiver", "pkg.use.needs_clang") and g["null"] == []
+    assert any(r["op"] == "module-value" and r["key"] == "pkg.use.needs_clang" and r["result"] is True for r in g["trace"])
+    # the rule moves nothing else: the mark and `shutil.which` ground as they did before v5
+    assert by["pytest.mark.skipif"] == ("external", "pytest") and by["shutil.which"] == ("external", "shutil")
+
+
+def test_a_typed_binding_and_a_plain_value_called_bare_abstain(repo):
+    root, sha = repo
+    L = ledger(sha)
+    g = _use_as(root, L, 'import pytest\n\nneeds_x: pytest.MarkDecorator = pytest.mark.skipif(True, reason="x")\n\n\n@needs_x\ndef test_x():\n    pass\n')
+    assert _refs(g)["needs_x"] == ("unknown-receiver", "pkg.use.needs_x") and g["null"] == []
+    g2 = _use_as(root, L, "from pkg import derive\n\nHANDLER = derive(1)\nHANDLER()\n\n\ndef go():\n    return HANDLER()\n")
+    rows = [(r["class"], r["target"]) for r in g2["refs"] if r["term"] == "HANDLER"]
+    assert rows == [("unknown-receiver", "pkg.use.HANDLER")] * 2 and g2["null"] == []
+
+
+@pytest.mark.parametrize("code", [
+    "@needs_zzq_never_bound\ndef test_x():\n    pass\n",
+    "if True:\n    needs_zzq_cond = 1\n\n\n@needs_zzq_cond\ndef test_x():\n    pass\n",
+    "needs_zzq_ta, needs_zzq_tb = 1, 2\n\n\n@needs_zzq_ta\ndef test_x():\n    pass\n",
+    "def setup_zzq():\n    needs_zzq_inner = 1\n    return needs_zzq_inner\n\n\n@needs_zzq_inner\ndef test_x():\n    pass\n",
+    "needs_zzq_cmp == 1\n\n\n@needs_zzq_cmp\ndef test_x():\n    pass\n",
+], ids=["never-bound", "under-if", "tuple-target", "in-a-function", "a-comparison"])
+def test_a_name_no_column_0_assignment_binds_stays_null(repo, code):
+    """The residue, intended: only a column-0 `name = …` / `name: T = …` is read; every other binding form stays NULL."""
+    root, sha = repo
+    g = _use_as(root, ledger(sha), code)
+    name = code.split("@", 1)[1].split("\n", 1)[0]
+    assert _refs(g)[name] == ("NULL", None)
+    assert [(n["term"], n["null_class"]) for n in g["null"]] == [(name, "invented")]
+
+
+def test_an_imported_module_level_value_abstains_and_an_unbound_import_stays_null(repo):
+    root, sha = repo
+    L = ledger(sha)
+    g = _use_as(root, L, "from pkg.core import TABLE\n\n\ndef go():\n    return TABLE()\n")
+    assert _refs(g)["TABLE"] == ("unknown-receiver", "pkg.core.TABLE") and g["null"] == []
+    g2 = _use_as(root, L, "from pkg.core import NOPE\n\n\ndef go():\n    return NOPE()\n")
+    assert _refs(g2)["NOPE"] == ("NULL", None)
+
+
+def test_a_binding_the_same_diff_adds_is_read_in_the_post_image(repo):
+    """The parent's `pkg/use.py` has no `needs_x`; the diff adds the assignment and the decorator together, as all three
+    sessions did — the post-image is what binds it."""
+    root, sha = repo
+    assert "needs_x" not in (root / "pkg/use.py").read_text()
+    t = template(ledger(sha), root, "Change `go`.")
+    code = 'import pytest\n\nneeds_x = pytest.mark.skipif(True, reason="x")\n\n\n@needs_x\ndef test_x():\n    pass\n'
+    g = G.ground(t, {"fills": {hole(t, "FREEFORM")["id"]: {"code": code, "span": {"path": "pkg/use.py", "start": 7, "end": 6}}}}, ledger(sha), root)
+    assert _refs(g)["needs_x"] == ("unknown-receiver", "pkg.use.needs_x") and g["null"] == []
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="the tsextract helper needs node")
 def test_js_import_builtin_and_null(repo):
     root, sha = repo
@@ -659,7 +750,7 @@ def test_world_holds_a_fill_to_std_the_module_and_the_go_mod(repo):
     code = "func Run(o Options) error {\n\tfmt.Println(Default.Repo, o.Repo)\n\tstrings.ToUpper(o.Repo)\n\treturn nil\n}\n"
     g2 = G.ground(template(L, root, "Change `Run`."), {"fills": {body["id"]: {"code": code}}}, L, root)
     assert [(n["term"], n["null_class"]) for n in g2["null"]] == [("strings.ToUpper", "unimported")]
-    assert not any(k.startswith("import:") for k in g2["world"]["counts"]) and g2["grounder_version"] == 4  # WP-14b bumped it to 3, the arrow read (C-91) to 4
+    assert not any(k.startswith("import:") for k in g2["world"]["counts"]) and g2["grounder_version"] == 5  # WP-14b bumped it to 3, the arrow read (C-91) to 4, the bare module-level value (C-91) to 5
 
 
 def test_go_signatures_in_the_world_arity_and_undeclared_type(repo):
