@@ -151,6 +151,29 @@
 
 ### C-91 — Grounder v0 grounds call sites only, in three languages, and abstains on members of values
 
+- **Amended 2026-10-01 (0.2.76-beta, grounder v5; Max: "good to proceed
+  with recommended"): a bare Python name bound at module level is a
+  value, and abstains.** Since ADR-146, lane A records a Python decorator
+  as a call of the name it holds, and the grounder grounds it like any
+  call. A name a module-level assignment binds was neither a symbol nor a
+  local, so `@needs_clang` after `needs_clang = pytest.mark.skipif(...)`
+  read `invented` and blocked: the harness's second to fourth false blocks
+  (`S-20260924T233341Z-9326`, `S-20260925T011655Z-c141`,
+  `S-20260925T161239Z-66c5`). A bare name the calling file's post-image
+  binds by a column-0 assignment (`name = …`, `name: T = …`), and a
+  `from m import name` that the repo module `m` binds the same way, now
+  abstain `unknown-receiver`, as a member on a module-level value already
+  did. **What still blocks:** any other binding form — one indented under
+  `if`/`try`/`with`, a tuple or starred target, a `for` or `with … as`
+  target, a walrus, a `global` in a function. Each grounds `invented` or
+  `near-miss`: a false block, the direction a gate fails safe.
+  **What it over-reads:** an invented call that shares a module-level
+  value's name passes. That is a miss, never a false block, and the same
+  trade the member rule makes. **Surfaced** in the gate record: the row's
+  class is `unknown-receiver`, and its target names the binding
+  (`<module>.<name>`, or `<path>:<name>` for a new file). **Built**
+  2026-10-01 by `S-20261001T200131Z-da88`, merged `d73b297`. The three
+  sessions' own diffs, replayed at their parents, now clear with 0 rows.
 - **Amended again 2026-09-15, decided before its unit: the text read
   takes arrow parameters.** `_parse_ts` reads two more shapes into its
   local bindings: a parenthesised list followed by `=>`, after an

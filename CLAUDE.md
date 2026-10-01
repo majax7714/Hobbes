@@ -200,7 +200,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 ```
 
 Suite sizes at the last check (2026-10-01; pytest and Go re-run on the
-host at 0.2.75-beta, the rest at 0.2.74-beta): 2,550 pytest (19 `lane_b`,
+host at 0.2.76-beta, the rest at 0.2.74-beta): 2,560 pytest (19 `lane_b`,
 run with the rebuilt image at 0.2.75-beta) / 399 Go with subtests (399
 pass) + 129
 oracle-lane Go with subtests (117 pass, 12 skip on a host without
@@ -276,7 +276,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-10-01) — Hobbes 0.2.75-beta
+## Status (2026-10-01) — Hobbes 0.2.76-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -308,21 +308,20 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   verify → one log in `docs/shanks/sessions/`. The tracker at the end of
   that directory's `README.md` (`pipeline/scripts/shanks_tracker.py
   render`, held by a drift test; re-render after filling a review block)
-  reads **93 of 40** sessions that validate the harness: 4 areas, 4 false
-  blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141` and `66c5`, the
-  decorator case below, open), 0 missed. It stays the way work is done.
+  reads **94 of 40** sessions that validate the harness: 4 areas, 4 false
+  blocks, all closed (`f3c1` at 0.2.28-beta; `9326`, `c141` and `66c5`,
+  the decorator case, at 0.2.76-beta), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.75-beta, a later def of a Python qualname is its
-  node's too** (ADR-155, Max: route a, 2026-10-01; unit `78b9`). The
-  handoff's candidate was measured first and its premise did not hold:
-  scip-python gives a name one scope defines twice one definition at
-  the first def, so calls land. The defect was the caller of lane B's
-  `uses` facts in an `@overload`'s stubs, a property setter or an
-  `else` def, filed under the class or module. Now each later live def
-  is its node's for that lookup: click 28 wrong `uses` edges gone and
-  14 drawn at the method, flask 13 and 4; flask 1,524 and click 3,756,
-  unchanged, 0 contradicted.
+- **Latest — 0.2.76-beta, the gate's decorator false block closed**
+  (C-91 amended, grounder v5; Max: "good to proceed with recommended",
+  2026-10-01; unit `da88`). A bare Python name that a column-0
+  assignment binds at module level, in the calling file or the repo
+  module it is imported from, is a value and abstains; other binding
+  forms still block. The three sessions' own diffs, replayed at their
+  parents, went from blocked (`invented` 8, 6, 1) to clear, and nothing
+  else in their grounding moved. 0.2.75-beta before it: ADR-155, a later
+  def of a Python qualname is its node's too.
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
   sacrifice honesty for higher recall").
   **Next:** the candidates in the handoff, each measured first: C/C++
@@ -343,9 +342,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its
   top-level calls, and the 22 published cells were regraded.
-- **Open for Max:** the gate's false block on a new decorator naming a
-  module-level value (sessions 9326, c141 and 66c5; the handoff has it);
-  ADR-126 §3 — whether to build a "may reach through dispatch (not
+- **Open for Max:** ADR-126 §3 — whether to build a "may reach through dispatch (not
   traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
   "fine for now"); the G-diff coverage finding (the lattice

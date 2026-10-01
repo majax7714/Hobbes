@@ -15024,3 +15024,50 @@ pytest 2,550 (`lane_b` 19 of 19), Go `./...` 399 of 399.
 **For the handoff:** C/C++ lane A's time on deep chains; flask's aliased function-local import; flask's
 `urlsplit`; whether another language's `enclosing` misfiles a lane B fact at a duplicate qualname (not
 measured).
+
+## 2026-10-01 (twenty-eighth session) — the top-level docs' drift fixed; the gate's decorator false block measured, built and released — 0.2.76-beta
+
+**The top-level docs reviewed** (Max: "review top level documentation and report back"). Four stale facts,
+fixed in `f69ad61`: the README's ADR range (151, not 155), its session count (ninety, not ninety-three), its
+Calvin paragraph ("being reassessed before any further run", after the close), and the handoff's pushed commit
+(`45e67a5`, where `origin/main` is `3d1dda7`). `AGENTS.md` is byte-identical to `CLAUDE.md`; pytest collected
+2,550, as CLAUDE.md said.
+
+**Route a, taken** (Max: "good to proceed with recommended"): the gate's decorator false block, open since
+`9326`. Recommended over the extraction candidates because it is a wrong statement on the path every unit
+takes; the candidates left were 2 and 1 flask rows, a timing fix, and an unmeasured question.
+
+- **Measured first.** A 31-line repro at `64f59e9` blocked as expected: two module-level values `invented`,
+  and one truly unbound name `invented`. The three sessions' own diffs (`dispatch.diff` from each session
+  dir) were replayed at their parents. A lane-A-only ingest of each parent does **not** reproduce: the
+  derived map reads the files as blind spots and splits the NULLs to `unknown`, so the gate clears. With each
+  parent re-ingested in the image (about 67 s each), its own partition and `--map derive`, each replay matched
+  its record exactly (blocked; `invented` 8, 6, 1).
+- **TS/JS checked for candidate 4 on the way:** an overloaded function's span runs from its first signature
+  to the implementation's end, and accessors are not symbols, so ADR-155's shape does not appear there. Go,
+  Java and Rust were not read.
+- **The rule** (C-91's amendment): a bare Python name that a column-0 assignment binds at module level, in the
+  calling file's post-image or in the repo module it is imported from, abstains as `unknown-receiver`, which
+  is what a member on a module-level value already did. The binding test was tightened so that a column-0
+  `==` does not count. Any other binding form still blocks. There was no ADR, following `f3c1`'s precedent:
+  a C-91 amendment and a grounder rule version (5).
+
+**Unit `S-20261001T200131Z-da88`** (Opus 5.5, 32 of 80 turns, reported $0.97, about 3 min): gate clear,
+verify pass, 77 tests, 0 regressions; there was no departure from the brief. The doer checked TS/JS before
+writing the docstring's decorator sentence: `@Foo()` is a call expression, and a bare `@Foo` is not a site.
+Merged as `d73b297` (merged, not squashed).
+
+**Replayed after the fix:** all three are clear with 0 rows. The only reference counts that moved are the 15
+NULLs, now `unknown-receiver`; every other class count is identical. The one past right-block (`b444`) was a
+partition block, which this rule does not touch.
+
+**Released as 0.2.76-beta:** the version copies, the CHANGELOG, C-91 amended with a HISTORY note (tally
+unchanged: 173 entries, 127 active, 99 surfaced), the session's review block and the tracker (94 of 40, all
+four false blocks closed), `shanks-harness.md`'s findings (which still said one false block), the
+architecture (header, the Shanks row), workstreams, README, CLAUDE.md and AGENTS.md, and the handoff. The Go
+binaries and the image were rebuilt (the proxy reports 0.2.76-beta). Host: pytest 2,560, Go `./...` green.
+
+**Max, on fitting** ("if we try to 100% 100% everything we might be defeating the point of the [poison]
+check by conforming to our tested repos"): proposed for his decision, a held-out Python cell graded at
+0.2.76-beta with no rule change and its predictions pre-registered. Every Python rule since ADR-145 was fitted
+on click and flask. It is in the handoff.

@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-01 (twenty-seventh session); Hobbes 0.2.75-beta on `main`.**
+**Reviewed 2026-10-01 (twenty-eighth session); Hobbes 0.2.76-beta on `main`.**
 Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
-0.2.75-beta, and this repo was ingested at the release commit; ingest at HEAD again if
+0.2.76-beta, and this repo was ingested at the release commit; ingest at HEAD again if
 `main` has moved since. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -11,7 +11,7 @@ the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.75-beta are untagged. Tags stay Max's call each time.
+  0.2.76-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -28,15 +28,32 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-10-01, twenty-seventh session)
+## ⇢ START HERE NEXT SESSION (written 2026-10-01, twenty-eighth session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**Extraction is the work.** Calvin is closed on the lattice (Max, 2026-09-29). **ADR-155 is built:
-0.2.75-beta** (Max: route a, 2026-10-01). The next candidates are below, each measured first.
+**Extraction is the work.** Calvin is closed on the lattice (Max, 2026-09-29). **The gate's decorator false
+block is closed: 0.2.76-beta** (C-91, grounder v5). The next step is a route for Max, below.
 
-- **Shipped this session (0.2.75-beta, ADR-155, unit `78b9`, 42 turns, $1.30):** the handoff's
+- **Max, 2026-10-01, on fitting:** "if we try to 100% 100% everything we might be defeating the point of the
+  [poison] check by conforming to our tested repos." Widening the test set is on the table when it outweighs
+  the next candidate. Every Python extraction rule since ADR-145 (nine ADRs: 145 to 150, 153 to 155; 0.2.63-beta to 0.2.75-beta) was measured
+  and fitted on click and flask. No Python cell has been graded held out since. **Proposed, not decided:** a fresh
+  held-out Python cell, trace-graded at 0.2.76-beta with no rule change, its predictions pre-registered as
+  args's were (ADR-132). Its misses would rank the next candidates by how many repos they appear in. Candidates
+  2 and 3 below are 2 and 1 flask rows.
+- **Shipped this session (0.2.76-beta, unit `da88`, 32 turns, $0.97):** the gate's decorator false block
+  (`9326`, `c141`, `66c5`). A bare Python name a column-0 assignment binds at module level (in the calling file's
+  post-image, or in the repo module it is imported from) abstains `unknown-receiver`; other binding forms still
+  block (C-91 amended). Measured first: the three sessions' own diffs were replayed at their parents (re-ingested in
+  the image, their own partitions, `--map derive`). Before the fix, each matched its record exactly; after it,
+  each is clear with 0 rows, and only those 15 references moved. Lane-A-only parents do *not* reproduce: the
+  derived map reads the files as blind spots and splits the NULLs to `unknown`. Drivers
+  `~/.hobbes/bench/gate-decorator/` (`units/u1.md` the brief; the replays were in the session's scratchpad, and
+  the CHANGELOG has their numbers).
+
+- **Shipped the session before (0.2.75-beta, ADR-155, unit `78b9`, 42 turns, $1.30):** the handoff's
   candidate 2, measured first. **Its premise was wrong**: scip-python gives a name one scope
   defines more than once one definition at the first def and a reference at each later def's
   name token, so references reach the node. What was wrong was the caller of lane B's `uses`
@@ -408,15 +425,8 @@ named below was removed unless it says otherwise.
      <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
      history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its
      `.hobbes/derived/graph.json`, `~/.hobbes/bench/oracle/sqlite-vector-c/oracle.json` and the intrinsics index.
-   - **A gate false block, three times (`9326`, `c141`, `66c5`): a newly added
-     decorator that names a module-level value (`@needs_x` where
-     `needs_x = pytest.mark.skipif(...)`) reads `invented`.** Since
-     ADR-146, lane A reads a decorator as a call, and the grounder
-     (`derive/ground.py`'s `_parse_python`) resolves calls against
-     symbols and local bindings only, never module-level assignments.
-     A 14-line reproduction is in `c141`'s parent session notes
-     (`9326`). The fix belongs to the grounder (a patch). It is not built;
-     it is for Max to name.
+   - **The gate's decorator false block (`9326`, `c141`, `66c5`) is closed** at 0.2.76-beta (C-91, grounder
+     v5, unit `da88`). The residue that still blocks is any binding that is not a column-0 assignment.
    - Every route Max settled from 2026-09-17 to 2026-09-20 (ADR-123 to
      ADR-144) is built; each ADR carries his word. Standing from them:
      constructions inside a template stay `uses`; §3.8's paragraphs stay
@@ -463,9 +473,9 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 93 of 40, 4
-     areas, 4 false blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141`,
-     `66c5`, the decorator case, open), 0 missed.
+   - **The validating 40 are done:** the tracker reads 94 of 40, 4
+     areas, 4 false blocks, all closed (`f3c1` at 0.2.28-beta; `9326`, `c141`,
+     `66c5`, the decorator case, at 0.2.76-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
      --poison` against the cell's saved `oracle.json` (as the C++
@@ -551,8 +561,8 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** (2026-10-01; pytest and Go re-run on the host at 0.2.75-beta, the rest at
-  0.2.74-beta): 2,550 pytest (`lane_b` 19 of them, run with the rebuilt image at
+- **Suites** (2026-10-01; pytest and Go re-run on the host at 0.2.76-beta, the rest at
+  0.2.74-beta): 2,560 pytest (`lane_b` 19 of them, run with the rebuilt image at
   0.2.75-beta), Go `./...` 399 with subtests (399 pass), 97 scip node, 47 tsextract, 52 vitest, 84 atlas0, 656
   lattice (624 pass / 32 skip without clang, after D-13's unit); oracle-lane Go 129 with subtests, 117 pass /
   12 skip on this host, which has no clang++ or cmake (the C++ fixture tests run and pass

@@ -6,6 +6,12 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-91 amended, 2026-10-01 (0.2.76-beta, grounder v5; Max: "good to proceed with recommended"; no entry added):
+- **C-91 amended (still surfaced).** A bare Python name bound at module level by a column-0
+  assignment, in the calling file or the repo module it is imported from, is a value and
+  abstains, closing the gate's decorator false block (`9326`, `c141`, `66c5`). Other binding
+  forms still block. 173 entries, 127 active (99 surfaced), unchanged.
+
 C-170 corrected, 2026-10-01 (0.2.75-beta; ADR-155, Max: route a; no entry added):
 - **C-170 corrected (still surfaced).** Its "not affected" sentence held for the target only:
   a later def of an `@overload`, a property or an `if`/`else` pair was the caller of

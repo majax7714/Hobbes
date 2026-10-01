@@ -11,9 +11,30 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.75-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.76-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.76-beta — 2026-10-01 (a bare Python name bound at module level is a value; C-91, grounder v5)
+
+**Patch: what the gate says** — Python, the grounder `hobbes gate` runs on a diff.
+Built as unit `S-20261001T200131Z-da88` (32 turns, $0.97).
+
+- **What was wrong.** Since 0.2.65-beta (ADR-146), lane A records a Python decorator as a
+  call of the name it holds, and the gate's grounder grounds it like any call. A name bound
+  by a module-level assignment is neither a symbol nor a local, so `@needs_clang` after
+  `needs_clang = pytest.mark.skipif(...)` read `invented` and blocked a correct diff. The
+  harness recorded this false block three times (sessions `9326`, `c141`, `66c5`).
+- **Fixed.** A bare name that the calling file binds by a column-0 assignment (`name = …`,
+  `name: T = …`, read in the diff's own post-image), or that a repo module it is imported
+  from binds the same way, now abstains as `unknown-receiver`, as a member on a module-level
+  value already did. Any other binding form still blocks (C-91). The binding test no longer
+  reads a column-0 `name == …` as a binding.
+- **Replayed.** The three sessions' own diffs, gated again at their parents (re-ingested in
+  the image, their own partitions): before, each matched its record (`invented` 8, 6, 1);
+  after, each is clear with 0 rows, and the only references that moved are those 15, from
+  NULL to `unknown-receiver`.
+- **Registered:** C-91 amended. The grounder's rule version is 5.
 
 ## 0.2.75-beta — 2026-10-01 (a later def of a Python qualname is its node's too; ADR-155)
 

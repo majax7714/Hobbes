@@ -366,7 +366,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.75-beta** (2026-10-01). The Hobbes layer is versioned from here
+**Hobbes 0.2.76-beta** (2026-10-01). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -455,15 +455,16 @@ treats a symptom, an unchecked diff; it is not Calvin's design:
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and ninety-three session logs stand. The
+dispatched on 2026-09-12, and ninety-four session logs stand. The
 tracker at the end of
 [`docs/shanks/sessions/README.md`](docs/shanks/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
 2026-09-13); it passed that mark on 2026-09-17 with one false block
 (closed) and none missed, and it stays the way work is done. Three more
-false blocks have been recorded since, all the same open case: the
-gate reads a newly added decorator that names a module-level value as
-invented (sessions `9326`, `c141` and `66c5`).
+false blocks were recorded after it, all one case: the gate read a newly
+added decorator that names a module-level value as invented (sessions
+`9326`, `c141` and `66c5`). That case was closed at 0.2.76-beta (C-91),
+and the three diffs, replayed, now clear.
 
 **The Calvin experiments** (ADR-151,
 [`docs/experiments/calvin/calvin-experiments.md`](docs/experiments/calvin/calvin-experiments.md))

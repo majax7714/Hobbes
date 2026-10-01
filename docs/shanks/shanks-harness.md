@@ -295,10 +295,13 @@ After that, the developer:
       compiled Go test packages in the session's build cache, holding the
       retention tests' own marker. The scan now skips the cache, a harness
       defect found by use.
-  - **Findings so far:** one false block and no `missed`. The false
-    block (`f3c1`, 2026-09-15) was the gate's TS/JS read missing an
-    arrow's parameters (C-91); a dispatched unit closed it (`2b26`,
-    0.2.28-beta). Every egress
+  - **Findings so far:** four false blocks, all closed, and no
+    `missed`. The first (`f3c1`, 2026-09-15) was the gate's TS/JS read
+    missing an arrow's parameters (C-91); a dispatched unit closed it
+    (`2b26`, 0.2.28-beta). The other three (`9326`, `c141`, `66c5`) were
+    one case: a new Python decorator naming a module-level value read
+    `invented` (C-91); `da88` closed it at 0.2.76-beta, and the three
+    diffs, replayed, now clear. Every egress
     refusal was read: one per suite run, the suite's own `http://llm`
     GET, which the proxy refused as built. The gate's classes do not
     cover recall or tie-rule defects; review on real input found those
