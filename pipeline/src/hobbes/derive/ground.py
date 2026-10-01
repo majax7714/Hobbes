@@ -27,13 +27,19 @@ declares that the graph lacks, and terms the fills declared ``new``.
 so: a builtin (the tail view's pinned lists, C-32), a local binding in
 scope (ADR-046), a method on a local or expression receiver (C-63/C-80),
 a name reached through an import that is not a repo module (external,
-unverifiable at this SHA), a receiver that is a package-level value.
+unverifiable at this SHA), a receiver that is a package-level value,
+and a bare Python name a column-0 assignment binds at module level — in
+the calling file's post-image or in the repo module it is imported from
+(a value lane A does not model; any other binding form stays NULL).
 Each NULL carries the term, the fill, the line, the nearest graph names
 (recorded, not used) and its §4.3 class: ``new`` when a fill declared
 it, ``near-miss`` when the exact name exists in another module or a
 graph name is within edit distance 3, else ``invented``. Rust and Java
 fills are placed but not grounded in v0 (no unit needs them; C-91), and
-a non-code file is ``not-code``. Type references, decorators and
+a non-code file is ``not-code``. A Python decorator is a call of the
+name it holds (ADR-146) and is grounded like any call; on TS/JS a
+decorator written as a call (``@Foo()``) is a call expression and is
+grounded as one, a bare ``@Foo`` is not a site. Type references and
 composite literals are not call sites and are not grounded (C-91).
 
 **Go (`docs/experiments/calvin/keyed-rounds/calvin-m0-go.md` §2.4).** The builtin list is Go's
@@ -105,10 +111,11 @@ from hobbes.derive import holes as H
 from hobbes.derive.template import Ledger, prune
 from hobbes.extract.tail import PY_BUILTINS, language_of
 
-GROUNDER_VERSION = 4  #: 1: Go's rules 1 and 2, the universe list, the density field (M0-Go §2.4); 2: the world check on Go fills (M0-Go WP-9);
+GROUNDER_VERSION = 5  #: 1: Go's rules 1 and 2, the universe list, the density field (M0-Go §2.4); 2: the world check on Go fills (M0-Go WP-9);
 #: 3: signatures in the world — a call's arity and a qualified reference's declared existence, each its own NULL class (M0-Go round 2 WP-14b, §2.5);
 #: also v3: a post-image carrying the render's gutter is its own class, `malformed`, rather than a silent zero (round 2 D-m);
 #: 4: TS/JS arrow parameters read (C-91)
+#: 5: a bare Python name bound at module level is a value and abstains, as a member on one does (C-91)
 EXPR = "<expr>"
 #: The reference classes; ``NULL`` is the only failure (I2). Everything else is what lane A resolves or abstains on by rule.
 #: ``malformed`` (round 2 D-m) is a file whose post-image carries the render's line-number gutter — a garbled body a live
@@ -858,6 +865,12 @@ def parse_post(path: str, text: str, scratch: Path, repo_root: Path, sha: str) -
 
 # --------------------------------------------------------------- resolution
 
+def _py_binds_at_module_level(text: str, name: str) -> bool:
+    """Whether Python *text* binds *name* by a column-0 assignment — ``name = …`` or ``name: T = …``, never a comparison
+    ``name == …``. Any other binding form (indented, a tuple target, ``for``/``with`` targets, a walrus, ``global``) is not read (C-91)."""
+    return bool(re.search(rf"^{re.escape(name)}\s*(?::[^=\n]*)?=(?!=)", text, re.M))
+
+
 class _Resolver:
     """Exact-match resolution against the ledger plus the gensyms, every lookup traced."""
 
@@ -949,7 +962,7 @@ class _Resolver:
         text = self._module_text(mod)
         if text is None:
             return False
-        return self.trace.look("module-value", f"{mod}.{name}", bool(re.search(rf"^{re.escape(name)}\s*(?::[^=\n]*)?=", text, re.M)))
+        return self.trace.look("module-value", f"{mod}.{name}", _py_binds_at_module_level(text, name))
 
     def _go_modules(self) -> dict[str, str]:
         """module path → directory, from every go.mod at the SHA (the join's own source of package identity)."""
@@ -1557,8 +1570,13 @@ class _Resolver:
                     re_ = self.py_reexport(tm, imp["name"])
                     if re_:
                         return "in-graph", re_
+                    if self.py_module_value(tm, imp["name"]):
+                        return "unknown-receiver", f"{tm}.{imp['name']}"  # an imported module-level value: abstain, as a member on one does (C-91)
                     return "NULL", None
                 return "unknown-receiver", head
+            own = f"{mod}.{head}" if mod else f"{path}:{head}"
+            if T.look("module-value", own, _py_binds_at_module_level(self.post_text.get(path, ""), head)):
+                return "unknown-receiver", own  # a value this file binds at module level, read in its post-image (C-91)
             return "NULL", None
         if self.in_scope_local(P, head, r.line):
             return "local", head

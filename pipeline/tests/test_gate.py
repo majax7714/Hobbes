@@ -209,6 +209,54 @@ def test_on_python_the_name_and_form_classes_fire_and_the_go_world_classes_do_no
     assert rec["verdict"] == "clear" and rec["ground"]["world"] == {}
 
 
+#: The excerpt of `bench/calvin/lattice/tests/test_e1.py` (64f59e9) the three false blocks (9326, c141, 66c5) wrote:
+#: its imports, the module-level `needs_clang` and two tests it decorates, added to `pkg/use.py`.
+E1_USE = '''import ast
+import json
+import subprocess
+import shutil
+from pathlib import Path
+
+import pytest
+
+from pkg import derive
+from pkg import core
+
+FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
+DERIVED = FIXTURE / "derived"
+MODAL = Path(__file__).parents[1] / "scripts" / "modal_e1.py"
+
+needs_clang = pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+
+
+def go():
+    return derive(core.TABLE.get("a"))
+
+
+@needs_clang
+def test_a_fenced_gold_grades_pass_end_to_end(tmp_path):
+    assert FIXTURE.name
+
+
+@{second}
+def test_another_gold(tmp_path):
+    assert DERIVED.name
+'''
+
+
+def test_a_decorator_naming_a_module_level_value_clears_and_a_misspelt_one_still_blocks(repo):
+    """C-91, grounder v5, at the level a user meets it (P10): the decorator case's false block is closed, and a
+    decorator naming nothing the file binds still blocks."""
+    root = repo[0]
+    rec = run_gate(repo, diff_of(root, {"pkg/use.py": E1_USE.replace("{second}", "needs_clang")}))
+    assert rec["verdict"] == "clear" and rec["rows"] == [], rec["rows"]
+    assert not any(r["class"] == "invented" for r in rec["rows"])
+    bad = run_gate(repo, diff_of(root, {"pkg/use.py": E1_USE.replace("{second}", "needs_clangg")}))
+    assert bad["verdict"] == "blocked" and bad["blocking"] == ["invented"], bad["rows"]
+    row = next(r for r in bad["rows"] if r["class"] == "invented")
+    assert row["path"] == "pkg/use.py" and row["grounder_class"] == "invented" and "needs_clangg" in json.dumps(row)
+
+
 def test_the_split_routes_a_name_absence_in_a_blind_spot_to_unknown_and_leaves_the_rest_standing(repo):
     root = repo[0]
     part = MAP["partition"]
