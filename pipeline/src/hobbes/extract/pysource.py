@@ -919,9 +919,12 @@ def _static_comparison(node: Node) -> tuple:
             if value is not None:
                 return ("os.name", op, value)
         elif attr == "version_info" and right.type == "tuple":
+            # Pyright 0.6.6 reads a tuple of two or more elements by its
+            # first two and ignores the rest, and a one-element tuple by
+            # its one; each read element must be an integer literal.
             items = [c for c in right.named_children if c.type != "comment"]
-            ints = [_static_int(c) for c in items]
-            if 1 <= len(ints) <= 2 and all(i is not None for i in ints):
+            ints = [_static_int(c) for c in items[:2]]
+            if ints and all(i is not None for i in ints):
                 return ("sys.version_info", receiver, op, tuple(ints))
         return UNREAD
     if left.type == "subscript":

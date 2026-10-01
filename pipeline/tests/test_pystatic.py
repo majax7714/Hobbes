@@ -51,6 +51,9 @@ class TestEachForm:
             ("sys.version_info >= (3, 11)", True),
             ("sys.version_info < (3, 8)", False),
             ("sys.version_info >= (3,)", True),
+            # two or more elements: the first two are read, the rest ignored
+            ("sys.version_info >= (3, 11, 1)", True),
+            ('sys.version_info >= (3, 13, 0, "final")', False),
             ("sys.version_info[0] == 3", True),
             ("sys.version_info[0] < 3", False),
             ("TYPE_CHECKING", True),
@@ -68,8 +71,8 @@ class TestEachForm:
         [
             'sys.platform.startswith("win")',
             '"win" in sys.platform',
-            "sys.version_info >= (3, 11, 1)",
             "sys.version_info >= (3.1,)",
+            'sys.version_info >= (3, "11")',
             "x.TYPE_CHECKING",
             'sys.platform == f"win32"',
             "flag",

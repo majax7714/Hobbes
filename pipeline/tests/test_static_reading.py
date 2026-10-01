@@ -19,7 +19,7 @@ import pytest
 
 from hobbes import extract as extract_pkg
 from hobbes.extract import extract_repo
-from hobbes.extract.schema import SEMANTIC
+from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
 MINIPLAT = Path(__file__).parent / "fixtures" / "miniplat"
 SRC = MINIPLAT / "src" / "miniplat"
@@ -110,11 +110,16 @@ class TestTheReadingAppliedToLaneA:
         assert raw["line"] == LIVE_RAW and raw["id"] == f"{TERM}.raw_terminal"
         assert symbol(graph, f"{TERM}.getchar")["line"] == LIVE_GETCHAR
 
-    def test_lane_a_names_no_twin_and_files_nothing_from_a_dead_def(self, graph):
+    def test_lane_a_names_the_live_def_and_files_nothing_from_a_dead_def(self, graph):
         drawn = calls(graph)
-        # A twin's name is lane B's to answer; lane A proposes nothing.
-        assert (f"{TERM}.getchar", f"{TERM}.raw_terminal") not in drawn
-        assert (f"{FRONT}.raw_terminal", f"{TERM}.raw_terminal") not in drawn
+        # A twin's name is the node's one reading, the live def: lane A's
+        # guess is re-pointed there, never dropped — the aliased import's
+        # `f()` is a site the index spells `raw_terminal`, and the join's
+        # column reading needs lane A's answer to place it.
+        live_call = drawn[(f"{TERM}.getchar", f"{TERM}.raw_terminal")]
+        assert live_call["tier"] == SYNTACTIC
+        assert [row["line"] for row in live_call["evidence"]] == [LIVE_GETCHAR + 1]
+        assert (f"{FRONT}.raw_terminal", f"{TERM}.raw_terminal") in drawn
         # The live getchar's own call is drawn; the win32 one's is not.
         edge = drawn[(f"{TERM}.getchar", f"{TERM}._translate")]
         assert [row["line"] for row in edge["evidence"]] == [LIVE_GETCHAR + 2]
@@ -166,7 +171,10 @@ def test_with_the_index_the_twins_land_and_lane_a_stops_guessing():
     assert symbol(graph, f"{TERM}.getchar")["line"] == LIVE_GETCHAR, err
     edge = drawn.get((f"{TERM}.getchar", f"{TERM}.raw_terminal"))
     assert edge is not None and edge["tier"] == SEMANTIC, (edge, err)
-    assert (f"{FRONT}.raw_terminal", f"{TERM}.raw_terminal") in drawn, err
+    # The aliased import's `f()`: the index spells it `raw_terminal`, and
+    # the join places it at its own column against lane A's live-def guess.
+    aliased = drawn.get((f"{FRONT}.raw_terminal", f"{TERM}.raw_terminal"))
+    assert aliased is not None and aliased["tier"] == SEMANTIC, (aliased, err)
     assert (f"{FRONT}.get_pager_file", f"{TERM}.get_pager_file") in drawn, err
     assert (f"{FRONT}.get_pager_file", f"{FRONT}.get_pager_file") not in drawn, err
     assert graph["lane_agreement"]["site_disagreements"] == [], graph["lane_agreement"]
@@ -181,3 +189,17 @@ def test_with_the_index_the_twins_land_and_lane_a_stops_guessing():
             assert not (
                 row["path"].endswith("term.py") and WIN_GETCHAR <= row["line"] <= WIN_ARM[1]
             ), edge
+
+
+def test_a_record_of_one_dead_line_says_line():
+    """click's `core.py` has one dead line (1539, an `os.name == "nt" and …`
+    body); its record says "line 1539", never "lines"."""
+    from hobbes.extract import pystatic
+
+    one = pystatic.FileReading(regions=((1539, 1539),), forms=("os.name",), twins={})
+    two = pystatic.FileReading(regions=((10, 10), (12, 13)), forms=("os.name",), twins={})
+    [said_one, said_two] = extract_pkg._static_reading_records(
+        {"a.py": [one, 0], "b.py": [two, 0]}, [], [3, 12]
+    )
+    assert said_one["message"].startswith("line 1539 read as never run under Linux / Python 3.12")
+    assert said_two["message"].startswith("lines 10, 12–13 read as never run")

@@ -356,9 +356,12 @@ def _read_static_tests(
     Each Python file's static tests are evaluated under the reading lane B
     indexed with (:mod:`hobbes.extract.pystatic`). A twin's record takes
     its live def's ``line`` and ``end_line``, its id unchanged; a fallback
-    entry naming any def of a twin is dropped, so the lane agreement does
-    not compare it; and one whose site lies inside a dead def of a twin is
-    dropped too, since the projection would file it under the live node by
+    entry naming any def of a twin names the live def instead, the node's
+    one reading (a guess at the first def would disagree with lane B, and a
+    dropped one would lose a call whose name lane B spells differently —
+    an aliased import's ``f()`` — since the join's column reading needs
+    lane A's answer); and one whose site lies inside a dead def of a twin
+    is dropped, since the projection would file it under the live node by
     its scope. Returns, per file with a dead region, ``[reading, call
     sites withheld from a dead twin def]``.
     """
@@ -366,7 +369,7 @@ def _read_static_tests(
     reading = pystatic.Reading(version=(version[0], version[1]) if version else None)
     out: dict[str, list] = {}
     records = {s["id"]: s for s in graph["symbols"]}
-    twin_defs: set[tuple[str, int]] = set()
+    twin_defs: dict[tuple[str, int], tuple[str, int]] = {}
     dead_defs: dict[str, list[tuple[int, int]]] = {}
     for module in sorted(modules, key=lambda m: m.path):
         read = pystatic.read_file(parsed[module.id], reading)
@@ -377,9 +380,9 @@ def _read_static_tests(
             record = records.get(f"{module.id}.{qualname}")
             if record is not None:
                 record["line"], record["end_line"] = live.line, live.end_line
-            twin_defs.add((module.path, live.line))
+            twin_defs[(module.path, live.line)] = (module.path, live.line)
             for symbol in dead:
-                twin_defs.add((module.path, symbol.line))
+                twin_defs[(module.path, symbol.line)] = (module.path, live.line)
                 dead_defs.setdefault(module.path, []).append((symbol.line, symbol.end_line))
     if not twin_defs:
         return out
@@ -389,8 +392,10 @@ def _read_static_tests(
         in_dead_def = any(a <= key[1] <= b for a, b in dead_defs.get(key[0], ()))
         if in_dead_def:
             out[key[0]][1] += 1
-        if in_dead_def or tuple(fallback[key]) in twin_defs:
+        if in_dead_def:
             del fallback[key]
+        elif tuple(fallback[key]) in twin_defs:
+            fallback[key] = twin_defs[tuple(fallback[key])]
     return out
 
 
@@ -429,7 +434,8 @@ def _static_reading_records(
                 "path": path,
                 "stage": "scip-python",
                 "message": (
-                    f"lines {spans} read as never run under {said} "
+                    f"{'line' if len(read.regions) == 1 and read.regions[0][0] == read.regions[0][1] else 'lines'} "
+                    f"{spans} read as never run under {said} "
                     f"({', '.join(read.forms)}{unread}): scip-python indexes "
                     "nothing there, so lane B is silent and lane A's edges there "
                     f"are `syntactic` only ({edges} symbol edge"
