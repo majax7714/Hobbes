@@ -117,7 +117,11 @@ class TestComplement:
         # not drawn, never all fixture-injected reach.
         assert "a plugin's or a base class's (C-4)" in complement.denominator
         # C-174: a call the language makes with no call written is named, not left to C-1's title.
-        assert "a Python `with` statement's __enter__/__exit__ (C-174)" in complement.denominator
+        # ADR-156 narrows it to the items whose class is not known.
+        assert (
+            "a Python `with` statement's __enter__/__exit__ where the item's class "
+            "is not known (C-174)" in complement.denominator
+        )
         assert "autouse" not in complement.denominator
         assert "fixture-injected" not in complement.denominator
 

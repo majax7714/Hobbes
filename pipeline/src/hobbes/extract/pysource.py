@@ -12,6 +12,7 @@ partial facts instead of failing the ingest.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 import tree_sitter_python
@@ -474,6 +475,16 @@ class Symbol:
     #: them: a factory an earlier rule settles is drawn as that rule draws
     #: it and never re-read. ``None`` everywhere else, and on every class.
     chain_fold: ChainFold | None = None
+    #: A ``def``'s return annotation, as its head name and the line the
+    #: annotation is written on, or ``None`` (ADR-156 step 1). The head is
+    #: the last identifier of a name or dotted name (``mod.C`` → ``C``), of
+    #: a string literal holding exactly one (``"pkg.mod.C"``), or of a
+    #: subscript's value (``C[int]`` → ``C``). Every other form is ``None``
+    #: — a union, ``Optional[…]``, ``None``, a call, a string that is not
+    #: one dotted name — because the head is only which reference the
+    #: index resolved, and a form naming two types names no one class.
+    #: Lane A does not resolve it. ``None`` on every class.
+    returns: tuple[str, int] | None = None
 
 
 #: The receiver recorded for a call whose object is an expression — a
@@ -505,6 +516,25 @@ class Call:
     #: unknown. One line routinely holds several calls, so the range join
     #: (ADR-029) needs more than a line to match a call to its resolution.
     col: int = -1
+
+
+@dataclass(frozen=True)
+class WithItem:
+    """One item of a sync ``with`` statement whose context expression is a
+    call (ADR-156 step 1).
+
+    ``scope`` is as :attr:`Call.scope`; ``line`` is the line the item's own
+    call's :class:`Call` record carries (its callee's terminal identifier);
+    ``name`` is that identifier — the name the item's **own**, outermost,
+    call writes: ``Live`` for ``Live(…)``, ``capture`` for
+    ``console.capture()``, ``get`` for ``app.test_client().get(…)``, never
+    ``test_client``. A callee that is not a name or attribute records no
+    item, and neither does an ``async with``.
+    """
+
+    scope: str | None
+    line: int
+    name: str
 
 
 @dataclass(frozen=True)
@@ -629,6 +659,12 @@ class ParsedFile:
     #: class means "the call stays inside that file", which an import is
     #: not; the fallback reads these to refuse a bare call they shadow.
     local_imports: list[LocalBinding] = field(default_factory=list)
+    #: Every item of a sync ``with`` statement whose context expression is
+    #: a call, in source order (ADR-156 step 1). The language runs the
+    #: item's ``__enter__`` and ``__exit__`` and the source writes neither,
+    #: so :mod:`hobbes.extract.withstmt` reads the class off the settled
+    #: graph at the item's own call.
+    with_items: list[WithItem] = field(default_factory=list)
 
 
 def parse_source(source: bytes) -> ParsedFile:
@@ -2490,6 +2526,79 @@ def _base_count(node: Node) -> int:
     return sum(1 for child in bases.named_children if child.type != "keyword_argument")
 
 
+#: One dotted name and nothing else: what a string annotation must hold for
+#: :attr:`Symbol.returns` to read a head from it (ADR-156).
+_DOTTED_NAME = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*")
+
+#: Subscript heads that name more than one type, or none, rather than a
+#: class: ``Optional[C]`` is ``C | None`` and ``Union[…]`` is a union.
+_UNION_HEADS = frozenset({"Optional", "Union"})
+
+
+def _annotation_head(node: Node) -> str | None:
+    """The head :attr:`Symbol.returns` records for one return annotation's
+    expression, or None for every form ADR-156 does not read."""
+    if node.type in ("identifier", "attribute"):
+        dotted = _dotted(node)
+        return None if dotted is None else dotted.rpartition(".")[2]
+    if node.type == "string":
+        literal = _string_literal(node)
+        if literal is None or not _DOTTED_NAME.fullmatch(literal):
+            return None
+        return literal.rpartition(".")[2]
+    if node.type in ("generic_type", "subscript"):
+        value = node.child_by_field_name("value") if node.type == "subscript" else (
+            node.named_children[0] if node.named_children else None
+        )
+        if value is None or value.type not in ("identifier", "attribute"):
+            return None
+        head = _annotation_head(value)
+        return None if head in _UNION_HEADS else head
+    return None
+
+
+def _returns(node: Node) -> tuple[str, int] | None:
+    """A ``def``'s return annotation as ``(head, line)`` (ADR-156 step 1)."""
+    annotation = node.child_by_field_name("return_type")
+    if annotation is None:
+        return None
+    expr = annotation.named_children[0] if annotation.type == "type" else annotation
+    if expr is None:
+        return None
+    head = _annotation_head(expr)
+    return None if head is None else (head, _line(annotation))
+
+
+def _with_items(node: Node, stack: list[tuple[str, str]]) -> list[WithItem]:
+    """The items of one ``with_statement`` that :attr:`ParsedFile.with_items`
+    records: none for an ``async with``, and of the rest only those whose
+    context expression is a call on a name or an attribute."""
+    if any(child.type == "async" for child in node.children):
+        return []
+    items: list[WithItem] = []
+    for clause in node.children:
+        if clause.type != "with_clause":
+            continue
+        for item in clause.named_children:
+            if item.type != "with_item":
+                continue
+            value = item.child_by_field_name("value")
+            if value is not None and value.type == "as_pattern":
+                value = value.named_children[0] if value.named_children else None
+            # `with (a\n.b\n.open()):` — the parentheses only wrap the line.
+            while value is not None and value.type == "parenthesized_expression":
+                value = value.named_children[0] if len(value.named_children) == 1 else None
+            if value is None or value.type != "call":
+                continue
+            terminal = _terminal(value.child_by_field_name("function"))
+            if terminal is None:
+                continue
+            items.append(
+                WithItem(_scope_qualname(stack), terminal.start_point.row + 1, _text(terminal))
+            )
+    return items
+
+
 def _walk(
     node: Node,
     stack: list[tuple[str, str]],
@@ -2635,6 +2744,7 @@ def _walk(
                 returns_inner=returns_inner,
                 inner_fold=inner_fold,
                 chain_fold=chain_fold,
+                returns=_returns(node) if is_function else None,
             )
         )
         # ADR-153 step 1, recorded per qualname rather than on the symbol:
@@ -2716,6 +2826,11 @@ def _walk(
         for child in node.children:
             _walk(child, stack, parsed, ())
         return
+
+    if kind == "with_statement":
+        # ADR-156: the item is recorded here and its call is walked below
+        # as any call is, so the item and the `Call` share one line.
+        parsed.with_items.extend(_with_items(node, stack))
 
     if kind == "subscript":
         value = node.child_by_field_name("value")
