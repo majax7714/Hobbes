@@ -46,6 +46,16 @@ Conventions (the harness README, D-O4), as the tracer meets them:
   — ``excluded: {"generated": n}``, the header field the Rust and Java
   keys already use. A ``lambda`` is not this: it is a function value
   someone does call, and it stays.
+- **A ``with`` statement's implicit calls are keyed at the ``with`` line**
+  (H-37). ``__enter__`` runs from the caller's ``BEFORE_WITH`` and an
+  exception-path ``__exit__`` from its ``WITH_EXCEPT_START``, and neither
+  is a ``CALL`` event: both are read at the callee's ``PY_START``, from
+  the opcode the caller frame stands on, and carry ``via: "with"``. A
+  normal ``__exit__`` is a ``CALL`` at the same line and is recorded from
+  it as before; an ``__exit__`` met both ways at one line is one target,
+  listed once. Code objects of those two names are never disabled, so
+  every entry is seen. Async with (``__aenter__``/``__aexit__``) is not
+  read: its coroutine starts later, on a ``SEND``.
 - **Callers outside the cell** — pytest itself, site-packages, the
   interpreter's import machinery — are disabled at the first event from
   each of their call sites, which is also what keeps the overhead low.
@@ -61,6 +71,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import dis
 import functools
 import json
 import os
@@ -77,6 +88,16 @@ SKIP_DIRS = {".venv", "venv", "site-packages", "node_modules", "__pycache__", ".
 # no call at all — but an older interpreter calls all four, so all four
 # are named here rather than leaving the rule interpreter-dependent.
 GENERATED_FRAME_NAMES = frozenset({"<genexpr>", "<listcomp>", "<setcomp>", "<dictcomp>"})
+
+# A ``with`` statement's implicit calls (H-37). ``__enter__`` runs from the
+# caller's ``BEFORE_WITH`` and an exception-path ``__exit__`` from its
+# ``WITH_EXCEPT_START``; neither is a ``CALL`` event, so both are read at
+# the callee's ``PY_START``. The opcodes are looked up by name, so an
+# interpreter without them reads nothing rather than the wrong thing.
+WITH_FRAME_NAMES = frozenset({"__enter__", "__exit__"})
+WITH_OPCODES = frozenset(
+    dis.opmap[name] for name in ("BEFORE_WITH", "WITH_EXCEPT_START") if name in dis.opmap
+)
 
 
 # ---------------------------------------------------------------- ast index
@@ -143,6 +164,16 @@ class DeclIndex:
 
         walk(tree, "")
         return idx
+
+
+def target_key(target: dict) -> str:
+    """A target's identity at its site. ``via: "with"`` is not part of it:
+    an ``__exit__`` one line reaches both from a ``CALL`` (normal exit) and
+    at ``PY_START`` (exception path) is one callee, listed once, whichever
+    way it was met first (H-37)."""
+    if target.get("via") == "with":
+        target = {k: v for k, v in target.items() if k != "via"}
+    return json.dumps(target, sort_keys=True)
 
 
 # ---------------------------------------------------------------- one run
@@ -277,13 +308,33 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
             if fcode is None:
                 return None, via  # a C callee
             via = via or "__call__"
+        return target_of_code(fcode), via
+
+    def target_of_code(fcode):
+        """The target dict for a Python code object, in-repo or external."""
         r, line, name, kind, external = decl_of_code(fcode)
         if external:
-            return {"name": name, "kind": kind, "external": True}, via
+            return {"name": name, "kind": kind, "external": True}
         t = {"pos": {"path": r, "line": line}, "name": name, "kind": kind}
         if kind in ("closure", "lambda"):
             t["closure"] = True
-        return t, via
+        return t
+
+    def record(r, code, offset, target):
+        """Count one call at the site of ``code``'s instruction at
+        ``offset`` (file ``r``), creating the site on its first call; a
+        None target is a C callee, counted and not listed."""
+        line, col = site_line(code, offset)
+        key = (r, line)
+        site = sites.get(key)
+        if site is None:
+            site = {"targets": {}, "c": 0, "caller": code.co_qualname, "col": col, "hits": 0}
+            sites[key] = site
+        site["hits"] += 1
+        if target is None:
+            site["c"] += 1
+            return
+        site["targets"].setdefault(target_key(target), target)
 
     def on_call(code, offset, callable_obj, arg0):
         if guard[0]:
@@ -308,33 +359,52 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
             if is_generated_frame(callable_obj):
                 generated[0] += 1
                 return None
-            line, col = site_line(code, offset)
-            key = (r, line)
-            site = sites.get(key)
-            if site is None:
-                site = {"targets": {}, "c": 0, "caller": code.co_qualname, "col": col, "hits": 0}
-                sites[key] = site
-            site["hits"] += 1
             target, via = resolve(callable_obj)
-            if target is None:
-                site["c"] += 1
-                return None
-            if via:
+            if target is not None and via:
                 target["via"] = via
-            tkey = json.dumps(target, sort_keys=True)
-            site["targets"].setdefault(tkey, target)
+            record(r, code, offset, target)
         finally:
             guard[0] = False
         return None
 
-    def on_start(code, offset):
-        r = rel_of(code)
+    def on_with_start(code):
+        """H-37: a ``with`` statement's ``__enter__``, or its exception-path
+        ``__exit__``, is no ``CALL`` event; read it here, at the started
+        frame, from the opcode its caller stands on. A normal-path
+        ``__exit__`` stands on ``CALL`` and is already recorded by
+        ``on_call``, so any other opcode records nothing. Async with is not
+        read: its coroutine starts later, on a ``SEND``."""
+        if guard[0]:
+            return
+        caller = _sys._getframe(2).f_back  # 0 is this, 1 on_start, 2 the started frame
+        if caller is None:
+            return
+        ccode = caller.f_code
+        if ccode.co_code[caller.f_lasti] not in WITH_OPCODES:
+            return
+        r = rel_of(ccode)
         if r is None:
-            return mon.DISABLE
-        if code.co_name == "<module>":
-            loaded.add(r)
-        else:
-            started.add((r, code.co_qualname))
+            return
+        guard[0] = True
+        try:
+            target = target_of_code(code)
+            target["via"] = "with"
+            record(r, ccode, caller.f_lasti, target)
+        finally:
+            guard[0] = False
+
+    def on_start(code, offset):
+        with_frame = code.co_name in WITH_FRAME_NAMES
+        if with_frame:
+            on_with_start(code)
+        r = rel_of(code)
+        if r is not None:
+            if code.co_name == "<module>":
+                loaded.add(r)
+            else:
+                started.add((r, code.co_qualname))
+        if with_frame:
+            return None  # every entry is read, so it is never disabled (H-37)
         return mon.DISABLE  # one event per code object is enough
 
     mon.register_callback(TOOL, mon.events.CALL, on_call)
@@ -429,9 +499,9 @@ def main(argv=None) -> int:
                 continue
             u["hits"] += s["hits"]
             u["c_callees"] += s["c_callees"]
-            seen = {json.dumps(t, sort_keys=True) for t in u["targets"]}
+            seen = {target_key(t) for t in u["targets"]}
             for t in s["targets"]:
-                if json.dumps(t, sort_keys=True) not in seen:
+                if target_key(t) not in seen:
                     u["targets"].append(t)
 
     files = module_files(repo, module)

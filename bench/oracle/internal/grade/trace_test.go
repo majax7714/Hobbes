@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -160,6 +161,116 @@ func TestComprehensionFramesAreExcluded(t *testing.T) {
 		if !pairs[w] {
 			t.Errorf("missing observed pair %s (have %v)", w, pairs)
 		}
+	}
+}
+
+// H-37: a `with` statement's `__enter__` (from BEFORE_WITH) and its
+// exception-path `__exit__` (from WITH_EXCEPT_START) make no CALL event;
+// the tracer reads them at the callee's PY_START, keyed at the `with` line
+// as the normal-path `__exit__` already is. Hand truth in
+// testdata/pywith/src/pywith/core.py's docstring; every line number is
+// found in the fixture's text, not written here. Run exactly as
+// TestComprehensionFramesAreExcluded is.
+func TestWithStatementImplicitCalls(t *testing.T) {
+	if why := contain.UnavailableReason(); why != "" && !contain.Uncontained() {
+		t.Skip("containment unavailable: " + why)
+	}
+	pipeline, _ := filepath.Abs("../../../../pipeline")
+	python := filepath.Join(pipeline, ".venv", "bin", "python")
+	if _, err := os.Stat(python); err != nil {
+		t.Skip("pipeline venv not built (uv sync)")
+	}
+	src, err := os.ReadFile("../../testdata/pywith/src/pywith/core.py")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(string(src), "\n")
+	// lineOf is the 1-based line of the first line at or after `from`
+	// whose trimmed text starts with `prefix`.
+	lineOf := func(from int, prefix string) int {
+		t.Helper()
+		for i := from; i < len(lines); i++ {
+			if strings.HasPrefix(strings.TrimSpace(lines[i]), prefix) {
+				return i + 1
+			}
+		}
+		t.Fatalf("core.py has no line starting %q after line %d", prefix, from)
+		return 0
+	}
+	const core = "src/pywith/core.py"
+	at := func(line int) string { return core + ":" + strconv.Itoa(line) }
+	var (
+		base, cm, own = lineOf(0, "class Base:"), lineOf(0, "class CM(Base):"), lineOf(0, "class Own:")
+		baseExit      = lineOf(base, "def __exit__")
+		cmEnter       = lineOf(cm, "def __enter__")
+		ownEnter      = lineOf(own, "def __enter__")
+		ownExit       = lineOf(own, "def __exit__")
+		makeDef       = lineOf(0, "def make() -> CM:")
+		withPlain     = lineOf(lineOf(0, "def plain():"), "with CM():")
+		withRaising   = lineOf(lineOf(0, "def raising():"), "with Own():")
+		withTwo       = lineOf(0, "with CM(), Own():")
+		withMake      = lineOf(0, "with make():")
+		withGen       = lineOf(0, "with gen():")
+	)
+
+	out := filepath.Join(t.TempDir(), "oracle.json")
+	o, err := pytrace.Run(pytrace.Options{
+		Repo: "../../testdata/pywith", Module: ".", Runs: 1, SysPath: []string{"src"}, Out: out,
+		Python: []string{python},
+		Pytest: []string{"-q", "-p", "no:cacheprovider", "-c", "pyproject.toml", "--rootdir", ".", "--import-mode=importlib", "tests"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pairs := map[string]bool{}
+	for _, s := range o.Sites {
+		for _, tg := range s.Targets {
+			if strings.HasSuffix(tg.Name, ".__enter__") && tg.Via != "with" {
+				t.Errorf("%s -> %s: an __enter__ is read at PY_START, via %q, want \"with\"", s.Pos.Key(), tg.Name, tg.Via)
+			}
+			if s.Pos.Path == core && s.Pos.Line == withRaising && tg.Name == "Own.__exit__" && tg.Via != "with" {
+				t.Errorf("raising's exception-path __exit__: via %q, want \"with\"", tg.Via)
+			}
+			if s.Pos.Path == core && s.Pos.Line == withGen && tg.Via == "with" && !tg.External {
+				t.Errorf("contextlib's __enter__/__exit__ are external, got in-repo %s (%s)", tg.Name, tg.Pos.Key())
+			}
+			if !tg.External {
+				pairs[s.Pos.Key()+" -> "+tg.Pos.Key()] = true
+			}
+		}
+	}
+	for _, w := range [][2]int{
+		{withPlain, cmEnter}, {withPlain, baseExit}, {withPlain, cm},
+		{withRaising, ownEnter}, {withRaising, ownExit}, {withRaising, own},
+		{withTwo, cmEnter}, {withTwo, baseExit}, {withTwo, ownEnter}, {withTwo, ownExit}, {withTwo, cm}, {withTwo, own},
+		{withMake, makeDef}, {withMake, cmEnter}, {withMake, baseExit}, {makeDef, cm},
+	} {
+		if p := at(w[0]) + " -> " + at(w[1]); !pairs[p] {
+			t.Errorf("missing observed pair %s (have %v)", p, pairs)
+		}
+	}
+}
+
+// H-37 needs no grader change: a target the tracer read at PY_START is an
+// ordinary target, matched on its declaration's position, so a Hobbes edge
+// to the `__enter__` the line observed is confirmed, not suspect.
+func TestWithTargetIsConfirmed(t *testing.T) {
+	pos := func(p string, l int) edges.Pos { return edges.Pos{Path: p, Line: l} }
+	h := &edges.HobbesExport{Edges: []edges.HobbesEdge{
+		{Site: pos("a.py", 5), Target: pos("b.py", 30), Tier: "semantic"},
+	}}
+	o := &edges.OracleExport{Kind: "trace", Runs: 1, Files: []string{"a.py", "b.py"}, Sites: []edges.Site{
+		{Pos: pos("a.py", 5), Mode: "observed", Targets: []edges.Target{
+			{Pos: pos("b.py", 20), Name: "CM", Kind: "class"},
+			{Pos: pos("b.py", 30), Name: "CM.__enter__", Kind: "method", Via: "with"},
+		}},
+	}}
+	r := Grade(h, o)
+	if len(r.Rows) != 1 || r.Rows[0].Bucket != "confirmed" {
+		t.Fatalf("an __enter__ edge on a line that observed it: %+v", r.Rows)
+	}
+	if r.Total.Suspect != 0 || r.OraclePairs != 2 || r.RecallHits != 1 {
+		t.Errorf("buckets %+v, recall %d/%d", r.Total, r.RecallHits, r.OraclePairs)
 	}
 }
 
