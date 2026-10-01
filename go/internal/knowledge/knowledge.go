@@ -90,9 +90,9 @@ type graphIndex struct {
 	// Each symbol's declared name, the graph's `name` field (hookNote).
 	symbolName map[string]string
 	// The module nodes whose file is TypeScript or JavaScript: lane A
-	// names no scope inside a constructor, an accessor, a static block or
-	// a field initializer there, so such a call's caller is the module
-	// (C-176).
+	// names no symbol inside an object literal's method, an unnamed
+	// class, a function assigned to a property or a namespace there, so
+	// such a call's caller is the module (C-176, narrowed by ADR-158).
 	tsModule map[string]bool
 }
 
@@ -654,10 +654,13 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 		}
 	}
 	if tsModuleCaller {
-		// C-176: TS/JS lane A names no scope inside a constructor, an
-		// accessor, a static block or a field initializer, so a call
-		// written there is filed under its module. No key reads a caller.
-		b.WriteString("  (a TS/JS module named as a caller may stand for a constructor, an accessor, a static block, a field initializer, an object literal's method or a function assigned to a property in that file, not top-level code: lane A names no scope there, C-176)\n")
+		// C-176: below the symbol floor TS/JS lane A names no symbol, so
+		// a call written in an object literal's method, an unnamed
+		// class, a function assigned to a property or a namespace is
+		// filed under its module. A named class's constructor, accessors
+		// and initializers are the class's since ADR-158. No key reads a
+		// caller.
+		b.WriteString("  (a TS/JS module named as a caller may stand for an object literal's method, an unnamed class's method, a function assigned to a property or a namespace's function in that file, not top-level code: they are not graph symbols, C-176)\n")
 	}
 	if users > 0 || implementors > 0 {
 		if callers == 0 {

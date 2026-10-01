@@ -15221,3 +15221,46 @@ next session").
   - Go 402, all passing.
   - The oracle lane's report and grade tests ran uncached.
   - The image was rebuilt at 0.2.81-beta.
+
+## 2026-10-01 (thirtieth session) — the top-level docs reviewed; C-176 measured, built and released, with an amendment found while reading — 0.2.82-beta
+
+**Task:** "review top level documentation and begin the stated next task". The handoff's next task was the
+honesty audit's route 2, C-176 (Max: "leave 176 177 for next session"; measure each first).
+
+- **Read first.** `tsextract`'s `enclosingScope` gives each TS/JS call its lane A scope, which the join takes
+  as the caller. It returned null inside a constructor, accessor, static block or field initializer, so those
+  calls were the module's (C-176). **It also never checked that what it named was a symbol.** A nested function, a
+  nested arrow const or a method of a class declared inside a function named itself, and `extractSymbols` has
+  none of those. Over the stored graphs that left callers with no node: ajv 341 `calls` rows, Preact 145,
+  tileserver-gl 24, and seven more repos 2–8. Not registered anywhere. Python's own filing was checked with
+  `pysource.parse_source` on a fixture: a class attribute and a method decorator are the class's, a class
+  decorator the module's.
+- **Pre-registered** (`~/.hobbes/bench/c176-ts-scope/PREREG.md`) with the amendment, six predictions and the
+  rule as worded, before either arm. Its probe (`probe.py`) classes each `calls` row against the tsc key's
+  `sites[].caller` and states the key's display rule: a constructor shows as its class, a field initializer
+  as `<module>`. folio-2025, npq and tileserver-gl have no cell, so caller keys were generated in the image
+  (`keygen.sh`).
+- **Before** was taken at HEAD before any edit (the TS helper is read live at ingest, so no worktree was
+  needed), over 12 TS/JS repos with lane B in the image.
+- **Built:** `enclosingScope` resolves from the top-level statement down, in `extractSymbols`' vocabulary.
+  Facts v7. The `who_calls` note was narrowed to the floor. Tests: a tsextract case covering every clause,
+  and an end-to-end pytest case (a constructor's call is the class's; a test of `outer` reaches what its
+  nested function calls). Both fail on the old function.
+- **After: every prediction held.** Dangling callers 0, and in-class module rows 0 (folio-2025 501), in all 12.
+  `calls` rows by (path, line, target), exports without the caller, nodes, symbols and `uses` rows are
+  identical, so every grade is unchanged. Test reach only grew (npq 139 tests, cue 48, ajv 51). An npq spot
+  check: `RegistryConfig`'s constructor calls `normalizeRegistry`, so 76 tests reach it now. Probe `wrong`
+  0 → 0; folio-2025's agreeing rows 400 → 826.
+- **What it did not do.** A nested function inside an object-literal method or a property-assigned function
+  now names the module (ajv 143, Preact 129), not an id with no node. That is the floor, which C-176 keeps.
+  Lifting it is a symbol-set change and Max's call.
+- **Released as 0.2.82-beta:**
+  - ADR-158, C-176 narrowed, and the register HISTORY note;
+  - architecture §3 (a paragraph) and the §8 header;
+  - CHANGELOG, README, workstreams, CLAUDE.md and AGENTS.md (ADR count: last 158);
+  - the handoff (next: C-177).
+- **Verified on the host:**
+  - pytest 2,603, all passing; its 20 `lane_b` cases ran against the image rebuilt at 0.2.82-beta;
+  - Go 402, all passing;
+  - tsextract 48, all passing;
+  - the static proxy and the image were rebuilt.

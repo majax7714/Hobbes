@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-01 (twenty-ninth session); Hobbes 0.2.81-beta on `main`.**
+**Reviewed 2026-10-01 (thirtieth session); Hobbes 0.2.82-beta on `main`.**
 Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
-0.2.81-beta, and this repo was ingested at the release commit; ingest at HEAD again if
+0.2.82-beta, and this repo was ingested at the release commit; ingest at HEAD again if
 `main` has moved since. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -11,7 +11,7 @@ the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.81-beta are untagged. Tags stay Max's call each time.
+  0.2.82-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -28,35 +28,43 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-10-01, twenty-ninth session)
+## ⇢ START HERE NEXT SESSION (written 2026-10-01, thirtieth session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**Next — the honesty audit's two remaining fixes** (Max, 2026-10-01: "proceed with the recommended first fix
-leave 176 177 for next session"). Route 1 shipped as 0.2.81-beta (below). Measure each first, as route 1 was.
-1. **C-176, TS/JS.** `tsextract`'s `enclosingScope` should scope a named class's constructor, accessors, static
-   block and field initializers to the class, as Python and Java do. Measure first with
-   `~/.hobbes/bench/honesty-audit/modcaller.py` over the stored graphs (folio-2025 501 rows, ajv 26).
-   Object-literal methods, unnamed classes and property-assigned functions (Express) are below the floor and
-   stay the module's, unless Max says otherwise. No key reads a caller, so the check is a caller probe like
-   C++'s (`c145-extent/probe.py`), using the tsc key's `sites[].caller`.
-2. **C-177, TS/JS.** A tagged template becomes a site (lane A's walk takes `TaggedTemplateExpression`). Not
-   sized on a cell; the tsc oracle keys it.
+**Next — C-177, the honesty audit's last fix** (Max, 2026-10-01: "leave 176 177 for next session"; C-176 is
+done, below). A TS tagged template becomes a site: lane A's walk takes `TaggedTemplateExpression`. It has not
+been sized on a cell, and the tsc oracle keys it (`siteName` reads `node.tag`). Measure first, as before. Reuse
+`~/.hobbes/bench/c176-ts-scope/` (`run.sh`, `repos.txt`, `compare.py`, the three probe keys under `keys/`).
+Unlike C-176, this change *adds* sites, so the regrade will move: grade every keyed cell before and after.
 
-- **Shipped this session, 0.2.81-beta (ADR-157, C-175 lifted).** C++ lane A now reads four kinds of
-  definition: a reference return, a conversion operator, an in-class friend (a namespace function) and a type
-  nested in a class body. The nested type was found while building and pre-registered as an amendment. The
-  mint's `lane-a-has-type` refusal was narrowed to the same type (`same_type`). The terminal-name rule had
-  refused an unrelated nested `Clause`, and three fmt types since ADR-129.
-  - Regraded: fmt 7,012 → 7,026 confirmed, 0 contradicted, strict 99.62% (7,026/7,053), recall 30.4%; args,
-    cJSON and sqlite-vector unmoved, with the C graphs identical.
-  - By position no `calls` row was lost; callers agreeing with the key on fmt rose 7,629 → 7,642.
-  - Drivers: `~/.hobbes/bench/c175-cpp-defs/` (`PREREG.md`, `regrade.sh` with `ROOT`/`ARM`, `posdiff.py`,
-    `diff.py`, `RESULTS.md`; the before worktree was removed after the grade).
-  - **Lesson:** a before-arm worktree needs copied `node_modules`, not symlinks. The helper runs in the
-    container and cannot follow a link out of the mount. Lane B failed loudly, and the run was discarded.
-- **Shipped earlier this session, 0.2.80-beta (the audit).** C-174 widened, and C-175–C-177 registered and
+- **Shipped this session, 0.2.82-beta (ADR-158, C-176 narrowed).** A TS/JS call's lane A scope is now the
+  innermost enclosing **graph symbol** (`tsextract` `enclosingScope`, facts v7).
+  - A named class owns its constructor, accessors, `static {}` blocks, field initializers, member decorators
+    and computed names; the class's own decorators and heritage clauses stay the module's, as in Python.
+  - **Amendment, found reading the code and pre-registered:** a nested function, a nested arrow const or a
+    method of a class declared in a function had named *itself*, an id with no node. Those calls are now
+    filed under the top-level symbol around them, or under the module where that encloser is below the
+    floor (ajv's object-literal `code(cxt)` methods, 143 rows; Preact's `X.prototype.y = function`, 129).
+  - **Measured on 12 TS/JS repos:**
+    - dangling callers went to 0 (ajv 341, Preact 145, …);
+    - in-class module rows went to 0 (folio-2025 501, …);
+    - every site, target, node, symbol, `uses` row and grade is identical;
+    - test reach only grew (npq 139 tests, cue 48, ajv 51);
+    - the tsc-key caller probe's `wrong` stayed 0, and folio-2025's agreeing rows went 400 → 826.
+  - Drivers: `~/.hobbes/bench/c176-ts-scope/` (`PREREG.md`, `RESULTS.md`, `run.sh`, `probe.py`,
+    `compare.py`, `dangling.py`, `keygen.sh`, `before/`, `after/`).
+  - **For Max:** the amendment was not in the route he named. It was pre-registered and is recorded in
+    ADR-158 for his review. What C-176 keeps is the floor: an object literal's method, an unnamed class, a
+    property-assigned function, a namespace. Lifting it means making those symbols, which moves the symbol
+    set, so it is his call. The CJS literal member (cue 49, Express 46) is the same question.
+- **Shipped earlier the same day, 0.2.81-beta (ADR-157, C-175 lifted).** C++ lane A reads a reference return, a
+  conversion operator, an in-class friend and a nested type. fmt went 7,012 → 7,026 confirmed, 0 contradicted;
+  args, cJSON and sqlite-vector are unmoved. Drivers: `~/.hobbes/bench/c175-cpp-defs/`.
+  - **Lesson:** a before-arm worktree needs copied `node_modules`, not symlinks. (This session ran its before
+    arm at HEAD before editing, which needs no worktree, since the TS helper is read live at ingest.)
+- **Shipped the session before, 0.2.80-beta (the audit).** C-174 widened, and C-175–C-177 registered and
   surfaced. The record is `~/.hobbes/bench/honesty-audit/RESULTS.md`. **Not audited:** Terraform/HCL;
   repo-scale counts of any implicit shape outside Python's `__exit__`; Go's and Java's caller roll-up on real
   repos.

@@ -1386,6 +1386,24 @@ the index emits no occurrence at all; a JSX tag of a class component,
 where it names the class and never the constructor; and a token the
 index does not resolve (§10.26 of `oracle-grading.md` is the read).
 
+**A TS/JS call's caller is the innermost enclosing graph symbol (ADR-158,
+0.2.82-beta; facts v7).** Lane A's `scope`, which the join takes as the
+caller before its own enclosing lookup, uses `extractSymbols`'
+vocabulary:
+- a top-level function or variable-bound function;
+- a top-level named class's method, for its body and parameters;
+- **the class**, for its constructor, accessors, `static {}` blocks,
+  field initializers, member decorators and computed names, as Python
+  and Java file a class body's code;
+- the module, for the class's own decorators and heritage clauses and
+  for everything below the floor (an object literal's method, an
+  unnamed class, a property-assigned function, a namespace).
+
+A nested function's calls are its top-level symbol's. They had named
+the nested function, an id with no node. No grade moved, since no key
+reads a caller. Test reach grew where a constructor or nested function
+calls on (npq 139 tests). C-176 keeps the floor.
+
 **A shorthand property names what it names (ADR-144, 0.2.62-beta).** `const
 m = require('./m'); m.f()` over `module.exports = { f }` — and
 `server.restart()` over `export default { start, restart }` — is answered by
@@ -2198,7 +2216,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.81-beta** (2026-10-01, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.81-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.82-beta** (2026-10-01, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.82-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

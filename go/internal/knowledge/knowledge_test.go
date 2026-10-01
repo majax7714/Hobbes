@@ -412,7 +412,8 @@ func TestWhoCallsKnownSymbolWithoutCallers(t *testing.T) {
 // hookRepo is fixtureRepo with one module per language and the symbols
 // the 2026-10-01 audit met: hooks the language runs with no call written
 // (C-174), ordinary names beside them, and a TS/JS call filed under its
-// module because lane A names no scope in a constructor (C-176).
+// module because lane A names no symbol in an object literal's method
+// (C-176).
 func hookRepo(t *testing.T) string {
 	t.Helper()
 	repo := fixtureRepo(t)
@@ -505,7 +506,8 @@ func TestWhoCallsNoCallersNamesImplicitCalls(t *testing.T) {
 }
 
 // C-176: a TS/JS module listed as a caller is said to possibly stand for
-// a constructor, an accessor, a static block or a field initializer.
+// code below the symbol floor: an object literal's method, an unnamed
+// class, a function assigned to a property, a namespace's function.
 func TestWhoCallsQualifiesATSModuleCaller(t *testing.T) {
 	s := Open(hookRepo(t))
 	got, err := s.WhoCalls("hk/lib.helper")

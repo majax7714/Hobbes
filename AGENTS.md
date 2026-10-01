@@ -199,12 +199,12 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # Shanks, t
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-10-01; pytest and Go re-run on the
-host at 0.2.81-beta, the rest at 0.2.74-beta): 2,602 pytest (20 `lane_b`,
-run with the image built at 0.2.80-beta) / 402 Go with subtests (402
-pass) + 131
+Suite sizes at the last check (2026-10-01; pytest, Go and tsextract
+re-run on the host at 0.2.82-beta, the rest at 0.2.74-beta): 2,603 pytest
+(20 `lane_b`, run with the image built at 0.2.82-beta) / 402 Go with
+subtests (402 pass) + 131
 oracle-lane Go with subtests (119 pass, 12 skip on a host without
-clang++ or cmake; the C++ ones pass in the image) / 52 vitest / 47
+clang++ or cmake; the C++ ones pass in the image) / 52 vitest / 48
 tsextract + 97 scip node / 84 atlas0 / 656 lattice (624 pass, 32 skip
 on a host without clang; they run in the image). Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
@@ -222,7 +222,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 157;
+  architecture doesn't already make. Number sequentially (last: 158;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -276,7 +276,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-10-01) — Hobbes 0.2.81-beta
+## Status (2026-10-01) — Hobbes 0.2.82-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -316,25 +316,22 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   the decorator case, at 0.2.76-beta), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.81-beta, C-175 lifted** (ADR-157; Max: "proceed with
-  the recommended first fix"). C++ lane A now reads a reference return,
-  a conversion operator, an in-class friend (a function of its namespace)
-  and, found on the way, a type nested in a class body. ADR-129's
-  `lane-a-has-type` refusal now asks for the same type, not the same
-  terminal name. fmt 7,012 → 7,026 confirmed at 0 contradicted; args, cJSON
-  and sqlite-vector are unmoved; no `calls` row was lost
-  (`oracle-grading.md` §10.42).
-- **0.2.80-beta, the honesty audit** (precedent 1). C-174 widened, and
+- **Latest — 0.2.82-beta, C-176 narrowed** (ADR-158; the audit's route 2,
+  measured first). A TS/JS call's caller is the innermost enclosing graph
+  symbol. A named class owns its constructor, accessors, static blocks,
+  field initializers and member decorators (folio-2025: 501 module-filed
+  rows → 0). A nested function's calls are its top-level symbol's: they
+  had named the nested function, an id with no node (ajv 341, Preact 145
+  → 0). Every site, target and grade is unchanged; test reach only grew
+  (npq 139 tests).
+- **The honesty audit** (0.2.80-beta, precedent 1): C-174 widened, and
   C-175 to C-177 registered and surfaced, after one fixture per language
-  (`~/.hobbes/bench/honesty-audit/RESULTS.md`).
+  (`~/.hobbes/bench/honesty-audit/RESULTS.md`). C-175 was lifted at
+  0.2.81-beta (ADR-157: fmt 7,012 → 7,026 confirmed, 0 contradicted).
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
   sacrifice honesty for higher recall").
-  **Next — the audit's two remaining fixes** (Max: "leave 176 177 for
-  next session"; measured first):
-  - **C-176:** a named class's constructor, accessor, static block and
-    field initializer are scoped to the class.
-  - **C-177:** a tagged template becomes a site.
-
+  **Next — C-177, the audit's last fix** (measured first): a tagged
+  template becomes a site.
   Then the local alias of a global (C-9).
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not

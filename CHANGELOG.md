@@ -11,9 +11,32 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.81-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.82-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.82-beta — 2026-10-01 (a TS/JS call's caller is the innermost enclosing graph symbol; ADR-158, C-176 narrowed)
+
+**Patch: what the layer draws**, TS/JS callers. This is the honesty audit's route 2 (Max: "leave 176 177 for
+next session"). It was pre-registered (`~/.hobbes/bench/c176-ts-scope/PREREG.md`) and measured before and
+after on 12 TS/JS repos.
+
+- **Too high (C-176).** A call in a named class's constructor, accessor, `static {}` block or field
+  initializer was filed under the **module**, as if written at top level. It is now the class's, and so is
+  a member's decorator or computed name, which run when the class is defined, as Python files them.
+  folio-2025's 501 such rows, and 57 more on six other repos, are now 0.
+- **Too low (found while reading, pre-registered as an amendment).** A nested function, a nested arrow
+  const or a method of a class declared inside a function named *itself* as the caller. It is no graph
+  symbol, so the caller id named no node: `who_calls` listed a caller the graph lacks, and test reach
+  could not pass through it. There were ajv 341 rows, Preact 145, tileserver-gl 24, and seven more repos at
+  2 to 8; all are 0 now. They name the top-level symbol around them, or the module where that is below the
+  floor.
+- **Unchanged:** every site, target, node and symbol, and every grade. No key reads a caller. `uses` rows are
+  identical. **Test reach grew and shrank nowhere:** npq 139 tests (+419 entries), cue 48, ajv 51.
+  Against the tsc key's callers, `wrong` was 0 before and after.
+- **`who_calls`' C-176 note** now names what is left, the floor: an object literal's method, an unnamed
+  class, a property-assigned function, a namespace's function.
+- Facts v7 (`tsextract`): no field changed, but `scope`'s values did.
 
 ## 0.2.81-beta — 2026-10-01 (C++ lane A reads every definition it walks past; ADR-157, C-175 lifted)
 

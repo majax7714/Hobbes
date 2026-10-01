@@ -26,7 +26,7 @@ import { Node, Project, ts } from "ts-morph";
 // v3 (C-5 surfacing): every file carries `routes_declined` — route
 // registrations seen and declined because their path is computed, so the
 // http-ts pack can report the absence instead of leaving it silent.
-export const HELPER_VERSION = 6;
+export const HELPER_VERSION = 7;
 // v4, since 2026-09-05 (C-63 surfaced): a call whose callee is itself an
 // expression — an element access, a call's result, a parenthesised
 // value — is a `calls` record named `<expr>` alone, with callee and
@@ -48,6 +48,13 @@ export const UNION_MEMBER = "union-member";
 // not in it (`extractConstructions`): lane A can say a construction was
 // written, never what was constructed, so the join reads the token and
 // lane B names the constructor. No `calls` record changed.
+// v7, since 2026-10-01 (ADR-158, C-176): a `calls` record's `scope` is
+// the innermost enclosing **graph symbol** (`enclosingScope`). A named
+// class's constructor, accessor, `static {}` block, field initializer
+// and member decorators now name the class, where they named nothing
+// (the module); a nested function, nested arrow const or a method of a
+// class declared inside a function names the top-level symbol around it,
+// where it named itself and the caller dangled. No field changed.
 
 const EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 
@@ -299,28 +306,52 @@ function declQualname(decl) {
   return null;
 }
 
-/** Enclosing top-level-symbol qualname for a node, or null at module level. */
+/** The qualname of the innermost **graph symbol** enclosing a node, or
+ * null where that is the module (C-176, ADR-158). The vocabulary is
+ * `extractSymbols`': a top-level named function declaration, a top-level
+ * variable bound to an arrow or function expression, a top-level named
+ * class and that class's methods. So a scope always names a symbol the
+ * graph has: a nested function, a nested `const f = () => …` and a
+ * method of a class declared inside a function file their calls under
+ * the top-level symbol around them, never under an id with no node (until
+ * 0.2.82-beta they named themselves, and the caller dangled). A namespace's
+ * body, an object literal's method, an unnamed class and a function
+ * assigned to a property stay the module's: below the floor.
+ *
+ * Inside a named class, code that runs as part of the class rather than
+ * as one method is the **class's**: a constructor, an accessor, a
+ * `static {}` block, a field initializer, and a member's decorators and
+ * computed name, which run when the class is defined. Python files a
+ * class attribute's value and a method decorator's call under the class
+ * too. A method's body and parameters are the method's. The class's own
+ * decorators and heritage clauses run in the module's scope, so they stay
+ * the module's, as a Python class decorator does. */
 function enclosingScope(node) {
-  let current = node.getParent();
-  while (current) {
-    if (Node.isMethodDeclaration(current)) {
-      const cls = current.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration);
-      const clsName = cls && cls.getName();
-      if (clsName) return `${clsName}.${current.getName()}`;
-    }
-    if (Node.isFunctionDeclaration(current) && current.getName()) {
-      return current.getName();
-    }
-    if (
-      (Node.isArrowFunction(current) || Node.isFunctionExpression(current)) &&
-      Node.isVariableDeclaration(current.getParent()) &&
-      Node.isIdentifier(current.getParent().getNameNode())
-    ) {
-      return current.getParent().getNameNode().getText();
-    }
-    current = current.getParent();
+  const ancestors = node.getAncestors(); // the parent first, the source file last
+  const top = ancestors.length >= 2 ? ancestors[ancestors.length - 2] : null;
+  const childOf = (parent) => ancestors.find((a) => a.getParent() === parent);
+  if (!top) return null;
+  if (Node.isFunctionDeclaration(top)) return top.getName() ?? null;
+  if (Node.isVariableStatement(top)) {
+    const decl = ancestors.findLast((a) => Node.isVariableDeclaration(a));
+    const init = decl && decl.getInitializer();
+    const bound =
+      init &&
+      (Node.isArrowFunction(init) || Node.isFunctionExpression(init)) &&
+      Node.isIdentifier(decl.getNameNode()) &&
+      ancestors.includes(init);
+    return bound ? decl.getName() : null;
   }
-  return null;
+  if (!Node.isClassDeclaration(top) || !top.getName()) return null;
+  const member = childOf(top);
+  if (!member || Node.isDecorator(member) || Node.isHeritageClause(member)) return null;
+  if (Node.isMethodDeclaration(member)) {
+    const inMember = ancestors.slice(0, ancestors.indexOf(member));
+    const atDefinition =
+      inMember.some((a) => Node.isDecorator(a)) || childOf(member) === member.getNameNode();
+    if (!atDefinition) return `${top.getName()}.${member.getName()}`;
+  }
+  return top.getName();
 }
 
 // --- per-file extraction ---------------------------------------------------

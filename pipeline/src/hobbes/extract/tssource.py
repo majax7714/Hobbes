@@ -44,7 +44,11 @@ TSEXTRACT_CMD_ENV = "HOBBES_TSEXTRACT_CMD"
 #: ``[line, col]`` of every ``new`` expression's callee terminal
 #: identifier. Never a call site (:func:`_constructions`): the join reads
 #: it, and only where lane B ran.
-HELPER_VERSION = 6
+#: v7 (ADR-158, C-176): a call's ``scope`` is the innermost enclosing
+#: graph symbol — a named class for its constructor, accessors, static
+#: block, field initializers and member decorators; the top-level symbol
+#: around a nested function. No field changed.
+HELPER_VERSION = 7
 
 #: Extensions the helper extracts; used only for the cheap "does this repo
 #: have TS/JS at all" scan that decides whether the helper must run.

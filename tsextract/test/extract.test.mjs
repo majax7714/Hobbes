@@ -580,6 +580,53 @@ test("calls to nested declarations resolve to nothing (only top-level symbols ex
   );
 });
 
+test("a call's scope is the innermost graph symbol: a class owns its constructor, accessors, static block, initializers and member decorators (C-176, ADR-158)", () => {
+  const root = makeRepo({
+    "src/k.ts": [
+      "export function f(..._a: unknown[]): any { return f; }", // 1
+      "@f(f())", // 2  the class's own decorator: the module's
+      "export class K extends (f() as any) {", // 3  heritage: the module's
+      "  static s = f();", // 4
+      "  x = f();", // 5
+      "  [f()]() {}", // 6  a computed name runs at definition
+      "  static { f(); }", // 7
+      "  constructor() { super(); f(); }", // 8
+      "  get g() { return f(); }", // 9
+      "  set g(v) { f(); }", // 10
+      "  @f() m(@f() p = f()) { f(); const inner = () => f(); function nested() { f(); } return class { n() { f(); } }; }", // 11
+      "}", // 12
+      "export const v = () => { function deep() { f(); } };", // 13
+      "export function outer() { class Inner { m() { f(); } } }", // 14
+      "namespace N { export function f2() { f(); } }", // 15
+      "const o = { meth() { f(); } };", // 16
+      "const made = f(() => f());", // 17
+      "f();", // 18
+    ].join("\n"),
+  });
+  const facts = extractRepo(root);
+  const file = byPath(facts, "src/k.ts");
+  assert.deepEqual(
+    file.calls.map((c) => [c.line, c.scope]),
+    [
+      [2, null], [2, null],
+      [3, null],
+      [4, "K"], [5, "K"], [6, "K"], [7, "K"], [8, "K"], [9, "K"], [10, "K"],
+      // the method's decorator and its parameter's run when K is defined;
+      // its default value, body and everything nested in it are K.m's
+      [11, "K"], [11, "K"], [11, "K.m"], [11, "K.m"], [11, "K.m"], [11, "K.m"], [11, "K.m"],
+      [13, "v"],
+      [14, "outer"],
+      [15, null], [16, null], [17, null], [17, null], [18, null],
+    ]
+  );
+  // Every scope names a symbol the graph has (the amendment: a nested
+  // function used to name itself, and its caller dangled).
+  const symbols = new Set(file.symbols.map((s) => s.qualname));
+  for (const c of file.calls) {
+    if (c.scope) assert.ok(symbols.has(c.scope), `${c.scope} is not a symbol`);
+  }
+});
+
 test("nested tsconfig zone resolves its own path aliases", () => {
   const root = makeRepo({
     "web/tsconfig.json": JSON.stringify({

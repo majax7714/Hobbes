@@ -6,6 +6,14 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-176 narrowed, 2026-10-01 (0.2.82-beta; ADR-158, route 2 of the honesty audit; no entry added):
+- **C-176 narrowed (still partial).** A TS/JS call's lane A scope is the innermost enclosing graph symbol.
+  A named class owns its constructor, accessors, static blocks, field initializers and member decorators
+  (folio-2025: 501 module-filed rows to 0). A nested function's calls are its top-level symbol's. They had
+  named the nested function, an id with no node (ajv 341 rows, Preact 145; 0 now). What is left is the
+  floor: an object literal's method, an unnamed class, a property-assigned function, a namespace. 177
+  entries, 130 active (101 surfaced, 25 partial), 30 lifted, unchanged.
+
 C-175 lifted, 2026-10-01 (0.2.81-beta; ADR-157, Max: "proceed with the recommended first fix"):
 - **C-175 lifted, the day it was registered.** C++ lane A now reads four kinds of definition it dropped: a
   reference return, a conversion operator, an in-class friend, and a type nested in a class body. The fourth

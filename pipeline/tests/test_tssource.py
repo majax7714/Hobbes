@@ -722,3 +722,51 @@ class TestRenderOnlyTestReach:
         ]
         assert edges, "the render site must be a calls edge"
         assert edges[0]["evidence"][0]["line"] == 5
+
+
+@pytest.mark.skipif(not helper_available(), reason="node/ts-morph not installed")
+class TestCallerIsTheInnermostSymbol:
+    """C-176, ADR-158: a TS/JS call's caller is the innermost graph symbol.
+
+    End to end, because the defect was what ``who_calls`` and test reach
+    read: a constructor's call filed under the module as if it ran at
+    import time, and a nested function's call filed under an id the graph
+    has no node for, which nothing a test reaches leads to.
+    """
+
+    def test_a_class_owns_its_constructor_and_a_nested_function_its_encloser(self, tmp_path):
+        repo = tmp_path / "app"
+        (repo / "src").mkdir(parents=True)
+        (repo / "src" / "k.ts").write_text(
+            "export function f() { return 1; }\n"
+            "export function g() { return 2; }\n"
+            "export class K {\n"
+            "  constructor() { f(); }\n"
+            "}\n"
+            "export function outer() {\n"
+            "  function nested() { return g(); }\n"
+            "  return nested();\n"
+            "}\n"
+        )
+        (repo / "src" / "k.test.ts").write_text(
+            "import { test } from \"vitest\";\n"
+            "import { outer } from \"./k.js\";\n"
+            "test(\"outer\", () => {\n"
+            "  outer();\n"
+            "});\n"
+        )
+        from hobbes.extract import extract_repo
+
+        extraction = extract_repo(repo)
+        graph = extraction.graph
+        ids = {s["id"] for s in graph["symbols"]} | {n["id"] for n in graph["nodes"]}
+        calls = {
+            (e["from"], e["to"]) for e in graph["symbol_edges"] if e["type"] == "calls"
+        }
+        assert ("src/k.K", "src/k.f") in calls
+        assert ("src/k", "src/k.f") not in calls
+        assert ("src/k.outer", "src/k.g") in calls
+        assert all(frm in ids for frm, _ in calls), "a caller names no node"
+        (record,) = [t for t in extraction.tests["tests"] if t["id"].endswith("::outer")]
+        # The nested function's call is outer's, so a test of outer reaches g.
+        assert "src/k.g" in record["reaches"]

@@ -696,51 +696,48 @@
   2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); `go/internal/knowledge` and
   `derive/manifests.py`, with their tests.
 
-### C-176 — A call's caller is the nearest enclosing symbol, so code below the symbol floor speaks as its container — in TypeScript and JavaScript, as the module even inside a class — *registered 2026-10-01 (0.2.80-beta, the honesty audit)*
+### C-176 — A call's caller is the nearest enclosing symbol, so code below the symbol floor speaks as its container — in TypeScript and JavaScript, as the module — *registered 2026-10-01 (0.2.80-beta, the honesty audit); narrowed 2026-10-01 (ADR-158, 0.2.82-beta): a named class owns its constructor, accessors, static blocks, field initializers and member decorators, and a nested function's calls are its top-level symbol's*
 - **Cannot tell you:** which function a call is written in, where that function is not a graph
   symbol. Every lane files a call under the innermost enclosing **symbol**. So a lambda's or a
   closure's calls are filed under the def around it, and a top-level callback's under the module
-  (C-9's floor, C-58's closures). Python and Java file a class body's code (an initializer block,
-  a class attribute's value) under the class. **TS/JS lane A skips the class:** its scope
-  vocabulary names a named class's method, a function declaration and a function bound to a
-  variable, and nothing else. So the calls inside these are filed under the **module**, as if
-  written at top level:
-  - a constructor;
-  - a `get`/`set` accessor;
-  - a `static {}` block;
-  - a field initializer;
+  (C-9's floor, C-58's closures). Python, Java and, since ADR-158, TS/JS file a class body's code
+  (an initializer, a static block, a TS constructor or accessor) under the class. TS/JS's symbols
+  are top-level declarations and the methods of top-level named classes, so the calls inside these
+  are filed under the **module**, as if written at top level:
   - an object literal's method;
   - an unnamed class's method;
-  - a function assigned to a property (`res.send = function send(…)`).
-- **Because:** `tsextract`'s `enclosingScope` returns no scope there, `tssource` makes a missing
-  scope the module, and the join takes lane A's scope before its own enclosing lookup. Lane A's
-  scope decides even where the class's own symbol spans the line. **No key reads a caller.**
-  Every grade is over `(site, target)` (C-164 said so for C++ alone), so no cell's precision
-  sees a caller filed too high.
-- **Bites at:** `who_calls` on anything a class's constructor or accessor calls, which reads
-  "module X calls f": top-level, import-time code that is not there. Also
-  `graph_neighborhood`'s view of the class, which shows none of its constructor's calls.
-  Measured over stored TS/JS graphs: `calls` evidence rows filed under a module whose line sits
-  inside a class's span (`~/.hobbes/bench/honesty-audit/modcaller.py`):
+  - a function assigned to a property (`res.send = function send(…)`, `X.prototype.y = function`);
+  - a namespace's function.
 
-  | Repo | Rows inside a class | TS/JS `calls` rows |
-  |---|---|---|
-  | brunosimon/folio-2025, a class-heavy app | **501** | 1,091 |
-  | ajv | 26 | 1,664 |
-  | cue | 11 | 1,005 |
-  | Preact | 7 | 2,738 |
-  | npq | 6 | 1,413 |
-  | xmpp.js | 4 | 705 |
-  | tileserver-gl | 3 | 333 |
-
-  Express files 983 of its 998 rows under a module. Those are mostly property-assigned functions
-  and top-level callbacks, and that count is not split by shape.
+  The same holds for a function nested in any of these.
+- **Because:** these are below the symbol floor (C-9). Making them symbols would move the symbol
+  set, which is Max's call (the CJS literal member is the same question). **No key reads a caller.**
+  Every grade is over `(site, target)` (C-164 said so for C++ alone), so no cell's precision sees a
+  caller filed too high.
+- **Bites at:** `who_calls` on anything such a method or property function calls reads "module X
+  calls f", top-level import-time code that is not there. Also `graph_neighborhood`. Measured at
+  0.2.82-beta against the tsc key's callers (`~/.hobbes/bench/c176-ts-scope/probe.py`, rows where
+  Hobbes says the module and the key a named function): ajv 338 (mostly its object-literal
+  `code(cxt)` keyword methods), Preact 247 (prototype-assigned functions), cheerio 52, cue 51,
+  tileserver-gl 43, Express 16, npq 7, xmpp.js 7, folio-2025 0.
+- **Was (to 0.2.81-beta):**
+  - **The constructor, an accessor, a `static {}` block and a field initializer** of a named class
+    were filed under the module, as were a member's decorators. Module-filed rows inside a class's
+    span: folio-2025 501, ajv 26, cue 11, Preact 7, npq 6, xmpp.js 4, tileserver-gl 3. All are 0 since
+    ADR-158.
+  - **A nested function, a nested arrow const, or a method of a class declared inside a function**
+    named itself as the caller, though it is no symbol. The caller id dangled: no node, same-named
+    nested functions merged, and test reach could not pass through it. `calls` rows: ajv 341, Preact
+    145, tileserver-gl 24, seven more repos 2–8. All are 0 since ADR-158. Test reach grew (npq 139
+    tests, cue 48, ajv 51) and shrank nowhere.
 - **You find out:** *partial.* `who_calls` adds a note under a caller list that names a TS/JS
-  module, since 0.2.80-beta: the module may stand for a constructor, an accessor, a static block
-  or a field initializer, and is not necessarily top-level code. `graph_neighborhood` and the
-  surface say nothing. The general roll-up rule is stated here and nowhere else.
-- **Source:** the 2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); `tsextract/extract.mjs`
-  `enclosingScope`, `tssource._call_sites`, `scipsource.project`.
+  module: the module may stand for an object literal's method, an unnamed class's method, a
+  function assigned to a property or a namespace's function, and is not necessarily top-level code.
+  `graph_neighborhood` and the surface say nothing. The general roll-up rule is stated here and
+  nowhere else.
+- **Source:** the 2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); ADR-158
+  (`~/.hobbes/bench/c176-ts-scope/`); `tsextract/extract.mjs` `enclosingScope`,
+  `tssource._call_sites`, `scipsource.project`.
 
 ---
 
