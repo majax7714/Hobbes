@@ -232,6 +232,54 @@ class TestScopeShadowsTheFallback:
         assert fb[("mod.py", 7, "inner")] == ("mod.py", 5)
 
 
+class TestAFunctionLocalImportShadowsTheFallback:
+    """ADR-154 step 6: a name a function imports is what the import named,
+    never the calling module's own def of that name — click's
+    ``termui.py:364``, ``get_pager_file()`` under ``from ._termui_impl
+    import get_pager_file``, was bound to ``termui.get_pager_file``."""
+
+    def _fallback(self, tmp_path, source):
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "localimp"\n')
+        (tmp_path / "impl.py").write_text("def get_pager_file():\n    return None\n")
+        (tmp_path / "mod.py").write_text(source)
+        modules = discover_modules(tmp_path)
+        parsed = {m.id: parse_source((tmp_path / m.path).read_bytes()) for m in modules}
+        return resolve_call_sites(modules, parsed)
+
+    def test_the_import_shadows_the_modules_own_def_and_a_sibling_does_not(self, tmp_path):
+        fb = self._fallback(tmp_path, (
+            "def get_pager_file():\n"
+            "    from impl import get_pager_file\n"
+            "    return get_pager_file()\n"
+            "\n"
+            "def sibling():\n"
+            "    return get_pager_file()\n"
+        ))
+        assert ("mod.py", 3, "get_pager_file") not in fb
+        assert fb[("mod.py", 6, "get_pager_file")] == ("mod.py", 1)
+
+    def test_import_a_dot_b_shadows_a(self, tmp_path):
+        fb = self._fallback(tmp_path, (
+            "def a():\n"
+            "    return 0\n"
+            "\n"
+            "def user():\n"
+            "    import a.b\n"
+            "    return a()\n"
+        ))
+        assert ("mod.py", 6, "a") not in fb
+
+    def test_a_call_through_the_imports_own_binding_stands(self, tmp_path):
+        # The import's answer is no guess against it: an aliased import of
+        # another file's def resolves there, as it did before ADR-154.
+        fb = self._fallback(tmp_path, (
+            "def user():\n"
+            "    from impl import get_pager_file as f\n"
+            "    return f()\n"
+        ))
+        assert fb[("mod.py", 3, "f")] == ("impl.py", 1)
+
+
 class TestTheOneDefItsOwnFunctionWrites:
     """ADR-153: a bare call to the one ``def`` the calling function's own
     body writes resolves to that ``def``, ahead of the module-level rule

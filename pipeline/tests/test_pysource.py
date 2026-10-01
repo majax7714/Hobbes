@@ -1,5 +1,6 @@
 """Tests for hobbes.extract.pysource — the per-file tree-sitter walk."""
 
+import re
 from pathlib import Path
 
 from hobbes.extract.pysource import (
@@ -21,6 +22,7 @@ from hobbes.extract.pysource import (
     PlainImport,
     Raise,
     Return,
+    UNREAD,
     parse_source,
 )
 
@@ -2178,3 +2180,142 @@ class TestLocalDefs:
         `return decorator(func)` is one of the seven sites ADR-153
         measured."""
         assert self.defs(CLICK_GROUP_COMMAND) == {"Group.command": ("decorator",)}
+
+
+class TestStaticTests:
+    """ADR-154: the walk records each test Pyright may read statically,
+    encoded, with the spans it kills on each value. What the test reads
+    as is :mod:`hobbes.extract.pystatic`'s question (``test_pystatic.py``);
+    these cases pin only what is collected."""
+
+    @staticmethod
+    def collected(source):
+        return [
+            (t.line, t.condition, t.on_true, t.on_false)
+            for t in parse_source(source.encode()).static_tests
+        ]
+
+    def test_an_if_elif_else_chain_records_each_test(self):
+        assert self.collected(
+            "import sys\n"
+            "if sys.platform == 'win32':\n"
+            "    a = 1\n"
+            "elif sys.platform == 'darwin':\n"
+            "    b = 2\n"
+            "    b = 3\n"
+            "else:\n"
+            "    c = 4\n"
+        ) == [
+            (2, ("sys.platform", "sys", "==", "win32"), ((4, 6), (7, 8)), ((3, 3),)),
+            (4, ("sys.platform", "sys", "==", "darwin"), ((7, 8),), ((5, 6),)),
+        ]
+
+    def test_a_while_kills_its_body_on_false_and_its_else_on_true(self):
+        assert self.collected(
+            "while False:\n"
+            "    a = 1\n"
+            "else:\n"
+            "    b = 2\n"
+        ) == [(1, ("const", False), ((3, 4),), ((2, 2),))]
+
+    def test_an_assert_kills_the_rest_of_its_own_block(self):
+        assert self.collected(
+            "def f():\n"
+            "    assert TYPE_CHECKING\n"
+            "    a = 1\n"
+            "    # a comment\n"
+            "    b = 2\n"
+            "c = 3\n"
+        ) == [(2, ("TYPE_CHECKING", None), (), ((3, 5),))]
+
+    def test_an_operand_kills_the_operands_after_it_off_its_own_line(self):
+        # The `if` reads the whole condition; the first operand, on its
+        # own line, kills the second's line.
+        assert self.collected(
+            "import os\n"
+            "x = (os.name == 'nt'\n"
+            "     and f())\n"
+            "y = os.name == 'nt' and g()\n"
+        ) == [(2, ("os.name", "==", "nt"), (), ((3, 3),))]
+
+    def test_a_conditional_expression_kills_one_arm(self):
+        assert self.collected(
+            "x = (a()\n"
+            "     if TYPE_CHECKING\n"
+            "     else b())\n"
+        ) == [(2, ("TYPE_CHECKING", None), ((3, 3),), ((1, 1),))]
+
+    def test_a_test_with_no_static_form_is_not_recorded(self):
+        assert self.collected(
+            "import sys\n"
+            "if sys.platform.startswith('win'):\n"
+            "    a = 1\n"
+            "if 'win' in sys.platform:\n"
+            "    a = 1\n"
+            "if not flag:\n"
+            "    a = 1\n"
+        ) == []
+
+    def test_and_or_and_not_are_encoded_with_unread_operands(self):
+        [(_, condition, _, _)] = self.collected(
+            "import sys, typing as t\n"
+            "if not (flag or t.TYPE_CHECKING and sys.version_info >= (3, 11)):\n"
+            "    a = 1\n"
+        )
+        assert condition == (
+            "not",
+            ("or", (UNREAD, ("and", (("TYPE_CHECKING", "t"), ("sys.version_info", "sys", ">=", (3, 11)))))),
+        )
+
+    def test_the_aliases_are_recorded_with_their_lines_in_order(self):
+        parsed = parse_source(
+            b"import os\n"
+            b"import sys as _sys\n"
+            b"from sys import platform\n"
+            b"import typing_extensions\n"
+            b"def f():\n"
+            b"    import sys, typing as t\n"
+        )
+        assert parsed.sys_aliases == (("_sys", 2), ("sys", 6))
+        assert parsed.typing_aliases == (("typing_extensions", 4), ("t", 6))
+
+
+class TestLocalImports:
+    """ADR-154 step 6: each name an import binds inside a function, with
+    that function's extent — kept apart from ADR-046's list, which the
+    tail reads as a call that stays in its file."""
+
+    SOURCE = (
+        "import top\n"
+        "def f():\n"
+        "    import x\n"
+        "    import x as y\n"
+        "    from m import a, b as c\n"
+        "    import p.q\n"
+        "    from n import *\n"
+        "    def g():\n"
+        "        from k import z\n"
+        "        return z\n"
+        "    return x\n"
+        "class K:\n"
+        "    from m import w\n"
+    )
+
+    def test_each_form_binds_its_name_over_the_innermost_function(self):
+        parsed = parse_source(self.SOURCE.encode())
+        assert [(b.name, b.start, b.end) for b in parsed.local_imports] == [
+            ("x", 2, 11),
+            ("y", 2, 11),
+            ("a", 2, 11),
+            ("c", 2, 11),
+            ("p", 2, 11),
+            ("z", 8, 10),
+        ]
+
+    def test_local_bindings_are_unchanged_by_an_import(self):
+        with_import = parse_source(self.SOURCE.encode())
+        without = parse_source(
+            re.sub(r"^(\s*)(import|from) .*$", r"\1pass", self.SOURCE, flags=re.M).encode()
+        )
+        assert with_import.local_bindings == without.local_bindings
+        assert {b.name for b in with_import.local_bindings} == {"g"}

@@ -530,6 +530,42 @@ class LocalBinding:
     end: int
 
 
+#: The condition of a test lane A cannot read statically (ADR-154): an
+#: operand of an ``and``/``or`` that decides nothing on its own.
+UNREAD: tuple = ("unread",)
+
+
+@dataclass(frozen=True)
+class StaticTest:
+    """One place Pyright 0.6.6 may read a test statically (ADR-154).
+
+    Collected here, where the grammar is (I-4), and evaluated by
+    :mod:`hobbes.extract.pystatic`, which holds none. ``condition`` is the
+    test, encoded as nested tuples, exactly the forms ADR-154 lists:
+
+    - ``("const", True | False)``
+    - ``("sys.platform", S, op, "<str>")`` — ``S.platform ==|!= "<str>"``
+    - ``("os.name", op, "<str>")`` — the name ``os`` literally
+    - ``("sys.version_info", S, op, (major,) | (major, minor))``
+    - ``("sys.version_info[0]", S, op, major)``
+    - ``("TYPE_CHECKING", None | T)`` — the bare name, or ``T.TYPE_CHECKING``
+    - ``("not", c)``, ``("and", (c, …))``, ``("or", (c, …))``
+    - :data:`UNREAD` for anything else (only ever inside ``and``/``or``)
+
+    ``S`` and ``T`` are the receiver names as written; whether each is a
+    ``sys`` or ``typing`` alias at ``line`` is the evaluator's question,
+    asked of :attr:`ParsedFile.sys_aliases` and
+    :attr:`ParsedFile.typing_aliases`. ``on_true`` / ``on_false`` are the
+    ``(first line, last line)`` spans the test kills when it reads that
+    way, 1-based; a line the test itself is written on is never in one.
+    """
+
+    line: int
+    condition: tuple
+    on_true: tuple[tuple[int, int], ...] = ()
+    on_false: tuple[tuple[int, int], ...] = ()
+
+
 @dataclass
 class ParsedFile:
     """Everything one walk collects from one file."""
@@ -576,6 +612,23 @@ class ParsedFile:
     #: carry it: a ``callable(x)`` guard is only the builtin's answer
     #: where the module has not written a ``callable`` of its own.
     shadows_callable: bool = False
+    #: Every test Pyright may read statically, in source order (ADR-154):
+    #: an ``if`` / ``elif``, a ``while``, an ``assert``, an operand of an
+    #: ``and`` / ``or``, a conditional expression's test. A test whose
+    #: condition holds no form ADR-154 lists is not recorded.
+    static_tests: list[StaticTest] = field(default_factory=list)
+    #: ``(name, line)`` for each name an ``import sys [as X]`` binds, and
+    #: for each an ``import typing [as X]`` / ``import typing_extensions
+    #: [as X]`` binds, anywhere in the file (ADR-154). Pyright's binder
+    #: learns them in order, so a test reads an alias written above it.
+    sys_aliases: tuple[tuple[str, int], ...] = ()
+    typing_aliases: tuple[tuple[str, int], ...] = ()
+    #: Each name an ``import`` / ``from … import`` binds inside a function,
+    #: with that innermost function's extent (ADR-154 step 6). Kept apart
+    #: from :attr:`local_bindings` on purpose: the tail's ``local-binding``
+    #: class means "the call stays inside that file", which an import is
+    #: not; the fallback reads these to refuse a bare call they shadow.
+    local_imports: list[LocalBinding] = field(default_factory=list)
 
 
 def parse_source(source: bytes) -> ParsedFile:
@@ -589,6 +642,9 @@ def parse_source(source: bytes) -> ParsedFile:
     _walk(root, [], parsed, ())
     parsed.local_defs = _unshared_local_defs(parsed)
     parsed.local_bindings = _collect_local_bindings(root)
+    parsed.local_imports = _collect_local_imports(root)
+    parsed.static_tests = _collect_static_tests(root)
+    parsed.sys_aliases, parsed.typing_aliases = _module_aliases(root)
     return parsed
 
 
@@ -690,6 +746,345 @@ def _collect_local_bindings(root: Node) -> list[LocalBinding]:
             walk(child, extent)
 
     walk(root, None)
+    return out
+
+
+def _import_bound_names(node: Node) -> list[str]:
+    """The names one ``import`` / ``from … import`` statement binds: the
+    alias if any, ``a`` for ``import a.b``, nothing for ``*``."""
+    names: list[str] = []
+    if node.type == "import_statement":
+        children = node.named_children
+    elif any(c.type == "wildcard_import" for c in node.children):
+        return names
+    else:
+        children = node.children_by_field_name("name")
+    for child in children:
+        if child.type == "dotted_name":
+            names.append(_text(child).split(".")[0])
+        elif child.type == "aliased_import":
+            names.append(_text(child.child_by_field_name("alias")))
+    return names
+
+
+def _collect_local_imports(root: Node) -> list[LocalBinding]:
+    """Every name an import binds inside a function, with the innermost
+    enclosing function's extent (ADR-154 step 6).
+
+    A walk of its own beside :func:`_collect_local_bindings`, not part of
+    it: ADR-046's list is what the tail classes ``local-binding``, a call
+    that stays inside its file, and an imported name does not. A class
+    body is its own namespace, so an import written there binds nothing
+    in the function around it, as in :func:`_collect_local_bindings`.
+    """
+    out: list[LocalBinding] = []
+
+    def walk(node: Node, extent: tuple[int, int] | None) -> None:
+        kind = node.type
+        if kind == "function_definition":
+            own = (node.start_point.row + 1, node.end_point.row + 1)
+            body = node.child_by_field_name("body")
+            if body is not None:
+                for child in body.children:
+                    walk(child, own)
+            return
+        if kind == "class_definition":
+            for child in node.children:
+                walk(child, None)
+            return
+        if kind in ("import_statement", "import_from_statement"):
+            if extent is not None:
+                for name in _import_bound_names(node):
+                    out.append(LocalBinding(name, extent[0], extent[1]))
+            return
+        for child in node.children:
+            walk(child, extent)
+
+    walk(root, None)
+    return out
+
+
+#: The modules whose aliases a static test reads (ADR-154): ``sys`` for
+#: the platform and version forms, ``typing`` and ``typing_extensions``
+#: for ``T.TYPE_CHECKING``.
+_SYS_MODULES = ("sys",)
+_TYPING_MODULES = ("typing", "typing_extensions")
+
+
+def _module_aliases(
+    root: Node,
+) -> tuple[tuple[tuple[str, int], ...], tuple[tuple[str, int], ...]]:
+    """``(name, line)`` for each name ``import sys [as X]`` binds, and for
+    each ``import typing [as X]`` / ``import typing_extensions [as X]``
+    binds, in source order, anywhere in the file (ADR-154). ``from sys
+    import platform`` is not one: Pyright reads only the module's name."""
+    sys_aliases: list[tuple[str, int]] = []
+    typing_aliases: list[tuple[str, int]] = []
+
+    def walk(node: Node) -> None:
+        if node.type == "import_statement":
+            for child in node.named_children:
+                if child.type == "dotted_name":
+                    module, bound = _text(child), _text(child)
+                elif child.type == "aliased_import":
+                    module = _text(child.child_by_field_name("name"))
+                    bound = _text(child.child_by_field_name("alias"))
+                else:
+                    continue
+                if module in _SYS_MODULES:
+                    sys_aliases.append((bound, _line(node)))
+                elif module in _TYPING_MODULES:
+                    typing_aliases.append((bound, _line(node)))
+            return
+        for child in node.children:
+            walk(child)
+
+    walk(root)
+    return tuple(sys_aliases), tuple(typing_aliases)
+
+
+_STATIC_COMPARISONS = ("<", "<=", ">", ">=", "==", "!=")
+
+
+def _last_line(node: Node) -> int:
+    """The last line *node* holds text on, 1-based: an end point at column
+    0 of a later row is the newline closing the line before it."""
+    row = node.end_point.row
+    if node.end_point.column == 0 and row > node.start_point.row:
+        row -= 1
+    return row + 1
+
+
+def _clipped(first: int, last: int, after: int = 0, before: int | None = None):
+    """``(first, last)`` less any line at or before *after* and at or
+    after *before*, or None when nothing is left — a line the deciding
+    test is written on holds live code, so it is never killed."""
+    first = max(first, after + 1)
+    if before is not None:
+        last = min(last, before - 1)
+    return (first, last) if first <= last else None
+
+
+def _static_string(node: Node) -> str | None:
+    """A string literal's value for a static comparison — a concatenated
+    literal joined — or None for an f-string and anything else."""
+    if node.type == "concatenated_string":
+        parts = [_static_string(c) for c in node.named_children if c.type != "comment"]
+        return None if any(p is None for p in parts) else "".join(parts)
+    if node.type != "string":
+        return None
+    parts = []
+    for child in node.children:
+        if child.type == "string_start" and "f" in _text(child).lower():
+            return None
+        if child.type == "interpolation":
+            return None
+        if child.type == "string_content":
+            parts.append(_text(child))
+    return "".join(parts)
+
+
+def _static_int(node: Node) -> int | None:
+    """An integer literal's value, or None."""
+    if node.type != "integer":
+        return None
+    try:
+        return int(_text(node), 0)
+    except ValueError:
+        return None
+
+
+def _static_comparison(node: Node) -> tuple:
+    """One ``comparison_operator`` as ADR-154's encoding, or :data:`UNREAD`."""
+    operands = [c for c in node.named_children if c.type != "comment"]
+    operators = node.children_by_field_name("operators")
+    if len(operands) != 2 or len(operators) != 1:
+        return UNREAD
+    op = _text(operators[0])
+    if op not in _STATIC_COMPARISONS:
+        return UNREAD
+    left, right = operands
+    if left.type == "attribute":
+        obj = left.child_by_field_name("object")
+        attr = _text(left.child_by_field_name("attribute"))
+        if obj is None or obj.type != "identifier":
+            return UNREAD
+        receiver = _text(obj)
+        if attr == "platform" and op in ("==", "!="):
+            value = _static_string(right)
+            if value is not None:
+                return ("sys.platform", receiver, op, value)
+        elif attr == "name" and receiver == "os" and op in ("==", "!="):
+            value = _static_string(right)
+            if value is not None:
+                return ("os.name", op, value)
+        elif attr == "version_info" and right.type == "tuple":
+            # Pyright 0.6.6 reads a tuple of two or more elements by its
+            # first two and ignores the rest, and a one-element tuple by
+            # its one; each read element must be an integer literal.
+            items = [c for c in right.named_children if c.type != "comment"]
+            ints = [_static_int(c) for c in items[:2]]
+            if ints and all(i is not None for i in ints):
+                return ("sys.version_info", receiver, op, tuple(ints))
+        return UNREAD
+    if left.type == "subscript":
+        value = left.child_by_field_name("value")
+        index = left.children_by_field_name("subscript")
+        if (
+            value is not None
+            and value.type == "attribute"
+            and _text(value.child_by_field_name("attribute")) == "version_info"
+            and value.child_by_field_name("object").type == "identifier"
+            and len(index) == 1
+            and _static_int(index[0]) == 0
+        ):
+            major = _static_int(right)
+            if major is not None:
+                receiver = _text(value.child_by_field_name("object"))
+                return ("sys.version_info[0]", receiver, op, major)
+    return UNREAD
+
+
+def _bool_operands(node: Node) -> list[Node]:
+    """A ``boolean_operator``'s operands, left to right, flattening the
+    left-nested chain Python groups ``a and b and c`` into. A parenthesized
+    operand is one operand."""
+    op = _text(node.child_by_field_name("operator"))
+    left = node.child_by_field_name("left")
+    right = node.child_by_field_name("right")
+    if left.type == "boolean_operator" and _text(left.child_by_field_name("operator")) == op:
+        head = _bool_operands(left)
+    else:
+        head = [left]
+    return [*head, right]
+
+
+def _static_condition(node: Node) -> tuple:
+    """A test expression as ADR-154's encoding (:class:`StaticTest`)."""
+    kind = node.type
+    if kind == "parenthesized_expression":
+        inner = [c for c in node.named_children if c.type != "comment"]
+        return _static_condition(inner[0]) if len(inner) == 1 else UNREAD
+    if kind == "true":
+        return ("const", True)
+    if kind == "false":
+        return ("const", False)
+    if kind == "identifier":
+        return ("TYPE_CHECKING", None) if _text(node) == "TYPE_CHECKING" else UNREAD
+    if kind == "attribute":
+        obj = node.child_by_field_name("object")
+        if (
+            obj is not None
+            and obj.type == "identifier"
+            and _text(node.child_by_field_name("attribute")) == "TYPE_CHECKING"
+        ):
+            return ("TYPE_CHECKING", _text(obj))
+        return UNREAD
+    if kind == "not_operator":
+        argument = node.child_by_field_name("argument")
+        return ("not", _static_condition(argument)) if argument is not None else UNREAD
+    if kind == "boolean_operator":
+        op = _text(node.child_by_field_name("operator"))
+        return (op, tuple(_static_condition(o) for o in _bool_operands(node)))
+    if kind == "comparison_operator":
+        return _static_comparison(node)
+    return UNREAD
+
+
+def _has_static_form(condition: tuple) -> bool:
+    """Whether *condition* holds any form ADR-154 lists."""
+    head = condition[0]
+    if head == "unread":
+        return False
+    if head == "not":
+        return _has_static_form(condition[1])
+    if head in ("and", "or"):
+        return any(_has_static_form(c) for c in condition[1])
+    return True
+
+
+def _collect_static_tests(root: Node) -> list[StaticTest]:
+    """Every test Pyright 0.6.6 may read statically, with the spans each
+    kills on True and on False (ADR-154).
+
+    The contexts, exactly ADR-154's: an ``if`` and each ``elif`` (False
+    kills its own consequence, True every later clause); a ``while``
+    (False its body, True its ``else``); an ``assert`` (False the rest of
+    its block); each operand of an ``and`` / ``or`` but the last (the
+    operands after it, on False for ``and``, on True for ``or``); and a
+    conditional expression's test (True kills the ``else`` arm, False the
+    first). What the test reads as is :mod:`hobbes.extract.pystatic`'s
+    question; this records only what is written.
+    """
+    out: list[StaticTest] = []
+
+    def record(test: Node, on_true, on_false) -> None:
+        condition = _static_condition(test)
+        on_true = tuple(s for s in on_true if s is not None)
+        on_false = tuple(s for s in on_false if s is not None)
+        if _has_static_form(condition) and (on_true or on_false):
+            out.append(StaticTest(_line(test), condition, on_true, on_false))
+
+    def span(node: Node, after: int):
+        return _clipped(_line(node), _last_line(node), after)
+
+    def walk(node: Node) -> None:
+        kind = node.type
+        if kind == "if_statement":
+            clauses = [node, *node.children_by_field_name("alternative")]
+            for i, clause in enumerate(clauses):
+                test = clause.child_by_field_name("condition")
+                body = clause.child_by_field_name("consequence")
+                if test is None or body is None:
+                    continue
+                after = _last_line(test)
+                record(
+                    test,
+                    [span(later, after) for later in clauses[i + 1 :]],
+                    [span(body, after)],
+                )
+        elif kind == "while_statement":
+            test = node.child_by_field_name("condition")
+            body = node.child_by_field_name("body")
+            other = node.child_by_field_name("alternative")
+            if test is not None and body is not None:
+                after = _last_line(test)
+                record(test, [span(other, after)] if other is not None else [], [span(body, after)])
+        elif kind == "assert_statement":
+            named = [c for c in node.named_children if c.type != "comment"]
+            rest = []
+            sibling = node.next_named_sibling
+            while sibling is not None:
+                if sibling.type != "comment":
+                    rest.append(sibling)
+                sibling = sibling.next_named_sibling
+            if named and rest:
+                killed = _clipped(_line(rest[0]), _last_line(rest[-1]), _last_line(node))
+                record(named[0], [], [killed])
+        elif kind == "boolean_operator":
+            operands = _bool_operands(node)
+            is_and = _text(node.child_by_field_name("operator")) == "and"
+            for i, operand in enumerate(operands[:-1]):
+                killed = _clipped(
+                    _line(operands[i + 1]), _last_line(operands[-1]), _last_line(operand)
+                )
+                record(operand, [] if is_and else [killed], [killed] if is_and else [])
+            for operand in operands:
+                walk(operand)
+            return
+        elif kind == "conditional_expression":
+            parts = [c for c in node.named_children if c.type != "comment"]
+            if len(parts) == 3:
+                then, test, other = parts
+                record(
+                    test,
+                    [span(other, _last_line(test))],
+                    [_clipped(_line(then), _last_line(then), before=_line(test))],
+                )
+        for child in node.children:
+            walk(child)
+
+    walk(root)
     return out
 
 

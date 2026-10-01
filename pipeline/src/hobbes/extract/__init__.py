@@ -36,6 +36,7 @@ from hobbes.extract import (
     ingestlock,
     laneacache,
     minted,
+    pystatic,
     scipsource,
     staging,
     tail,
@@ -347,6 +348,106 @@ def _syntax_sites(modules, parsed) -> list:
     ]
 
 
+def _read_static_tests(
+    graph: dict, modules, parsed, fallback: dict, python_reading: dict
+) -> dict[str, list]:
+    """Apply ADR-154 steps 3 and 5 to lane A's symbols and fallback, in place.
+
+    Each Python file's static tests are evaluated under the reading lane B
+    indexed with (:mod:`hobbes.extract.pystatic`). A twin's record takes
+    its live def's ``line`` and ``end_line``, its id unchanged; a fallback
+    entry naming any def of a twin names the live def instead, the node's
+    one reading (a guess at the first def would disagree with lane B, and a
+    dropped one would lose a call whose name lane B spells differently —
+    an aliased import's ``f()`` — since the join's column reading needs
+    lane A's answer); and one whose site lies inside a dead def of a twin
+    is dropped, since the projection would file it under the live node by
+    its scope. Returns, per file with a dead region, ``[reading, call
+    sites withheld from a dead twin def]``.
+    """
+    version = python_reading.get("version")
+    reading = pystatic.Reading(version=(version[0], version[1]) if version else None)
+    out: dict[str, list] = {}
+    records = {s["id"]: s for s in graph["symbols"]}
+    twin_defs: dict[tuple[str, int], tuple[str, int]] = {}
+    dead_defs: dict[str, list[tuple[int, int]]] = {}
+    for module in sorted(modules, key=lambda m: m.path):
+        read = pystatic.read_file(parsed[module.id], reading)
+        if not read.regions:
+            continue
+        out[module.path] = [read, 0]
+        for qualname, (live, dead) in read.twins.items():
+            record = records.get(f"{module.id}.{qualname}")
+            if record is not None:
+                record["line"], record["end_line"] = live.line, live.end_line
+            twin_defs[(module.path, live.line)] = (module.path, live.line)
+            for symbol in dead:
+                twin_defs[(module.path, symbol.line)] = (module.path, live.line)
+                dead_defs.setdefault(module.path, []).append((symbol.line, symbol.end_line))
+    if not twin_defs:
+        return out
+    # Any file's entry can name a twin's def; only a twin's own file can
+    # hold a site inside its dead def.
+    for key in list(fallback):
+        in_dead_def = any(a <= key[1] <= b for a, b in dead_defs.get(key[0], ()))
+        if in_dead_def:
+            out[key[0]][1] += 1
+        if in_dead_def:
+            del fallback[key]
+        elif tuple(fallback[key]) in twin_defs:
+            fallback[key] = twin_defs[tuple(fallback[key])]
+    return out
+
+
+def _static_reading_records(
+    static_reading: dict[str, list], symbol_edges: list[dict], version
+) -> list[dict]:
+    """One ``scip-python`` degradation record per file with a dead region
+    (ADR-154 step 4, C-173): the spans, the forms that killed them, the
+    reading, lane A's edges there, the twins and the sites withheld."""
+    said = f"Linux / Python {version[0]}.{version[1]}" if version else "Linux, version unread"
+    in_regions: Counter = Counter()
+    for edge in symbol_edges:
+        paths = {
+            row.get("path")
+            for row in edge.get("evidence", ())
+            if row.get("path") in static_reading
+            and static_reading[row["path"]][0].dead(row.get("line", 0))
+        }
+        in_regions.update(paths)
+    records = []
+    for path in sorted(static_reading):
+        read, withheld = static_reading[path]
+        spans = ", ".join(
+            str(first) if first == last else f"{first}–{last}" for first, last in read.regions
+        )
+        edges = in_regions[path]
+        twins = (
+            "twins recorded at their live def: "
+            + ", ".join(f"{q} (line {live.line})" for q, (live, _) in read.twins.items())
+            if read.twins
+            else "no twin"
+        )
+        unread = "" if version else "; a version test is read as not static"
+        records.append(
+            {
+                "path": path,
+                "stage": "scip-python",
+                "message": (
+                    f"{'line' if len(read.regions) == 1 and read.regions[0][0] == read.regions[0][1] else 'lines'} "
+                    f"{spans} read as never run under {said} "
+                    f"({', '.join(read.forms)}{unread}): scip-python indexes "
+                    "nothing there, so lane B is silent and lane A's edges there "
+                    f"are `syntactic` only ({edges} symbol edge"
+                    f"{'' if edges == 1 else 's'} with evidence in them); "
+                    f"{twins}; {withheld} call site{'' if withheld == 1 else 's'} "
+                    "in a dead twin def withheld (ADR-154, C-173)"
+                ),
+            }
+        )
+    return records
+
+
 def _build_symbol_layer(
     repo_root: Path,
     graph: dict,
@@ -431,6 +532,9 @@ def _build_symbol_layer(
     )
     ts_definitions: list[dict] = []
     lane_b_ran = False
+    # ADR-154: the platform and version scip-python read Python under, set
+    # only where lane B ran for Python.
+    python_reading: dict | None = None
 
     for facts in _lane_b_facts(
         repo_root, modules, ts, go, rust, java, c, cpp, degraded, timings=timings
@@ -447,6 +551,8 @@ def _build_symbol_layer(
             implements_counts[key] += facts.get(key) or 0
         external += facts.get("external_refs") or []
         lane_b_ran = True
+        if facts.get("python_reading") is not None:
+            python_reading = facts["python_reading"]
         if lane_a_c_files:
             lane_b_definitions += [
                 row for row in facts.get("definitions") or [] if row["file"] in lane_a_c_files
@@ -472,6 +578,16 @@ def _build_symbol_layer(
         coverage = facts.get("dependency_coverage") or {}
         if coverage.get("declared"):
             graph.setdefault("dependency_coverage", []).append(coverage)
+
+    # ADR-154, between lane B and the join: where lane B ran for Python,
+    # the code its Pyright read as never run on Linux at the read version
+    # has no occurrence. A twin's record moves to its live def, so lane B's
+    # references to it land, and lane A stops guessing at a twin's name or
+    # filing a dead def's calls under the live node. Without lane B for
+    # Python nothing is evaluated and the graph is what it was (P6).
+    static_reading: dict[str, list] = {}
+    if python_reading is not None and modules:
+        static_reading = _read_static_tests(graph, modules, parsed, fallback, python_reading)
 
     withhold = frozenset(cpp_withheld_files)
     # ADR-131: lane A's operator tokens, read by the join alone and only
@@ -638,6 +754,10 @@ def _build_symbol_layer(
     )
     degraded += _cpp_fallback_records(graph["lane_agreement"])
     graph["symbol_edges"] = projected["symbol_edges"]
+    if static_reading:
+        degraded += _static_reading_records(
+            static_reading, graph["symbol_edges"], python_reading.get("version")
+        )
     # ADR-137, after the projection and appended to it: pytest's fixture
     # lookup is syntax — the parameter, the class, the file and the conftest
     # chain are all in the tree lane A parses — and what it resolves is a
