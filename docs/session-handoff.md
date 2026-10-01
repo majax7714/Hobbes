@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-01 (twenty-ninth session); Hobbes 0.2.80-beta on `main`.**
+**Reviewed 2026-10-01 (twenty-ninth session); Hobbes 0.2.81-beta on `main`.**
 Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
-0.2.80-beta, and this repo was ingested at the release commit; ingest at HEAD again if
+0.2.81-beta, and this repo was ingested at the release commit; ingest at HEAD again if
 `main` has moved since. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -11,7 +11,7 @@ the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.80-beta are untagged. Tags stay Max's call each time.
+  0.2.81-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -33,22 +33,33 @@ drivers' paths below.
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**Next — the honesty audit's three fixes, as routes for Max.** Precedent 1 is done as containment: 0.2.80-beta
-registers and surfaces what the audit found, and no edge moved. Present these as routes, recommended first; each
-is a defect, and each moves a graded cell's graph but never its precision:
-1. **C-175, C++ (recommended first).** `cppsource` must unwrap `reference_declarator` (`&`, `&&`; C's
-   `_function_declarator_of` does not), read `operator_cast` (`operator int()`), and walk a `function_definition`
-   under a `friend_declaration`. Measure first: rerun `~/.hobbes/bench/honesty-audit/refcount2.py`, then regrade
-   fmt and args (`~/.hobbes/bench/cpp-cells/`). Also check that the mint does not double the symbol in
-   error-parsed files, where it reads these back today (C-145). Clean-file losses: godot-orchestrator 67,
-   TinyGSM 10, libcuckoo 9, args 2. The "other" clean-file losses (godot 22) are unread.
-2. **C-176, TS/JS.** `tsextract`'s `enclosingScope` should scope a named class's constructor, accessors, static
+**Next — the honesty audit's two remaining fixes** (Max, 2026-10-01: "proceed with the recommended first fix
+leave 176 177 for next session"). Route 1 shipped as 0.2.81-beta (below). Measure each first, as route 1 was.
+1. **C-176, TS/JS.** `tsextract`'s `enclosingScope` should scope a named class's constructor, accessors, static
    block and field initializers to the class, as Python and Java do. Measure first with
-   `honesty-audit/modcaller.py` over the stored graphs (folio-2025 501 rows, ajv 26). Object-literal methods,
-   unnamed classes and property-assigned functions (Express) are below the floor and stay the module's, unless
-   Max says otherwise.
-3. **C-177, TS/JS.** A tagged template becomes a site (lane A's walk takes `TaggedTemplateExpression`). Not
-   sized on a cell.
+   `~/.hobbes/bench/honesty-audit/modcaller.py` over the stored graphs (folio-2025 501 rows, ajv 26).
+   Object-literal methods, unnamed classes and property-assigned functions (Express) are below the floor and
+   stay the module's, unless Max says otherwise. No key reads a caller, so the check is a caller probe like
+   C++'s (`c145-extent/probe.py`), using the tsc key's `sites[].caller`.
+2. **C-177, TS/JS.** A tagged template becomes a site (lane A's walk takes `TaggedTemplateExpression`). Not
+   sized on a cell; the tsc oracle keys it.
+
+- **Shipped this session, 0.2.81-beta (ADR-157, C-175 lifted).** C++ lane A now reads four kinds of
+  definition: a reference return, a conversion operator, an in-class friend (a namespace function) and a type
+  nested in a class body. The nested type was found while building and pre-registered as an amendment. The
+  mint's `lane-a-has-type` refusal was narrowed to the same type (`same_type`). The terminal-name rule had
+  refused an unrelated nested `Clause`, and three fmt types since ADR-129.
+  - Regraded: fmt 7,012 → 7,026 confirmed, 0 contradicted, strict 99.62% (7,026/7,053), recall 30.4%; args,
+    cJSON and sqlite-vector unmoved, with the C graphs identical.
+  - By position no `calls` row was lost; callers agreeing with the key on fmt rose 7,629 → 7,642.
+  - Drivers: `~/.hobbes/bench/c175-cpp-defs/` (`PREREG.md`, `regrade.sh` with `ROOT`/`ARM`, `posdiff.py`,
+    `diff.py`, `RESULTS.md`; `wt-before/` is a worktree at `2bd62f8` and can be removed).
+  - **Lesson:** a before-arm worktree needs copied `node_modules`, not symlinks. The helper runs in the
+    container and cannot follow a link out of the mount. Lane B failed loudly, and the run was discarded.
+- **Shipped earlier this session, 0.2.80-beta (the audit).** C-174 widened, and C-175–C-177 registered and
+  surfaced. The record is `~/.hobbes/bench/honesty-audit/RESULTS.md`. **Not audited:** Terraform/HCL;
+  repo-scale counts of any implicit shape outside Python's `__exit__`; Go's and Java's caller roll-up on real
+  repos.
 - **Then** come C-174's remainder (recall, per language, each measured on a keyed cell) and the local alias of
   a global (`_Segment = Segment` … `_Segment(…)`; rich 121, flask 12, click 24; C-9), `cls(…)` in a classmethod
   (rich 57), and C/C++ lane A's time.
@@ -595,8 +606,8 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 177 entries: 131 active (101 surfaced, 26 partial, 3
-  unsurfaced — C-19, C-20, C-112 — 1 n/a), 29 lifted, 11 superseded, 6
+- **Register:** 177 entries: 130 active (101 surfaced, 25 partial, 3
+  unsurfaced — C-19, C-20, C-112 — 1 n/a), 30 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open** (H-36, a `<genexpr>` frame keyed as a call,
   found and fixed 2026-09-20; H-33–H-35 fixed 2026-09-19,

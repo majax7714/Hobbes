@@ -161,7 +161,7 @@ figure below it:
 
 - **quic-go** (Go) reads 99.6%, a lower bound whose 15 contradictions
   all triage to the oracle's own grain, with none Hobbes'.
-- **fmt** (C++) reads 100% (7,012/7,012), **strict 99.62%** (7,012/7,039)
+- **fmt** (C++) reads 100% (7,026/7,026), **strict 99.62%** (7,026/7,053)
   with the 27 rows the grader could not judge counted against it (ADR-124).
   scip-clang can name the wrong declaration at a call in a template
   (C-153); where the source text contradicts the index — the written
@@ -232,7 +232,7 @@ A comparison is only as honest as its reading rules, so here they are:
   Hobbes' none). Hobbes is at 100% precision-against-oracle on every
   compiler-graded row but one. quic-go reads 3,766/3,781, a 99.6% lower
   bound whose 15 contradictions all triage to the oracle's grain. fmt
-  reads 7,012/7,012 (100%; strict 99.62%, ADR-124): scip-clang's
+  reads 7,026/7,026 (100%; strict 99.62%, ADR-124): scip-clang's
   wrong-candidate edges are withheld where the source contradicts
   them (ADR-125, ADR-130), and three C-153 rows remain unjudged.
   Its recall lead within a row runs from none (sqlite-vector) and half a
@@ -366,7 +366,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.80-beta** (2026-10-01). The Hobbes layer is versioned from here
+**Hobbes 0.2.81-beta** (2026-10-01). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -393,7 +393,7 @@ no semantic edge wrong and registered ten findings: C-71 fixed and
 surfaced the same day (ADR-098), the other nine lifted the next day
 ([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
 The constraint register holds one hundred and seventy-seven entries (one
-hundred and thirty-one active, twenty-nine lifted, eleven superseded, six
+hundred and thirty active, thirty lifted, eleven superseded, six
 folded), each naming where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image

@@ -200,8 +200,8 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 ```
 
 Suite sizes at the last check (2026-10-01; pytest and Go re-run on the
-host at 0.2.80-beta, the rest at 0.2.74-beta): 2,594 pytest (20 `lane_b`,
-last run with the image at 0.2.79-beta) / 402 Go with subtests (402
+host at 0.2.81-beta, the rest at 0.2.74-beta): 2,602 pytest (20 `lane_b`,
+run with the image built at 0.2.80-beta) / 402 Go with subtests (402
 pass) + 131
 oracle-lane Go with subtests (119 pass, 12 skip on a host without
 clang++ or cmake; the C++ ones pass in the image) / 52 vitest / 47
@@ -222,7 +222,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 155;
+  architecture doesn't already make. Number sequentially (last: 157;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -276,7 +276,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-10-01) — Hobbes 0.2.80-beta
+## Status (2026-10-01) — Hobbes 0.2.81-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -292,8 +292,8 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   accuracy come before a recall number** — weigh every extraction
   decision against them first.
 - **Grading:** every compiler-graded cell at 100% precision but quic-go
-  (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,012/7,012
-  at 0.2.50-beta), **strict 99.62%** — every quoted precision carries
+  (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,026/7,026
+  at 0.2.81-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
   contradicted (ADR-124). Trace-graded Python cells are recall, never
   precision (C-60); flask's key found 3 Hobbes-wrong `semantic` edges
@@ -302,8 +302,8 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   **Held out** (Max, 2026-10-01, against fitting to the keys): rich,
   graded once with no rule changed, 4,748 confirmed, 0 Hobbes-wrong,
   recall 89.7% (§10.40).
-  **Register:** 177 entries; 131 active (101 surfaced, 26 partial, 3
-  unsurfaced, 1 n/a), 29 lifted; the tally is
+  **Register:** 177 entries; 130 active (101 surfaced, 25 partial, 3
+  unsurfaced, 1 n/a), 30 lifted; the tally is
   held by `test_register_tally.py`, its dated notes are
   `docs/constraints/HISTORY.md`.
 - **Active — Shanks, the harness** (ADR-107; named by ADR-152): `hobbes
@@ -316,37 +316,26 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   the decorator case, at 0.2.76-beta), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.80-beta, the honesty audit** (precedent 1; Max,
-  2026-10-01: "direct honesty violation becomes precedent 1"). Each
-  language got one fixture of calls it makes with no call written,
-  ingested in the image (`~/.hobbes/bench/honesty-audit/RESULTS.md`).
-  - **C-174 widened** to every language's shapes. Two of its sentences
-    were wrong and are corrected: "none measured", and "draws no edge"
-    (Rust and C++ draw `uses` at some operators).
-  - **C-175:** C++ lane A drops a definition returning a reference, a
-    conversion operator, and an in-class friend. In a clean file that
-    means no node, and the calls were labelled `below-floor`, "by design"
-    (godot-orchestrator: 67 such definitions).
-  - **C-176:** a call's caller is its nearest enclosing symbol. In TS/JS
-    that is the module, even inside a constructor or an accessor
-    (folio-2025: 501 rows). No key reads a caller.
-  - **C-177:** a TS tagged template is not a site.
-  - **Surfaced:** the "not detected at all" statement, three `who_calls`
-    notes, and the `below-floor` gloss. No edge moved.
-- **0.2.79-beta, a `with` statement's `__enter__`/`__exit__`** where the
-  item's class is known (ADR-156), after the oracle's H-37 rekeyed the
-  three Python cells. **0.2.77-beta:** the held-out cell, rich.
+- **Latest — 0.2.81-beta, C-175 lifted** (ADR-157; Max: "proceed with
+  the recommended first fix"). C++ lane A now reads a reference return,
+  a conversion operator, an in-class friend (a function of its namespace)
+  and, found on the way, a type nested in a class body. ADR-129's
+  `lane-a-has-type` refusal now asks for the same type, not the same
+  terminal name. fmt 7,012 → 7,026 confirmed at 0 contradicted; args, cJSON
+  and sqlite-vector are unmoved; no `calls` row was lost
+  (`oracle-grading.md` §10.42).
+- **0.2.80-beta, the honesty audit** (precedent 1). C-174 widened, and
+  C-175 to C-177 registered and surfaced, after one fixture per language
+  (`~/.hobbes/bench/honesty-audit/RESULTS.md`).
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
   sacrifice honesty for higher recall").
-  **Next — the audit's three fixes, as routes for Max** (all measured
-  first; each moves a graded cell's graph, never its precision):
-  - **C-175's fix:** read `reference_declarator`, `operator_cast` and
-    friend definitions.
-  - **C-176's fix:** a named class's constructor, accessor, static block
-    and field initializer are scoped to the class.
-  - **C-177's fix:** a tagged template becomes a site.
+  **Next — the audit's two remaining fixes** (Max: "leave 176 177 for
+  next session"; measured first):
+  - **C-176:** a named class's constructor, accessor, static block and
+    field initializer are scoped to the class.
+  - **C-177:** a tagged template becomes a site.
 
-  Then the local alias of a global (157; C-9).
+  Then the local alias of a global (C-9).
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
   necessarily an LLM (ADR-152). **Closed on its lattice** (Max,

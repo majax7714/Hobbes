@@ -11,9 +11,49 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.80-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.81-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.81-beta — 2026-10-01 (C++ lane A reads every definition it walks past; ADR-157, C-175 lifted)
+
+**Patch: what the layer draws** — C++. Max: "proceed with the recommended first fix". This is the honesty
+audit's route 1. It was pre-registered (`~/.hobbes/bench/c175-cpp-defs/PREREG.md`) and graded before and
+after against the standing keys.
+
+- **What was missing.** In a file tree-sitter parsed clean, four kinds of definition had no node:
+  - a definition returning a reference (`T&`, `const T&`, `T&&`);
+  - a conversion operator (`operator int()`);
+  - a friend defined in its class;
+  - a type defined inside a class body, or with a variable. This one was found while building the fix,
+    and C-153 had named it only in passing.
+
+  Calls to them were tallied `below-floor`, "seen, not modelled by design", which was false (C-175).
+- **Read now.**
+  - C++ unwraps reference and parenthesized declarators. C's helper is unchanged.
+  - A conversion operator is a method named as written.
+  - A hidden friend is a `function` of the enclosing namespace, which is the index's own naming.
+  - A nested type is walked like any type.
+- **The mint's `lane-a-has-type` refusal** now asks whether lane A holds the same type: one qualname is the
+  other's trailing components. The old rule compared terminal names only. With nested types read, it refused
+  gtest's `ExpectationBase::Clause` because an unrelated `UntypedOnCallSpecBase::Clause` existed, and it had
+  wrongly refused three fmt types since ADR-129.
+- **Measured.**
+
+  | Cell | Before | After |
+  |---|---|---|
+  | fmt (confirmed / contradicted) | 7,012 / 0 | **7,026** / 0 |
+  | fmt strict | 99.62% | 99.62% (7,026/7,053) |
+  | fmt recall | 30.4% | 30.4% |
+  | args | 2,567 | 2,567 |
+  | cJSON | 1,188 | 1,188, graph identical |
+  | sqlite-vector | 851 | 851, graph identical |
+
+  The poison check passed on all four cells. By position no `calls` row was lost. Callers agreeing with the
+  key on fmt rose 7,629 → 7,642. godot-orchestrator's 67 clean-file losses and 56 nested classes are now
+  nodes (lane A alone, no key).
+- **Register:** C-175 is lifted, and C-153's "not marked" exception for nested classes is gone. The
+  `below-floor` gloss no longer names C-175. 177 entries, 130 active (101 surfaced, 25 partial), 30 lifted.
 
 ## 0.2.80-beta — 2026-10-01 (the honesty audit: what `list_blind_spots` did not show; C-174 widened, C-175, C-176 and C-177 registered)
 

@@ -1065,9 +1065,9 @@ repowise graded by the same key as the Hobbes args cell (ADR-101; `oracle import
 <text x="137.9" y="907.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >args ·rw</text>
 <g>
 <title>fmt — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-15
-precision-against-oracle 7,012/7,012 = 100.0% · strict 7,012/7,039 (99.6%)
-recall 15,339/50,524 = 30.4% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 19,376, static→constructor 8,006, static→function 5,042, macro→function 1,621, macro→method 1,140
+precision-against-oracle 7,026/7,026 = 100.0% · strict 7,026/7,053 (99.6%)
+recall 15,353/50,524 = 30.4% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 19,366, static→constructor 8,006, static→function 5,038, macro→function 1,621, macro→method 1,140
 chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; no contradiction left: scip-clang's eight wrong-specialisation edges are withheld where the written qualifier contradicts them (ADR-125, C-153 narrowed), and its two remaining C-153 rows sit unjudged on lines the key left unresolved, which the strict figure counts; the oracle's own defects (H-28–H-32) are fixed, and C-155 is lifted</title>
 <circle cx="151.2" cy="854.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>

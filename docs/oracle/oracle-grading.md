@@ -2622,6 +2622,35 @@ an `__enter__`/`__exit__` edge (rich 96 confirmed and 30 unobserved, flask 28 an
 simulation over-predicted flask (about +102) because it ignored step 2's `semantic` condition: 40 of flask's
 items rest on ADR-145's `syntactic` fixture-value edges.
 
+### 10.42 C++ lane A reads every definition it walks past — `PREREG.md` written 2026-10-01 before the code, amended before any after run; this section written after the regrade (ADR-157, C-175 lifted)
+
+**The defect** came from the honesty audit (C-175). In a clean-parsed file, lane A dropped four kinds of
+definition: a reference return, a conversion operator, an in-class friend and, found while building the fix,
+a type nested in a class body. Fixing the walk exposed a fifth problem: ADR-129's `lane-a-has-type` refusal,
+which compared terminal names only, refused an unrelated nested type. It is narrowed to the same type.
+
+**Regraded** against the standing keys, poison on. Before is a worktree at 0.2.80-beta (`2bd62f8`). The first
+before run had symlinked `node_modules`, and lane B failed in the container, said so, and was discarded.
+
+| Cell | Confirmed | Contradicted | Strict | Recall | Poison |
+|---|---|---|---|---|---|
+| fmt | 7,012 → **7,026** | 0 → 0 | 99.62% → 99.62% (7,026/7,053) | 30.4% → 30.4% (15,353) | PASS |
+| args (held out) | 2,567 → 2,567 | 0 → 0 | — | 72.9% → 72.9% | PASS |
+| cJSON (C) | 1,188 → 1,188 | 0 | — | 62.0% | PASS; graph identical |
+| sqlite-vector (C) | 851 → 851 | 0 | — | 100% | PASS; graph identical |
+
+Signed direction of fix:
+- By position, `calls` gained 9 on fmt and lost 0 on every cell.
+- Every `uses` row that moved went to the nested class or function that now exists, apart from one type
+  self-reference, which the projection drops.
+- Callers against the key's names (the probe): fmt agree 7,629 → 7,642, wrong 3 → 3; args unmoved.
+- Symbols: fmt 6,203 → 6,243, args 699 → 701.
+- The narrowed refusal minted three types the old rule had refused wrongly, each read right.
+
+**Pre-registration:** P1, P2', P3' and P4 all met. P1's one apparent libcuckoo row is the counter's artefact,
+a symbol at the name's line below the declarator's first line. Drivers: `~/.hobbes/bench/c175-cpp-defs/`
+(`regrade.sh`, `posdiff.py`, `diff.py`, `RESULTS.md`).
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

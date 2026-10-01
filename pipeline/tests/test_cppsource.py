@@ -495,6 +495,106 @@ class TestSymbols:
         lines = {s["qualname"]: s["line"] for s in extract_cpp(tmp_path)["symbols"]}
         assert lines["Box::get"] == 2 and lines["Box::get~2"] == 3
 
+    def test_a_definition_returning_a_reference_is_a_symbol(self, tmp_path):
+        # C-175: C's unwrapping (pointer, array) left every `T&`, `const T&`
+        # and `T&&` return with no node, in a file that parsed clean.
+        _write(tmp_path, {"a.cpp": (
+            "struct It {\n"
+            "  int* p;\n"
+            "  It& next() { return *this; }\n"
+            "  const It& cref() const { return *this; }\n"
+            "  It&& moved() { return static_cast<It&&>(*this); }\n"
+            "  int*& ptrref() { return p; }\n"
+            "  int (&arr())[1] { static int a[1]; return a; }\n"
+            "  It& operator++() { ++p; return *this; }\n"
+            "};\n"
+            "It& advance(It& i) { return i; }\n"
+        )})
+        kinds = {s["qualname"]: (s["kind"], s["line"]) for s in extract_cpp(tmp_path)["symbols"]}
+        assert kinds["It::next"] == ("method", 3)
+        assert kinds["It::cref"] == ("method", 4)
+        assert kinds["It::moved"] == ("method", 5)
+        assert kinds["It::ptrref"] == ("method", 6)
+        assert kinds["It::arr"] == ("method", 7)
+        assert kinds["It::operator++"] == ("method", 8)
+        assert kinds["advance"] == ("function", 10)
+
+    def test_a_call_inside_a_reference_return_is_scoped_to_it(self, tmp_path):
+        _write(tmp_path, {"a.cpp": (
+            "int helper();\n"
+            "struct It {\n"
+            "  It& next() {\n"
+            "    helper();\n"
+            "    return *this;\n"
+            "  }\n"
+            "};\n"
+        )})
+        call = _call_at(extract_cpp(tmp_path), "a.cpp", 4, "helper")
+        assert call["scope"] == "It::next"
+
+    def test_a_conversion_operator_is_a_method_named_as_written(self, tmp_path):
+        # C-175: an `operator_cast` declarator holds no function declarator.
+        _write(tmp_path, {"a.cpp": (
+            "struct L {};\n"
+            "struct A {\n"
+            "  operator int() const { return 0; }\n"
+            "  explicit operator bool() const { return true; }\n"
+            "  operator const L  &() const { return l; }\n"
+            "  L l;\n"
+            "};\n"
+            "A::operator long() const { return 0; }\n"
+        )})
+        by_name = {s["qualname"]: s for s in extract_cpp(tmp_path)["symbols"]}
+        assert by_name["A::operator int"]["kind"] == "method"
+        assert by_name["A::operator int"]["max_params"] == 0
+        assert by_name["A::operator bool"]["line"] == 4
+        assert "A::operator const L &" in by_name  # whitespace collapsed
+        assert by_name["A::operator long"]["kind"] == "method"
+        assert by_name["A::operator long"]["line"] == 8
+
+    def test_a_friend_defined_in_its_class_is_a_function_of_the_namespace(self, tmp_path):
+        # C-175: a hidden friend is no member; the mint names it at the
+        # namespace (`fmt::v12::detail::operator==`), and so does lane A.
+        _write(tmp_path, {"a.cpp": (
+            "namespace ns {\n"
+            "struct A {\n"
+            "  friend bool operator==(const A&, const A&) { return true; }\n"
+            "  friend int& get(A& a) { static int n; return n; }\n"
+            "  template <class T> friend void tf(T) {}\n"
+            "  friend class B;\n"
+            "  friend void declared_only();\n"
+            "};\n"
+            "}\n"
+        )})
+        kinds = {s["qualname"]: s["kind"] for s in extract_cpp(tmp_path)["symbols"]}
+        assert kinds["ns::operator=="] == "function"
+        assert kinds["ns::get"] == "function"
+        assert kinds["ns::tf"] == "function"
+        assert "ns::declared_only" not in kinds and "ns::A::operator==" not in kinds
+
+    def test_a_type_nested_in_a_class_or_defined_with_a_variable_is_walked(self, tmp_path):
+        # C-175: a nested type parses as a member declaration, and the walk
+        # used to stop there — the type and its methods had no node.
+        _write(tmp_path, {"a.cpp": (
+            "struct Out {\n"
+            "  enum class E { a, b };\n"
+            "  struct In {\n"
+            "    void m() {}\n"
+            "    friend void deep() {}\n"
+            "  } member;\n"
+            "  int field;\n"
+            "};\n"
+            "struct G { void g() {} } g_obj;\n"
+            "struct { void anon() {} } anon_obj;\n"
+        )})
+        kinds = {s["qualname"]: s["kind"] for s in extract_cpp(tmp_path)["symbols"]}
+        assert kinds["Out::E"] == "type" and kinds["Out::In"] == "type"
+        assert kinds["Out::In::m"] == "method"
+        assert kinds["deep"] == "function"  # the namespace's: here the global one
+        assert kinds["G"] == "type" and kinds["G::g"] == "method"
+        assert "Out::field" not in kinds
+        assert not [q for q in kinds if q.endswith("anon")]  # an unnamed type has no name to give
+
     def test_a_namespace_and_a_lambda_are_not_symbols(self, layer):
         names = {s["qualname"] for s in layer["symbols"]}
         assert "shapes" not in names
@@ -1535,20 +1635,17 @@ class TestTheTemplatePattern:
             s["id"] for s in built["symbols"]
         }
 
-    def test_a_class_nested_in_a_class_body_is_no_symbol_so_its_members_go_unmarked(
-        self, tmp_path
-    ):
-        # Lane A's walk does not descend into a class declared inside a
-        # class body, so a method of one is no symbol and can be the `from`
-        # of no edge. The region there goes unmarked rather than
-        # mis-marked — less than the truth, the only direction this rule is
-        # allowed to fail in.
+    def test_a_method_of_a_class_nested_in_a_class_template_is_marked(self, tmp_path):
+        # Until C-175 the walk did not descend into a class declared inside
+        # a class body, so this method was no symbol and its region went
+        # unmarked. It is a symbol now, and the pattern flag is carried down
+        # to it as to any member of a class template.
         _write(tmp_path, {"a.cpp": (
             "template <typename T> struct S { struct N { void nested() {} }; };\n"
         )})
         layer = extract_cpp(tmp_path)
-        assert [s["id"] for s in layer["symbols"]] == ["a.S"]
-        assert layer["template_patterns"] == frozenset()
+        assert [s["id"] for s in layer["symbols"]] == ["a.S", "a.S::N", "a.S::N::nested"]
+        assert "a.S::N::nested" in layer["template_patterns"]
 
 
 class TestTheTemplatePatternThroughTheIngest:

@@ -371,6 +371,40 @@ class TestWhatIsRefused:
         )
         assert symbols == [] and counts["refused"]["lane-a-has-type"] == 1
 
+    def test_another_class_s_nested_type_of_one_name_does_not_refuse(self, tmp_path):
+        # C-175: once lane A read nested types, a terminal name alone let
+        # `UntypedOnCallSpecBase::Clause` refuse gtest's unrelated
+        # `ExpectationBase::Clause`. Two classes' types are not one type.
+        held = {**lane_a("a.h", "Other::Clause", 1), "kind": "type"}
+        symbols, counts = mint(
+            tmp_path,
+            {"a.h": "struct Other { enum Clause { a }; };\n\n\n\n\n\n"
+                    "enum Clause {\n  b\n};\n"},
+            [row("a.h", 7, "type", "cxx . . $ testing/internal/ExpectationBase#Clause#")],
+            symbols=[held],
+        )
+        assert [s["qualname"] for s in symbols] == ["testing::internal::ExpectationBase::Clause"]
+        assert counts["refused"]["lane-a-has-type"] == 0
+
+    def test_a_type_lane_a_names_without_the_macro_s_namespace_still_refuses(self, tmp_path):
+        # fmt's `day`: lane A loses the namespace FMT_BEGIN_NAMESPACE opened,
+        # so its `day` is the index's `fmt::v12::day` — one type.
+        held = {**lane_a("a.h", "day", 1), "kind": "type"}
+        symbols, counts = mint(
+            tmp_path,
+            {"a.h": "class day {};\n\n\n\n\n\nclass day {\n  int d;\n};\n"},
+            [row("a.h", 7, "type", "cxx . . $ fmt/v12/day#")],
+            symbols=[held],
+        )
+        assert symbols == [] and counts["refused"]["lane-a-has-type"] == 1
+
+    def test_qualname_parts_drops_template_arguments_at_depth(self):
+        from hobbes.extract.minted import qualname_parts, same_type
+
+        assert qualname_parts("formatter<R, enable_if_t<a::b>>::parse") == ("formatter", "parse")
+        assert same_type(("day",), ("fmt", "v12", "day"))
+        assert not same_type(("Other", "Clause"), ("ExpectationBase", "Clause"))
+
     def test_a_function_lane_a_names_at_another_line_is_an_overload_and_still_mints(
         self, tmp_path
     ):

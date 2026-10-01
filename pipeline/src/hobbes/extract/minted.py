@@ -106,7 +106,11 @@ confirmed. The refusals, with what the measurement said:
     sqlite-vector 10), and 21 on fmt.
 ``lane-a-has-type``
     The row is a ``type`` and lane A already holds a ``type`` of the same
-    terminal name in the module, at another line: ``typedef struct cJSON
+    terminal name in the module, at another line, whose qualname is the
+    row's trailing components or the other way round (:func:`same_type`;
+    since C-175, when lane A began reading nested types, a terminal name
+    alone refused ``ExpectationBase::Clause`` for an unrelated
+    ``UntypedOnCallSpecBase::Clause``): ``typedef struct cJSON
     {…} cJSON;`` (lane A names the typedef, lane B the tag's line), or the
     two arms of an ``#if`` (fmt's ``using day = std::chrono::day;`` and
     its fallback ``class day``). Lane A did not lose that type, and its
@@ -322,7 +326,7 @@ def mint(
 
     lane_a_lines: dict[str, set[int]] = {}
     lane_a_named: dict[tuple[str, str], list[int]] = {}
-    lane_a_types: set[tuple[str, str]] = set()
+    lane_a_types: dict[tuple[str, str], list[tuple[str, ...]]] = {}
     taken = {symbol["id"] for symbol in symbols}
     for symbol in symbols:
         module = symbol.get("module")
@@ -331,7 +335,9 @@ def mint(
         lane_a_lines.setdefault(module, set()).add(symbol["line"])
         lane_a_named.setdefault((module, symbol["name"]), []).append(symbol["line"])
         if symbol.get("kind") == "type":
-            lane_a_types.add((module, symbol["name"]))
+            lane_a_types.setdefault((module, symbol["name"]), []).append(
+                qualname_parts(symbol.get("qualname") or symbol["name"])
+            )
 
     minted: list[dict] = []
     minted_files: list[str] = []
@@ -377,7 +383,10 @@ def mint(
         if not shows_body(repo_root, file, line, sources):
             refused["declaration"] += 1
             continue
-        if kind == "type" and (module, name) in lane_a_types:
+        if kind == "type" and any(
+            same_type(held, tuple(part for part, _ in chain))
+            for held in lane_a_types.get((module, name), ())
+        ):
             refused["lane-a-has-type"] += 1
             continue
         qualname = "::".join(part for part, _ in chain)
@@ -902,6 +911,45 @@ def constructor_lines(definitions: Iterable[Mapping]) -> frozenset[tuple[str, in
         if owner_kind == "type" and name_kind == "method" and owner == name:
             out.add(where)
     return frozenset(out)
+
+
+def qualname_parts(qualname: str) -> tuple[str, ...]:
+    """A qualname's ``::`` components at angle-bracket depth 0, each with
+    its template arguments dropped: ``formatter<R, enable_if_t<a::b>>::
+    parse`` is ``("formatter", "parse")``. Spelled the moniker's way, so
+    the two lanes' names of one type compare (``lane-a-has-type``)."""
+    parts: list[str] = []
+    depth, current = 0, []
+    i = 0
+    while i < len(qualname):
+        ch = qualname[i]
+        if ch == "<":
+            depth += 1
+        elif ch == ">":
+            depth = max(depth - 1, 0)
+        elif depth == 0 and qualname.startswith("::", i):
+            parts.append("".join(current))
+            current = []
+            i += 2
+            continue
+        elif depth == 0:
+            current.append(ch)
+        i += 1
+    parts.append("".join(current))
+    return tuple(" ".join(part.split()) for part in parts if part.strip())
+
+
+def same_type(held: tuple[str, ...], row: tuple[str, ...]) -> bool:
+    """Whether lane A's type *held* and the index's *row* name one type:
+    one qualname is the other's trailing components. Lane A loses a
+    namespace a macro opened (``FMT_BEGIN_NAMESPACE``, C-145), so its
+    ``day`` is the index's ``fmt::v12::day``; C's lane A has no qualname
+    at all, so its ``cJSON`` is the tag's ``cJSON``. Two classes' nested
+    types of one name (``ExpectationBase::Clause`` and
+    ``UntypedOnCallSpecBase::Clause``) are not one type, which a terminal
+    name alone could not tell once lane A read nested types (C-175)."""
+    shorter, longer = sorted((held, row), key=len)
+    return bool(shorter) and longer[len(longer) - len(shorter):] == shorter
 
 
 def read_moniker(moniker: str) -> list[tuple[str, str]] | None:

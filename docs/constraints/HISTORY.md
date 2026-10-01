@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-175 lifted, 2026-10-01 (0.2.81-beta; ADR-157, Max: "proceed with the recommended first fix"):
+- **C-175 lifted, the day it was registered.** C++ lane A now reads four kinds of definition it dropped: a
+  reference return, a conversion operator, an in-class friend, and a type nested in a class body. The fourth
+  was found while lifting. The mint's `lane-a-has-type` refusal was narrowed to the same type. fmt went from
+  7,012 to 7,026 confirmed, 0 contradicted, and the other cells were unmoved. C-153's "not marked" exception
+  for nested classes is gone. 177 entries, 130 active (101 surfaced, 25 partial), 30 lifted.
+
 The honesty audit, 2026-10-01 (0.2.80-beta; Max: "direct honesty violation becomes precedent 1"):
 - **C-174 widened (still surfaced).** The audit used one fixture per language, ingested in the
   image. The entry now names every language's measured shapes. Two sentences were wrong and

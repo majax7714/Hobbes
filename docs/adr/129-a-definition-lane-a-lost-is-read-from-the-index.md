@@ -217,6 +217,14 @@ line (`typedef struct cJSON {…} cJSON;`; on fmt, the `#if` arms of
 - **`lane-a-has-type`:** a `type` row whose terminal name lane A already
   holds as a `type` in the module. Lane A did not lose it. Functions are
   not refused this way: two bodies of one name are overloads.
+  *Amended by ADR-157 (2026-10-01, 0.2.81-beta):* lane A's type must be
+  the same type, so one qualname must be the other's trailing components,
+  compared without template arguments. Once lane A read nested types, a
+  terminal name alone refused gtest's `ExpectationBase::Clause` for an
+  unrelated `UntypedOnCallSpecBase::Clause`. On fmt, 11 refusals fell to 7.
+  Three of the four types now minted (`detail::type`,
+  `scan_buffer::iterator`, `scan_buffer::sentinel`) had been refused wrongly
+  since this ADR.
 
 The cost was 17 confirmed edges on fmt (members of unnamed structs),
 which put P74's count 8 under its band — recorded as a miss. What

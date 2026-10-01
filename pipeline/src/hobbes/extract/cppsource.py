@@ -44,8 +44,12 @@ function with a body is kind ``function``; a member function with a body
 — in-class or written out of line (``int A::f() {}``) — is ``method``,
 with ``qualname`` the ``::``-joined path (``ns::A::f``); a constructor
 and a destructor are ``method``s named by the class (``A``, ``~A``); an
-operator is named as written (``operator+``); a class, struct, union or
-enum with a body, a ``typedef`` and a ``using`` alias are ``type``; a
+operator is named as written (``operator+``), and so is a conversion
+operator (``operator int``); a definition returning a reference is read
+like any other (``T& f()``); a friend defined in its class is a
+``function`` of the enclosing namespace (ADR-157); a class, struct, union or
+enum with a body, a ``typedef`` and a ``using`` alias are ``type`` — a
+nested one too, or one defined with a variable; a
 function-like macro is ``macro`` (macros ignore every scope, as the
 preprocessor does). A template declaration is the entity it declares,
 once, at the entity's own line — which is where clang puts a
@@ -948,6 +952,11 @@ def _signature(function_declarator: Node) -> str:
     return " ".join(" ".join(written).split())
 
 
+#: The type specifiers :func:`_declaration` walks as definitions when a
+#: member or variable declaration carries one with a body (C-175).
+_NESTABLE_TYPES = ("class_specifier", "struct_specifier", "union_specifier", "enum_specifier")
+
+
 def _walk_declarations(
     node: Node,
     parsed: CppFile,
@@ -1034,9 +1043,31 @@ def _declaration(
             )
     elif node.type == "function_definition":
         _function_definition(node, parsed, scope, pattern)
-    # A `declaration` (a prototype, an out-of-line member declaration, a
-    # variable), a `preproc_def` (an object-like macro) and a
-    # `using_declaration` are never symbols.
+    elif node.type == "friend_declaration":
+        # A friend defined in its class (a hidden friend) is a function of
+        # the innermost enclosing namespace, not a member: the class
+        # entries come off the scope, and the qualname is the one the mint
+        # gives it from the index (`fmt::v12::detail::operator==`). Until
+        # C-175 this walk never looked inside one. A friend *declaration*
+        # (`friend class X;`, `friend void f();`) is no definition.
+        namespace = scope
+        while namespace and namespace[-1][1]:
+            namespace = namespace[:-1]
+        for child in node.named_children:
+            if child.type == "function_definition":
+                _function_definition(child, parsed, namespace, pattern)
+    elif node.type in ("field_declaration", "declaration"):
+        # A type defined inside another class's body (`struct In { … };`
+        # parses as a member declaration), or defined with a variable
+        # (`struct X { … } x;`): the type is walked as any type is, in
+        # this scope, so it and its methods are symbols. Until C-175 the
+        # walk stopped at the declaration and neither was.
+        written = node.child_by_field_name("type")
+        if written is not None and written.type in _NESTABLE_TYPES:
+            _declaration(written, parsed, scope, pattern)
+    # Otherwise a `declaration` or a `field_declaration` (a prototype, an
+    # out-of-line member declaration, a variable, a field), a `preproc_def`
+    # (an object-like macro) and a `using_declaration` are never symbols.
 
 
 def _symbol(name: str, qualname: str, kind: str, ident: Node, extent: Node) -> dict:
@@ -1144,28 +1175,104 @@ def _pattern_header(node: Node) -> bool:
     return parameters is not None and bool(parameters.named_child_count)
 
 
+#: The declarators C++ can wrap a definition's ``function_declarator`` in:
+#: C's pointer and array, which hold it in their ``declarator`` field, and
+#: C++'s reference (``T&``, ``T&&``) and parentheses (``int (&f())[3]``),
+#: which hold it as their one unnamed declarator child (C-175).
+_WRAPPING_DECLARATORS = (
+    "pointer_declarator",
+    "array_declarator",
+    "reference_declarator",
+    "parenthesized_declarator",
+)
+
+
+def _function_declarator_of(declarator: Node | None) -> Node | None:
+    """The ``function_declarator`` a C++ definition's own declarator wraps,
+    under any depth of :data:`_WRAPPING_DECLARATORS`.
+
+    C's :func:`csource._function_declarator_of` unwraps a pointer and an
+    array only, which is all C has. Reused for C++, it read no definition
+    returning a reference: ``Iter& next()``, ``const T& get() const`` and
+    ``T&& moved()`` were no symbol at all (C-175)."""
+    node = declarator
+    while node is not None and node.type != "function_declarator":
+        if node.type not in _WRAPPING_DECLARATORS:
+            return None
+        inner = node.child_by_field_name("declarator")
+        if inner is None:
+            inner = next(
+                (c for c in reversed(node.named_children) if c.type.endswith("declarator")),
+                None,
+            )
+        node = inner
+    return node
+
+
+def _conversion_operator(declarator: Node) -> tuple[str, tuple[str, ...], Node, Node] | None:
+    """``(name, qualifiers, terminal, parameters_holder)`` for a conversion
+    operator's definition (``operator int() const``), or ``None``.
+
+    Its declarator is an ``operator_cast``, bare in its class or the
+    ``name`` of a ``qualified_identifier`` written out of line, and no
+    ``function_declarator`` holds its parameters: an
+    ``abstract_function_declarator`` does, under any abstract pointer or
+    reference the target type is written with. The name is the text as
+    written up to the parameter list, whitespace collapsed
+    (``operator const std::locale&``). The index spells the type its own
+    way (``operator const std::locale &``, ``operator unsigned int``), but
+    the join pairs definitions by line, so the spelling is the id's only
+    (C-175)."""
+    qualifiers: tuple[str, ...] = ()
+    cast: Node | None = declarator
+    if cast.type == "qualified_identifier":
+        qualifiers, cast = _qualified_terminal(cast)
+    if cast is None or cast.type != "operator_cast":
+        return None
+    holder = cast.child_by_field_name("declarator")
+    while holder is not None and holder.type != "abstract_function_declarator":
+        inner = holder.child_by_field_name("declarator")
+        if inner is None:
+            inner = next(
+                (c for c in reversed(holder.named_children) if c.type.endswith("declarator")),
+                None,
+            )
+        holder = inner
+    if holder is None:
+        return None
+    params = holder.child_by_field_name("parameters")
+    end = params.start_byte if params is not None else holder.start_byte
+    written = cast.text[: end - cast.start_byte].decode("utf-8", "replace")
+    return " ".join(written.split()), qualifiers, cast, holder
+
+
 def _function_definition(
     node: Node,
     parsed: CppFile,
     scope: tuple[tuple[str, bool], ...],
     pattern: bool = False,
 ) -> None:
-    """A definition with a body: a function, a method, or a test."""
+    """A definition with a body: a function, a method, a conversion
+    operator, or a test."""
     body = node.child_by_field_name("body")
     declarator = node.child_by_field_name("declarator")
     if body is None or declarator is None:
         return
-    function_declarator = csource._function_declarator_of(declarator)
+    function_declarator = _function_declarator_of(declarator)
     if function_declarator is None:
-        return
-    ident = function_declarator.child_by_field_name("declarator")
-    if ident is None:
-        return
-    if _test_definition(node, function_declarator, ident, parsed):
-        return
-    name, qualifiers, terminal = _definition_name(ident)
-    if terminal is None:
-        return
+        conversion = _conversion_operator(declarator)
+        if conversion is None:
+            return
+        name, qualifiers, terminal, function_declarator = conversion
+    else:
+        ident = function_declarator.child_by_field_name("declarator")
+        if ident is None:
+            return
+        if _test_definition(node, function_declarator, ident, parsed):
+            return
+        name, qualifiers, terminal = _definition_name(ident)
+        if terminal is None:
+            return
     in_class = bool(scope) and scope[-1][1]
     kind = "method" if in_class else "function"
     qualname = _qualname(scope, *qualifiers, name)
@@ -1188,7 +1295,9 @@ def _function_definition(
         c.type == "storage_class_specifier" and _text(c) == "static" for c in node.children
     )
     parsed.symbols.append(symbol)
-    csource._collect_bindings(node, declarator, parsed)
+    # C's binding walk finds the parameter list itself, by C's unwrapping;
+    # handed the unwrapped declarator it reads a reference return's too.
+    csource._collect_bindings(node, function_declarator, parsed)
     _collect_lambda_bindings(node, parsed)
 
 

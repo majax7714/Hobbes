@@ -371,8 +371,9 @@ headers parsed with tree-sitter ERROR nodes.
   0.2.41-beta, 596 of 2,811 before ADR-129; the remaining `format_as`
   rows among them). It marks the region, not the
   wrong edge: nothing at the site tells a wrong answer from a right one.
-  Not marked: a pattern whose `template <…>` a macro parse lost (C-145),
-  and a method of a class nested in a class body (no lane A symbol). The
+  Not marked: a pattern whose `template <…>` a macro parse lost (C-145).
+  A method of a class nested in a class body is marked since ADR-157
+  (0.2.81-beta), when it became a symbol. The
   strict figure (ADR-124) counts the unjudged rows again. What R-qual
   withholds is tailed `qualifier-mismatch`, what R-arity withholds
   `arity-mismatch`; the operator references withheld inside templates
@@ -573,46 +574,6 @@ headers parsed with tree-sitter ERROR nodes.
   (`~/.hobbes/bench/c164-wrong-callers/`); the scale read's
   (`~/.hobbes/bench/scummvm-scale/vacated.py`).
 
-### C-175 — Lane A drops a C++ definition that returns a reference, a conversion operator, and a friend defined in its class — *registered 2026-10-01 (0.2.80-beta, the honesty audit)*
-- **Cannot tell you:** that `Iter& next()`, `const T& get() const`, `T&& moved()`, a free
-  `std::ostream& operator<<(…)`, `A& operator=(const A&)`, `operator int()` or an in-class
-  `friend bool operator==(…) { … }` exists, in a file tree-sitter parsed **clean**. Such a
-  definition has **no node**: a call to it draws no edge, a call written inside it is filed
-  under the enclosing class or the module, and `who_calls` answers *no symbol*. In a file
-  parsed with errors, ADR-129's mint reads the definition back from the index where scip-clang
-  holds a definition row for it (C-145). The mint refuses a clean file by design, so there the
-  loss stands.
-- **Because:** C++'s walk reuses C's `_function_declarator_of`, which unwraps a pointer or an
-  array declarator, but not C++'s `reference_declarator` (`&`, `&&`). `_definition_name` takes
-  an `operator_name` but not an `operator_cast`, and a `function_definition` under a
-  `friend_declaration` is not walked as a definition. None of this is a design decision; it is
-  a defect, found by the 2026-10-01 audit's C++ fixture.
-- **Bites at:** `who_calls`, `graph_neighborhood` and every count. The calls into these
-  definitions are resolved by lane B to a target lane A never made, so the tail files them
-  `below-floor`, under "seen, not modelled by design". **That label was false for them.**
-  Measured by walking lane A's parse over the clones (`~/.hobbes/bench/honesty-audit/refcount2.py`;
-  clean-file definitions with no symbol: references / conversion operators / friends):
-
-  | Repo | References | Conversion operators | Friends | Error-parsed files, left to the mint |
-  |---|---|---|---|---|
-  | godot-orchestrator | 64 | 3 | 0 | 26 |
-  | TinyGSM | 9 | 1 | 0 | — |
-  | libcuckoo | 8 | 1 | 0 | — |
-  | Ros_Qt5_Gui_App | 7 | 0 | 0 | 262 |
-  | args, a graded cell | 1 | 0 | 1 | — |
-  | fmt, a graded cell | 0 | 0 | 0 | 213 |
-
-  The graded cells' precision is unaffected: a missing target draws no edge.
-- **Unread residue:** clean-file definitions of other shapes without a symbol: godot-orchestrator
-  22, Ros_Qt5_Gui_App 7, fmt 4, libcuckoo 2. Some are in-class definitions in a `.h` that the walk
-  may read as C (ADR-113 §1), and some are constructors with an initializer list. Not read.
-- **You find out:** *partial.* `list_blind_spots`'s gloss for `below-floor`, and the gate's,
-  say since 0.2.80-beta that in C++ the class also holds definitions lane A does not read
-  (C-175), which is no design choice. They cannot say which `below-floor` site is which.
-  Nothing marks the definition itself, because it is not in the graph.
-- **Source:** the 2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); `cppsource._declaration`,
-  `cppsource._definition_name`, `csource._function_declarator_of`.
-
 ## Lifted constraints in this segment
 
 A lift keeps its number, the limit as it stood, the technique that
@@ -705,3 +666,45 @@ survives. Field key: `README.md`, "How to read a lifted entry".
     rule for what an unevaluated operand is.
 - **Source:** H-31's trace, 2026-09-16 (the concession); ADR-121 and
   `S-20260916T225041Z-d95c` (the lift).
+
+### C-175 — Lane A dropped a C++ definition that returns a reference, a conversion operator, a friend defined in its class, and a type nested in a class body — *registered 2026-10-01 (0.2.80-beta, the honesty audit); lifted the same day (ADR-157, 0.2.81-beta)*
+- **Was:** in a file tree-sitter parsed clean, none of these had a node:
+  - a definition returning a reference (`Iter& next()`, `const T& get() const`, `T&& moved()`, a free
+    `std::ostream& operator<<(…)`);
+  - a conversion operator (`operator int()`);
+  - a friend defined in its class (`friend bool operator==(…) { … }`).
+
+  Calls to them were tallied `below-floor`, "seen, not modelled by design", which was false. Clean-file
+  losses: godot-orchestrator 64 references and 3 conversion operators, TinyGSM 10, libcuckoo 9,
+  Ros_Qt5_Gui_App 7, args 2, fmt 0. Found while lifting it: a class, struct, union or enum defined inside
+  a class body, or with a variable (`struct X { … } x;`), was never walked either. C-153 named that only
+  in passing. godot had 56 such classes in clean files, and TinyGSM 308 functions inside them in error
+  files. In error-parsed files, ADR-129's mint read some of all four back from the index.
+- **Lifted by — the technique** (ADR-157):
+  - C++ has its own `_function_declarator_of`, which unwraps reference and parenthesized declarators
+    beside C's pointer and array.
+  - An `operator_cast` is a method named as written up to its parameter list, its parameters read from
+    the `abstract_function_declarator`.
+  - A `friend_declaration`'s definition is a function of the innermost enclosing namespace, as the mint
+    names it.
+  - A type in a member or variable declaration is walked as any type is.
+  - The mint's `lane-a-has-type` refusal now asks for the same type (`same_type`: one qualname is the
+    other's trailing components), because a terminal name alone refused gtest's
+    `ExpectationBase::Clause` once lane A read `UntypedOnCallSpecBase::Clause`.
+
+  Regraded against the standing keys: fmt 7,012 → **7,026** confirmed, 0 contradicted, strict 99.62%
+  (7,026/7,053), recall 30.4%. args, cJSON and sqlite-vector are unmoved, and the C graphs identical.
+  By position no `calls` row was lost. Callers agreeing with the key on fmt: 7,629 → 7,642.
+- **Residual edge cases:**
+  - An unnamed class's methods have no name to give (`struct { void f() {} } x;`).
+  - A class defined inside a function body stays below the floor (C-9).
+  - A definition inside a region the parse could not read is still the mint's or nobody's (C-145), and
+    a function C-164's R1 refuses keeps calling from the module.
+  - A conversion operator's id spells the type as written (`operator unsigned`), where the index spells
+    it its own way (`operator unsigned int`). The join pairs by line, so the difference reaches only the
+    id.
+  - A hidden friend is named at its namespace, while the clang key's caller names qualify it by its
+    lexical class. No grade reads a caller.
+- **Source:** the 2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); ADR-157 and
+  `~/.hobbes/bench/c175-cpp-defs/` (`PREREG.md`, `RESULTS.md`); `cppsource._function_declarator_of`,
+  `cppsource._conversion_operator`, `cppsource._declaration`, `minted.same_type`.

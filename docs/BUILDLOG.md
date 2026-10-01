@@ -15187,3 +15187,37 @@ C-177; index, debt summary, HISTORY), the architecture's §3 tail passage and §
 CLAUDE.md and AGENTS.md, and the handoff (next: the three routes). On the host, pytest ran 2,594, all passing.
 `lane_b` was not re-run, since no extraction code moved. Go ran 402, all passing. The image was rebuilt at
 0.2.80-beta.
+
+**Then route 1, C-175's fix — 0.2.81-beta** (Max: "proceed with the recommended first fix leave 176 177 for
+next session").
+- **Pre-registered** (`~/.hobbes/bench/c175-cpp-defs/PREREG.md`) before any code. Before came from a worktree at
+  `2bd62f8`. Its first run symlinked `node_modules`, the in-container SCIP helper could not follow the links,
+  and lane B failed loudly (fmt 82%, 0 `uses`); the run was discarded and repeated with copies. Before then
+  reproduced the standing grades exactly.
+- **Built in `cppsource`:**
+  - its own `_function_declarator_of`, unwrapping reference and parenthesized declarators (C's helper is
+    unchanged);
+  - `_conversion_operator` for an `operator_cast`, named as written;
+  - a `friend_declaration` branch, which files a hidden friend under its namespace as the mint does;
+  - a member- or variable-declaration branch that walks a nested type. **Found while checking the rule:** a
+    class nested in a class body was never walked. C-153 said so in passing. The amendment was written before
+    any after run.
+- **A regression of my own, caught by the position diff.** With nested types read, ADR-129's `lane-a-has-type`
+  (terminal name only) refused gtest's `ExpectationBase::Clause` for an unrelated
+  `UntypedOnCallSpecBase::Clause`. I narrowed it to `same_type` (one qualname is the other's trailing
+  components, compared without template arguments). That also minted three fmt types the old rule had refused
+  wrongly since ADR-129, each read right: `detail::type`, `scan_buffer::iterator` and `scan_buffer::sentinel`.
+- **Regraded** (standing keys, poison on): fmt 7,012 → 7,026 confirmed, 0 contradicted, strict 99.62%; args,
+  cJSON and sqlite-vector unmoved, with the C graphs identical. By position no `calls` row was lost, and every
+  moved `uses` row went to the nested node that now exists. The caller probe on fmt: agree 7,629 → 7,642,
+  wrong 3 → 3; its one added lost row sits in a function C-164's R1 refuses. P1, P2', P3' and P4 were all met.
+- **Released:** ADR-157 (ADR-129 amended); C-175 lifted; C-153's exception removed; the `below-floor` glosses
+  restored (C-175 no longer applies); oracle-grading §10.42; the fmt and args cell records, with the
+  comparative data and graphics regenerated (`render.py check` passes); architecture §3, §3.8 and §8; README,
+  CLAUDE.md, AGENTS.md (ADR count: last 157, which had read 155 since 156); the handoff (next: C-176, C-177).
+- **Verified on the host:**
+  - pytest 2,602, all passing. Its 20 `lane_b` cases ran against the image built at 0.2.80-beta, before
+    this release's rebuild. That is fine for them: the extraction code runs on the host.
+  - Go 402, all passing.
+  - The oracle lane's report and grade tests ran uncached.
+  - The image was rebuilt at 0.2.81-beta.
