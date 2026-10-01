@@ -3070,6 +3070,30 @@ def _rebase(facts: dict, zone: str) -> dict:
     return facts
 
 
+#: The version a scip-python stdlib moniker names:
+#: ``scip-python python python-stdlib 3.12 json/dumps().``
+_STDLIB_VERSION = re.compile(r"\bpython-stdlib (\d+)\.(\d+)\b")
+
+
+def python_reading(facts: dict) -> dict:
+    """The reading Pyright indexed the Python files under (ADR-154 step 2).
+
+    ``{"platform": "linux", "version": [major, minor] | None}`` — the
+    platform the staged config pins, and the version read off the first
+    ``python-stdlib <major>.<minor>`` moniker among the facts' external
+    references (a list, as it travels in JSON). No such moniker, no
+    version: a version test is then read as not static, and the ingest's
+    record says the version went unread.
+    """
+    version = None
+    for row in facts.get("external_refs") or []:
+        found = _STDLIB_VERSION.search(row.get("moniker") or "")
+        if found:
+            version = [int(found.group(1)), int(found.group(2))]
+            break
+    return {"platform": "linux", "version": version}
+
+
 def extract_scip(
     repo_root: Path,
     files: list[str],
@@ -3085,7 +3109,11 @@ def extract_scip(
     """
     if not enabled() or not files:
         return None
-    config: dict = {"extraPaths": roots}
+    # ADR-154 step 1: once Pyright loads a config it reads static platform
+    # tests against a platform, and unstated that is the host's. Named
+    # here, so the assumption is Hobbes's and written down; the image is
+    # Linux, so the index is what it was.
+    config: dict = {"extraPaths": roots, "pythonPlatform": "Linux"}
     venv = find_venv(repo_root)
     environment = None
     refused: str | None = None
@@ -3135,6 +3163,7 @@ def extract_scip(
     finally:
         env_path.unlink(missing_ok=True)
         staging.remove_stage(stage)
+    facts["python_reading"] = python_reading(facts)
     if venv is None:
         facts.setdefault("degraded", []).append(
             {

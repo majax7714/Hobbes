@@ -93,6 +93,10 @@ def resolve_call_sites(
     whole of ADR-031 — without them a repo with no working indexer has no
     call graph at all, which P6 forbids and P7 would make permanent for
     every unwired language.
+
+    A bare call is refused where a binding spanning it shadows the
+    module's name: one of ADR-046's (:func:`_shadowed`), or a name the
+    enclosing function imports (ADR-154 step 6, :func:`_imported_here`).
     """
     index = _Index(modules)
     table = _SymbolTable(parsed)
@@ -117,6 +121,8 @@ def resolve_call_sites(
             if target is None:
                 continue
             if "." not in call.callee and _shadowed(module.path, call.line, call.callee, target, facts.local_bindings):
+                continue
+            if "." not in call.callee and _imported_here(module.path, call.line, call.callee, target, facts.local_imports):
                 continue
             fallback[(module.path, call.line, call.callee.split(".")[-1])] = target
     return fallback
@@ -165,6 +171,19 @@ def _shadowed(path: str, line: int, name: str, target: tuple[str, int], bindings
             return False  # the binding is the nested declaration itself
         return True
     return False
+
+
+def _imported_here(path: str, line: int, name: str, target: tuple[str, int], local_imports) -> bool:
+    """A bare name a function's own import binds, in a function that
+    spans the call, is what that import named — not the calling file's
+    own def of the same name, which rule 1 offers ahead of every import
+    (ADR-154 step 6; click ``termui.py:364``). A resolution into another
+    file came through an import binding, which is the import's own
+    answer, and stands. Unlike :func:`_shadowed` there is no declaration
+    inside the extent to pass: an import is never the def."""
+    if target[0] != path:
+        return False
+    return any(b.name == name and b.start <= line <= b.end for b in local_imports)
 
 
 def _symbol_records(modules: list[ModuleInfo], parsed: dict[str, ParsedFile]) -> list[dict]:

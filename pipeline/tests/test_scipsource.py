@@ -1993,3 +1993,46 @@ class TestReferencedTsConfigs:
         assert not scipsource.is_solution_tsconfig(tmp_path / "refs-only.json")
         (tmp_path / "files-empty.json").write_text('{ "files": [], "references": [ { "path": "./x" } ] }')
         assert scipsource.is_solution_tsconfig(tmp_path / "files-empty.json")
+
+
+class TestThePythonReading:
+    """ADR-154 steps 1 and 2: the staged config pins the platform Pyright
+    reads static tests against, and the facts carry the version it used,
+    read off the index's own stdlib monikers."""
+
+    @pytest.fixture
+    def lane_b_on(self, tmp_path, monkeypatch):
+        monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")
+        monkeypatch.setenv(staging._CACHE_ENV, str(tmp_path / "cache"))
+
+    def _extract(self, tmp_path, monkeypatch, external_refs):
+        repo = tmp_path / "repo"
+        (repo / "pkg").mkdir(parents=True)
+        (repo / "pkg" / "mod.py").write_text("import json\n")
+        seen = {}
+
+        def fake(config, **kw):
+            # Read during the call: the stage is removed after it.
+            seen["pyright"] = json.loads((Path(config["stage"]) / "pyrightconfig.json").read_text())
+            return {"definitions": [], "references": [], "external_refs": external_refs, "degraded": []}
+
+        monkeypatch.setattr(scipsource, "run_helper", fake)
+        facts = scipsource.extract_scip(repo, ["pkg/mod.py"], ["."], "repo", "")
+        return seen["pyright"], facts
+
+    def test_the_config_names_linux_beside_the_extra_paths(self, tmp_path, monkeypatch, lane_b_on):
+        config, _ = self._extract(tmp_path, monkeypatch, [])
+        assert config["pythonPlatform"] == "Linux"
+        assert config["extraPaths"] == ["."]
+
+    def test_the_version_is_read_off_a_stdlib_moniker(self, tmp_path, monkeypatch, lane_b_on):
+        refs = [
+            {"file": "pkg/mod.py", "line": 1, "name": "x", "moniker": "scip-python python requests 2.0 x."},
+            {"file": "pkg/mod.py", "line": 1, "name": "json", "moniker": "scip-python python python-stdlib 3.12 json/__init__:"},
+        ]
+        _, facts = self._extract(tmp_path, monkeypatch, refs)
+        assert facts["python_reading"] == {"platform": "linux", "version": [3, 12]}
+
+    def test_no_stdlib_moniker_no_version(self, tmp_path, monkeypatch, lane_b_on):
+        _, facts = self._extract(tmp_path, monkeypatch, [])
+        assert facts["python_reading"] == {"platform": "linux", "version": None}
