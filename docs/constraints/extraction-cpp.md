@@ -573,6 +573,46 @@ headers parsed with tree-sitter ERROR nodes.
   (`~/.hobbes/bench/c164-wrong-callers/`); the scale read's
   (`~/.hobbes/bench/scummvm-scale/vacated.py`).
 
+### C-175 — Lane A drops a C++ definition that returns a reference, a conversion operator, and a friend defined in its class — *registered 2026-10-01 (0.2.80-beta, the honesty audit)*
+- **Cannot tell you:** that `Iter& next()`, `const T& get() const`, `T&& moved()`, a free
+  `std::ostream& operator<<(…)`, `A& operator=(const A&)`, `operator int()` or an in-class
+  `friend bool operator==(…) { … }` exists, in a file tree-sitter parsed **clean**. Such a
+  definition has **no node**: a call to it draws no edge, a call written inside it is filed
+  under the enclosing class or the module, and `who_calls` answers *no symbol*. In a file
+  parsed with errors, ADR-129's mint reads the definition back from the index where scip-clang
+  holds a definition row for it (C-145). The mint refuses a clean file by design, so there the
+  loss stands.
+- **Because:** C++'s walk reuses C's `_function_declarator_of`, which unwraps a pointer or an
+  array declarator, but not C++'s `reference_declarator` (`&`, `&&`). `_definition_name` takes
+  an `operator_name` but not an `operator_cast`, and a `function_definition` under a
+  `friend_declaration` is not walked as a definition. None of this is a design decision; it is
+  a defect, found by the 2026-10-01 audit's C++ fixture.
+- **Bites at:** `who_calls`, `graph_neighborhood` and every count. The calls into these
+  definitions are resolved by lane B to a target lane A never made, so the tail files them
+  `below-floor`, under "seen, not modelled by design". **That label was false for them.**
+  Measured by walking lane A's parse over the clones (`~/.hobbes/bench/honesty-audit/refcount2.py`;
+  clean-file definitions with no symbol: references / conversion operators / friends):
+
+  | Repo | References | Conversion operators | Friends | Error-parsed files, left to the mint |
+  |---|---|---|---|---|
+  | godot-orchestrator | 64 | 3 | 0 | 26 |
+  | TinyGSM | 9 | 1 | 0 | — |
+  | libcuckoo | 8 | 1 | 0 | — |
+  | Ros_Qt5_Gui_App | 7 | 0 | 0 | 262 |
+  | args, a graded cell | 1 | 0 | 1 | — |
+  | fmt, a graded cell | 0 | 0 | 0 | 213 |
+
+  The graded cells' precision is unaffected: a missing target draws no edge.
+- **Unread residue:** clean-file definitions of other shapes without a symbol: godot-orchestrator
+  22, Ros_Qt5_Gui_App 7, fmt 4, libcuckoo 2. Some are in-class definitions in a `.h` that the walk
+  may read as C (ADR-113 §1), and some are constructors with an initializer list. Not read.
+- **You find out:** *partial.* `list_blind_spots`'s gloss for `below-floor`, and the gate's,
+  say since 0.2.80-beta that in C++ the class also holds definitions lane A does not read
+  (C-175), which is no design choice. They cannot say which `below-floor` site is which.
+  Nothing marks the definition itself, because it is not in the graph.
+- **Source:** the 2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); `cppsource._declaration`,
+  `cppsource._definition_name`, `csource._function_declarator_of`.
+
 ## Lifted constraints in this segment
 
 A lift keeps its number, the limit as it stood, the technique that

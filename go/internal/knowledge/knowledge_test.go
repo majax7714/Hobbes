@@ -409,6 +409,121 @@ func TestWhoCallsKnownSymbolWithoutCallers(t *testing.T) {
 	}
 }
 
+// hookRepo is fixtureRepo with one module per language and the symbols
+// the 2026-10-01 audit met: hooks the language runs with no call written
+// (C-174), ordinary names beside them, and a TS/JS call filed under its
+// module because lane A names no scope in a constructor (C-176).
+func hookRepo(t *testing.T) string {
+	t.Helper()
+	repo := fixtureRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	for id, file := range map[string]string{
+		"hk/ctx": "hk/ctx.py", "hk/obj": "hk/obj.h", "hk/lib": "hk/lib.ts",
+		"hk/pkg": "hk/pkg.go", "hk/guard": "hk/guard.rs",
+	} {
+		doc["nodes"] = append(doc["nodes"].([]any), map[string]any{"id": id, "kind": "module", "path": file})
+	}
+	for _, sym := range [][3]string{
+		{"hk/ctx.Ctx.__exit__", "hk/ctx", "__exit__"},
+		{"hk/ctx.Ctx.close", "hk/ctx", "close"},
+		{"hk/obj.Obj::~Obj", "hk/obj", "~Obj"},
+		{"hk/obj.Obj::operator+", "hk/obj", "operator+"},
+		{"hk/obj.Obj::operator_count", "hk/obj", "operator_count"},
+		{"hk/obj.shapes::overloaded~2", "hk/obj", "overloaded"},
+		{"hk/lib.Box.[Symbol.iterator]", "hk/lib", "[Symbol.iterator]"},
+		{"hk/lib.helper", "hk/lib", "helper"},
+		{"hk/pkg.init", "hk/pkg", "init"},
+		{"hk/guard.Guard.drop", "hk/guard", "drop"},
+	} {
+		doc["symbols"] = append(doc["symbols"].([]any), map[string]any{
+			"id": sym[0], "module": sym[1], "name": sym[2], "kind": "method", "line": 3})
+	}
+	doc["symbol_edges"] = append(doc["symbol_edges"].([]any), map[string]any{
+		"from": "hk/lib", "to": "hk/lib.helper", "type": "calls", "tier": "semantic",
+		"evidence": []any{map[string]any{"path": "hk/lib.ts", "line": 7}}})
+	out, _ := json.Marshal(doc)
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return repo
+}
+
+// C-174 at the point of use: a hook the language runs with no call
+// written is said to be one, before any caller line, wherever its name
+// alone says so — and nowhere else, so the note keeps its meaning.
+func TestWhoCallsNamesALanguageHook(t *testing.T) {
+	s := Open(hookRepo(t))
+	for id, want := range map[string]string{
+		"hk/ctx.Ctx.__exit__":          "a dunder",
+		"hk/obj.Obj::~Obj":             "a destructor",
+		"hk/obj.Obj::operator+":        "an operator",
+		"hk/lib.Box.[Symbol.iterator]": "a well-known-symbol method",
+		"hk/pkg.init":                  "a package initializer",
+	} {
+		got, err := s.WhoCalls(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(got, "note: "+id+" is "+want) || !strings.Contains(got, "is a floor (C-174)") {
+			t.Errorf("%s: want the C-174 hook note naming %q:\n%s", id, want, got)
+		}
+	}
+	for _, id := range []string{
+		"hk/ctx.Ctx.close", "hk/obj.Obj::operator_count", "hk/obj.shapes::overloaded~2",
+		"hk/lib.helper", "hk/guard.Guard.drop", "app.api.handler",
+	} {
+		got, err := s.WhoCalls(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(got, "note: ") {
+			t.Errorf("%s is no hook its name can show, yet gained a note:\n%s", id, got)
+		}
+	}
+}
+
+// Rust's and Java's hooks are ordinary names, so no note can single them
+// out; the no-callers line names C-174 beside C-1 for every symbol.
+func TestWhoCallsNoCallersNamesImplicitCalls(t *testing.T) {
+	got, err := Open(hookRepo(t)).WhoCalls("hk/guard.Guard.drop")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"no recorded callers", "C-1", "calls the language makes with no call written, C-174"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("want %q:\n%s", want, got)
+		}
+	}
+}
+
+// C-176: a TS/JS module listed as a caller is said to possibly stand for
+// a constructor, an accessor, a static block or a field initializer.
+func TestWhoCallsQualifiesATSModuleCaller(t *testing.T) {
+	s := Open(hookRepo(t))
+	got, err := s.WhoCalls("hk/lib.helper")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, "hk/lib  [hk/lib.ts:7]") || !strings.Contains(got, "C-176") {
+		t.Errorf("want the module caller and the C-176 note:\n%s", got)
+	}
+	other, err := s.WhoCalls("app.core.run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(other, "C-176") {
+		t.Errorf("a non-TS caller list gained the C-176 note:\n%s", other)
+	}
+}
+
 // autouseRepo is fixtureRepo with two more pytest records: each reaches
 // app.api only through an autouse fixture (ADR-139), and one of them
 // reaches app.core by a call it wrote.
@@ -1131,13 +1246,21 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		"degraded: scripts: go-modules: orphan directory",
 		"src/app/core.py — 5 of 20 sites unresolved (builtin-name 3, attr-call 2, below-floor 2)",
 		"below-floor — resolved by the semantic lane to a declaration below the symbol floor",
+		// C-175: in C++ the class also holds definitions lane A's walk
+		// drops, which is no design choice; the gloss says so.
+		"which is no design choice (C-175)",
 		// the always-on denominator honesty, C-1/C-4/C-5:
 		"not over the repo",
 		// C-4 after ADR-137 and ADR-139: only what is still not drawn.
 		"a plugin's or a base class's (C-4)",
 		// C-174: an implicit call has no call token, so it is no site;
-		// ADR-156 draws a `with` item's pair where its class is known.
-		"a Python `with` statement's __enter__/__exit__ where the item's class\nis not known (C-174)",
+		// ADR-156 draws a `with` item's pair where its class is known. The
+		// statement names every language's shapes since the 2026-10-01
+		// audit, and C-177's uncounted tagged template beside them.
+		"calls the language makes with no call written\n(C-174)",
+		"a `with` statement's __enter__/__exit__ where the item's\nclass is not known",
+		"a destructor, an initializer the runtime runs",
+		"TypeScript tagged template (C-177)",
 		// meanings appear only for classes present, with their C-refs:
 		"attr-call — an attribute call whose receiver no static provider could type",
 		// C-63 (surfaced 2026-09-05): a callee that is an expression is a

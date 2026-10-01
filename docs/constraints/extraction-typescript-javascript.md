@@ -270,6 +270,21 @@
 - **Source:** ADR-140 step 4, §10.22's triage, 2026-09-19; corrected and
   narrowed by ADR-142 and §10.23, 2026-09-20.
 
+### C-177 — A tagged template is not a call site — *registered 2026-10-01 (0.2.80-beta, the honesty audit)*
+- **Cannot tell you:** that `` tag`text` `` calls `tag`. A tagged template is a call the source
+  writes, but no `calls` edge is drawn. Lane B's reference at the tag becomes a `uses` edge,
+  which `who_calls` lists under references and not under callers.
+- **Because:** lane A records a `CallExpression`, and a `TaggedTemplateExpression` is not one.
+  So the site is never made, it is not in `resolution_coverage`'s denominator, and the join has
+  nothing to pair the index's occurrence with. The tsc oracle does key it (`isSite` takes a tagged
+  template), so a graded cell reads it as recall, never as precision.
+- **Bites at:** `who_calls` on a template tag: styled-components, `html`/`css`/`sql` helpers, GraphQL
+  `gql`, and a repo's own tags. Not measured on a cell. The audit's fixture drew one `uses` edge
+  and no `calls` edge.
+- **You find out:** **surfaced** (0.2.80-beta). The always-on "not detected at all" statement
+  names it. `who_calls`'s references heading names it as one reason a reference can be a call.
+- **Source:** the 2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); `tsextract/extract.mjs`
+  (the call walk takes `Node.isCallExpression` only).
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

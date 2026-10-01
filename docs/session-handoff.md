@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-01 (twenty-eighth session); Hobbes 0.2.79-beta on `main`.**
+**Reviewed 2026-10-01 (twenty-ninth session); Hobbes 0.2.80-beta on `main`.**
 Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
-0.2.79-beta, and this repo was ingested at the release commit; ingest at HEAD again if
+0.2.80-beta, and this repo was ingested at the release commit; ingest at HEAD again if
 `main` has moved since. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -11,7 +11,7 @@ the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.79-beta are untagged. Tags stay Max's call each time.
+  0.2.80-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -28,28 +28,35 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-10-01, twenty-eighth session)
+## ⇢ START HERE NEXT SESSION (written 2026-10-01, twenty-ninth session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**Next — precedent 1, an honesty audit** (Max, 2026-10-01: "honestly since this introduced out of luck worth an
-inspection afterwards through what blind spots doesnt show. direct honesty violation becomes precedent 1 after route
-is completed"). C-174 was found by luck on the held-out cell. Audit what `list_blind_spots` does not show:
-- **Enumerate per language** what the language does that no lane records as a site or an edge. In Python: implicit
-  dunders beyond `with` (operators, `for`/`__iter__`/`__next__`, `len()`/`__len__`, `__getattr__`, a property read,
-  a descriptor, `__init_subclass__`, a metaclass, `__del__`). In Rust: `Drop`, `Deref` and operator traits. In
-  Java: try-with-resources `close()`, for-each `iterator()`, implicit `toString()`, static initialisers. In TS/JS:
-  getters, setters, iterators, `using`. In Go: `defer`, which *is* written. In C/C++: destructors and implicit
-  conversions.
-- **Check each** against the register and the always-on "not detected at all" statement (`knowledge.go`,
-  `manifests.py`).
-- **Contain any unnamed one** (register and surface, as C-174 was) before any recall work. Measure where a keyed
-  cell can.
-- Then: the local alias of a global (`_Segment = Segment` … `_Segment(…)`; rich 121, flask 12, click 24; C-9),
-  `cls(…)` in a classmethod (rich 57), and C/C++ lane A's time.
+**Next — the honesty audit's three fixes, as routes for Max.** Precedent 1 is done as containment: 0.2.80-beta
+registers and surfaces what the audit found, and no edge moved. Present these as routes, recommended first; each
+is a defect, and each moves a graded cell's graph but never its precision:
+1. **C-175, C++ (recommended first).** `cppsource` must unwrap `reference_declarator` (`&`, `&&`; C's
+   `_function_declarator_of` does not), read `operator_cast` (`operator int()`), and walk a `function_definition`
+   under a `friend_declaration`. Measure first: rerun `~/.hobbes/bench/honesty-audit/refcount2.py`, then regrade
+   fmt and args (`~/.hobbes/bench/cpp-cells/`). Also check that the mint does not double the symbol in
+   error-parsed files, where it reads these back today (C-145). Clean-file losses: godot-orchestrator 67,
+   TinyGSM 10, libcuckoo 9, args 2. The "other" clean-file losses (godot 22) are unread.
+2. **C-176, TS/JS.** `tsextract`'s `enclosingScope` should scope a named class's constructor, accessors, static
+   block and field initializers to the class, as Python and Java do. Measure first with
+   `honesty-audit/modcaller.py` over the stored graphs (folio-2025 501 rows, ajv 26). Object-literal methods,
+   unnamed classes and property-assigned functions (Express) are below the floor and stay the module's, unless
+   Max says otherwise.
+3. **C-177, TS/JS.** A tagged template becomes a site (lane A's walk takes `TaggedTemplateExpression`). Not
+   sized on a cell.
+- **Then** come C-174's remainder (recall, per language, each measured on a keyed cell) and the local alias of
+  a global (`_Segment = Segment` … `_Segment(…)`; rich 121, flask 12, click 24; C-9), `cls(…)` in a classmethod
+  (rich 57), and C/C++ lane A's time.
+- **The audit's record** is `~/.hobbes/bench/honesty-audit/RESULTS.md`, with one fixture per language, the
+  table of what each shape drew, and the two counting scripts. **Not audited:** Terraform/HCL; repo-scale counts
+  of any implicit shape outside Python's `__exit__`; Go's and Java's caller roll-up on real repos.
 
-- **Shipped later this session (0.2.78-beta, 0.2.79-beta):** C-174 contained first (registered, surfaced in both
+- **Shipped the session before (0.2.78-beta, 0.2.79-beta):** C-174 contained first (registered, surfaced in both
   renderers, C-1 pointing to it). Then the oracle's **H-37** (unit `32b8`): CPython 3.12 calls a `with` statement's
   `__enter__` and exception-path `__exit__` without a `CALL` event, and the tracer now reads both at `PY_START`.
   **The standing Python keys are now `rich-py-r2`, `flask-py-r2` and `click-py-r4`** (`~/.hobbes/bench/oracle/`),
@@ -588,7 +595,7 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 174 entries: 128 active (100 surfaced, 24 partial, 3
+- **Register:** 177 entries: 131 active (101 surfaced, 26 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 29 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open** (H-36, a `<genexpr>` frame keyed as a call,

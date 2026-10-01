@@ -84,6 +84,59 @@ type graphIndex struct {
 	laneBDeclared map[string]bool
 	// Those among them whose extent was read (ADR-134): `extent: "braces"`.
 	laneBExtent map[string]bool
+	// Each symbol's language bucket (langByExt, from its module's file),
+	// for the notes that name a language's own limit (C-174, C-176).
+	symbolLang map[string]string
+	// Each symbol's declared name, the graph's `name` field (hookNote).
+	symbolName map[string]string
+	// The module nodes whose file is TypeScript or JavaScript: lane A
+	// names no scope inside a constructor, an accessor, a static block or
+	// a field initializer there, so such a call's caller is the module
+	// (C-176).
+	tsModule map[string]bool
+}
+
+// hookNote names a symbol the language itself calls with no call written
+// (C-174), where its name alone says so: a Python dunder, a C++
+// destructor or operator, a TS/JS well-known-symbol method, a Go package
+// `init`. The statement that runs it draws no edge, so whatever this tool
+// lists for it is a floor. Rust's and Java's hooks (`drop`, `close`,
+// `next`) are ordinary names a type cannot be read from here; the
+// "no recorded callers" line names C-174 for them.
+func (idx *graphIndex) hookNote(symbolID string) string {
+	lang, name := idx.symbolLang[symbolID], idx.symbolName[symbolID]
+	// `.h` buckets as C (langByExt); a destructor or an operator is C++'s
+	// alone, so either bucket is read for those two.
+	cFamily := lang == "cpp" || lang == "c"
+	var what string
+	switch {
+	case lang == "python" && len(name) > 4 && strings.HasPrefix(name, "__") && strings.HasSuffix(name, "__"):
+		what = "a dunder — a construction, an operator, a `with` or `for` statement, a builtin, truth testing or formatting runs it"
+	case cFamily && strings.HasPrefix(name, "~"):
+		what = "a destructor — scope exit, `delete` and a containing object's destructor run it"
+	case cFamily && isOperatorName(name):
+		what = "an operator — an applied operator is drawn only where the index names it at the token (C-146); a range-for's is not"
+	case lang == "ts/js" && strings.HasPrefix(name, "[Symbol."):
+		what = "a well-known-symbol method — `for...of`, spread, `using` or `instanceof` runs it"
+	case lang == "go" && name == "init":
+		what = "a package initializer — the runtime runs it"
+	default:
+		return ""
+	}
+	return fmt.Sprintf("note: %s is %s, with no call written; the statement that runs it draws no edge, so what is listed here is a floor (C-174)\n", symbolID, what)
+}
+
+// isOperatorName reports a C++ operator function's name: `operator`
+// followed by anything an identifier cannot continue with (`operator+`,
+// `operator()`, `operator int`), never an identifier that merely starts
+// with the word (`operator_count`).
+func isOperatorName(name string) bool {
+	rest, ok := strings.CutPrefix(name, "operator")
+	if !ok || rest == "" {
+		return false
+	}
+	c := rest[0]
+	return !(c == '_' || c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z')
 }
 
 // mintedNote marks a symbol whose definition lane A never parsed: lane B's
@@ -133,17 +186,28 @@ func indexGraph(g *graphDoc) *graphIndex {
 
 		laneBDeclared: map[string]bool{},
 		laneBExtent:   map[string]bool{},
+		symbolLang:    make(map[string]string, len(g.Symbols)),
+		symbolName:    make(map[string]string, len(g.Symbols)),
+		tsModule:      map[string]bool{},
 	}
 	for _, id := range g.CppTemplatePatterns {
 		idx.cppPattern[id] = true
 	}
+	moduleLang := map[string]string{}
 	for i := range g.Nodes {
 		idx.nodeByID[g.Nodes[i].ID] = i
 		idx.nodeIDs[i] = g.Nodes[i].ID
+		lang := langByExt[path.Ext(g.Nodes[i].Path)]
+		moduleLang[g.Nodes[i].ID] = lang
+		if g.Nodes[i].Kind == "module" && lang == "ts/js" {
+			idx.tsModule[g.Nodes[i].ID] = true
+		}
 	}
 	for i := range g.Symbols {
 		idx.symbolIDs[i] = g.Symbols[i].ID
 		idx.symbolKnown[g.Symbols[i].ID] = true
+		idx.symbolLang[g.Symbols[i].ID] = moduleLang[g.Symbols[i].Module]
+		idx.symbolName[g.Symbols[i].ID] = g.Symbols[i].Name
 		if g.Symbols[i].DeclaredBy == "scip" {
 			idx.laneBDeclared[g.Symbols[i].ID] = true
 			if g.Symbols[i].Extent == "braces" {
@@ -271,6 +335,9 @@ type symbol struct {
 	Module string `json:"module"`
 	Kind   string `json:"kind"`
 	Line   int    `json:"line"`
+	// The declared name alone (`__exit__`, `~Foo`, `[Symbol.iterator]`),
+	// read by hookNote (C-174).
+	Name string `json:"name"`
 	// "braces" on a symbol lane B declared whose body's extent the mint
 	// read from the file's own text (ADR-134); empty on every other symbol
 	// and on every artifact written before it.
@@ -559,8 +626,12 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 	// Before any caller: what the symbol itself is (ADR-129 §5). It
 	// qualifies every line below it, including "no recorded callers".
 	b.WriteString(idx.mintedNote(symbolID))
+	// A hook the language runs with no call written (C-174): said before
+	// the list, because it qualifies the list — and its absence.
+	b.WriteString(idx.hookNote(symbolID))
 
 	callers, users, implementors := 0, 0, 0
+	tsModuleCaller := false
 	var uses, implemented strings.Builder
 	for _, i := range idx.symbolTo[symbolID] {
 		e := g.SymbolEdges[i]
@@ -570,6 +641,9 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 				b.WriteString(fmt.Sprintf("callers of %s:\n", symbolID))
 			}
 			callers++
+			if idx.tsModule[e.From] {
+				tsModuleCaller = true
+			}
 			b.WriteString(fmt.Sprintf("  %s%s%s%s\n", e.From, e.cite(), e.qualify(), idx.templateNote(e)))
 		case "uses":
 			users++
@@ -578,6 +652,12 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 			implementors++
 			implemented.WriteString(fmt.Sprintf("  %s%s\n", e.From, e.cite()))
 		}
+	}
+	if tsModuleCaller {
+		// C-176: TS/JS lane A names no scope inside a constructor, an
+		// accessor, a static block or a field initializer, so a call
+		// written there is filed under its module. No key reads a caller.
+		b.WriteString("  (a TS/JS module named as a caller may stand for a constructor, an accessor, a static block, a field initializer, an object literal's method or a function assigned to a property in that file, not top-level code: lane A names no scope there, C-176)\n")
 	}
 	if users > 0 || implementors > 0 {
 		if callers == 0 {
@@ -588,8 +668,10 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 		// A `uses` edge is a resolution no detected call site claimed
 		// (ADR-029): a type annotation, an except clause, a value passed
 		// by name — or a call through a receiver lane A could not see
-		// (C-1). Worded as what is known, not as "not a call" (C-80).
-		b.WriteString(fmt.Sprintf("references %s where no call site was detected (type annotations, except clauses, values passed by name; a call through a receiver lane A cannot see, C-1):\n", symbolID))
+		// (C-1), an operator or a property read the language turns into
+		// a call (C-174), a TS tagged template (C-177). Worded as what is
+		// known, not as "not a call" (C-80).
+		b.WriteString(fmt.Sprintf("references %s where no call site was detected (type annotations, except clauses, values passed by name; a call through a receiver lane A cannot see, C-1; an operator or a property read the language turns into a call, C-174; a TS tagged template, C-177):\n", symbolID))
 		b.WriteString(uses.String())
 	}
 	if implementors > 0 {
@@ -605,7 +687,7 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 
 	ids := idx.symbolIDs
 	if idx.symbolKnown[symbolID] {
-		b.WriteString(fmt.Sprintf("no recorded callers of %s (static call edges only — dynamic dispatch is not traced)\n", symbolID))
+		b.WriteString(fmt.Sprintf("no recorded callers of %s (static call edges only — dynamic dispatch and calls through values are not traced, C-1, nor are calls the language makes with no call written, C-174)\n", symbolID))
 	} else {
 		b.WriteString(fmt.Sprintf("no symbol %q in the graph\n", symbolID))
 		b.WriteString(suggest(symbolID, ids))
@@ -1089,7 +1171,7 @@ var tailMeanings = []struct{ class, meaning string }{
 	// closure, a nested function below C-9's floor) — the call graph's
 	// known hole, per file (C-58). Missing from this table until
 	// 2026-09-03 (C-77): the proxy printed the by-design rollup without it.
-	{"below-floor", "resolved by the semantic lane to a declaration below the symbol floor — an interface method, a closure, a nested function — so no edge is drawn (C-58); the callee is known to the index and not to the graph"},
+	{"below-floor", "resolved by the semantic lane to a declaration below the symbol floor — an interface method, a closure, a nested function — so no edge is drawn (C-58); the callee is known to the index and not to the graph. In C++ it is also a definition lane A's walk does not read — one returning a reference, a conversion operator, a friend defined in its class — which is no design choice (C-175)"},
 }
 
 // notModelled marks the classes the graph sees and deliberately
@@ -1174,11 +1256,12 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 		"pytest fixture returns unless the fixture constructs it (ADR-145), or\n" +
 		"through a fixture its lookup by name cannot\n" +
 		"place — a plugin's or a base class's (C-4), computed\n" +
-		"route paths (C-5), calls the language makes with no call written —\n" +
-		"a Python `with` statement's __enter__/__exit__ where the item's class\n" +
-		"is not known (C-174), an operator's or a loop's dunder. Every\n" +
-		"percentage here is a floor over DETECTED call\n" +
-		"sites, not over the repo.\n")
+		"route paths (C-5), calls the language makes with no call written\n" +
+		"(C-174) — a `with` statement's __enter__/__exit__ where the item's\n" +
+		"class is not known, an operator's or a loop's hook, a property's\n" +
+		"accessor, a destructor, an initializer the runtime runs — and a\n" +
+		"TypeScript tagged template (C-177). Every percentage here is a\n" +
+		"floor over DETECTED call sites, not over the repo.\n")
 	// Languages with detected call sites under the scope, by tail bucket
 	// — the scoped verification line names only these (whole-repo scope
 	// names every language the artifact lists, call sites or not).

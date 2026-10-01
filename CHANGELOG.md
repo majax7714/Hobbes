@@ -11,9 +11,63 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.79-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.80-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.80-beta — 2026-10-01 (the honesty audit: what `list_blind_spots` did not show; C-174 widened, C-175, C-176 and C-177 registered)
+
+**Patch: what the layer says.** No edge, symbol or count moved. Max: "direct honesty violation becomes
+precedent 1".
+
+- **Audited.** C-174 was found by luck on a held-out cell, so each language was then probed for calls it
+  makes with no call written. There was one fixture per language, ingested in the image, with one function
+  per shape and a control beside each. Every control drew `calls semantic`. The implicit shapes drew no
+  `calls` edge in any language. Rust and C++ draw `uses` at some operator tokens, and Python draws `uses`
+  at a property read.
+- **C-174 widened.** It now names the measured shapes in every language:
+  - Python's dunders and hooks;
+  - Rust's `Drop`, `Deref`, operator traits, `for`, `format!`, `?` and `.into()`;
+  - Java's try-with-resources, for-each, concatenation, implicit `super()` and initializer blocks;
+  - TS/JS accessors, `for...of`, spread, `await`, coercion and `using`;
+  - Go's `init()`;
+  - C++'s destructors, range-for and implicit constructors;
+  - C's `cleanup` and `constructor` attributes.
+
+  Two of its sentences were wrong and are corrected: "none of them is measured", and "draws no edge".
+- **C-175 registered (*partial*).** C++ lane A drops three kinds of definition: one returning a reference
+  (`T&`, `const T&`, `T&&`), a conversion operator, and a friend defined in its class. The cause is that
+  `reference_declarator`, `operator_cast` and `friend_declaration` are not unwrapped. In a clean-parsed file
+  the definition has **no node**, and calls to it were labelled `below-floor`, "seen, not modelled by
+  design". That label was false. godot-orchestrator loses 64 reference returns and 3 conversion operators;
+  args, a graded cell, loses 2. In a file parsed with errors, the mint (C-145) may read the definition
+  back.
+- **C-176 registered (*partial*).** A call is filed under its nearest enclosing symbol, a rule stated
+  nowhere until now. In TS/JS, lane A names no scope inside the following, so its caller is the **module**,
+  even inside a class:
+  - a constructor, an accessor, a static block or a field initializer;
+  - an object literal's method;
+  - an unnamed class's method;
+  - a function assigned to a property.
+
+  folio-2025 has 501 of its 1,091 TS/JS call rows filed this way. No key reads a caller, so no precision
+  figure saw it.
+- **C-177 registered (surfaced).** A TS tagged template is not a call site: `` tag`x` `` draws `uses` only
+  and is in no count.
+- **Said where a user meets it.**
+  - **The "not detected at all" statement** in `list_blind_spots` and `hobbes plan`'s manifest names C-174
+    in every language's terms, and C-177 beside it.
+  - **`who_calls`'s "no recorded callers" line** names C-1 and C-174, where it named only dynamic
+    dispatch.
+  - **A hook note in `who_calls`.** Where the symbol's name alone shows it is a hook, `who_calls` notes so
+    before any caller line, and says the list is a floor: a Python dunder, a C++ destructor or operator, a
+    TS/JS `[Symbol.*]` method, a Go `init`.
+  - **`who_calls`'s references heading** names an operator or a property read (C-174), and a tagged template
+    (C-177).
+  - **A caller note in `who_calls`.** A caller list that names a TS/JS module carries the C-176 note.
+  - **The `below-floor` gloss** in `list_blind_spots` and the gate names C-175.
+- **Register:** 177 entries, 131 active (101 surfaced, 26 partial). Drivers: `~/.hobbes/bench/honesty-audit/`
+  (`RESULTS.md`).
 
 ## 0.2.79-beta — 2026-10-01 (a `with` statement's `__enter__`/`__exit__` where the item's class is known; ADR-156, C-174 narrowed)
 

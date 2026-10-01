@@ -601,28 +601,146 @@
   flask's, on the `app` fixture's value); an unannotated factory; `@contextmanager`; an annotation naming an
   outside type; `async with`; and every operator and iteration dunder. The ingest counts each abstention in
   `graph.json`'s `with_statements` block.
-- **Cannot tell you:** the calls an interpreter or compiler makes on the code's behalf, where
-  no call is written. In Python this means a `with` statement's `__enter__`/`__exit__`, an
-  operator's dunder (`a + b` → `__add__`), a `for` loop's `__iter__`/`__next__`, and a builtin's
-  dunder (`len(x)` → `__len__`). The class's method is a symbol, and the statement that runs it
-  draws no edge to it.
-- **Because:** lane A records a call where a call is written, and lane B's indexer gives no
-  reference at a `with` or an operator token for these. They are not sites, so they are in no
-  count and C-2's denominator does not hold them. C-1's general rule ("an absent call edge
-  never means this does not happen") covered them only by its title, since its stated causes
-  are dispatch and values. Until 0.2.78-beta nothing named them. C++'s operators are the
-  exception: they are drawn by their token since ADR-131 (C-146).
-- **Bites at:** `who_calls` and `tests_guarding` on a context manager's `__exit__` or
-  `__enter__`, and on any dunder. Measured on the three keyed Python cells (the held-out rich
-  cell, `oracle-grading.md` §10.40): observed `__exit__` misses rich 75, flask 88, click 35.
-  The trace oracle sees almost no `__enter__` (rich 1), because CPython 3.12 emits no call event
-  for it, so `__enter__`'s share is unmeasured, not small. Rust's `Drop`/`Deref`/operator traits,
-  Java's try-with-resources `close()` and for-each `iterator()`, and TS/JS getters, setters and
-  iterators are this shape too, and **none of them is measured**.
-- **You find out:** **surfaced** — `list_blind_spots` and `hobbes plan`'s manifest name it in
-  the always-on "not detected at all" statement.
-- **Source:** the rich, flask and click cells' misses (`~/.hobbes/bench/heldout-rich/`);
-  `go/internal/knowledge` and `derive/manifests.py`, with their tests.
+- **Audited 2026-10-01 (0.2.80-beta), one fixture per language.** Max: "direct honesty violation
+  becomes precedent 1". Each fixture holds one function per shape, and each shape runs exactly one
+  method the fixture defines. All seven were ingested in the image at 0.2.79-beta, and every
+  control drew `calls semantic`. These are fixture facts, not repo-scale counts. The entry was
+  written for Python, and the audit widened it to every language. It also corrected two
+  sentences: "none of them is measured", and "draws no edge", which was wrong for Rust and C++,
+  where some of these draw `uses`. The drivers and fixtures are in `~/.hobbes/bench/honesty-audit/`
+  (`RESULTS.md`).
+- **Cannot tell you:** the calls an interpreter, compiler or runtime makes on the code's
+  behalf, where no call is written. The target method is a symbol. The statement that runs it
+  draws **no `calls` edge** to it. Some draw a `uses` edge at the token (marked *uses* below),
+  which `who_calls` lists as a reference and not as a caller. As measured:
+  - **Python:** construction runs `__init__`, and the edge is drawn to the class, as the trace
+    key also keys it. Also covered:
+    - a `with` item's `__enter__`/`__exit__` where its class is not known (ADR-156 draws the
+      rest), and `async with`;
+    - operators (`__add__`, `__eq__`, `__getitem__`, `__setitem__`, `__contains__`);
+    - iteration (`__iter__`/`__next__` in a `for`, a comprehension or an unpacking; `async for`);
+    - truth testing (`__bool__`);
+    - an f-string or `str()`/`hash()`/`len()` reaching `__str__`/`__hash__`/`__len__`;
+    - a call of an instance (`__call__`);
+    - a property's getter and setter (*uses* to the property);
+    - a descriptor's `__get__`/`__set__`, `__getattr__` and `__del__`;
+    - a metaclass's `__call__`, and `__init_subclass__`.
+  - **Rust:**
+    - `Drop::drop` at scope end, and also through an explicit `drop(x)`;
+    - `Deref::deref` (*uses* at `*x`);
+    - `Add`, `AddAssign`, `Neg`, `Index`, `IndexMut` and `PartialEq` (*uses* at the operator);
+    - `PartialOrd::partial_cmp` at `<`;
+    - a `for` loop's `into_iter`/`next`;
+    - `Display::fmt` under `format!`;
+    - `From::from` under `?` and under `.into()`.
+
+    An auto-deref method call is drawn.
+  - **Java:**
+    - try-with-resources `close()`;
+    - for-each `iterator()`/`hasNext()`/`next()`;
+    - string concatenation's `toString()`;
+    - an implicit `super()`;
+    - `new` of a class with no declared constructor, which lands on the class and reaches no
+      base constructor;
+    - an enum's `values()`, which is not a symbol;
+    - a static or instance initializer block. It is not a symbol, and the calls inside it are
+      filed under the class.
+  - **TypeScript/JavaScript:**
+    - a `get`/`set` accessor, which is not a symbol (the edge is *uses* to the class);
+    - `for...of` and spread through `[Symbol.iterator]` and the iterator's `next()`;
+    - `await` on a repo thenable's `then`;
+    - a template literal or `+` reaching `toString`/`valueOf`;
+    - `using`'s `[Symbol.dispose]`;
+    - the `super(…)` and implicit constructors C-168 already names.
+  - **Go:**
+    - a package `init()`, which the runtime calls;
+    - a type's `String()`/`Error()` reached through `fmt` or the `error` interface (dispatch,
+      C-58's face).
+  - **C++:**
+    - a destructor at scope end, at `delete`, or as a member's or a base's;
+    - a range-for's `begin()`/`end()` and its iterator's `operator!=`/`operator*`/`operator++`;
+    - a conversion operator (and C-175: it is not a symbol);
+    - a functor's `operator()` (*uses*; C-146 names it);
+    - a copy constructor, and a converting constructor applied implicitly (*uses*; C-162 names
+      the conversion);
+    - a base constructor run by a derived one;
+    - a static object's constructor (*uses*, from the module).
+
+    An operator applied by symbol is drawn where the index names it at the token, and only
+    outside a template (C-146).
+  - **C:** `__attribute__((cleanup(f)))` and `__attribute__((constructor))`.
+- **Because:** lane A records a call where a call is written, and lane B's indexers give no
+  reference, or only a non-call reference, at a `with`, an operator, a loop, a scope's end or a
+  coercion. These are not sites, so they are in no count, and C-2's denominator does not hold
+  them. C-1's general rule ("an absent call edge never means this does not happen") covered them
+  only by its title, since its stated causes are dispatch and values. Until 0.2.78-beta nothing
+  named them.
+- **Bites at:** `who_calls` and `tests_guarding` on any of the targets above, and dead-code
+  intuitions about them. Measured on the three keyed Python cells (the held-out rich cell,
+  `oracle-grading.md` §10.40): observed `__exit__` misses rich 75, flask 88, click 35. The trace
+  oracle sees almost no `__enter__` (rich 1), because CPython 3.12 emits no call event for it, so
+  `__enter__`'s share is unmeasured, not small. No other language's share is measured at repo
+  scale.
+- **You find out:** **surfaced**.
+  - The always-on "not detected at all" statement in `list_blind_spots` and in `hobbes plan`'s
+    manifest names it in every language's terms since 0.2.80-beta.
+  - `who_calls` says it at the point of use. Its "no recorded callers" line names C-174 beside
+    C-1.
+  - `who_calls` notes a hook its name alone shows, before any caller line: a Python dunder, a
+    C++ destructor or operator, a TS/JS `[Symbol.*]` method, and a Go `init`. The note says the
+    list is a floor.
+  - `who_calls` names this entry on a `uses` reference.
+  - Rust's and Java's hooks (`drop`, `close`, `next`) are ordinary names, so no note can single
+    them out.
+- **Source:** the rich, flask and click cells' misses (`~/.hobbes/bench/heldout-rich/`); the
+  2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); `go/internal/knowledge` and
+  `derive/manifests.py`, with their tests.
+
+### C-176 — A call's caller is the nearest enclosing symbol, so code below the symbol floor speaks as its container — in TypeScript and JavaScript, as the module even inside a class — *registered 2026-10-01 (0.2.80-beta, the honesty audit)*
+- **Cannot tell you:** which function a call is written in, where that function is not a graph
+  symbol. Every lane files a call under the innermost enclosing **symbol**. So a lambda's or a
+  closure's calls are filed under the def around it, and a top-level callback's under the module
+  (C-9's floor, C-58's closures). Python and Java file a class body's code (an initializer block,
+  a class attribute's value) under the class. **TS/JS lane A skips the class:** its scope
+  vocabulary names a named class's method, a function declaration and a function bound to a
+  variable, and nothing else. So the calls inside these are filed under the **module**, as if
+  written at top level:
+  - a constructor;
+  - a `get`/`set` accessor;
+  - a `static {}` block;
+  - a field initializer;
+  - an object literal's method;
+  - an unnamed class's method;
+  - a function assigned to a property (`res.send = function send(…)`).
+- **Because:** `tsextract`'s `enclosingScope` returns no scope there, `tssource` makes a missing
+  scope the module, and the join takes lane A's scope before its own enclosing lookup. Lane A's
+  scope decides even where the class's own symbol spans the line. **No key reads a caller.**
+  Every grade is over `(site, target)` (C-164 said so for C++ alone), so no cell's precision
+  sees a caller filed too high.
+- **Bites at:** `who_calls` on anything a class's constructor or accessor calls, which reads
+  "module X calls f": top-level, import-time code that is not there. Also
+  `graph_neighborhood`'s view of the class, which shows none of its constructor's calls.
+  Measured over stored TS/JS graphs: `calls` evidence rows filed under a module whose line sits
+  inside a class's span (`~/.hobbes/bench/honesty-audit/modcaller.py`):
+
+  | Repo | Rows inside a class | TS/JS `calls` rows |
+  |---|---|---|
+  | brunosimon/folio-2025, a class-heavy app | **501** | 1,091 |
+  | ajv | 26 | 1,664 |
+  | cue | 11 | 1,005 |
+  | Preact | 7 | 2,738 |
+  | npq | 6 | 1,413 |
+  | xmpp.js | 4 | 705 |
+  | tileserver-gl | 3 | 333 |
+
+  Express files 983 of its 998 rows under a module. Those are mostly property-assigned functions
+  and top-level callbacks, and that count is not split by shape.
+- **You find out:** *partial.* `who_calls` adds a note under a caller list that names a TS/JS
+  module, since 0.2.80-beta: the module may stand for a constructor, an accessor, a static block
+  or a field initializer, and is not necessarily top-level code. `graph_neighborhood` and the
+  surface say nothing. The general roll-up rule is stated here and nowhere else.
+- **Source:** the 2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); `tsextract/extract.mjs`
+  `enclosingScope`, `tssource._call_sites`, `scipsource.project`.
 
 ---
 

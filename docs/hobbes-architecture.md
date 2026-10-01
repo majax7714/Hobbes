@@ -1045,7 +1045,9 @@ abstentions (ADR-096), Go's `build-tag-set` (ADR-098), and since ADR-090
 by **`below-floor`** — the one class that is not an unresolved site: the
 semantic lane resolved the call to a declaration lane A keeps no symbol
 for (an interface method, a closure), so it counts resolved and draws
-no edge (C-58); the row carries it as `floored` and the tail sums to
+no edge (C-58) — and, in C++, a definition lane A's walk does not read
+(a reference return, a conversion operator, a friend defined in its
+class: a defect, not the floor, C-175); the row carries it as `floored` and the tail sums to
 `unresolved + floored` — with
 `unclassified` as the honest residue — the pinned class list and its
 first-observation-wins decision order are `extract/tail.py`'s. A class states a checkable fact or
@@ -1053,7 +1055,7 @@ it abstains; a class that rationalised the unknown from a checklist of
 potentials would be the fake-honest shape P8 forbids. The ingest summary
 prints the per-language capture line on every run, always against the
 honest denominator — a share **of detected call sites**, never "of the
-repo", because the undetectable classes (C-1/C-4/C-5) are in no
+repo", because the undetectable classes (C-1/C-4/C-5, C-174, C-177) are in no
 denominator here — split into *seen, not modelled by design* versus
 *cannot resolve*, then — from `graph.json`'s `tail_classes_available`
 (ADR-053, C-32) — the classes that language's providers *could not have
@@ -2193,7 +2195,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.79-beta** (2026-10-01, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.79-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.80-beta** (2026-10-01, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.80-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

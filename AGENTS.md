@@ -200,8 +200,8 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 ```
 
 Suite sizes at the last check (2026-10-01; pytest and Go re-run on the
-host at 0.2.79-beta, the rest at 0.2.74-beta): 2,594 pytest (20 `lane_b`,
-run with the rebuilt image at 0.2.79-beta) / 399 Go with subtests (399
+host at 0.2.80-beta, the rest at 0.2.74-beta): 2,594 pytest (20 `lane_b`,
+last run with the image at 0.2.79-beta) / 402 Go with subtests (402
 pass) + 131
 oracle-lane Go with subtests (119 pass, 12 skip on a host without
 clang++ or cmake; the C++ ones pass in the image) / 52 vitest / 47
@@ -276,7 +276,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-10-01) — Hobbes 0.2.79-beta
+## Status (2026-10-01) — Hobbes 0.2.80-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -302,7 +302,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   **Held out** (Max, 2026-10-01, against fitting to the keys): rich,
   graded once with no rule changed, 4,748 confirmed, 0 Hobbes-wrong,
   recall 89.7% (§10.40).
-  **Register:** 174 entries; 128 active (100 surfaced, 24 partial, 3
+  **Register:** 177 entries; 131 active (101 surfaced, 26 partial, 3
   unsurfaced, 1 n/a), 29 lifted; the tally is
   held by `test_register_tally.py`, its dated notes are
   `docs/constraints/HISTORY.md`.
@@ -316,40 +316,37 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   the decorator case, at 0.2.76-beta), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.79-beta, a `with` statement's `__enter__`/`__exit__`**
-  where the item's class is known (ADR-156, units `32b8` for the oracle's
-  H-37 and `721c` for the rule). The keys were regenerated first: recall
-  fell (rich 88.4%, flask 54.6%, click 81.7%) because the old oracle could
-  not see `__enter__`. Then rich +96, flask +28 and click +12 confirmed,
-  with 0 new suspects and 0 rows lost.
-- **0.2.78-beta, C-174 registered and surfaced**: a call the
-  language makes with no call written (a Python `with` statement's
-  `__enter__`/`__exit__`, an operator's or a loop's dunder) is no site,
-  and nothing named it until now. C-1 covered it only by its title; Max:
-  "if second then our honesty point is of question". Containment first,
-  then route a below.
-- **0.2.77-beta, a held-out Python cell** (Max: "good to go
-  ahead with recommended"): Textualize/rich, pre-registered and graded
-  once at 0.2.76-beta; it joins Python's verification base (10 repos).
-  0 of 25 suspects Hobbes-wrong; R4 (recall) and the method row were
-  missed high. The same day:
-- **0.2.76-beta, the gate's decorator false block closed**
-  (C-91 amended, grounder v5; Max: "good to proceed with recommended",
-  2026-10-01; unit `da88`). A bare Python name that a column-0
-  assignment binds at module level, in the calling file or the repo
-  module it is imported from, is a value and abstains; other binding
-  forms still block. The three sessions' own diffs, replayed at their
-  parents, went from blocked (`invented` 8, 6, 1) to clear, and nothing
-  else in their grounding moved. 0.2.75-beta before it: ADR-155, a later
-  def of a Python qualname is its node's too.
+- **Latest — 0.2.80-beta, the honesty audit** (precedent 1; Max,
+  2026-10-01: "direct honesty violation becomes precedent 1"). Each
+  language got one fixture of calls it makes with no call written,
+  ingested in the image (`~/.hobbes/bench/honesty-audit/RESULTS.md`).
+  - **C-174 widened** to every language's shapes. Two of its sentences
+    were wrong and are corrected: "none measured", and "draws no edge"
+    (Rust and C++ draw `uses` at some operators).
+  - **C-175:** C++ lane A drops a definition returning a reference, a
+    conversion operator, and an in-class friend. In a clean file that
+    means no node, and the calls were labelled `below-floor`, "by design"
+    (godot-orchestrator: 67 such definitions).
+  - **C-176:** a call's caller is its nearest enclosing symbol. In TS/JS
+    that is the module, even inside a constructor or an accessor
+    (folio-2025: 501 rows). No key reads a caller.
+  - **C-177:** a TS tagged template is not a site.
+  - **Surfaced:** the "not detected at all" statement, three `who_calls`
+    notes, and the `below-floor` gloss. No edge moved.
+- **0.2.79-beta, a `with` statement's `__enter__`/`__exit__`** where the
+  item's class is known (ADR-156), after the oracle's H-37 rekeyed the
+  three Python cells. **0.2.77-beta:** the held-out cell, rich.
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
   sacrifice honesty for higher recall").
-  **Next — precedent 1, an honesty audit** (Max, 2026-10-01: "direct
-  honesty violation becomes precedent 1 after route is completed"):
-  what `list_blind_spots` does not show. Enumerate per language what
-  no lane records as a site or edge, and check each against the
-  register and the "not detected at all" statement. Contain any unnamed
-  limit before recall work. Then the local alias of a global (157; C-9).
+  **Next — the audit's three fixes, as routes for Max** (all measured
+  first; each moves a graded cell's graph, never its precision):
+  - **C-175's fix:** read `reference_declarator`, `operator_cast` and
+    friend definitions.
+  - **C-176's fix:** a named class's constructor, accessor, static block
+    and field initializer are scoped to the class.
+  - **C-177's fix:** a tagged template becomes a site.
+
+  Then the local alias of a global (157; C-9).
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
   necessarily an LLM (ADR-152). **Closed on its lattice** (Max,

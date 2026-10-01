@@ -6,6 +6,21 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+The honesty audit, 2026-10-01 (0.2.80-beta; Max: "direct honesty violation becomes precedent 1"):
+- **C-174 widened (still surfaced).** The audit used one fixture per language, ingested in the
+  image. The entry now names every language's measured shapes. Two sentences were wrong and
+  are corrected: "none of them is measured", and "draws no edge", since Rust and C++ draw
+  `uses` at some operator tokens. `who_calls` now says C-174 at the point of use.
+- **C-175 added (*partial*).** C++ lane A drops a definition that returns a reference, a
+  conversion operator, and a friend defined in its class. In a clean-parsed file there is no
+  node, and the calls were labelled `below-floor`, "by design" (godot-orchestrator: 67 such
+  definitions).
+- **C-176 added (*partial*).** A call's caller is the nearest enclosing symbol. In TS/JS that
+  is the module, even inside a class's constructor, accessor or field initializer (folio-2025:
+  501 rows). No key reads a caller.
+- **C-177 added (surfaced).** A TS tagged template is not a call site.
+- 177 entries, 131 active (101 surfaced, 26 partial).
+
 C-174 narrowed, 2026-10-01 (0.2.79-beta; ADR-156, Max: route a; no entry added):
 - **C-174 narrowed (still surfaced).** A sync `with` item's `__enter__`/`__exit__` is drawn where the item's
   class is known exactly (a `semantic` constructor edge, or a resolved return annotation). 174 entries, 128

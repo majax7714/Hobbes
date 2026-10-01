@@ -15129,3 +15129,61 @@ itself, and the oracle's limit is noted in the handoff.
   a HISTORY note, `oracle-grading.md` §10.41, §3.8's Python row, the session review and the tracker (96 of 40),
   workstreams, README, CLAUDE.md and AGENTS.md, and the handoff (next: **the honesty audit**, precedent 1 by Max's
   word). Host: pytest 2,594 (`lane_b` 20), Go 399, oracle lane 131 (12 skip without clang). The image was rebuilt.
+
+## 2026-10-01 (twenty-ninth session) — the top-level docs reviewed; precedent 1, the honesty audit: C-174 widened, C-175–C-177 registered and surfaced — 0.2.80-beta
+
+**The docs first.** The handoff, the CLAUDE.md status and the register index agreed: 0.2.79-beta, 174 entries,
+next the honesty audit (Max: "direct honesty violation becomes precedent 1 after route is completed"). Nothing
+had drifted.
+
+**The audit, measured, not reasoned.** There was one fixture per language: Python by hand, and Rust, Java, TS/JS,
+Go and C/C++ by one subagent each, on Sonnet. Each fixture had one function per implicit shape and a control
+beside it. Each was ingested in the image at 0.2.79-beta, and every control drew `calls semantic`. No implicit
+shape drew a `calls` edge in any language. Rust (`*x`, indexing, `+`, `+=`, unary `-`, `==`), C++ (implicit and
+copy constructors, a functor) and a Python property read drew `uses`. So C-174's "draws no edge" was wrong, and
+so was its "none of them is measured". The full table is in `~/.hobbes/bench/honesty-audit/RESULTS.md`, with
+the fixtures.
+
+**Found beyond C-174, and none of it named anywhere:**
+- **C-175.** C++ lane A reuses C's `_function_declarator_of`, which does not unwrap `reference_declarator`. So a
+  definition returning `T&`/`const T&`/`T&&` is no symbol. Nor is an `operator_cast`, or a friend defined in its
+  class. In a clean-parsed file that means no node, and the calls to it were tallied `below-floor`, "seen, not
+  modelled by design", which was a false label. Lane B's mint covers error-parsed files only. A first probe
+  of mine looked like a rescue because the file had parse errors from `i.operator++()`. Re-run clean, the loss
+  showed. Counted by walking lane A's parse: godot-orchestrator 64 references and 3 conversion operators in
+  clean files; TinyGSM 10; libcuckoo 9; args, a graded cell, 2; fmt 0 (its losses are in error-parsed files).
+  The clean-file "other" losses (godot 22) were not read.
+- **C-176.** TS/JS `enclosingScope` names only a named class's methods, function declarations and functions
+  bound to variables. A call inside a constructor, an accessor, a static block, a field initializer, an object
+  literal's method, an unnamed class's method or a property-assigned function is filed under the **module**.
+  Python and Java file class-body code under the class. Measured over stored graphs: folio-2025 has 501 of
+  1,091 call rows from inside a class, and ajv has 26. No key reads a caller; C-164 said so for C++ alone.
+  The general roll-up rule (a call's caller is its nearest enclosing symbol) was stated nowhere.
+- **C-177.** A TS tagged template is not a `CallExpression`, so it is no site and draws `uses` only. The tsc
+  oracle keys it.
+- **`who_calls`** answered "dynamic dispatch is not traced" as the only reason for no callers.
+
+**Contained (0.2.80-beta; no edge, symbol or count moved):**
+- C-174 was rewritten with every language's measured shapes. C-175 is *partial*, C-176 *partial* and C-177
+  surfaced. The tally is 177 / 131 / 101 / 26.
+- The "not detected at all" statement is language-general in both renderers and names C-177.
+- `who_calls` gained three things:
+  - a hook note before the list, where the name alone shows it (a Python dunder, a C++ destructor or
+    operator, a TS/JS `[Symbol.*]` method, a Go `init`);
+  - C-174 beside C-1 on "no recorded callers";
+  - C-174 and C-177 on the references heading, and a C-176 note under a TS/JS module caller.
+- The `below-floor` gloss in `list_blind_spots` and the gate names C-175. The architecture's §3 tail passage
+  names it too.
+- Go tests (3 new, 402 with subtests): the hook note on, and off for `close`, `operator_count`, an overload's
+  `~2` and Rust's `drop`; the no-callers line; the TS module note. Python: the manifest statement.
+
+**Routes for Max, not built:** C-175's fix (unwrap the declarator, read `operator_cast` and friends; measure fmt
+and args first), C-176's fix (scope class-body code to a named class), and C-177's fix (a tagged template as a
+site). Each moves a graded cell's graph and none its precision. Then C-174's remainder per language, and the
+local alias of a global.
+
+**Released as 0.2.80-beta:** the version copies, the CHANGELOG, the register (C-174 rewritten; C-175, C-176,
+C-177; index, debt summary, HISTORY), the architecture's §3 tail passage and §8 header, workstreams, README,
+CLAUDE.md and AGENTS.md, and the handoff (next: the three routes). On the host, pytest ran 2,594, all passing.
+`lane_b` was not re-run, since no extraction code moved. Go ran 402, all passing. The image was rebuilt at
+0.2.80-beta.
