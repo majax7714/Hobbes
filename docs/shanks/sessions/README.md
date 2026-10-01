@@ -144,10 +144,11 @@ its authorship is what keeps it out of any training unit.
 | 92 | [61b4](S-20261001T163708Z-61b4.md) | 2026-10-01 | extraction | 73/160 | 11 min | $3.40 | clear | pass | right-clear | merged |
 | 93 | [78b9](S-20261001T184731Z-78b9.md) | 2026-10-01 | extraction | 42/120 | 4 min | $1.30 | clear | pass | right-clear | merged |
 | 94 | [da88](S-20261001T200131Z-da88.md) | 2026-10-01 | harness and sandbox | 32/80 | 3 min | $0.97 | clear | pass | right-clear | merged |
+| 95 | [32b8](S-20261001T204105Z-32b8.md) | 2026-10-01 | oracle lane | 43/80 | 4 min | $1.18 | clear | pass | right-clear | merged |
 
-94 of 40 sessions · areas: extraction, knowledge tools, oracle lane, harness and sandbox (4; at least 3) · false blocks 4 · missed 0
-refusals: egress 109, policy escalations 276, denies 1 (each read in its session's notes, §4)
-reported cost $579.52 over 93 of 94 sessions (the envelope's figure, on the subscription) · turns 6343 · wall 1233 min
+95 of 40 sessions · areas: extraction, knowledge tools, oracle lane, harness and sandbox (4; at least 3) · false blocks 4 · missed 0
+refusals: egress 111, policy escalations 280, denies 1 (each read in its session's notes, §4)
+reported cost $580.70 over 94 of 95 sessions (the envelope's figure, on the subscription) · turns 6386 · wall 1238 min
 This block is rendered by `pipeline/scripts/shanks_tracker.py render` from the logs and is not edited by hand.
 
 <!-- tracker:end -->

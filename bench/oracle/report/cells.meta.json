@@ -591,6 +591,13 @@
   "label": "flask",
   "note": "trace-graded under its own suite; picked for ADR-145's amended shape (the app fixture); 15 of 18 suspects are C-60's override asymmetry, 3 Hobbes-wrong (a sibling method's nested def)"
  },
+ "rich-py": {
+  "lang": "Python",
+  "run": "contained",
+  "draw": "picked",
+  "label": "rich",
+  "note": "held out: trace-graded under its own suite, no rule fitted on it, predictions pre-registered; picked for diversity from click and flask; 25 suspects, 0 Hobbes-wrong (19 C-60, 5 a conditional expression's untaken branch, 1 a monkeypatch)"
+ },
  "codegraphcontext-express": {
   "lang": "JavaScript",
   "run": "host-run",

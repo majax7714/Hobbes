@@ -4773,6 +4773,51 @@
    }
   },
   {
+   "stem": "rich-py",
+   "record": "rich-py-2026-10-01.md",
+   "date": "2026-10-01",
+   "kind": "trace",
+   "oracle": "py-trace 3.12.13 sys.monitoring",
+   "lang": "Python",
+   "run": "contained",
+   "draw": "picked",
+   "label": "rich",
+   "note": "held out: trace-graded under its own suite, no rule fitted on it, predictions pre-registered; picked for diversity from click and flask; 25 suspects, 0 Hobbes-wrong (19 C-60, 5 a conditional expression's untaken branch, 1 a monkeypatch)",
+   "edges": 5874,
+   "confirmed": 4748,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 25,
+   "unobserved": 1101,
+   "silent_by": {
+    "line-mixed": 3,
+    "line-not-called": 601,
+    "not-loaded": 497
+   },
+   "confirmation_rate": {
+    "pct": 80.8,
+    "num": 4748,
+    "den": 5874
+   },
+   "recall": {
+    "pct": 89.7,
+    "hits": 4748,
+    "pairs": 5296,
+    "roots": null,
+    "runs": 2,
+    "basis": "recall-against-executed (coverage-limited)"
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 5874,
+    "refused": 4452,
+    "unjudged": 1422,
+    "falsely": 0
+   },
+   "misses": {}
+  },
+  {
    "stem": "rust_proj",
    "record": "rust_proj-2026-08-28.md",
    "date": "2026-08-28",
