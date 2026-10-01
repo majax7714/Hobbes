@@ -2503,6 +2503,45 @@ table is the fixed build.
 run in the same image over the same clone has them. Lane A now draws the one bare call in
 that branch. No key on Linux observes it. Python only; no other cell was regraded.
 
+### 10.38 What Pyright reads as never run on Linux — `PREREG.md` written 2026-10-01 before `probe.py`'s first run (amended once after it); this section written after the regrade (ADR-154; unit `61b4`)
+
+**The cause, read first** (`~/.hobbes/bench/py-platform/run.sh`): once Pyright 0.6.6 loads the
+ingest's staged config it assumes Linux and the interpreter's version, reads static
+`sys.platform`, `os.name`, `sys.version_info` and `TYPE_CHECKING` tests against them, and
+scip-python emits nothing in a branch read as never taken. §10.37's raw run had the darwin
+lines only because 0.6.6 could not parse click's `pyproject.toml` and assumed no platform.
+
+**The probe** (`probe.py`, `ast` over the source, against each cell's own facts stream):
+
+| cell | dead call sites | silent in the stream | twins |
+|---|---|---|---|
+| click | 104 (80 after `_winconsole.py:35`'s module-level `assert`) | 104 | 5 |
+| flask | 2 | 2 | 0 |
+| attrs | 1 | 1 | 0 |
+| this repo | 2 | 2 | 0 |
+
+The first run missed the `assert` and short-circuit forms; amendment 1 added them, and the
+model then matched the index on every row. No key row sits at any site the decision moves.
+
+**Built and regraded** (stored keys, `--poison`):
+
+| cell | confirmed | suspect | contradicted | poison |
+|---|---|---|---|---|
+| flask, 0.2.73-beta → **0.2.74-beta** | 1,524 → **1,524** (56.5%) | 15 → 15 | 0 → 0 | PASS |
+| click (`click-py-r3`), 0.2.73-beta → **0.2.74-beta** | 3,756 → **3,756** (82.4%) | 20 → 20 | 0 → 0 | PASS |
+
+Signed direction of fix: confirmed **±0**, suspect **±0**, contradicted **±0**, rows removed
+**0**. flask's export is byte-identical. click's graph gains `getchar → raw_terminal`
+(`_termui_impl.py:965`, `semantic`) and two `uses` at the twins' function-local import
+lines; `termui.py:980` and `getchar → _translate_ch_to_exc` move `syntactic` → `semantic`;
+the row at 930 (inside the dead win32 `getchar`) is withheld; `raw_terminal` and `getchar`
+are recorded at 938 and 964; lane disagreements 2 → 0. None of those sites is observed by
+the key (the suite never reaches a raw terminal). Records: 9 click files, 3 flask files.
+
+**Fixed at the review:** the first build dropped lane A's guess at a twin, and click's
+`termui.py:980` (an aliased import's `f()`, which the join places only at its own column
+against lane A's answer) went undrawn; the host's `lane_b` case caught it. Python only.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

@@ -14925,3 +14925,60 @@ drivers are `~/.hobbes/bench/py-route-c/` (`PREREG.md`, `probe.py`, `RESULTS.md`
 **Later: the doer's model on this box is Opus 5.5** (Max: "opus 5.5 is more efficient and better than opus 5 … move
 that to default … for dispatching"). `HOBBES_DISPATCH_MODEL=claude-opus-5-5` in `.claude/settings.local.json`
 (gitignored); CLAUDE.md and the handoff name it. Unit `99dc` ran on Opus 5, before the change. No code moved.
+
+## 2026-10-01 (twenty-sixth session) — the top-level docs reviewed; click's silent darwin branch read to its cause; ADR-154 built — 0.2.74-beta
+
+**The docs.** Read for standing (Max: "going to be working on extraction for this session mainly"); the
+resume point was the handoff's three extraction candidates. This repo was re-ingested at HEAD (the graph
+was one docs commit stale).
+
+**Candidate 1, the ingest's silence on click's `sys.platform == "darwin"` branch** (Max: "good to proceed
+with the suggestion"). Pre-registered, then run; the record and drivers are `~/.hobbes/bench/py-platform/`
+(`PREREG.md` with amendment 1, `RESULTS.md`, `run.sh`, `probe.py`, `graphcost.py`, `localimport.py`).
+- **The cause.** The ingest stages a `pyrightconfig.json`; once Pyright 0.6.6 loads any config it logs
+  "Assuming Python platform Linux" (`process.platform`, the image) and evaluates static tests against it
+  and the interpreter's version. scip-python emits nothing in a branch it reads as never taken. The raw
+  run that had the darwin lines staged no config, and 0.6.6 cannot parse click's `pyproject.toml`, so it
+  assumed no platform. Variants on a staged click: `Darwin` brings the branch back and kills `elif WIN`;
+  an unknown platform (`"All"`) speaks everywhere.
+- **The forms**, read from the bundled evaluator: `sys.platform ==|!=` (never `startswith`), `os.name`,
+  `sys.version_info` against a tuple or `[0]`, `TYPE_CHECKING`, with `and`/`or` as code flow; in `if`,
+  `while`, `assert`, short-circuit operands and conditional expressions.
+- **Measured:** click 104 dead call sites (80 in `_winconsole.py` after a module-level `assert`), flask 2,
+  attrs 1, this repo 2; every one silent in its facts stream. The first run missed `assert` and the
+  operands; the amendment added them before the model was trusted.
+- **Candidate 2 is the same read.** `_termui_impl.py:965` is a *twin*: `raw_terminal` defined under
+  `win32` and `else`, one node at the first def, so lane B's reference to the live def landed nowhere —
+  965 drew **nothing**, not "lane B wins" as the handoff said. `termui.py:364` is a function-local import
+  ADR-046 does not record: 1 site on four cells.
+- **Turning the narrowing off was tried and not taken:** the twin becomes one moniker with a definition
+  and a *reference*, and 965 would be filed under the win32 def, which ADR-150 does not catch.
+
+**Route a, then the twin re-asked** (Max: "good to proceed with the recommended route"; on the new fact
+that 965 draws nothing, "Record at live def"). ADR-154 written and committed before the dispatch.
+
+**Unit `S-20261001T163708Z-61b4`** (Opus 5.5, 73 of 160 turns, reported $3.40 on the subscription, 11
+min): gate clear, verify pass, 1,723 tests, 0 regressions. One departure the doer named and I kept: step
+6 refuses a function-local-import call only where lane A resolved it into the calling file, since lane
+A's import table already reads the import; none of 804 local imports on four cells conflicts with a
+different top-level import. **Two defects fixed at the review, both the ADR's** (`c8eab1b`):
+- step 5 dropped lane A's guess at a twin, and click `termui.py:980` (an aliased import's `f()`, placed by
+  the join only at its own column against lane A's answer) lost its drawn edge; the `lane_b` case written
+  from the ADR failed on the host and showed it. The guess now names the live def.
+- Pyright reads a `sys.version_info` tuple of two or more elements by its first two; the brief said a
+  three-element tuple is not static.
+
+**Graded on the fixed build** (`oracle-grading.md` §10.38): flask 1,524 and click 3,756 confirmed,
+unchanged; 0 contradicted; poison PASS; flask's export byte-identical. click +3 edges, two tiers raised,
+one row withheld, the twins at their live defs, lane disagreements 2 → 0; records on 9 click files and 3
+flask files.
+
+**Released as 0.2.74-beta:** CHANGELOG, C-173 (173 entries, 127 active, 99 surfaced), the ADR's *Built*
+section and its two corrections, the architecture (header, §3's provider list, §3.8's Python row, the
+tracker count 92 of 40), workstreams, README, CLAUDE.md and AGENTS.md. The binaries, the web bundle and
+the image were rebuilt. Host: pytest 2,535 (`lane_b` 18 of 18), Go `./...` and the oracle lane green, 52
+vitest, 97 scip, 47 tsextract.
+
+**Found, for the handoff:** a qualname defined twice outside a static test is still one node at its first
+def (not measured); an aliased function-local import draws nothing (flask 2); scip-python names no
+occurrence for flask's `urlsplit`, import or call.

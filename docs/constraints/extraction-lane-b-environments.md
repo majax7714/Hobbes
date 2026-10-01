@@ -340,6 +340,34 @@ quietly survives. When a residual case turns out to bite, it becomes a
 new active entry and the two cross-reference. Field key: `README.md`,
 "How to read a lifted entry".
 
+### C-173 — Python code Pyright reads as never run on Linux, at the interpreter's version, has no lane B answer
+- **Cannot tell you:** what a call in such a branch resolves to by lane B, or where a
+  definition written only there is referenced from. Lane A's edges there stand at
+  `syntactic` alone, with no lane B corroboration and no receiver typed; a def written only
+  there is a lane A symbol the index never names.
+- **Because:** the ingest stages a `pyrightconfig.json`, and Pyright then assumes a platform
+  (pinned `Linux` since 0.2.74-beta; before that the image's, also Linux) and the
+  interpreter's version (the venv's, or the image's). It evaluates `sys.platform ==|!=`,
+  `os.name ==|!=`, `sys.version_info` comparisons and `TYPE_CHECKING`, with `not`/`and`/`or`
+  read as code flow, in an `if`/`elif`, a `while`, an `assert`, a short-circuit operand and a
+  conditional expression, and marks the branch never taken unreachable. scip-python emits no
+  occurrence there; only `import` lines keep theirs. `sys.platform.startswith(…)` is not
+  read, so such a branch stays live.
+- **Bites at:** click 104 call sites (80 in `_winconsole.py`, after `assert sys.platform ==
+  "win32"`), flask 2, attrs 1, this repo 2; on click 17 symbol edges have evidence there,
+  15 of them in `_winconsole.py`. A name a file defines in a dead branch and once outside it (a *twin*:
+  click's `raw_terminal` and `getchar`) was one node at its first def until 0.2.74-beta, so
+  lane B's references to the live def landed nowhere; the node is now the live def, lane A
+  names it, and a call inside the dead def is withheld. No graded row moved (§10.38).
+- **You find out:** **surfaced** — one `scip-python` degradation record per file with dead
+  lines (0.2.74-beta): the spans, the forms that killed them, the reading (`Linux / Python
+  3.12`), how many symbol edges have evidence there, the twins with their live lines, and the
+  sites withheld; `list_blind_spots` serves it. It is written only where lane B ran for Python.
+- **Provider (P9):** scip-python **0.6.6** (its bundled Pyright's static-condition
+  evaluation and unreachable-code elision).
+- **Source:** ADR-154; `~/.hobbes/bench/py-platform/` (`PREREG.md`, `RESULTS.md`);
+  `oracle-grading.md` §10.38.
+
 ### C-74 — A workspace link inside `node_modules` dangled in the container, and the record blamed the helper — *lifted 2026-09-03*
 - **Was:** `containment.mount_roots` mounted each `node_modules` tree
   read-only at its host path and nothing else of the repo's *installed*

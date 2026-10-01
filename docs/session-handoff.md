@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-30 (twenty-fifth session); Hobbes 0.2.73-beta on `main`.**
+**Reviewed 2026-10-01 (twenty-sixth session); Hobbes 0.2.74-beta on `main`.**
 Max pushed through `45e67a5` (D-15 taken, 2026-09-27); `main` is ahead of
-`origin/main` by this day's commits, unpushed. The image and the proxy are at
-0.2.73-beta, and this repo was ingested at the release commit; ingest at HEAD again if
+`origin/main` by the commits since, unpushed. The image and the proxy are at
+0.2.74-beta, and this repo was ingested at the release commit; ingest at HEAD again if
 `main` has moved since. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -11,7 +11,7 @@ the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.73-beta are untagged. Tags stay Max's call each time.
+  0.2.74-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -28,43 +28,42 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-30, twenty-fifth session)
+## ⇢ START HERE NEXT SESSION (written 2026-10-01, twenty-sixth session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**Extraction is the work.** Calvin is closed on the lattice (Max, 2026-09-29: "close out here and return to
-extraction"). **Route c is built: ADR-153, 0.2.73-beta** (Max: route a, 2026-09-30). The next candidates are
-below, each measured first.
+**Extraction is the work.** Calvin is closed on the lattice (Max, 2026-09-29). **ADR-154 is built:
+0.2.74-beta** (Max: route a and "Record at live def", 2026-10-01). The next candidates are below, each
+measured first.
 
-- **Shipped this session (0.2.73-beta, ADR-153, unit `99dc`):** lane A draws a bare call to the one def its own
-  function writes, `syntactic`, through the fallback. flask 1,519 → 1,524 (56.5%), click 3,754 → 3,756; 0
-  contradicted; both exports identical to the simulation's (§10.37). C-170 narrowed. Drivers
-  `~/.hobbes/bench/py-route-c/` (`PREREG.md`, `probe.py` — an `ast` scope walk over any Python clone, reusable;
-  `RESULTS.md`; `PREREG-sim.md`, `ingest_rule.py`, `sim.sh`, `sim/`; `cells.tsv`, `built/`; `units/`; `wt/` and
-  `hobbes-src/` removable).
+- **Shipped this session (0.2.74-beta, ADR-154, unit `61b4`):** the handoff's candidates 1 and 2 were one
+  cause. Pyright, once the ingest's staged config loads, reads Python as Linux at the interpreter's
+  version and scip-python indexes nothing in a branch a static `sys.platform`/`os.name`/
+  `sys.version_info`/`TYPE_CHECKING` test never takes (click 104 call sites, flask 2, attrs 1, this repo
+  2). The platform is pinned, lane A evaluates the same tests and a `scip-python` record per file names
+  the dead lines (C-173); a *twin* (a name a dead branch defines and once outside it) is one node at its
+  live def; a function-local import shadows the fallback. flask 1,524 and click 3,756, unchanged, 0
+  contradicted; click's lane disagreements 2 → 0 (`hobbes lanes` on its clone no longer has them).
+  Drivers `~/.hobbes/bench/py-platform/` (`PREREG.md`, `RESULTS.md`, `run.sh` raw-index variants on a
+  staged clone, `probe.py` the static model over a facts stream, `graphcost.py`, `graphdiff.py` before/
+  after graphs, `localimport.py`, `localimport_conflict.py`, `cells.tsv`, `before/`, `built/`, `units/`; the review worktree was removed).
 - **Next candidates, each measured first:**
-  1. **The ingest is silent on click's `sys.platform == "darwin"` branch, and why is not read.**
-     `src/click/_termui_impl.py` 811–821 have no occurrence in the ingest's facts stream
-     (`~/.hobbes/cache/index/*.facts.ndjson`); the `elif WIN:` branch is indexed. A raw scip-python run in the same
-     image over the same clone has those lines (`py-multidef/click/occ.ndjson`). Read what differs (the staged
-     tree, `--environment`, the project's `[tool.pyright]`) before calling it a constraint or a defect. No register
-     entry names it.
-  2. **click's 2 lane disagreements (`hobbes lanes` exits 1 on its clone).** Neither is ADR-153's: both syntactic
-     targets are module-level, and lane B wins both, so no drawn edge is wrong.
-     - `termui.py:364 get_pager_file()` is inside `def get_pager_file`, whose body does
-       `from ._termui_impl import get_pager_file`. Lane A's fallback binds the call to the module-level def: ADR-046's
-       bindings (`_collect_local_bindings`) do not record a function-local import, so `_shadowed` does not see it.
-     - `_termui_impl.py:965 raw_terminal()`: the module writes `def raw_terminal` under `if sys.platform == "win32":`
-       and again under `else:`. Lane A keeps the first, lane B names the `else` one. This is item 1's subject seen
-       from the other side: pyright reads `sys.platform` statically.
-     Measure how many sites each shape has on the Python cells, then an ADR.
-  3. **C and C++ lane A time** grows about 8× per doubling of chain depth (6 s and 12 s at 800 calls): a
+  1. **C and C++ lane A time** grows about 8× per doubling of chain depth (6 s and 12 s at 800 calls): a
      measured-fix candidate, no graph change.
-- **A lesson for the next probe:** the simulation matched sites by the probe's rows, so a refusal the ADR added
-  after the probe (a shared qualname) was in neither; the first build lost click's two rows to `@overload` stubs
-  and only the real cell showed it. Put every refusal the ADR words into the simulation, or re-run the probe as
-  worded.
+  2. **A qualname a Python file defines twice outside a static test** (`try`/`except`, `if HAS_X:`) is
+     one node at its first def (`graph._symbol_records`), so lane B's references to the second land
+     nowhere, as the twins' did before ADR-154. Not measured; count it with `probe.py`'s twin logic
+     generalised before calling it a constraint. `@overload` stubs and property setters share a
+     qualname too and are one definition in the index (ADR-150's fixture read): exclude them.
+  3. **An aliased function-local import that draws nothing** (`from .testing import FlaskClient as
+     cls; cls(…)`: flask 2). click's `termui.py:980` draws since ADR-154; read why flask's do not.
+  4. **scip-python names no occurrence for flask's `urlsplit`**, at the import or the call
+     (`app.py:15`, `:725`). Not read.
+- **A lesson for the next brief:** a rule that *drops* a fallback can lose an edge the join places
+  only at its own column (ADR-143) — an aliased import's site, which the two lanes spell differently.
+  Re-pointing kept it. Ask what the join needs lane A's answer for before a brief drops one; the
+  host's `lane_b` case written from the ADR is what caught it.
 
 **Calvin, closed on sqlite-vector** (the record: `docs/experiments/calvin/calvin-reassessment.md`, §11 to §13; the
 runs: `~/.hobbes/bench/calvin-lattice/route1-s1/`, `PREREG.md` and `PREREG-s2.md` with their `RESULTS`).
@@ -464,7 +463,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 91 of 40, 4
+   - **The validating 40 are done:** the tracker reads 92 of 40, 4
      areas, 4 false blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141`,
      `66c5`, the decorator case, open), 0 missed.
 3. **A regrade against stored keys:**
@@ -527,7 +526,7 @@ min each.
 2. **The cell's defect register** (D-1–D-5): which to fix first.
 3. **ADR-092's four embedded decisions.** Nothing blocks on them.
 
-## WHERE THINGS STAND (2026-09-30)
+## WHERE THINGS STAND (2026-10-01)
 
 - **Languages:** Python, TypeScript, Go, Rust, Java, C and C++ supported,
   each as far as its §3.8 row (P11); Terraform/HCL structure. JavaScript
@@ -537,14 +536,14 @@ min each.
 - **Shanks, the harness** (ADR-107, ADR-112, ADR-152): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Ninety-one log files under `docs/shanks/sessions/`; the tracker reads 91 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
+  is a tmpfs. Ninety-two log files under `docs/shanks/sessions/`; the tracker reads 92 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 96 cells (22 same-key rows, C++'s two among them; flask's new
   cell at 0.2.68-beta's figures); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 172 entries: 126 active (98 surfaced, 24 partial, 3
+- **Register:** 173 entries: 127 active (99 surfaced, 24 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 29 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open** (H-36, a `<genexpr>` frame keyed as a call,
@@ -552,8 +551,8 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.73-beta (2026-09-30, every suite re-run on the host): 2,464 pytest
-  (`lane_b` 17 of them, run in the rebuilt image at 0.2.73-beta), Go `./...` 399 with
+- **Suites** at 0.2.74-beta (2026-10-01, every suite re-run on the host): 2,535 pytest
+  (`lane_b` 18 of them, run with the rebuilt image at 0.2.74-beta), Go `./...` 399 with
   subtests (398 pass / 1 skip), 97 scip node, 47 tsextract, 52 vitest, 84 atlas0, 656
   lattice (624 pass / 32 skip without clang, after D-13's unit); oracle-lane Go 129 with subtests, 117 pass /
   12 skip on this host, which has no clang++ or cmake (the C++ fixture tests run and pass

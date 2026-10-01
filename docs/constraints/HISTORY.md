@@ -6,6 +6,11 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-173 registered, 2026-10-01 (0.2.74-beta; ADR-154, Max: "good to proceed with the recommended route"):
+- **C-173 added (surfaced).** Python code Pyright reads as never run on Linux at the
+  interpreter's version has no lane B answer; a `scip-python` record per file names the
+  lines, and a twin's node is now its live def. 173 entries, 127 active (99 surfaced).
+
 C-171 and C-172 registered, 2026-09-26 (0.2.71-beta; D-8, Max: "good to proceed with recommended"):
 - **C-171 added (surfaced).** A file nested deeper than lane A's walk reaches is read
   as empty and named in `extraction_errors`; the Rust, Go, Java and Terraform walks are

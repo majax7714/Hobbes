@@ -1,7 +1,7 @@
 # ADR-154 — Lane B reads Python as Linux at one version, and the ingest says where
 
 **Date:** 2026-10-01 · **Status:** accepted (Max, 2026-10-01: "good to proceed with the recommended route";
-the twin's node at the live def: "Record at live def") · **Owner:** Max · **Source:** the handoff's
+the twin's node at the live def: "Record at live def") and **built** (0.2.74-beta, unit `61b4`) · **Owner:** Max · **Source:** the handoff's
 extraction candidates 1 and 2 (click's silent darwin branch; click's two lane disagreements). Measured
 this session: `~/.hobbes/bench/py-platform/` (`PREREG.md` with amendment 1, `RESULTS.md`, `run.sh`,
 `probe.py`, `graphcost.py`, `localimport.py`).
@@ -20,7 +20,9 @@ occurrence** there; only `import` lines keep theirs. Nothing records it.
 The forms, read from the bundled evaluator (`evaluateStaticBoolExpression`):
 - `sys.platform ==|!= "<s>"` (never `startswith`, never `in` — click's `WIN` stays live);
 - `os.name ==|!= "<s>"` (`posix` on Linux);
-- `sys.version_info <op> (<a>, <b>)` or `(<a>,)`; `sys.version_info[0] <op> <n>`;
+- `sys.version_info <op> (<a>, <b>, …)` (read by its first two elements; *corrected at the review,
+  2026-10-01: the first form said a longer tuple is not static*) or `(<a>,)`;
+  `sys.version_info[0] <op> <n>`;
 - `TYPE_CHECKING` (true), and `<X>.TYPE_CHECKING` where `X` is a name an `import typing` or
   `import typing_extensions` binds (its alias, or the module's name); `True`, `False`;
 - `sys` is the name `import sys` binds (its alias, or `sys`); `from sys import platform` is not read;
@@ -80,8 +82,9 @@ Hobbes states the reading it already gets, and stops guessing against it.
 5. **A twin's node is its live def.** Where a qualname has exactly one def outside the file's dead
    regions and one or more inside, the symbol record takes the live def's `line` and `end_line`
    (the id is unchanged). Lane B's references to it then land. Then, before the join:
-   - lane A proposes nothing for a call whose fallback target is any def of a twin (the fallback
-     entry is dropped, so the lane agreement does not compare it);
+   - a fallback entry whose target is any def of a twin names the live def, the node's one
+     reading, so lane A and lane B agree (*corrected at the review, 2026-10-01: the first form
+     dropped the entry, which lost a drawn call through an aliased import — see* Built);
    - a call site inside a dead def of a twin is not drawn (its fallback entry is dropped; lane B
      has nothing there): the projection takes the caller from lane A's scope qualname, so it
      would be filed under the live node. Counted in the record.
@@ -122,3 +125,23 @@ Hobbes states the reading it already gets, and stops guessing against it.
 - An aliased function-local import (`from .testing import FlaskClient as cls`) draws nothing
   (click 1, flask 2); not read.
 - scip-python names no occurrence for flask's `urlsplit`, import or call; not read.
+
+## Built (0.2.74-beta, unit `61b4`)
+
+As decided, with one departure the doer named and two defects fixed at the review (`c8eab1b`).
+- **Step 6, narrower, accepted.** Lane A's import table already reads a function-local import, so
+  `_imported_here` refuses a shadowed call only where lane A resolved it into the calling file;
+  the literal rule would have dropped right edges without lane B. None of 804 function-local
+  imports on the four cells conflicts with a different top-level import of the name
+  (`localimport_conflict.py`), so it draws no less. A conflicting pair would still be lane A's
+  guess.
+- **Step 5 dropped lane A's guess at a twin; it now names the live def.** The drop lost click
+  `termui.py:980` (`from ._termui_impl import raw_terminal as f; return f()`): the index spells
+  the site `raw_terminal`, lane A `f`, and the join places it only at its own column against
+  lane A's answer (ADR-143). The host's `lane_b` case, written from this ADR, caught it.
+- **A `sys.version_info` tuple of three or more elements is static**, read by its first two.
+- Host: pytest 2,535, `lane_b` 18 of 18. flask 1,524 and click 3,756 confirmed, unchanged, 0
+  contradicted, poison PASS; flask's export byte-identical. click: +3 edges
+  (`getchar → raw_terminal` at 965, two `uses` at the twins' import lines), 980 and
+  `getchar → _translate_ch_to_exc` `syntactic` → `semantic`, the 930 row withheld, the twins at
+  938 and 964, lane disagreements 2 → 0 (`oracle-grading.md` §10.38).

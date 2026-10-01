@@ -11,9 +11,42 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.73-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.74-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.74-beta — 2026-10-01 (lane B reads Python as Linux at one version, and the ingest says where; ADR-154, C-173)
+
+**Patch: what the layer draws and says** — Python, lane B's reading and lane A's fallback.
+Built as unit `S-20261001T163708Z-61b4`; two defects fixed at its review.
+
+- **What was silent.** The ingest stages a `pyrightconfig.json`, and once Pyright loads one
+  it assumes the host's platform (the image is Linux) and the interpreter's version. It
+  reads `sys.platform`, `os.name`, `sys.version_info` and `TYPE_CHECKING` tests against
+  them, and scip-python indexes nothing in a branch it reads as never taken. Nothing said so:
+  click's `darwin` branch, all of `_winconsole.py` after `assert sys.platform == "win32"`,
+  and its `os.name == "nt"` operands had no lane B occurrence and no record (C-173).
+- **Pinned and said.** The staged config names `"pythonPlatform": "Linux"`; the version is
+  read off the index's own stdlib monikers. Lane A collects the tests Pyright 0.6.6 reads
+  (exactly its forms: in `if`/`elif`, `while`, `assert`, `and`/`or` operands, conditional
+  expressions), evaluates them under that reading, and writes one `scip-python` record per
+  file with dead lines: the spans, the forms, how many of lane A's edges there are
+  `syntactic` only. `list_blind_spots` serves it. Without lane B nothing is evaluated.
+- **A twin's node is its live def.** A name a file defines in a dead branch and once outside
+  it was one node at its *first* def (click's win32 `getchar`, `raw_terminal`), so lane B's
+  references to the live def found no node. The record now takes the live def's lines, lane
+  A's guess at the name names the live def too, and a call inside the dead def is withheld.
+- **A function-local import shadows the fallback.** A bare call to a name its function
+  imports is no longer bound to the calling file's own def of that name (click
+  `termui.py:364`).
+- **Graded.** flask 1,524 and click 3,756 confirmed, unchanged; 0 contradicted, poison PASS.
+  click: +3 edges (`getchar → raw_terminal` at `_termui_impl.py:965`, and two `uses` at the
+  twins' import lines), two `syntactic` → `semantic`, one evidence row withheld, lane
+  disagreements 2 → 0 (`oracle-grading.md` §10.38). flask's edges are identical.
+- **Fixed at the review:** the first build dropped lane A's guess at a twin, which lost a
+  drawn call through an aliased import (`termui.py:980`); and it read a three-element
+  `sys.version_info` tuple as not static, where Pyright reads the first two.
+- **Registered:** C-173 (P9: scip-python 0.6.6's Pyright).
 
 ## 0.2.73-beta — 2026-09-30 (a bare call to the one def its own function writes; ADR-153, C-170 narrowed)
 
