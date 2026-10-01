@@ -366,7 +366,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.78-beta** (2026-10-01). The Hobbes layer is versioned from here
+**Hobbes 0.2.79-beta** (2026-10-01). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -455,7 +455,7 @@ treats a symptom, an unchecked diff; it is not Calvin's design:
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and ninety-four session logs stand. The
+dispatched on 2026-09-12, and ninety-six session logs stand. The
 tracker at the end of
 [`docs/shanks/sessions/README.md`](docs/shanks/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,

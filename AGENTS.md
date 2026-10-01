@@ -200,10 +200,10 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 ```
 
 Suite sizes at the last check (2026-10-01; pytest and Go re-run on the
-host at 0.2.78-beta, the rest at 0.2.74-beta): 2,560 pytest (19 `lane_b`,
-run with the rebuilt image at 0.2.75-beta) / 399 Go with subtests (399
-pass) + 129
-oracle-lane Go with subtests (117 pass, 12 skip on a host without
+host at 0.2.79-beta, the rest at 0.2.74-beta): 2,594 pytest (20 `lane_b`,
+run with the rebuilt image at 0.2.79-beta) / 399 Go with subtests (399
+pass) + 131
+oracle-lane Go with subtests (119 pass, 12 skip on a host without
 clang++ or cmake; the C++ ones pass in the image) / 52 vitest / 47
 tsextract + 97 scip node / 84 atlas0 / 656 lattice (624 pass, 32 skip
 on a host without clang; they run in the image). Keep them green. CI
@@ -276,7 +276,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-10-01) — Hobbes 0.2.78-beta
+## Status (2026-10-01) — Hobbes 0.2.79-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -311,12 +311,18 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   verify → one log in `docs/shanks/sessions/`. The tracker at the end of
   that directory's `README.md` (`pipeline/scripts/shanks_tracker.py
   render`, held by a drift test; re-render after filling a review block)
-  reads **94 of 40** sessions that validate the harness: 4 areas, 4 false
+  reads **96 of 40** sessions that validate the harness: 4 areas, 4 false
   blocks, all closed (`f3c1` at 0.2.28-beta; `9326`, `c141` and `66c5`,
   the decorator case, at 0.2.76-beta), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.78-beta, C-174 registered and surfaced**: a call the
+- **Latest — 0.2.79-beta, a `with` statement's `__enter__`/`__exit__`**
+  where the item's class is known (ADR-156, units `32b8` for the oracle's
+  H-37 and `721c` for the rule). The keys were regenerated first: recall
+  fell (rich 88.4%, flask 54.6%, click 81.7%) because the old oracle could
+  not see `__enter__`. Then rich +96, flask +28 and click +12 confirmed,
+  with 0 new suspects and 0 rows lost.
+- **0.2.78-beta, C-174 registered and surfaced**: a call the
   language makes with no call written (a Python `with` statement's
   `__enter__`/`__exit__`, an operator's or a loop's dunder) is no site,
   and nothing named it until now. C-1 covered it only by its title; Max:
@@ -338,10 +344,12 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   def of a Python qualname is its node's too.
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
   sacrifice honesty for higher recall").
-  **Next — route a, taken** (Max: "go general, a is good"): draw a
-  `with` statement's `__enter__`/`__exit__` (C-174; 199 `__exit__` misses
-  over rich, flask and click), measured first and graded on all three.
-  Then the local alias of a global (157; C-9) and C/C++ lane A's time.
+  **Next — precedent 1, an honesty audit** (Max, 2026-10-01: "direct
+  honesty violation becomes precedent 1 after route is completed"):
+  what `list_blind_spots` does not show. Enumerate per language what
+  no lane records as a site or edge, and check each against the
+  register and the "not detected at all" statement. Contain any unnamed
+  limit before recall work. Then the local alias of a global (157; C-9).
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
   necessarily an LLM (ADR-152). **Closed on its lattice** (Max,

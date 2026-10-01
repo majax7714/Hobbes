@@ -592,7 +592,15 @@
   `parse`, naming C-171), which `list_blind_spots` reports as a degraded extraction.
 - **Source:** `pipeline/tests/test_deep_files.py`; the E3 draw's record.
 
-### C-174 — A call the language makes with no call token is not a site
+### C-174 — A call the language makes with no call token is not a site — *narrowed 2026-10-01 (ADR-156, 0.2.79-beta): a sync `with` item whose own call is drawn `semantic` to a class, or to a def whose return annotation the index resolves to one, has its `__enter__`/`__exit__` drawn*
+- **Narrowed 2026-10-01 (ADR-156, 0.2.79-beta).** Where a sync `with` item is a call drawn `semantic` to a
+  repo class, or to a repo def whose return annotation the index resolves to a repo class, that class's
+  `__enter__` and `__exit__` (its own or up a single named base chain) are drawn as `syntactic` `calls` at
+  the item's line, `via: "with"`. The rich, flask and click cells gained 136 confirmed edges, none wrong.
+  **Still not drawn:** a bare-name item (`with ctx:`); an item whose call is drawn only `syntactic` (40 of
+  flask's, on the `app` fixture's value); an unannotated factory; `@contextmanager`; an annotation naming an
+  outside type; `async with`; and every operator and iteration dunder. The ingest counts each abstention in
+  `graph.json`'s `with_statements` block.
 - **Cannot tell you:** the calls an interpreter or compiler makes on the code's behalf, where
   no call is written. In Python this means a `with` statement's `__enter__`/`__exit__`, an
   operator's dunder (`a + b` → `__add__`), a `for` loop's `__iter__`/`__next__`, and a builtin's

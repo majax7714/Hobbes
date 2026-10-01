@@ -1,7 +1,8 @@
 # ADR-156 — A `with` statement's `__enter__` and `__exit__`, where the item's class is known
 
 **Date:** 2026-10-01 · **Status:** accepted (Max, 2026-10-01: route a, "go general, a is good"; on the two
-decisions, "good to proceed with the route") · **Owner:** Max · **Source:** C-174 (registered at 0.2.78-beta),
+decisions, "good to proceed with the route") and **built** (0.2.79-beta, unit `721c`; the oracle's H-37 by unit
+`32b8` first) · **Owner:** Max · **Source:** C-174 (registered at 0.2.78-beta),
 found on the held-out rich cell (`oracle-grading.md` §10.40). Measured before this ADR, zero spend:
 `~/.hobbes/bench/with-stmt/` (`RESULTS.md`, `probe.py`, `factory.py`, `sim.py`).
 
@@ -70,6 +71,31 @@ registered.
   same order of `__enter__` rows. 0 contradicted (trace cells read suspect, never contradicted). No Hobbes-wrong
   suspect: every new suspect is read row by row.
 - No existing edge moves; the counts block is new.
+
+## Built and graded (2026-10-01)
+
+The keys were regenerated first, with H-37's oracle at 0.2.78-beta (same recipe, new dirs `rich-py-r2`,
+`flask-py-r2`, `click-py-r4`). Confirmed counts were unchanged, and each denominator grew by the `with` calls
+the old oracle could not see (rich +74, flask +92, click +35 pairs), so recall fell (rich 89.7% → 88.4%,
+flask 56.5% → 54.6%, click 82.4% → 81.7%). The old figures were that much flattering.
+
+The build, graded against those keys (`~/.hobbes/bench/with-stmt/after/`, `--poison`):
+
+| cell | confirmed | suspect | recall | new rows | `with_statements` |
+|---|---|---|---|---|---|
+| rich | 4,748 → **4,844** (+96) | 25 → 25 | 88.4% → **90.2%** | 126: 96 confirmed, 30 unobserved | 193 items, 126 drawn |
+| flask | 1,524 → **1,552** (+28) | 15 → 15 | 54.6% → **55.6%** | 32: 28 confirmed, 4 unobserved | 172 items, 32 drawn |
+| click | 3,756 → **3,768** (+12) | 20 → 20 | 81.7% → **82.0%** | 12: 12 confirmed | 179 items, 12 drawn |
+
+Signed direction of fix: confirmed **+136**, suspect **±0**, rows lost or moved **0**, and every new row is an
+`__enter__`/`__exit__` edge. Poison PASS on all three. Host: the `miniwith` `lane_b` case passed on its first
+run.
+
+**The prediction missed on flask:** +28 confirmed where the simulation said about +102. `sim.py` read any drawn
+call edge at the item's line, but step 2 requires a `semantic` one. 40 of flask's `with` items rest on
+ADR-145's `syntactic` fixture-value edges (`with app.app_context():` on the `app` fixture), and 101 have no
+call edge at all. Nothing drawn is wrong. Whether the rule may build on ADR-145's edge is a separate decision
+and is not taken here: it would stack one `syntactic` rule on another.
 
 ## Routes not taken
 

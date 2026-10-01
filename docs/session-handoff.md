@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-01 (twenty-eighth session); Hobbes 0.2.78-beta on `main`.**
+**Reviewed 2026-10-01 (twenty-eighth session); Hobbes 0.2.79-beta on `main`.**
 Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
-0.2.78-beta, and this repo was ingested at the release commit; ingest at HEAD again if
+0.2.79-beta, and this repo was ingested at the release commit; ingest at HEAD again if
 `main` has moved since. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -11,7 +11,7 @@ the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.78-beta are untagged. Tags stay Max's call each time.
+  0.2.79-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -33,19 +33,37 @@ drivers' paths below.
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**Extraction is the work.** Calvin is closed on the lattice (Max, 2026-09-29). **A held-out Python cell is
-graded (rich, 0.2.77-beta's verification base)**, and the gate's decorator false block is closed (0.2.76-beta).
-**Route a is taken** (Max: "go general, a is good"); the alias is next after it:
-1. **A `with` statement's `__enter__`/`__exit__`**: rich 76, flask 88, click 35 misses. It had no register entry
-   of its own (C-1 covered it only by its title). **Contained first:** C-174 is registered and surfaced at
-   0.2.78-beta. Drawing it is the build, measured first. **Instrument note:** the trace oracle sees almost no
-   `__enter__` (rich 1 of the `with` sites), because CPython 3.12 emits no call event for it. A drawn `__enter__`
-   edge at an observed `with` line would grade *suspect*, and the probe has to read those rows itself.
-2. **A local alias of a global or attribute** (`_Segment = Segment` … `_Segment(…)`, a speed idiom): rich 121,
-   flask 12, click 24. It is under C-9's local bindings.
-Then `cls(…)` in a classmethod (rich 57, flask 2), and C/C++ lane A's time. The bucket counts are a
-heuristic over the site's line (`~/.hobbes/bench/heldout-rich/buckets.py`), to rank and not to quote; a
-candidate's own probe measures it.
+**Next — precedent 1, an honesty audit** (Max, 2026-10-01: "honestly since this introduced out of luck worth an
+inspection afterwards through what blind spots doesnt show. direct honesty violation becomes precedent 1 after route
+is completed"). C-174 was found by luck on the held-out cell. Audit what `list_blind_spots` does not show:
+- **Enumerate per language** what the language does that no lane records as a site or an edge. In Python: implicit
+  dunders beyond `with` (operators, `for`/`__iter__`/`__next__`, `len()`/`__len__`, `__getattr__`, a property read,
+  a descriptor, `__init_subclass__`, a metaclass, `__del__`). In Rust: `Drop`, `Deref` and operator traits. In
+  Java: try-with-resources `close()`, for-each `iterator()`, implicit `toString()`, static initialisers. In TS/JS:
+  getters, setters, iterators, `using`. In Go: `defer`, which *is* written. In C/C++: destructors and implicit
+  conversions.
+- **Check each** against the register and the always-on "not detected at all" statement (`knowledge.go`,
+  `manifests.py`).
+- **Contain any unnamed one** (register and surface, as C-174 was) before any recall work. Measure where a keyed
+  cell can.
+- Then: the local alias of a global (`_Segment = Segment` … `_Segment(…)`; rich 121, flask 12, click 24; C-9),
+  `cls(…)` in a classmethod (rich 57), and C/C++ lane A's time.
+
+- **Shipped later this session (0.2.78-beta, 0.2.79-beta):** C-174 contained first (registered, surfaced in both
+  renderers, C-1 pointing to it). Then the oracle's **H-37** (unit `32b8`): CPython 3.12 calls a `with` statement's
+  `__enter__` and exception-path `__exit__` without a `CALL` event, and the tracer now reads both at `PY_START`.
+  **The standing Python keys are now `rich-py-r2`, `flask-py-r2` and `click-py-r4`** (`~/.hobbes/bench/oracle/`),
+  regenerated with it. Recall fell, rich 89.7% → 88.4%, flask 56.5% → 54.6%, click 82.4% → 81.7%, because the old
+  figures were flattering. Then **ADR-156** (unit `721c`): a sync `with` item's `__enter__`/`__exit__` is drawn
+  where its own call is `semantic` to a class, or to a def whose return annotation the index resolves to one.
+  Rich +96 confirmed (90.2%), flask +28 (55.6%), click +12 (82.0%), with 0 new suspects and 0 rows lost.
+  Drivers `~/.hobbes/bench/with-stmt/` (`RESULTS.md`, `probe.py`, `factory.py`, `sim.py`, `rekey.sh`,
+  `regrade.sh`, `after/`, `units/`).
+  - **Open for Max:** the rule does not build on ADR-145's `syntactic` fixture-value edges. That is 40 of
+    flask's items (`with app.app_context():` on the fixture's value), and allowing it would stack one
+    `syntactic` rule on another.
+  - **Lesson:** `sim.py` ignored step 2's `semantic` condition and over-predicted flask (about +102 against
+    +28). A probe must apply every condition the ADR states.
 
 - **Max, 2026-10-01, on fitting:** "if we try to 100% 100% everything we might be defeating the point of the
   [poison] check by conforming to our tested repos." Widening the test set is on the table when it outweighs
@@ -490,7 +508,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 94 of 40, 4
+   - **The validating 40 are done:** the tracker reads 96 of 40, 4
      areas, 4 false blocks, all closed (`f3c1` at 0.2.28-beta; `9326`, `c141`,
      `66c5`, the decorator case, at 0.2.76-beta), 0 missed.
 3. **A regrade against stored keys:**
@@ -579,9 +597,9 @@ min each.
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
 - **Suites** (2026-10-01; pytest and Go re-run on the host at 0.2.77-beta, the rest at
-  0.2.74-beta): 2,560 pytest (`lane_b` 19 of them, run with the rebuilt image at
-  0.2.75-beta), Go `./...` 399 with subtests (399 pass), 97 scip node, 47 tsextract, 52 vitest, 84 atlas0, 656
-  lattice (624 pass / 32 skip without clang, after D-13's unit); oracle-lane Go 129 with subtests, 117 pass /
+  0.2.74-beta): 2,594 pytest (`lane_b` 20 of them, run with the rebuilt image at
+  0.2.79-beta), Go `./...` 399 with subtests (399 pass), 97 scip node, 47 tsextract, 52 vitest, 84 atlas0, 656
+  lattice (624 pass / 32 skip without clang, after D-13's unit); oracle-lane Go 131 with subtests, 119 pass /
   12 skip on this host, which has no clang++ or cmake (the C++ fixture tests run and pass
   in the image).
 - **Disk:** `~/.hobbes` is about 50 GB plus the C++ cells (ScummVM's

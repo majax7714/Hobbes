@@ -15106,3 +15106,26 @@ registered (surfaced), the statement names it in both renderers with a test each
 tally is 174 / 128 / 100. **Found on the way:** the trace oracle sees `__exit__` at the `with` line but almost
 no `__enter__` (rich 1), so a drawn `__enter__` edge would grade suspect. Route a's probe must read those rows
 itself, and the oracle's limit is noted in the handoff.
+
+**Then route a, built — 0.2.79-beta** (Max: "good to proceed with the route"; both recommendations taken).
+- **The instrument first, H-37** (unit `32b8`, 43 turns, $1.18): the py-trace oracle keyed calls from `CALL`
+  events, and CPython 3.12 calls a `with` statement's `__enter__` (`BEFORE_WITH`) and an exception-path
+  `__exit__` (`WITH_EXCEPT_START`) without one. A prototype checked the fix before the brief: at `PY_START`, read
+  the opcode the caller frame stands on. Fixture `pywith`, 16 pairs; all four trace tests ran in containment
+  (`-v`). The doer also found **my defect**: the rich cell record had no `cells.meta.json` entry, which failed
+  `report`'s drift test, because I had not run the oracle-lane suite after adding the cell. Fixed, and the
+  comparative graphics were regenerated (rich's row added, nothing else moved). Root RC-4.
+- **Rekeyed** at 0.2.78-beta, same recipe (`rich-py-r2`, `flask-py-r2`, `click-py-r4`). Confirmed is unchanged,
+  the denominators grew (+74, +92, +35), and recall fell to 88.4%, 54.6% and 81.7%. The old keys flattered.
+- **ADR-156** (unit `721c`, 66 turns, $2.35): a sync `with` item's own call, drawn `semantic` to a class or to
+  a def whose return annotation the index resolves to one, gets that class's `__enter__`/`__exit__` (ADR-145's
+  walk), drawn `syntactic`, `via: "with"`. Host `lane_b` passed on its first run. Graded: rich +96, flask +28,
+  click +12 confirmed; suspects unchanged; 0 rows lost or moved; every new row an `__enter__`/`__exit__` edge.
+- **My probe missed flask** (about +102 predicted, +28 drawn): `sim.py` ignored step 2's `semantic` condition,
+  and 40 of flask's items rest on ADR-145's `syntactic` fixture-value edges. Nothing is wrong. Whether to
+  build on those edges is open for Max. The memory on modelling a rule's conditions in a probe now carries
+  this instance.
+- **Released as 0.2.79-beta:** the version copies, the CHANGELOG, ADR-156's *Built* section, C-174 narrowed and
+  a HISTORY note, `oracle-grading.md` §10.41, §3.8's Python row, the session review and the tracker (96 of 40),
+  workstreams, README, CLAUDE.md and AGENTS.md, and the handoff (next: **the honesty audit**, precedent 1 by Max's
+  word). Host: pytest 2,594 (`lane_b` 20), Go 399, oracle lane 131 (12 skip without clang). The image was rebuilt.

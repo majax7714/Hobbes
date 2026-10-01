@@ -6,6 +6,11 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-174 narrowed, 2026-10-01 (0.2.79-beta; ADR-156, Max: route a; no entry added):
+- **C-174 narrowed (still surfaced).** A sync `with` item's `__enter__`/`__exit__` is drawn where the item's
+  class is known exactly (a `semantic` constructor edge, or a resolved return annotation). 174 entries, 128
+  active (100 surfaced), unchanged.
+
 C-174 registered, 2026-10-01 (0.2.78-beta; Max: "if second then our honesty point is of question"):
 - **C-174 added (surfaced).** A call the language makes with no call written (a Python `with`
   statement's `__enter__`/`__exit__`, an operator's or a loop's dunder) is no site. C-1 covered it

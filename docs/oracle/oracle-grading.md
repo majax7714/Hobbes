@@ -2597,6 +2597,31 @@ heuristic over the site's line, so the numbers rank and are not to be quoted as 
 The first two are the only shapes present on all three repos that are not already a stated
 values-or-dispatch limit. Neither is built or proposed as an ADR here: which one to measure first is Max's.
 
+### 10.41 A `with` statement's `__enter__`/`__exit__` — `RESULTS.md` and `sim.py` written 2026-10-01 before ADR-156; the keys regenerated with H-37's oracle first; this section written after the regrade (ADR-156; units `32b8`, `721c`)
+
+**The instrument first (H-37).** The trace keyed calls from `CALL` events, and CPython 3.12 calls a `with`
+statement's `__enter__` and its exception-path `__exit__` without one. Fixed, then all three Python keys were
+regenerated at 0.2.78-beta with the same recipe:
+
+| key | observed in-repo pairs | confirmed | recall |
+|---|---|---|---|
+| rich `rich-py` → `rich-py-r2` | 5,296 → 5,370 | 4,748 ±0 | 89.7% → 88.4% |
+| flask `flask-py` → `flask-py-r2` | 2,698 → 2,790 | 1,524 ±0 | 56.5% → 54.6% |
+| click `click-py-r3` → `click-py-r4` | 4,561 → 4,596 | 3,756 ±0 | 82.4% → 81.7% |
+
+**Built and regraded** (ADR-156, stored keys above, `--poison`):
+
+| cell | confirmed | suspect | recall | poison |
+|---|---|---|---|---|
+| rich, 0.2.78-beta → **0.2.79-beta** | 4,748 → **4,844** | 25 → 25 | 88.4% → **90.2%** | PASS |
+| flask, 0.2.78-beta → **0.2.79-beta** | 1,524 → **1,552** | 15 → 15 | 54.6% → **55.6%** | PASS |
+| click (`click-py-r4`), 0.2.78-beta → **0.2.79-beta** | 3,756 → **3,768** | 20 → 20 | 81.7% → **82.0%** | PASS |
+
+Signed direction of fix: confirmed **+136**, suspect **±0**, rows lost **0**, rows moved **0**; every new row is
+an `__enter__`/`__exit__` edge (rich 96 confirmed and 30 unobserved, flask 28 and 4, click 12 and 0). The
+simulation over-predicted flask (about +102) because it ignored step 2's `semantic` condition: 40 of flask's
+items rest on ADR-145's `syntactic` fixture-value edges.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

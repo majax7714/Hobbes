@@ -11,9 +11,30 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.78-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.79-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.79-beta — 2026-10-01 (a `with` statement's `__enter__`/`__exit__` where the item's class is known; ADR-156, C-174 narrowed)
+
+**Patch: what the layer draws** — Python. Built as unit `S-20261001T204904Z-721c` (66 turns, $2.35), after
+the oracle's H-37 (unit `S-20261001T204105Z-32b8`).
+
+- **What was missing.** A `with` statement runs its context manager's `__enter__` and `__exit__`, and no call
+  to either is written, so nothing drew them (C-174).
+- **Drawn.** A sync `with` item can be a call drawn `semantic` to a repo class, or to a repo def whose return
+  annotation the index resolves to a repo class. In either case that class's `__enter__` and `__exit__` (its
+  own, or up a single named base chain) are drawn as `syntactic` `calls` at the item's line, `via: "with"`.
+  The rule binds to the item's **own** call: on `with app.test_client().get(…)` it is `get`'s, never
+  `test_client`'s. Each abstention is counted in `graph.json`'s `with_statements` block, and the "not detected
+  at all" statement now says "where the item's class is not known".
+- **The instrument first.** The trace oracle could not see `__enter__` or an exception-path `__exit__` (H-37),
+  so the three Python keys were regenerated before grading. Their recall fell (rich 89.7% → 88.4%, flask
+  56.5% → 54.6%, click 82.4% → 81.7%): the earlier figures were that much flattering.
+- **Graded:** rich 4,748 → 4,844 confirmed (90.2%), flask 1,524 → 1,552 (55.6%), click 3,756 → 3,768 (82.0%).
+  Suspects are unchanged, no rows were lost, poison PASS (`oracle-grading.md` §10.41). Flask gained less than
+  simulated, because 40 of its `with` items rest on ADR-145's `syntactic` fixture-value edges, which this rule
+  does not build on.
 
 ## 0.2.78-beta — 2026-10-01 (a call the language makes with no call written is named; C-174)
 
