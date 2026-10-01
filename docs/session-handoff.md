@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-01 (twenty-eighth session); Hobbes 0.2.77-beta on `main`.**
+**Reviewed 2026-10-01 (twenty-eighth session); Hobbes 0.2.78-beta on `main`.**
 Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
-0.2.77-beta, and this repo was ingested at the release commit; ingest at HEAD again if
+0.2.78-beta, and this repo was ingested at the release commit; ingest at HEAD again if
 `main` has moved since. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -11,7 +11,7 @@ the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.77-beta are untagged. Tags stay Max's call each time.
+  0.2.78-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -35,9 +35,12 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
 
 **Extraction is the work.** Calvin is closed on the lattice (Max, 2026-09-29). **A held-out Python cell is
 graded (rich, 0.2.77-beta's verification base)**, and the gate's decorator false block is closed (0.2.76-beta).
-**The next step is Max's pick between two shapes, each measured first:**
-1. **A `with` statement's `__enter__`/`__exit__`**: rich 76, flask 88, click 35 misses. It has no register entry
-   of its own (C-1's general rule only), which is P8 debt whichever way the route goes.
+**Route a is taken** (Max: "go general, a is good"); the alias is next after it:
+1. **A `with` statement's `__enter__`/`__exit__`**: rich 76, flask 88, click 35 misses. It had no register entry
+   of its own (C-1 covered it only by its title). **Contained first:** C-174 is registered and surfaced at
+   0.2.78-beta. Drawing it is the build, measured first. **Instrument note:** the trace oracle sees almost no
+   `__enter__` (rich 1 of the `with` sites), because CPython 3.12 emits no call event for it. A drawn `__enter__`
+   edge at an observed `with` line would grade *suspect*, and the probe has to read those rows itself.
 2. **A local alias of a global or attribute** (`_Segment = Segment` … `_Segment(…)`, a speed idiom): rich 121,
    flask 12, click 24. It is under C-9's local bindings.
 Then `cls(…)` in a classmethod (rich 57, flask 2), and C/C++ lane A's time. The bucket counts are a
@@ -567,7 +570,7 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 173 entries: 127 active (99 surfaced, 24 partial, 3
+- **Register:** 174 entries: 128 active (100 surfaced, 24 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 29 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open** (H-36, a `<genexpr>` frame keyed as a call,

@@ -116,6 +116,8 @@ class TestComplement:
         # C-4 after ADR-137 and ADR-139: the statement names what is still
         # not drawn, never all fixture-injected reach.
         assert "a plugin's or a base class's (C-4)" in complement.denominator
+        # C-174: a call the language makes with no call written is named, not left to C-1's title.
+        assert "a Python `with` statement's __enter__/__exit__ (C-174)" in complement.denominator
         assert "autouse" not in complement.denominator
         assert "fixture-injected" not in complement.denominator
 

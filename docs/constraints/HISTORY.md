@@ -6,6 +6,12 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-174 registered, 2026-10-01 (0.2.78-beta; Max: "if second then our honesty point is of question"):
+- **C-174 added (surfaced).** A call the language makes with no call written (a Python `with`
+  statement's `__enter__`/`__exit__`, an operator's or a loop's dunder) is no site. C-1 covered it
+  only by its title; `list_blind_spots` and the plan manifest now name it. 174 entries, 128
+  active (100 surfaced).
+
 C-91 amended, 2026-10-01 (0.2.76-beta, grounder v5; Max: "good to proceed with recommended"; no entry added):
 - **C-91 amended (still surfaced).** A bare Python name bound at module level by a column-0
   assignment, in the calling file or the repo module it is imported from, is a value and

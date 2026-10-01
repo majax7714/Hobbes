@@ -12,7 +12,10 @@
   C-80's lift: a call *through* a value in the receiver position —
   `f().m()`, `super().m()` — is now a detected site the semantic lane
   can resolve; a callee that is itself a value — `handlers[0]()` —
-  still is not.)
+  still is not. A call the language makes with no call written — a
+  Python `with` statement's `__enter__`/`__exit__`, an operator's dunder
+  — is not dispatch or a value, and is its own entry since 0.2.78-beta:
+  C-174.)
 - **Bites at:** `who_calls`, `tests_guarding`, dead-code intuitions, and
   any invariant phrased as "nothing calls X".
 - **You find out:** *partial.* Resolution coverage (C-2) gives the
@@ -588,6 +591,30 @@
 - **You find out:** **surfaced** — one `extraction_errors` record per file (stage
   `parse`, naming C-171), which `list_blind_spots` reports as a degraded extraction.
 - **Source:** `pipeline/tests/test_deep_files.py`; the E3 draw's record.
+
+### C-174 — A call the language makes with no call token is not a site
+- **Cannot tell you:** the calls an interpreter or compiler makes on the code's behalf, where
+  no call is written. In Python this means a `with` statement's `__enter__`/`__exit__`, an
+  operator's dunder (`a + b` → `__add__`), a `for` loop's `__iter__`/`__next__`, and a builtin's
+  dunder (`len(x)` → `__len__`). The class's method is a symbol, and the statement that runs it
+  draws no edge to it.
+- **Because:** lane A records a call where a call is written, and lane B's indexer gives no
+  reference at a `with` or an operator token for these. They are not sites, so they are in no
+  count and C-2's denominator does not hold them. C-1's general rule ("an absent call edge
+  never means this does not happen") covered them only by its title, since its stated causes
+  are dispatch and values. Until 0.2.78-beta nothing named them. C++'s operators are the
+  exception: they are drawn by their token since ADR-131 (C-146).
+- **Bites at:** `who_calls` and `tests_guarding` on a context manager's `__exit__` or
+  `__enter__`, and on any dunder. Measured on the three keyed Python cells (the held-out rich
+  cell, `oracle-grading.md` §10.40): observed `__exit__` misses rich 75, flask 88, click 35.
+  The trace oracle sees almost no `__enter__` (rich 1), because CPython 3.12 emits no call event
+  for it, so `__enter__`'s share is unmeasured, not small. Rust's `Drop`/`Deref`/operator traits,
+  Java's try-with-resources `close()` and for-each `iterator()`, and TS/JS getters, setters and
+  iterators are this shape too, and **none of them is measured**.
+- **You find out:** **surfaced** — `list_blind_spots` and `hobbes plan`'s manifest name it in
+  the always-on "not detected at all" statement.
+- **Source:** the rich, flask and click cells' misses (`~/.hobbes/bench/heldout-rich/`);
+  `go/internal/knowledge` and `derive/manifests.py`, with their tests.
 
 ---
 

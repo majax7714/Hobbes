@@ -15096,3 +15096,13 @@ different from click and flask is ideal for greater diversity").
   was rebuilt.
 - **For Max:** which of the two cross-repo shapes to measure first. A held-out cell stays in the loop: grade
   each candidate's rule on rich too, and choose the next held-out repo before fitting again.
+
+**Then C-174 — 0.2.78-beta.** Max asked, of the `with` statement's missing entry: "no specific (under c-1) or not
+accounted for at all? first is fine ... if second then our honesty point is of question". It was the second.
+C-1's stated causes are dispatch and values. An implicit call is neither: it is no site, so it is in no count.
+The always-on "not detected at all" statement (`knowledge.go`, `manifests.py`) named C-1, C-4 and C-5, not this.
+C++'s operators are drawn by token (ADR-131), and Python had no such line. Contained before any fix: C-174 is
+registered (surfaced), the statement names it in both renderers with a test each, C-1 points to it, and the
+tally is 174 / 128 / 100. **Found on the way:** the trace oracle sees `__exit__` at the `with` line but almost
+no `__enter__` (rich 1), so a drawn `__enter__` edge would grade suspect. Route a's probe must read those rows
+itself, and the oracle's limit is noted in the handoff.

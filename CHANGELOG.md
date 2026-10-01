@@ -11,9 +11,28 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.77-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.78-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.78-beta — 2026-10-01 (a call the language makes with no call written is named; C-174)
+
+**Patch: what the layer says.** Nothing drawn changed.
+
+- **What was silent.** A `with` statement's `__enter__`/`__exit__`, an operator's dunder, a
+  `for` loop's `__iter__`: the interpreter makes these calls and no call is written, so lane A
+  records no site and lane B gives no reference. They were in no count, and C-1 covered them
+  only by its title ("an absent call edge never means this does not happen"), since its stated
+  causes are dispatch and values. `list_blind_spots`' always-on "not detected at all"
+  statement did not name them. Max asked whether this was a missing entry or an unaccounted
+  limit; it was the second.
+- **Named.** C-174 is registered (surfaced). `list_blind_spots` and `hobbes plan`'s manifest
+  now name it in that statement, and C-1 points to it. Measured on the three keyed Python cells:
+  observed `__exit__` misses are rich 75, flask 88, click 35. `__enter__`'s share is unmeasured,
+  because the trace oracle sees almost none of them (CPython 3.12 emits no call event for it).
+  Rust's, Java's and TS/JS's implicit calls are named in the entry as the same shape and are
+  not measured.
+- **Next:** drawing a `with` statement's calls (route a, Max), measured first.
 
 ## 0.2.77-beta — 2026-10-01 (Python's verification base adds a held-out repo, Textualize/rich)
 
