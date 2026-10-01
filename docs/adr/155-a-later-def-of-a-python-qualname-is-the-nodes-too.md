@@ -1,7 +1,7 @@
 # ADR-155 — A later def of a Python qualname is its node's too
 
-**Date:** 2026-10-01 · **Status:** accepted (Max, 2026-10-01: route a, "re-file at the node"; built
-through Shanks) · **Owner:** Max · **Source:** the handoff's extraction candidate 2 (a qualname a
+**Date:** 2026-10-01 · **Status:** accepted (Max, 2026-10-01: route a, "re-file at the node") and
+**built** (0.2.75-beta, unit `78b9`) · **Owner:** Max · **Source:** the handoff's extraction candidate 2 (a qualname a
 Python file defines twice outside a static test). Measured this session, zero spend:
 `~/.hobbes/bench/py-samescope/` (`RESULTS.md`, `probe.py`, `callers.py`, `sim.py`).
 
@@ -86,3 +86,15 @@ facts carry their scope and are unaffected.
 - The node's `line`/`end_line` still name the first def: an `@overload`'s first stub, not its
   implementation. The artifact does not list the later spans. That is display, not an edge.
 - Other languages' duplicate qualnames (C++ overloads keep their own layer) are not measured.
+
+## Built (0.2.75-beta, unit `78b9`)
+
+As decided, with no departure (42 turns, $1.30). `_later_defs` in `extract/__init__.py` runs
+right after ADR-154's step. `_SymbolIndex` gives `enclosing` the further rows, and `starting_at`
+reads its own copy of the original ones.
+- Host: `lane_b` 19 of 19, the new fixture case (`minisame`) on its first run.
+- flask 1,524 and click 3,756 confirmed, unchanged, 0 contradicted, poison PASS; `calls`
+  edges identical; no tier changed; lane disagreements 0.
+- The removed and added `uses` edges are exactly the simulated sets: click 28 removed and
+  14 added, 16 thinned and 9 gaining evidence, 5,167 → 5,153 edges; flask 13 and 4, 10
+  thinned and 1 gaining, 3,615 → 3,606.

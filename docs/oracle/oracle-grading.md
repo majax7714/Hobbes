@@ -2542,6 +2542,28 @@ the key (the suite never reaches a raw terminal). Records: 9 click files, 3 flas
 `termui.py:980` (an aliased import's `f()`, which the join places only at its own column
 against lane A's answer) went undrawn; the host's `lane_b` case caught it. Python only.
 
+### 10.39 A later def of a Python qualname — `RESULTS.md` and `sim.py`'s predictions written 2026-10-01 before the unit; this section written after the regrade (ADR-155; unit `78b9`)
+
+**Read first** (`~/.hobbes/bench/py-samescope/probe.py`, the raw index against lane A's defs):
+scip-python gives a name one scope defines more than once one definition at the first def and
+a reference at each later def's name token (flask's 19 such qualnames and click's 22, every
+one but a test's six-times-nested `create_app`, which ADR-150 abstains on). Calls reach the
+node. The defect was the caller of a lane B `uses` fact inside a later def, filed by the first
+def's lines alone.
+
+**Built and regraded** (stored keys, `--poison`):
+
+| cell | confirmed | suspect | contradicted | poison |
+|---|---|---|---|---|
+| flask, 0.2.74-beta → **0.2.75-beta** | 1,524 → **1,524** (56.5%) | 15 → 15 | 0 → 0 | PASS |
+| click (`click-py-r3`), 0.2.74-beta → **0.2.75-beta** | 3,756 → **3,756** (82.4%) | 20 → 20 | 0 → 0 | PASS |
+
+Signed direction of fix: confirmed **±0**, suspect **±0**, contradicted **±0**, rows removed
+**0**; both exports byte-identical (the key grades `calls`, and no `calls` edge moved). The
+graph's `uses` edges moved exactly as `sim.py` predicted: click 28 removed (every one a
+redefinition token or a use filed under the class or module) and 14 drawn at the method;
+flask 13 and 4.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

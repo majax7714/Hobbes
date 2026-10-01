@@ -6,6 +6,12 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-170 corrected, 2026-10-01 (0.2.75-beta; ADR-155, Max: route a; no entry added):
+- **C-170 corrected (still surfaced).** Its "not affected" sentence held for the target only:
+  a later def of an `@overload`, a property or an `if`/`else` pair was the caller of
+  misfiled lane B `uses` facts, a defect ADR-155 fixed. 173 entries, 127 active (99
+  surfaced), unchanged.
+
 C-173 registered, 2026-10-01 (0.2.74-beta; ADR-154, Max: "good to proceed with the recommended route"):
 - **C-173 added (surfaced).** Python code Pyright reads as never run on Linux at the
   interpreter's version has no lane B answer; a `scip-python` record per file names the

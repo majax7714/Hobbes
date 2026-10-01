@@ -14982,3 +14982,45 @@ vitest, 97 scip, 47 tsextract.
 **Found, for the handoff:** a qualname defined twice outside a static test is still one node at its first
 def (not measured); an aliased function-local import draws nothing (flask 2); scip-python names no
 occurrence for flask's `urlsplit`, import or call.
+
+## 2026-10-01 (twenty-seventh session) — the top-level docs reviewed; the handoff's candidate 2 measured, its premise overturned; ADR-155 built — 0.2.75-beta
+
+**Asked:** review the top-level docs and work on a candidate extraction item. Took candidate 2 (a
+qualname a Python file defines twice outside a static test), the next unmeasured one.
+
+**Measured first, zero spend** (`~/.hobbes/bench/py-samescope/`, `RESULTS.md`): `probe.py` over lane A's
+defs, py-multidef's raw scip-python dumps and the index cache's facts streams, on flask and click.
+- **The premise did not hold.** "Lane B's references to the second land nowhere" is false: scip-python
+  gives a name one scope binds more than once one definition at the first def and a *reference* at each
+  later def's name token (`Dr`, `Drrr…` on all 41 qualnames but one, a test's six-times-nested
+  `create_app`, which ADR-150 already abstains on). Calls reach the node. Shapes: flask 9 overload, 7
+  property, 1 if/else, 2 sequential; click 16 overload, 2 if/else, 4 sequential.
+- **What it does cost** (`callers.py`): a lane B `uses` fact has no lane A scope, so `project` filed it by
+  `enclosing()`, and the node spans only the first def. A later def's own name became `<parent> uses
+  <qualname>` (click `click.decorators uses command` from its four stubs), and a use inside a later def
+  went to the class or module (`Command uses Abort` at 1591, inside `Command.main`). Nothing in the
+  register named it; C-170 said these shapes were "not affected", which holds only for the target.
+- **Simulated** (`sim.py`, over each cell's built graph): click 28 edges removed, 14 added; flask 13 and
+  4; attrs 4 and 1; this repo 2 and 0. `uses` only, so no graded row could move.
+
+**Route a** (Max: "re-file at the node"; built through Shanks). ADR-155 written and committed before the
+dispatch.
+
+**Unit `S-20261001T184731Z-78b9`** (Opus 5.5, 42 of 120 turns, reported $1.30, under 4 min): gate clear,
+verify pass, 1,394 tests, 0 regressions; no departure. `_later_defs` beside ADR-154's step;
+`_SymbolIndex` gives `enclosing` the further rows and `starting_at` its own copy of the original ones.
+The new `lane_b` case (`minisame`) passed on its first host run.
+
+**Graded** (`oracle-grading.md` §10.39): flask 1,524 and click 3,756 confirmed, unchanged; 0
+contradicted; poison PASS; both exports byte-identical. The graph's removed and added `uses` edges are
+exactly the simulated sets; `calls` identical; no tier changed; lane disagreements 0.
+
+**Released as 0.2.75-beta:** CHANGELOG, C-170's sentence corrected and a HISTORY note (tally unchanged:
+173 entries, 127 active, 99 surfaced), the ADR's *Built* section, the architecture (header, §3's
+provider list, §3.8's Python row, the tracker 93 of 40), oracle-grading §10.39, workstreams, README,
+CLAUDE.md and AGENTS.md, the handoff. The binaries, the web bundle and the image were rebuilt. Host:
+pytest 2,550 (`lane_b` 19 of 19), Go `./...` 399 of 399.
+
+**For the handoff:** C/C++ lane A's time on deep chains; flask's aliased function-local import; flask's
+`urlsplit`; whether another language's `enclosing` misfiles a lane B fact at a duplicate qualname (not
+measured).

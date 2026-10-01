@@ -551,7 +551,9 @@
   `TestStreaming` tests are an example: each nests `index` → `generate`. A class
   attribute placed twice in one scope, or a method defined twice in one class body, does
   the same. (A property's getter and setter, an `@overload`'s stubs and an `if`/`else`
-  def are **one** definition in its index, so they are not affected.) Until 0.2.70-beta
+  def are **one** definition in its index, at the first def, with a reference at each
+  later def's name, so they are not affected. Their later defs were the caller of
+  misfiled `uses` facts until 0.2.75-beta, a defect ADR-155 fixed.) Until 0.2.70-beta
   the helper kept such a moniker at its smallest line, as C does (ADR-109). Every
   reference was filed under the first definition: 4 wrong `semantic` edges on the graded
   cells (flask `tests/test_helpers.py` 251, 281 and 310; click `src/click/core.py` 1888),

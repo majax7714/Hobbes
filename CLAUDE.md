@@ -199,9 +199,10 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # Shanks, t
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-10-01, 0.2.74-beta, every suite
-re-run on the host): 2,535 pytest (18 `lane_b`, run with the rebuilt
-image at 0.2.74-beta) / 399 Go with subtests (398 pass, 1 skip) + 129
+Suite sizes at the last check (2026-10-01; pytest and Go re-run on the
+host at 0.2.75-beta, the rest at 0.2.74-beta): 2,550 pytest (19 `lane_b`,
+run with the rebuilt image at 0.2.75-beta) / 399 Go with subtests (399
+pass) + 129
 oracle-lane Go with subtests (117 pass, 12 skip on a host without
 clang++ or cmake; the C++ ones pass in the image) / 52 vitest / 47
 tsextract + 97 scip node / 84 atlas0 / 656 lattice (624 pass, 32 skip
@@ -221,7 +222,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 154;
+  architecture doesn't already make. Number sequentially (last: 155;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -275,7 +276,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-10-01) — Hobbes 0.2.74-beta
+## Status (2026-10-01) — Hobbes 0.2.75-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -307,26 +308,26 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   verify → one log in `docs/shanks/sessions/`. The tracker at the end of
   that directory's `README.md` (`pipeline/scripts/shanks_tracker.py
   render`, held by a drift test; re-render after filling a review block)
-  reads **92 of 40** sessions that validate the harness: 4 areas, 4 false
+  reads **93 of 40** sessions that validate the harness: 4 areas, 4 false
   blocks (`f3c1`, closed at 0.2.28-beta; `9326`, `c141` and `66c5`, the
   decorator case below, open), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.74-beta, lane B reads Python as Linux at one version,
-  and the ingest says where** (ADR-154, Max: route a, 2026-10-01; unit
-  `61b4`). Pyright reads `sys.platform`/`os.name`/`sys.version_info`/
-  `TYPE_CHECKING` tests statically and scip-python indexes nothing in a
-  branch never taken; the platform is now pinned, and a `scip-python`
-  record per file names the dead lines (C-173). A name defined in a dead
-  branch and once outside it is one node at its live def; a
-  function-local import shadows the fallback. flask 1,524 and click 3,756,
-  unchanged, 0 contradicted; click's lane disagreements 2 → 0.
+- **Latest — 0.2.75-beta, a later def of a Python qualname is its
+  node's too** (ADR-155, Max: route a, 2026-10-01; unit `78b9`). The
+  handoff's candidate was measured first and its premise did not hold:
+  scip-python gives a name one scope defines twice one definition at
+  the first def, so calls land. The defect was the caller of lane B's
+  `uses` facts in an `@overload`'s stubs, a property setter or an
+  `else` def, filed under the class or module. Now each later live def
+  is its node's for that lookup: click 28 wrong `uses` edges gone and
+  14 drawn at the method, flask 13 and 4; flask 1,524 and click 3,756,
+  unchanged, 0 contradicted.
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
   sacrifice honesty for higher recall").
   **Next:** the candidates in the handoff, each measured first: C/C++
-  lane A's super-linear time on deep chains; a qualname a Python file
-  defines twice outside a static test (one node at the first def, not
-  measured); an aliased function-local import that draws nothing.
+  lane A's super-linear time on deep chains; an aliased function-local
+  import that draws nothing; flask's `urlsplit` with no occurrence.
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
   necessarily an LLM (ADR-152). **Closed on its lattice** (Max,

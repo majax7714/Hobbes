@@ -11,9 +11,31 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.74-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.75-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.75-beta — 2026-10-01 (a later def of a Python qualname is its node's too; ADR-155)
+
+**Patch: what the layer draws** — Python, the caller lane B's `uses` facts are filed under.
+Built as unit `S-20261001T184731Z-78b9` (42 turns, $1.30).
+
+- **What was wrong.** A qualname one scope defines more than once (an `@overload`'s stubs
+  and implementation, a property's getter and setter, an `if`/`else` pair) is one node at
+  its first def. scip-python agrees: one definition there, and a reference at each later
+  def's name token, so calls reach the node. But a lane B `uses` fact has no lane A scope,
+  and the projection filed it by the lines enclosing it, which were only the first def's.
+  A later def's own name became `<class or module> uses <qualname>` (click's
+  `click.decorators uses command`, from its four overload stubs), and a use written inside
+  a later def was filed under the class or module (`click.core.Command uses Abort`, inside
+  `Command.main`'s implementation).
+- **Fixed.** Where lane B ran for Python, each later live def's lines are its node's when the
+  join looks for a caller. The redefinition token now names its own callee and drops, and a
+  use inside a later def is filed under the qualname. The record, the fallback and the
+  callee lookup still name the first def.
+- **Graded.** flask 1,524 and click 3,756 confirmed, unchanged; 0 contradicted, poison PASS;
+  `calls` edges identical. click: 28 wrong `uses` edges gone, 14 drawn at the method; flask
+  13 and 4. Both exactly as simulated beforehand (`~/.hobbes/bench/py-samescope/`).
 
 ## 0.2.74-beta — 2026-10-01 (lane B reads Python as Linux at one version, and the ingest says where; ADR-154, C-173)
 
