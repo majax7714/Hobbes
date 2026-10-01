@@ -684,3 +684,18 @@ foreign movers' individual rows, which are stated only in aggregate with
 the contradicted → silent invariant checked per cell; and the six
 cells whose keys carry no stored Hobbes export, which are named as not
 covered rather than graded.
+
+## Textualize/rich — a held-out Python cell (2026-10-01, 0.2.76-beta)
+
+The first Python repo graded with no rule fitted on it since ADR-145. Every Python extraction rule from
+0.2.63-beta to 0.2.75-beta was measured on click and flask. Predictions were pre-registered before the ingest
+and the key, and the repo was graded once. Cell: [`oracle/cells/rich-py-2026-10-01.md`](oracle/cells/rich-py-2026-10-01.md);
+the ranking is in `oracle-grading.md` §10.40.
+
+| Date | Numbers |
+|---|---|
+| 2026-10-01 | rich v15.0.0 (`6ac483cb`), trace-graded (py-trace, CPython 3.12.13, 2 runs, 956 passed): **4,748 confirmed, 25 suspect, 0 Hobbes-wrong** (19 C-60 overrides, 5 a conditional expression's untaken branch, 1 a monkeypatch), **recall-against-executed 89.7%** (4,748/5,296); function 97.2%, class 94.3%, method 85.5%, closure 68.5%, lambda 0%; poison PASS (0 of 5,874 falsely confirmed); `hobbes lanes` exit 0 |
+
+**Verified:** the 25 suspects, read row by row against the source. The misses are bucketed by site syntax
+(a heuristic) and not hand-checked one by one. As on every trace-graded cell, recall counts only the
+executed slice (C-60), never precision.

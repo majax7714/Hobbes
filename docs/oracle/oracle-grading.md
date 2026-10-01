@@ -2564,6 +2564,39 @@ graph's `uses` edges moved exactly as `sim.py` predicted: click 28 removed (ever
 redefinition token or a use filed under the class or module) and 14 drawn at the method;
 flask 13 and 4.
 
+### 10.40 A held-out Python cell — Textualize/rich; `PREREG.md` written 2026-10-01 before the ingest and the key; graded once at 0.2.76-beta, no rule changed
+
+**Why** (Max, 2026-10-01): every Python extraction rule since ADR-145 (ADR-145 to 150, 153 to 155) was
+measured and fitted on click and flask, and a figure tuned on its own keys stops saying how far it reaches.
+rich was picked for diversity: a different author and style, class-heavy, few closures and few fixtures. The
+cell record is `cells/rich-py-2026-10-01.md`; the drivers are `~/.hobbes/bench/heldout-rich/` (`PREREG.md`,
+`buckets.py`, `lanes.txt`) and `~/.hobbes/bench/oracle/rich-py/`.
+
+| cell | confirmed | suspect | Hobbes-wrong | recall-against-executed | poison |
+|---|---|---|---|---|---|
+| rich v15.0.0, **0.2.76-beta**, held out | **4,748** | 25 (0.5%) | **0** | **89.7%** (5,296 pairs) | PASS, 0 of 5,874 |
+
+Scored against the pre-registration: R1 (no Hobbes-wrong edge), R2, R3, R6 (`syntactic` 0.25% of confirmed),
+R7 and R8 were **met**. R4 (recall 35–60%) and R5's method row (30–60%; 85.5%) were **missed high**:
+they were calibrated on flask, whose misses are closures and fixture values, and rich has few of either. The
+fitted lane A rules carried almost none of the result (12 `syntactic` confirmed against 4,736 `semantic`). The
+25 suspects are 19 C-60 overrides, 5 a conditional expression's untaken branch on a line the trace keys whole,
+and 1 a monkeypatch.
+
+**The next candidates, ranked by how many keyed repos show them** (misses bucketed by site syntax; a
+heuristic over the site's line, so the numbers rank and are not to be quoted as exact):
+
+| shape | rich | flask | click | repos | register today |
+|---|---:|---:|---:|---:|---|
+| a `with` statement's `__enter__`/`__exit__` | 76 | 88 | 35 | 3 | no entry of its own (C-1's general rule) |
+| a local alias of a global or attribute (`_X = X` … `_X(…)`) | 121 | 12 | 24 | 3 | C-9's local bindings, "not modelled by design" |
+| `cls(…)` in a classmethod | 57 | 2 | 0 | 2 | none read |
+| protocol methods through a value (`__rich_console__`, …) | 82 | — | — | 1 | C-1 (dispatch through values) |
+| closures, lambdas, attribute calls on untyped values | 110 | 964 | 659 | 3 | C-58, C-2 |
+
+The first two are the only shapes present on all three repos that are not already a stated
+values-or-dispatch limit. Neither is built or proposed as an ADR here: which one to measure first is Max's.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

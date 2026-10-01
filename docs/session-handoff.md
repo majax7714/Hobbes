@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-01 (twenty-eighth session); Hobbes 0.2.76-beta on `main`.**
+**Reviewed 2026-10-01 (twenty-eighth session); Hobbes 0.2.77-beta on `main`.**
 Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
-0.2.76-beta, and this repo was ingested at the release commit; ingest at HEAD again if
+0.2.77-beta, and this repo was ingested at the release commit; ingest at HEAD again if
 `main` has moved since. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -11,7 +11,7 @@ the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.76-beta are untagged. Tags stay Max's call each time.
+  0.2.77-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -33,16 +33,29 @@ drivers' paths below.
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**Extraction is the work.** Calvin is closed on the lattice (Max, 2026-09-29). **The gate's decorator false
-block is closed: 0.2.76-beta** (C-91, grounder v5). The next step is a route for Max, below.
+**Extraction is the work.** Calvin is closed on the lattice (Max, 2026-09-29). **A held-out Python cell is
+graded (rich, 0.2.77-beta's verification base)**, and the gate's decorator false block is closed (0.2.76-beta).
+**The next step is Max's pick between two shapes, each measured first:**
+1. **A `with` statement's `__enter__`/`__exit__`**: rich 76, flask 88, click 35 misses. It has no register entry
+   of its own (C-1's general rule only), which is P8 debt whichever way the route goes.
+2. **A local alias of a global or attribute** (`_Segment = Segment` … `_Segment(…)`, a speed idiom): rich 121,
+   flask 12, click 24. It is under C-9's local bindings.
+Then `cls(…)` in a classmethod (rich 57, flask 2), and C/C++ lane A's time. The bucket counts are a
+heuristic over the site's line (`~/.hobbes/bench/heldout-rich/buckets.py`), to rank and not to quote; a
+candidate's own probe measures it.
 
 - **Max, 2026-10-01, on fitting:** "if we try to 100% 100% everything we might be defeating the point of the
   [poison] check by conforming to our tested repos." Widening the test set is on the table when it outweighs
   the next candidate. Every Python extraction rule since ADR-145 (nine ADRs: 145 to 150, 153 to 155; 0.2.63-beta to 0.2.75-beta) was measured
-  and fitted on click and flask. No Python cell has been graded held out since. **Proposed, not decided:** a fresh
-  held-out Python cell, trace-graded at 0.2.76-beta with no rule change, its predictions pre-registered as
-  args's were (ADR-132). Its misses would rank the next candidates by how many repos they appear in. Candidates
-  2 and 3 below are 2 and 1 flask rows.
+  and fitted on click and flask. **Taken** (Max: "good to go ahead with recommended, your choice on repo"):
+  **Textualize/rich** v15.0.0, held out, `PREREG.md` written before the ingest and the key, and graded once at
+  0.2.76-beta: 4,748 confirmed, 25 suspect, **0 Hobbes-wrong**, recall 89.7%, poison PASS, lanes exit 0. R4
+  (recall 35–60%) and R5's method row were missed high, being calibrated on flask's closures. Only 12 confirmed
+  edges are `syntactic`. Cell `docs/oracle/cells/rich-py-2026-10-01.md`, §10.40; drivers
+  `~/.hobbes/bench/heldout-rich/`, `~/.hobbes/bench/oracle/rich-py/`. The repo is at
+  `~/.hobbes/bench/oracle/repos/rich` with its venv (pygments and markdown-it-py pinned to its `poetry.lock`).
+  **Keep a held-out cell in the loop:** grade a candidate's rule on rich as well as click and flask, and pick
+  the next held-out repo before the next round of fitting.
 - **Shipped this session (0.2.76-beta, unit `da88`, 32 turns, $0.97):** the gate's decorator false block
   (`9326`, `c141`, `66c5`). A bare Python name a column-0 assignment binds at module level (in the calling file's
   post-image, or in the repo module it is imported from) abstains `unknown-receiver`; other binding forms still
@@ -68,15 +81,16 @@ block is closed: 0.2.76-beta** (C-91, grounder v5). The next step is a route for
   regrades and graphs, `units/`).
 - **Shipped earlier the same day (0.2.74-beta, ADR-154, unit `61b4`):** lane B reads Python as
   Linux at one version and the ingest says where (C-173). Drivers `~/.hobbes/bench/py-platform/`.
-- **Next candidates, each measured first:**
+- **The earlier candidates, behind the two above** (2 and 3 are single-repo rows, the fitting Max warned of):
   1. **C and C++ lane A time** grows about 8× per doubling of chain depth (6 s and 12 s at 800 calls): a
      measured-fix candidate, no graph change.
   2. **An aliased function-local import that draws nothing** (`from .testing import FlaskClient as
      cls; cls(…)`: flask 2). click's `termui.py:980` draws since ADR-154; read why flask's do not.
   3. **scip-python names no occurrence for flask's `urlsplit`**, at the import or the call
      (`app.py:15`, `:725`). Not read.
-  4. **Other languages' duplicate qualnames** (ADR-155 is Python only): whether a Go/TS/Java
-     `enclosing` misfiles a lane B fact the same way is not measured.
+  4. **Other languages' duplicate qualnames** (ADR-155 is Python only). TS/JS was read on 2026-10-01 and the
+     shape is absent: an overload's span runs from the first signature to the implementation's end, and accessors
+     are not symbols. Go, Java and Rust are not measured.
 - **A lesson for the next brief:** a rule that *drops* a fallback can lose an edge the join places
   only at its own column (ADR-143) — an aliased import's site, which the two lanes spell differently.
   Re-pointing kept it. Ask what the join needs lane A's answer for before a brief drops one; the
@@ -561,7 +575,7 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** (2026-10-01; pytest and Go re-run on the host at 0.2.76-beta, the rest at
+- **Suites** (2026-10-01; pytest and Go re-run on the host at 0.2.77-beta, the rest at
   0.2.74-beta): 2,560 pytest (`lane_b` 19 of them, run with the rebuilt image at
   0.2.75-beta), Go `./...` 399 with subtests (399 pass), 97 scip node, 47 tsextract, 52 vitest, 84 atlas0, 656
   lattice (624 pass / 32 skip without clang, after D-13's unit); oracle-lane Go 129 with subtests, 117 pass /

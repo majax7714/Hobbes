@@ -200,7 +200,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 ```
 
 Suite sizes at the last check (2026-10-01; pytest and Go re-run on the
-host at 0.2.76-beta, the rest at 0.2.74-beta): 2,560 pytest (19 `lane_b`,
+host at 0.2.77-beta, the rest at 0.2.74-beta): 2,560 pytest (19 `lane_b`,
 run with the rebuilt image at 0.2.75-beta) / 399 Go with subtests (399
 pass) + 129
 oracle-lane Go with subtests (117 pass, 12 skip on a host without
@@ -276,7 +276,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-10-01) — Hobbes 0.2.76-beta
+## Status (2026-10-01) — Hobbes 0.2.77-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -299,6 +299,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   precision (C-60); flask's key found 3 Hobbes-wrong `semantic` edges
   and click's 1 more, all scip-python's one moniker for a method's
   same-named nested defs, refused since 0.2.70-beta (ADR-150, C-170).
+  **Held out** (Max, 2026-10-01, against fitting to the keys): rich,
+  graded once with no rule changed, 4,748 confirmed, 0 Hobbes-wrong,
+  recall 89.7% (§10.40).
   **Register:** 173 entries; 127 active (99 surfaced, 24 partial, 3
   unsurfaced, 1 n/a), 29 lifted; the tally is
   held by `test_register_tally.py`, its dated notes are
@@ -313,7 +316,12 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   the decorator case, at 0.2.76-beta), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.76-beta, the gate's decorator false block closed**
+- **Latest — 0.2.77-beta, a held-out Python cell** (Max: "good to go
+  ahead with recommended"): Textualize/rich, pre-registered and graded
+  once at 0.2.76-beta; it joins Python's verification base (10 repos).
+  0 of 25 suspects Hobbes-wrong; R4 (recall) and the method row were
+  missed high. The same day:
+- **0.2.76-beta, the gate's decorator false block closed**
   (C-91 amended, grounder v5; Max: "good to proceed with recommended",
   2026-10-01; unit `da88`). A bare Python name that a column-0
   assignment binds at module level, in the calling file or the repo
@@ -324,9 +332,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   def of a Python qualname is its node's too.
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
   sacrifice honesty for higher recall").
-  **Next:** the candidates in the handoff, each measured first: C/C++
-  lane A's super-linear time on deep chains; an aliased function-local
-  import that draws nothing; flask's `urlsplit` with no occurrence.
+  **Next, Max's pick** (§10.40, ranked by how many keyed repos show the
+  shape): a `with` statement's `__enter__`/`__exit__` (199 misses over
+  rich, flask and click; no entry of its own) or a local alias of a
+  global (157; C-9). Each is measured first. Then C/C++ lane A's time on
+  deep chains.
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
   necessarily an LLM (ADR-152). **Closed on its lattice** (Max,

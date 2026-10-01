@@ -15071,3 +15071,28 @@ binaries and the image were rebuilt (the proxy reports 0.2.76-beta). Host: pytes
 check by conforming to our tested repos"): proposed for his decision, a held-out Python cell graded at
 0.2.76-beta with no rule change and its predictions pre-registered. Every Python rule since ADR-145 was fitted
 on click and flask. It is in the handoff.
+
+**Then a held-out Python cell — 0.2.77-beta** (Max: "good to go ahead with recommended, your choice on repo.
+different from click and flask is ideal for greater diversity").
+
+- **The pick:** Textualize/rich v15.0.0 (`6ac483cb`, MIT). It is class-heavy, uses NamedTuples and protocol
+  methods, has few closures and few fixtures, and Hobbes had never touched it. Its `AI_POLICY.md` governs pull
+  requests only; nothing went upstream. The venv was built with `uv`, and pygments 2.21.0 failed 8 snapshot
+  tests, so pygments and markdown-it-py were pinned to rich's `poetry.lock`: 956 passed, 25 skipped.
+- **Pre-registered** in `~/.hobbes/bench/heldout-rich/PREREG.md` before the ingest and the key: R1–R8.
+- **Graded once** (`run-cell.sh`, 69 s, contained): 4,748 confirmed, 25 suspect, recall 89.7%, poison PASS.
+  The 25 suspects were read row by row and **none is Hobbes-wrong** (19 C-60, 5 a conditional expression's
+  untaken branch on one line, 1 a monkeypatch). R1–R3 and R6–R8 were met. R4 (recall) and R5's method row
+  were missed **high**: they were calibrated on flask's closures and fixture values, which rich lacks. 12
+  confirmed edges are `syntactic`, so the fitted rules carried almost nothing here.
+- **Bucketed** (`buckets.py`, by site syntax, a heuristic, run over rich and the current flask and click
+  reports). Two shapes appear on all three repos and are not a values-or-dispatch limit: a `with`
+  statement's implicit `__enter__`/`__exit__` (199), with no register entry of its own, and a local alias
+  of a global (157), under C-9. `cls(…)` in a classmethod is rich's (57). Direct NamedTuple constructions
+  are drawn; `_Cell()`'s two are lane B resolving outside the repo, vetoed (ADR-111).
+- **Released as 0.2.77-beta:** Python's verification base names rich (10 repos; `verification.py`, §3.8,
+  `test_verification.py`). Also the cell record, `oracle-grading.md` §10.40, `extraction-evidence.md`, the
+  CHANGELOG, README, CLAUDE.md, AGENTS.md, the architecture header, workstreams and the handoff. The image
+  was rebuilt.
+- **For Max:** which of the two cross-repo shapes to measure first. A held-out cell stays in the loop: grade
+  each candidate's rule on rich too, and choose the next held-out repo before fitting again.

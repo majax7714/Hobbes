@@ -11,9 +11,26 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.76-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.77-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.77-beta — 2026-10-01 (Python's verification base adds a held-out repo, Textualize/rich)
+
+**Patch: what the layer says.** The verification base that every ingest stamps and `list_blind_spots`
+reads (C-31) now names **Textualize/rich (trace-graded, held out)**, bringing Python to 10 repos. Nothing
+the layer draws changed.
+
+- **Why held out.** Every Python extraction rule from 0.2.63-beta to 0.2.75-beta was measured and fitted
+  on click and flask. rich was graded at 0.2.76-beta with no rule changed for it, its predictions written
+  before the ingest and the key (`oracle-grading.md` §10.40).
+- **Graded:** 4,748 confirmed, 25 suspect and **none Hobbes-wrong** (19 C-60 overrides, 5 a conditional
+  expression's untaken branch, 1 a monkeypatch). Recall-against-executed is 89.7%, the poison check
+  passed, and `hobbes lanes` exits 0. Only 12 of the confirmed edges are `syntactic`: the click/flask-fitted
+  lane A rules carried almost none of the result.
+- **What it ranks next.** These are shapes on all three keyed repos that are not a stated values-or-dispatch
+  limit: a `with` statement's `__enter__`/`__exit__` (199 misses across the three) and a local alias of a
+  global (`_X = X` … `_X(…)`, 157). Neither is built.
 
 ## 0.2.76-beta — 2026-10-01 (a bare Python name bound at module level is a value; C-91, grounder v5)
 
