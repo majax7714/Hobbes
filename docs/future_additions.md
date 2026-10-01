@@ -703,3 +703,40 @@ surfaced per file rather than silent.)*
   - the graphics restated.
 
   **Opens when** Max names the retest.
+
+- **Keeping the knowledge server fresh without a manual re-ingest** (parked
+  2026-10-01; Max: "park in future additions for now under a need for mcp
+  tool serving").
+  **The gap:** the knowledge server is read-only and offline by design
+  (ADR-087, ADR-094: `sandbox/knowledge-serve` mounts the repo `:ro` with
+  `--network none`), so it can only warn. Every answer carries the ingest
+  SHA, and when HEAD moves it adds "artifacts are stale; rerun `hobbes
+  ingest`" (`go/internal/knowledge/knowledge.go`). Nothing re-ingests on its
+  own: no watcher, no git hook, no ingest on load. Hobbes-on-Hobbes has a
+  second staleness, the image after a rebuild (C-65), which a user on a
+  released version never meets. The commit-level one, every user meets.
+  **What the field does** (their READMEs, read 2026-10-01, not run here):
+  codegraph runs an OS file watcher with a ~2 s debounce, and its MCP answers
+  carry a ⚠️ banner naming a still-pending file; codebase-memory-mcp polls git
+  in the background and can index a new project on first connection;
+  GitNexus has `analyze --watch`, Claude Code and Codex hooks that prompt
+  a reindex after commits, and a server that reopens a newly published index
+  with no restart; repowise has `watch`, `update`, post-commit hooks and
+  worktree seeding; CodeGraphContext has `cgc watch`. All of them are
+  tree-sitter-first, so a per-file re-index is cheap and runs no repo code.
+  **Why Hobbes's version is harder:** lane A is the same shape, but lane B
+  is a whole-project SCIP index run in the image (ADR-092), which a
+  read-only answering process must never do.
+  **The likely shape, not decided:**
+  - a writer process apart from the server (owned by `hobbes up`, or a git
+    hook) re-runs lane A per changed file at once, at `syntactic`;
+  - it re-runs lane B in the background on the index cache (ADR-122),
+    raising tiers to `semantic` when it lands;
+  - the server reloads a new ingest without a restart, and an answer
+    touching a pending file names it, as codegraph's banner does;
+  - the SHA stamp stays the safety net.
+  Uncommitted edits (the `dirty` flag) are a design question of their own.
+  It touches the parked application mode above, and Hobbes stays local
+  (architecture §10).
+  **Opens when** Hobbes is served as an MCP tool product; it starts with
+  an ADR.
