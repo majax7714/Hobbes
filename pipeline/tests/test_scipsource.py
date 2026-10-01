@@ -254,6 +254,60 @@ class TestProjection:
         assert len(out["symbol_edges"]) == 1
         assert len(out["symbol_edges"][0]["evidence"]) == 2  # deduped
 
+    # ADR-155: `f` defined twice in app/api.py, its record at the first
+    # def (10–12) and its later def at 14–20.
+    LATER = [
+        *SYMBOLS,
+        {"id": "app.api.f", "module": "app.api", "kind": "function",
+         "line": 10, "end_line": 12},
+    ]
+    INNER = {"id": "app.api.f.inner", "module": "app.api", "kind": "function",
+             "line": 16, "end_line": 18}
+    LATER_DEFS = {"app.api.f": [(14, 20)]}
+
+    def later(self, *facts, later_defs=LATER_DEFS, extra=()):
+        return scipsource.project(
+            list(facts), NODES, [*self.LATER, *extra], later_defs=later_defs
+        )
+
+    def pairs(self, out):
+        return {(e["from"], e["to"], e["type"]) for e in out["symbol_edges"]}
+
+    def test_a_later_defs_own_name_token_is_no_use(self):
+        # scip-python's reference at the redefinition's name, to the first def.
+        fact = resolved("uses", "src/app/api.py", 14, "src/app/api.py", 10, lanes=(ev.SCIP,))
+        assert self.pairs(self.later(fact, later_defs=None)) == {("app.api", "app.api.f", "uses")}
+        assert self.later(fact)["symbol_edges"] == []
+
+    def test_a_use_inside_a_later_def_is_filed_under_the_qualname(self):
+        fact = resolved("uses", "src/app/api.py", 17, "src/app/core.py", 10, lanes=(ev.SCIP,))
+        assert self.pairs(self.later(fact, later_defs=None)) == {("app.api", "app.core.Engine", "uses")}
+        assert self.pairs(self.later(fact)) == {("app.api.f", "app.core.Engine", "uses")}
+
+    def test_a_def_nested_in_a_later_def_keeps_its_own_lines(self):
+        # `f.inner` at 16–18, inside the later def: the innermost still wins.
+        fact = resolved("uses", "src/app/api.py", 17, "src/app/core.py", 10, lanes=(ev.SCIP,))
+        out = self.later(fact, extra=[self.INNER])
+        assert self.pairs(out) == {("app.api.f.inner", "app.core.Engine", "uses")}
+
+    def test_a_call_at_a_later_def_keeps_its_self_edge(self):
+        fact = resolved("calls", "src/app/api.py", 14, "src/app/api.py", 10, lanes=(ev.SCIP,))
+        assert self.pairs(self.later(fact)) == {("app.api.f", "app.api.f", "calls")}
+
+    def test_a_later_def_starts_no_symbol(self):
+        fact = resolved("uses", "src/app/api.py", 7, "src/app/api.py", 14, lanes=(ev.SCIP,))
+        assert self.later(fact)["symbol_edges"] == []
+        assert self.later(fact, later_defs=None)["symbol_edges"] == []
+
+    def test_a_span_for_an_unknown_id_changes_nothing(self):
+        facts = [
+            resolved("uses", "src/app/api.py", 14, "src/app/api.py", 10, lanes=(ev.SCIP,)),
+            resolved("uses", "src/app/api.py", 17, "src/app/core.py", 10, lanes=(ev.SCIP,)),
+        ]
+        assert self.later(*facts, later_defs={"app.api.g": [(14, 20)]}) == self.later(
+            *facts, later_defs=None
+        )
+
 
 class TestOneUnitFailsAlone:
     """One zone/module/crate failing must not cost the others their
