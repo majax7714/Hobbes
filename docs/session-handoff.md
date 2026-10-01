@@ -65,15 +65,13 @@ Unlike C-176, this change *adds* sites, so the regrade will move: grade every ke
   - **Lesson:** a before-arm worktree needs copied `node_modules`, not symlinks. (This session ran its before
     arm at HEAD before editing, which needs no worktree, since the TS helper is read live at ingest.)
 - **Shipped the session before, 0.2.80-beta (the audit).** C-174 widened, and C-175–C-177 registered and
-  surfaced. The record is `~/.hobbes/bench/honesty-audit/RESULTS.md`. **Not audited:** Terraform/HCL;
+  surfaced. The record is `~/.hobbes/bench/honesty-audit/RESULTS.md` (one fixture per language, the table of
+  what each shape drew, and the two counting scripts). **Not audited:** Terraform/HCL;
   repo-scale counts of any implicit shape outside Python's `__exit__`; Go's and Java's caller roll-up on real
   repos.
 - **Then** come C-174's remainder (recall, per language, each measured on a keyed cell) and the local alias of
   a global (`_Segment = Segment` … `_Segment(…)`; rich 121, flask 12, click 24; C-9), `cls(…)` in a classmethod
   (rich 57), and C/C++ lane A's time.
-- **The audit's record** is `~/.hobbes/bench/honesty-audit/RESULTS.md`, with one fixture per language, the
-  table of what each shape drew, and the two counting scripts. **Not audited:** Terraform/HCL; repo-scale counts
-  of any implicit shape outside Python's `__exit__`; Go's and Java's caller roll-up on real repos.
 
 - **Shipped the session before (0.2.78-beta, 0.2.79-beta):** C-174 contained first (registered, surfaced in both
   renderers, C-1 pointing to it). Then the oracle's **H-37** (unit `32b8`): CPython 3.12 calls a `with` statement's
@@ -607,7 +605,7 @@ min each.
 - **Shanks, the harness** (ADR-107, ADR-112, ADR-152): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Ninety-three log files under `docs/shanks/sessions/`; the tracker reads 93 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
+  is a tmpfs. Ninety-six log files under `docs/shanks/sessions/`; the tracker reads 96 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 96 cells (22 same-key rows, C++'s two among them; flask's new
   cell at 0.2.68-beta's figures); `render.py
@@ -622,9 +620,9 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** (2026-10-01; pytest and Go re-run on the host at 0.2.77-beta, the rest at
-  0.2.74-beta): 2,594 pytest (`lane_b` 20 of them, run with the rebuilt image at
-  0.2.79-beta), Go `./...` 399 with subtests (399 pass), 97 scip node, 47 tsextract, 52 vitest, 84 atlas0, 656
+- **Suites** (2026-10-01; pytest, Go and tsextract re-run on the host at 0.2.82-beta, the rest at
+  0.2.74-beta): 2,603 pytest (`lane_b` 20 of them, run with the image rebuilt at
+  0.2.82-beta), Go `./...` 402 with subtests (402 pass), 97 scip node, 48 tsextract, 52 vitest, 84 atlas0, 656
   lattice (624 pass / 32 skip without clang, after D-13's unit); oracle-lane Go 131 with subtests, 119 pass /
   12 skip on this host, which has no clang++ or cmake (the C++ fixture tests run and pass
   in the image).
