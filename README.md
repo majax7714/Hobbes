@@ -429,8 +429,8 @@ intentionally not general. It need not be a typical LLM. Its role is
 the charter
 ([`docs/experiments/calvin/calvin-charter.md`](docs/experiments/calvin/calvin-charter.md)):
 make an intended change true against the graph, and be wrong only in
-ways that are visible. Its design is being reassessed before any
-further run
+ways that are visible. It is closed on its first target, and a
+reassessment records why
 ([`docs/experiments/calvin/calvin-reassessment.md`](docs/experiments/calvin/calvin-reassessment.md)).
 It was first measured in three keyed rounds: M0, M0-Go and M0-Gate,
 about $27 in all. That approach did not validate itself: each round
@@ -455,7 +455,7 @@ treats a symptom, an unchecked diff; it is not Calvin's design:
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and ninety session logs stand. The
+dispatched on 2026-09-12, and ninety-three session logs stand. The
 tracker at the end of
 [`docs/shanks/sessions/README.md`](docs/shanks/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
@@ -543,7 +543,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-151 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-155 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |

@@ -1,7 +1,7 @@
 # Session handoff — the single resume point
 
 **Reviewed 2026-10-01 (twenty-seventh session); Hobbes 0.2.75-beta on `main`.**
-Max pushed through `45e67a5` (D-15 taken, 2026-09-27); `main` is ahead of
+Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
 0.2.75-beta, and this repo was ingested at the release commit; ingest at HEAD again if
 `main` has moved since. A new
