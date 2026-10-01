@@ -53,7 +53,7 @@ leave 176 177 for next session"). Route 1 shipped as 0.2.81-beta (below). Measur
     cJSON and sqlite-vector unmoved, with the C graphs identical.
   - By position no `calls` row was lost; callers agreeing with the key on fmt rose 7,629 → 7,642.
   - Drivers: `~/.hobbes/bench/c175-cpp-defs/` (`PREREG.md`, `regrade.sh` with `ROOT`/`ARM`, `posdiff.py`,
-    `diff.py`, `RESULTS.md`; `wt-before/` is a worktree at `2bd62f8` and can be removed).
+    `diff.py`, `RESULTS.md`; the before worktree was removed after the grade).
   - **Lesson:** a before-arm worktree needs copied `node_modules`, not symlinks. The helper runs in the
     container and cannot follow a link out of the mount. Lane B failed loudly, and the run was discarded.
 - **Shipped earlier this session, 0.2.80-beta (the audit).** C-174 widened, and C-175–C-177 registered and
