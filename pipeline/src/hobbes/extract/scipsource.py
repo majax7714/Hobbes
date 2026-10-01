@@ -674,9 +674,19 @@ class _SymbolIndex:
 
     Two questions, because a reference has two ends: which symbol *encloses*
     this line (the caller), and which symbol *starts* at it (the callee).
+
+    *later_defs* (ADR-155) maps a Python symbol id to the ``(line,
+    end_line)`` spans of its later live defs; each is one further row the
+    enclosing lookup reads as that symbol's, and the start lookup never
+    sees. A span for an id not among *symbols* is ignored.
     """
 
-    def __init__(self, nodes: list[dict], symbols: list[dict]):
+    def __init__(
+        self,
+        nodes: list[dict],
+        symbols: list[dict],
+        later_defs: dict[str, list[tuple[int, int]]] | None = None,
+    ):
         self._kinds = {s["id"]: s.get("kind") for s in symbols}
         # Only the symbols that carry a count (ADR-130): the C++ layer's
         # functions and methods, and the mint's. An absent id and one
@@ -693,6 +703,21 @@ class _SymbolIndex:
             self._by_module.setdefault(symbol["module"], []).append(symbol)
         for rows in self._by_module.values():
             rows.sort(key=lambda s: (s["line"], -(s.get("end_line") or s["line"])))
+        # The defs alone, for `starting_at`: the node, lane B's definition
+        # and the fallback all name a qualname's first def (ADR-155).
+        self._defined = {module: list(rows) for module, rows in self._by_module.items()}
+        if later_defs:
+            by_id = {s["id"]: s for s in symbols}
+            for symbol_id, spans in later_defs.items():
+                symbol = by_id.get(symbol_id)
+                if symbol is None:
+                    continue
+                self._by_module[symbol["module"]].extend(
+                    {"id": symbol_id, "line": line, "end_line": end_line}
+                    for line, end_line in spans
+                )
+            for rows in self._by_module.values():
+                rows.sort(key=lambda s: (s["line"], -(s.get("end_line") or s["line"])))
         self._starts = {
             module: [s["line"] for s in rows]
             for module, rows in self._by_module.items()
@@ -712,7 +737,9 @@ class _SymbolIndex:
         return self.module_of_path.get(path)
 
     def enclosing(self, module: str, line: int) -> str | None:
-        """The innermost symbol whose range contains *line*."""
+        """The innermost symbol whose range contains *line*. A Python
+        symbol defined more than once in a file answers for each of its
+        live defs (ADR-155), so a use inside a later def names it."""
         rows = self._by_module.get(module)
         if not rows:
             return None
@@ -727,7 +754,7 @@ class _SymbolIndex:
 
     def starting_at(self, module: str, line: int) -> str | None:
         """The symbol defined at *line*, innermost first."""
-        rows = self._by_module.get(module)
+        rows = self._defined.get(module)
         if not rows:
             return None
         matches = [s["id"] for s in rows if s["line"] == line]
@@ -910,6 +937,7 @@ def project(
     nodes: list[dict],
     symbols: list[dict],
     full_specializations: frozenset[str] = frozenset(),
+    later_defs: dict[str, list[tuple[int, int]]] | None = None,
 ) -> dict:
     """Project semantic-IR facts onto lane A's module and symbol ids.
 
@@ -932,8 +960,13 @@ def project(
     Only *more* — a default argument lives on a declaration this lane
     never sees, so fewer arguments proves nothing — and only where both
     counts are known.
+
+    *later_defs* is a Python qualname's later live defs by symbol id
+    (ADR-155), read by the caller lookup alone: a ``uses`` fact at a later
+    def's own name token then names its own callee and drops below, and
+    one written inside a later def is filed under the qualname.
     """
-    index = _SymbolIndex(nodes, symbols)
+    index = _SymbolIndex(nodes, symbols, later_defs)
     module_evidence: dict[tuple, list] = {}
     symbol_evidence: dict[tuple, list] = {}
     # Call sites the semantic lane resolved to a declaration lane A keeps

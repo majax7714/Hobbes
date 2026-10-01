@@ -399,6 +399,47 @@ def _read_static_tests(
     return out
 
 
+def _later_defs(
+    graph: dict, modules, parsed, python_reading: dict
+) -> dict[str, list[tuple[int, int]]]:
+    """The spans of each Python qualname's later live defs (ADR-155 step 1).
+
+    scip-python gives a name one scope binds more than once one definition,
+    at the first def, so the node sits there; but a lane B ``uses`` fact
+    inside a later def, or at its own name token, carries no lane A scope
+    and the projection files it by the enclosing lines. Keyed by symbol id,
+    each qualname with two or more defs gives ``(line, end_line)`` of every
+    def other than the one its record sits at (after ADR-154 has moved a
+    twin's record) and outside a dead region, ascending, read under the
+    reading :func:`_read_static_tests` evaluates. A qualname with no span
+    left is absent.
+    """
+    version = python_reading.get("version")
+    reading = pystatic.Reading(version=(version[0], version[1]) if version else None)
+    records = {s["id"]: s for s in graph["symbols"]}
+    out: dict[str, list[tuple[int, int]]] = {}
+    for module in sorted(modules, key=lambda m: m.path):
+        facts = parsed[module.id]
+        by_qualname: dict[str, list] = {}
+        for symbol in facts.symbols:
+            by_qualname.setdefault(symbol.qualname, []).append(symbol)
+        if all(len(defs) < 2 for defs in by_qualname.values()):
+            continue
+        read = pystatic.read_file(facts, reading)
+        for qualname, defs in by_qualname.items():
+            record = records.get(f"{module.id}.{qualname}")
+            if len(defs) < 2 or record is None:
+                continue
+            spans = sorted(
+                (symbol.line, symbol.end_line)
+                for symbol in defs
+                if symbol.line != record["line"] and not read.dead(symbol.line)
+            )
+            if spans:
+                out[record["id"]] = spans
+    return out
+
+
 def _static_reading_records(
     static_reading: dict[str, list], symbol_edges: list[dict], version
 ) -> list[dict]:
@@ -585,9 +626,13 @@ def _build_symbol_layer(
     # references to it land, and lane A stops guessing at a twin's name or
     # filing a dead def's calls under the live node. Without lane B for
     # Python nothing is evaluated and the graph is what it was (P6).
+    # ADR-155, after it so a twin's record has moved: a qualname's later
+    # live defs, which the projection reads as its node's lines too.
     static_reading: dict[str, list] = {}
+    later_defs: dict[str, list[tuple[int, int]]] | None = None
     if python_reading is not None and modules:
         static_reading = _read_static_tests(graph, modules, parsed, fallback, python_reading)
+        later_defs = _later_defs(graph, modules, parsed, python_reading)
 
     withhold = frozenset(cpp_withheld_files)
     # ADR-131: lane A's operator tokens, read by the join alone and only
@@ -714,6 +759,9 @@ def _build_symbol_layer(
             # owner shape whose arguments are concrete enough for a
             # written qualifier to contradict. No C++ layer, no rule.
             full_specializations=cpp["full_specializations"] if cpp else frozenset(),
+            # ADR-155: a Python qualname's later live defs; None without
+            # lane B for Python, and the index is what it was.
+            later_defs=later_defs,
         )
     # What the override set could not draw (ADR-120), so the summary says
     # how far the `implements` edges reach: pairs to a declaration outside
