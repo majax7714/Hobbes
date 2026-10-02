@@ -31,6 +31,18 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-02 — the local alias and the pyparsing held-out cell (0.2.84–0.2.85-beta)
+
+- ADR-160, C-9: `c9-local-alias/` (`RESULTS.md`; `probe.py` the exact `ast` read and simulation, `count.py`
+  and `count_cls.py` the graph-free counts, `run.sh <arm>` the rich/flask/click before/after driver with
+  `ROOT=`, `before/`, `after/` (pyparsing's after arm too), `probe/`, `units/` the brief and partition,
+  `candidates/` twelve shallow clones counted for a held-out pick, `pp-index/` raw scip-python over
+  pyparsing (`index.sh`, `dump.mjs`, `emptyenv/occ.ndjson`) — C-178's evidence; `wt/` the unit's worktree,
+  removable).
+- The pyparsing held-out cell: `heldout-pyparsing/` (`PREREG.md`, `lanes.txt`) and `oracle/pyparsing-py/`
+  (key, report, and the held-out `graph.json` kept beside it); the clone is `oracle/repos/pyparsing` with
+  its venv (`uv pip install -e '.[diagrams]' pytest`; the suite is `tests examples/tiny/tests`).
+
 ## 2026-10-01 — the honesty audit and its fixes (0.2.80–0.2.83-beta)
 
 - ADR-159, C-177: `c177-tagged-template/` (`PREREG.md`, `RESULTS.md`,

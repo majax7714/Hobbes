@@ -1,15 +1,15 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-02 (thirty-second session); Hobbes 0.2.83-beta on `main`.**
+**Reviewed 2026-10-02 (thirty-second session); Hobbes 0.2.85-beta on `main`.**
 Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
-0.2.83-beta, and this repo was ingested at the release commit; ingest at HEAD
+0.2.85-beta, and this repo was ingested at the release commit; ingest at HEAD
 again if `main` has moved since. A new session's knowledge server is a new
 container from the current image (`sandbox/knowledge-serve` runs `podman run
 --rm`), so it is fresh.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.83-beta are untagged. Tags stay Max's call each time.
+  0.2.85-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment): patch by patch on 0.2.x,
   counting past nine. A language addition or a constraint's fix is a patch,
   even when structural; a minor is for a feature added to Hobbes (the
@@ -30,22 +30,44 @@ or a probe.
 do but the most important for hobbes"; "we never sacrifice honesty for higher
 recall".** And (2026-10-01) against fitting: "if we try to 100% 100% everything
 we might be defeating the point of the [poison] check by conforming to our
-tested repos."
+tested repos." **New rule tiering** (2026-10-02): "syntatic over semantic when
+not clearly semantic to preserve honesty".
 
-**Next — the local alias of a global** (`_Segment = Segment` … `_Segment(…)`;
-rich 121, click 24, flask 12; C-9). Measure first, and grade a candidate rule
-on the held-out rich cell as well as click and flask. Then `cls(…)` in a
-classmethod (rich 57), C-174's remainder per language, and C/C++ lane A's
-time. **Pick the next held-out repo before the next round of fitting.**
+**Next — C-178's route (precedent 1, Max's call).** The pyparsing held-out cell
+found scip-python 0.6.6 naming most `pp.<name>` read through pyparsing's `from
+.core import *` re-export as an unrelated symbol (`pyparsing.core/CaselessLiteral#`
+for `Word`, `Forward`, `alphas`, …; `one_of`, `replace_with` for others): 3,072 of
+3,182 occurrences in tests and examples. The join draws 397 `uses` and 7 `calls`
+`semantic` edges to `CaselessLiteral` (1,688 rows; 36 source lines name it),
+which no trace key grades. Registered unsurfaced. Routes to put to him, measured
+first:
+- **a (contain):** refuse a lane B reference whose token text is not the named
+  symbol's name, except where the file's own import binds that text as an alias of
+  it (`import x as y`, `from m import a as b`). Measure on all keyed Python cells
+  first: rich/flask/click show 108/10/11 rows of "target name not on the line",
+  sampled as member-to-class roll-ups, which a token check must keep.
+- **b (surface only):** a degradation record per ingest counting such references.
+- Read why scip-python does it (a ten-line fixture in the image with `from .core
+  import *` and `import pkg as pp`) before choosing; a fixture tells whether the
+  shape is any star re-export or pyparsing's.
+Then `cls(…)` in a classmethod (rich 57, pyparsing 17), after picking the next
+held-out repo (measuring on pyparsing would fit it).
 
-**Where the last day left things** (2026-10-01; the CHANGELOG has each):
-the honesty audit (0.2.80-beta, precedent 1) widened C-174 and registered
-C-175 to C-177, and all three are fixed — C-175 lifted (ADR-157, 0.2.81), C-176
-narrowed to the symbol floor (ADR-158, 0.2.82), C-177 lifted (ADR-159, 0.2.83).
-**Not audited:** Terraform/HCL; repo-scale counts of any implicit shape outside
-Python's `__exit__`; Go's and Java's caller roll-up on real repos. The held-out
-rich cell (0.2.77-beta) reads 4,748 confirmed, 0 Hobbes-wrong, recall 89.7%,
-and is now in the loop.
+**Where the day left things** (2026-10-02; the CHANGELOG has each):
+- **0.2.84-beta:** C-32's `local-binding` gloss no longer says "the call stays
+  inside that file" (precedent 1, found in the C-9 step 0).
+- **0.2.85-beta, ADR-160 (unit `3814`):** a call through a local alias is drawn
+  `syntactic` to the index's answer at the right-hand side. rich 4,844 → 4,968
+  (90.20% → 92.51%), flask and click identical, pyparsing +1. The step-0 simulation
+  over-predicted by 12 rows (step 4's pair convention, 9; nested-def calls, 3).
+- **pyparsing 3.3.3 is the held-out Python cell now** (`PREREG.md` before the
+  ingest; §10.44): 3,516 confirmed, 0 Hobbes-wrong calls of 66 suspects, recall
+  50.6%. rich counts as fitted from ADR-160 on.
+- **C-174's property clause corrected:** a call through a property's value draws
+  `calls` to the getter.
+- **Not audited** (carried from the honesty audit): Terraform/HCL; repo-scale
+  counts of any implicit shape outside Python's `__exit__`; Go's and Java's caller
+  roll-up on real repos.
 
 ## Open for Max (no spend)
 
@@ -197,15 +219,15 @@ Each is his call; nothing is built until he answers.
   installed (C-165).
 - **Shanks, the harness** (ADR-107, ADR-112, ADR-152): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar `hobbes-side-<id>`;
-  the doer mounts only `in/`, read-only, and its HOME is a tmpfs. Ninety-six
-  log files under `docs/shanks/sessions/`; the tracker reads 96 of 40 (4
+  the doer mounts only `in/`, read-only, and its HOME is a tmpfs. Ninety-seven
+  log files under `docs/shanks/sessions/`; the tracker reads 97 of 40 (4
   areas, 4 false blocks, all closed, 0 missed; 1 deny).
-- **The comparative graphics** (`docs/comparative/graphics/`): four, from 96
+- **The comparative graphics** (`docs/comparative/graphics/`): four, from 108
   cells (22 same-key rows); `render.py check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps deployed
   and idle): held.
-- **Register:** 177 entries: 129 active (100 surfaced, 25 partial, 3
-  unsurfaced — C-19, C-20, C-112 — 1 n/a), 31 lifted, 11 superseded, 6
+- **Register:** 178 entries: 130 active (100 surfaced, 25 partial, 4
+  unsurfaced — C-19, C-20, C-112, C-178 — 1 n/a), 31 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open** (H-37 the latest, fixed 0.2.79-beta;
   `docs/oracle/oracle-defects.md`). RC-4 still carries its price: silencing is

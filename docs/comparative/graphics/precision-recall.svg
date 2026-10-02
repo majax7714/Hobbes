@@ -1133,6 +1133,15 @@ trace-graded under its own suite; picked for ADR-145's amended shape (the app fi
 </g>
 <text x="532.5" y="975.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >flask</text>
 <g>
+<title>pyparsing — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-10-02
+confirmation rate 3,516/5,554 = 63.3%
+recall 3,516/6,950 = 50.6% recall-against-executed (coverage-limited)
+misses by class: observed→class 1,672, observed→method 1,030, observed→function 329, observed→lambda 250, observed→closure 153
+held out: trace-graded under its own suite (tox's paths), no rule fitted on it, predictions pre-registered; picked in rich's place when ADR-160 was measured on rich; 66 suspects, 0 Hobbes-wrong calls (55 C-60, 5 a call through a property's value, 4 a decorator's wrapper, 1 a call after a raise, 1 one node for two defs); C-178's uses rows are outside what a trace key grades</title>
+<circle cx="551.8" cy="1129.25" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
+</g>
+<text x="559.8" y="1133.25" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >pyparsing</text>
+<g>
 <title>click — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-08-27
 confirmation rate 3,356/3,901 = 86.0%
 recall 3,356/4,561 = 73.6% recall-against-executed (coverage-limited)
@@ -1146,7 +1155,7 @@ trace-graded under its own suite; 16 of 18 suspects are C-60's override/monkeypa
 confirmation rate 4,748/5,874 = 80.8%
 recall 4,748/5,296 = 89.7% recall-against-executed (coverage-limited)
 misses by class: none recorded
-held out: trace-graded under its own suite, no rule fitted on it, predictions pre-registered; picked for diversity from click and flask; 25 suspects, 0 Hobbes-wrong (19 C-60, 5 a conditional expression's untaken branch, 1 a monkeypatch)</title>
+held out: trace-graded under its own suite, no rule fitted on it until ADR-160 (0.2.85-beta), predictions pre-registered; picked for diversity from click and flask; 25 suspects, 0 Hobbes-wrong (19 C-60, 5 a conditional expression's untaken branch, 1 a monkeypatch)</title>
 <circle cx="669.1" cy="998.0" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
 </g>
 <text x="677.1" y="1002.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >rich</text>

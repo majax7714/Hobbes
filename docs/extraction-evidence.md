@@ -699,3 +699,20 @@ the ranking is in `oracle-grading.md` §10.40.
 **Verified:** the 25 suspects, read row by row against the source. The misses are bucketed by site syntax
 (a heuristic) and not hand-checked one by one. As on every trace-graded cell, recall counts only the
 executed slice (C-60), never precision.
+
+## pyparsing/pyparsing — a second held-out Python cell (2026-10-02, 0.2.83-beta's tree)
+
+Picked when the C-9 local-alias shape turned out to be rich's alone, so that a rule measured on rich (now
+fitted) is graded on a repo it was not built from. Predictions were pre-registered before the ingest and the
+key, and the repo was graded once, then once more after ADR-160. Cell:
+[`oracle/cells/pyparsing-py-2026-10-02.md`](oracle/cells/pyparsing-py-2026-10-02.md); the ranking is in
+`oracle-grading.md` §10.44.
+
+| Date | Numbers |
+|---|---|
+| 2026-10-02 | pyparsing 3.3.3 (`d90d38b2`), trace-graded (py-trace, CPython 3.12.13, 2 runs, 2,067 passed): **3,516 confirmed, 66 suspect, 0 Hobbes-wrong calls** (55 C-60 declared targets, 5 a call through a property's value, 4 a decorator's wrapper, 1 a call after a raise, 1 one node for two defs), **recall-against-executed 50.6%** (3,516/6,950); function 57.4%, class 23.1%, method 69.6%, closure 58.5%, lambda 0%; poison PASS (0 of 5,554 falsely confirmed); `hobbes lanes` exit 0. After ADR-160 (0.2.85-beta): 3,517 confirmed |
+
+**Verified:** the 66 suspects, read row by row against the source. **Not verified by the key, and found
+beside it:** C-178, scip-python's naming of `pp.<name>` through pyparsing's star re-export as an unrelated
+symbol, drawn as `semantic` `uses` rows a trace key does not grade; read in the raw index in the image. As on
+every trace-graded cell, recall counts only the executed slice (C-60), never precision.

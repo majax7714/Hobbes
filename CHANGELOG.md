@@ -11,9 +11,37 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.84-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.85-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.85-beta — 2026-10-02 (a call through a local alias is drawn; ADR-160, C-9 narrowed; C-178 registered)
+
+**Patch: what the layer draws and says**, Python. Measured first on rich, then built after a new held-out cell
+(pyparsing) was graded, because every measured row was rich's and rich was the held-out cell (Max: "good to
+move with recommended, syntatic over semantic when not clearly semantic to preserve honesty").
+
+- **What was missing (C-9).** `_Segment = Segment` … `_Segment(…)` drew `uses` to `Segment` at the
+  assignment and nothing at the call: the index names the local there, below the symbol floor.
+- **Drawn now.** A name a function binds exactly once, by `N = R` with R a name or an attribute chain, called
+  as `N(…)` in that function, draws `calls` to what the index named at R, at the **`syntactic`** tier,
+  evidence `via: "alias"`. Every other binding form, a second binding, a parameter, `global`/`nonlocal`, a
+  call from a nested def, and module- or class-level aliases are left out. Without lane B nothing is drawn.
+  `graph["aliases"]` counts what was asked and why each site abstained; resolution coverage is not moved.
+- **Measured.** rich 4,844 → **4,968** confirmed, recall 90.20% → **92.51%**, 17 new suspects (the direct
+  call's declared-target convention); flask and click identical; pyparsing +1. 0 contradicted and poison
+  PASS on every cell.
+- **A second held-out Python cell, pyparsing 3.3.3,** pre-registered and graded before the rule: 3,516
+  confirmed, 0 Hobbes-wrong calls among 66 suspects, recall 50.6%. It joins the verification base (Python:
+  11 repos); rich is listed as held out until ADR-160 was fitted on it.
+- **Registered: C-178 (unsurfaced).** Beside the key, scip-python names most `pp.<name>` read through
+  pyparsing's `from .core import *` re-export as an unrelated symbol (`CaselessLiteral#` for most), and the
+  join draws 397 `uses` and 7 `calls` `semantic` edges to it that a trace key does not grade. The route is
+  Max's.
+- **Corrected: C-174's property clause.** A call through a property's value (`obj.prop(…)`) draws `calls` to
+  the getter, which runs there, and nothing to the value's `__call__`.
+- **Register:** C-9 narrowed, C-178 registered; 178 entries, 130 active (100 surfaced, 25 partial, 4
+  unsurfaced), 31 lifted.
 
 ## 0.2.84-beta — 2026-10-02 (a local binding's gloss no longer says the call stays in its file; C-32 corrected)
 

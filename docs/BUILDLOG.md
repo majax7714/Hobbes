@@ -15324,3 +15324,35 @@ are encouraged."
   nothing the layer draws, refuses or says moved.
 - **Tests:** `test_register_tally.py`, `test_version.py` and `test_shanks_tracker.py`, 20 passing; every
   relative link in the edited docs resolves.
+
+## 2026-10-02 (thirty-second session, continued) — C-9's local alias measured, a new held-out cell, ADR-160 built; C-32 corrected; C-178 found — 0.2.84-beta, 0.2.85-beta
+
+**Task:** "good to start the global measurement", then "good to move with recommended, syntatic over semantic
+when not clearly semantic to preserve honesty".
+
+- **Step 0, no code changed** (`~/.hobbes/bench/c9-local-alias/`). The before arm reproduced rich, flask and
+  click's standing grades exactly at HEAD. An exact `ast` read of the shape found rich 155 sites, flask 0,
+  click 0; the rich cell's bucket (121/12/24) had been a regex over the line. Simulated on rich: +135
+  confirmed, +18 suspect, all suspects the direct call's declared-target convention. Across 20 other trees
+  the bare-name idiom is rare. Every row was the held-out cell's.
+- **Precedent 1 on the way (0.2.84-beta):** the `local-binding` gloss said "the call stays inside that file",
+  which `_Segment = Segment` contradicts. Corrected in `knowledge.go` and the plan manifest, with a Go test;
+  C-32's note and HISTORY. Image rebuilt.
+- **Route 1 (Max):** a new held-out cell before the rule. pyparsing 3.3.3 picked from twelve counted
+  candidates (the alias and `cls(…)` shapes, a different style, pure Python), pre-registered, keyed in the
+  image (2 traced runs, an hour): 3,516 confirmed, 66 suspects read row by row with 0 Hobbes-wrong calls,
+  recall 50.6%, poison PASS, lanes exit 0. H4, H5 (class, function) and H6 missed.
+- **C-178 found beside the key:** scip-python names 3,072 of 3,182 `pp.<name>` occurrences read through
+  pyparsing's star re-export as an unrelated symbol (`CaselessLiteral#` for most); the join draws 397 `uses`
+  and 7 `calls` `semantic` edges to it, which the trace key cannot grade. Read in the raw index in the image.
+  Registered unsurfaced; the route is Max's (contain by a token check, or surface first).
+- **ADR-160** written and committed before the dispatch; unit `3814` (65 turns, $2.11 on the subscription):
+  gate clear, verify pass. Host from a worktree: pytest 2,652, `lane_b` 22 of 22. After: rich 4,968 (92.51%),
+  17 new suspects; flask and click identical; pyparsing +1. The simulation's 12 extra rows: the pair
+  convention (9) and nested-def calls (3), neither modelled by the probe. Merged `--no-ff` (`07e4bde`); the
+  review block filled, the tracker re-rendered (97 of 40).
+- **Released as 0.2.85-beta:** ADR-160 Built; C-9 narrowed, C-178 registered, C-174's property clause
+  corrected, HISTORY and the tally (178 entries, 130 active, 4 unsurfaced); pyparsing in the verification
+  base (Python 11 repos), architecture §3.8 and header; `oracle-grading.md` §10.44; the pyparsing cell record
+  and evidence entry; CHANGELOG, README, workstreams, CLAUDE.md and AGENTS.md; the handoff (next: C-178's
+  route), `bench-drivers.md`, `lessons.md`.

@@ -2685,6 +2685,47 @@ which step 0 had called a local without reading the file. They are the edge a wr
 **P4 missed as worded**: folio, tileserver and hack-chat differ only by an `npm ci` log timestamp in
 `extraction_errors`. Drivers: `~/.hobbes/bench/c177-tagged-template/` (`RESULTS.md`).
 
+### 10.44 A held-out Python cell, pyparsing, and a call through a local alias — `PREREG.md` written 2026-10-02 before the ingest and the key; graded at 0.2.83-beta's tree, then once more after ADR-160 (C-9 narrowed; C-178 registered)
+
+**Why a new held-out cell.** The C-9 step 0 (`~/.hobbes/bench/c9-local-alias/RESULTS.md`) read the local-alias
+shape exactly: rich 155 sites, flask 0, click 0 (the rich cell's bucket of 121/12/24 was a regex over the
+line). Every row was the held-out cell's, so pyparsing 3.3.3 was picked, pre-registered and graded first, and
+rich counts as fitted for ADR-160 (Max, 2026-10-02, route 1).
+
+**The held-out grade** (cell `cells/pyparsing-py-2026-10-02.md`): 3,516 confirmed, 0 contradicted, 66
+suspect, recall 50.6%, poison PASS, `hobbes lanes` exit 0. The 66 suspects, read row by row, hold 0
+Hobbes-wrong calls (55 declared targets, 5 a call through a property's value, 4 a decorator's wrapper, 1 a call
+after a raise, 1 one node for two defs). H1–H3, H7, H8 met; H4 (55–85%), H5's class and function rows and H6
+(≤ 5% syntactic: 5.5%) missed. **C-178 was found beside the key:** scip-python names 3,072 of 3,182 `pp.<name>`
+occurrences as an unrelated symbol (`CaselessLiteral#` for most), drawn as 397 `uses` and 7 `calls`
+`semantic` edges to `CaselessLiteral` the trace key grades none of; the calls written there draw nothing,
+which is most of the class and function misses.
+
+**ADR-160, regraded** against the standing keys (`rich-py-r2`, `flask-py-r2`, `click-py-r4`, and pyparsing's
+own), poison on. Before is HEAD at 0.2.83-beta's tree (`2f99c8e`), every standing grade reproduced; after is
+the unit's branch from a worktree.
+
+| Cell | Confirmed | Contradicted | Suspect | Recall | Poison |
+|---|---|---|---|---|---|
+| rich | 4,844 → **4,968** | 0 → 0 | 25 → 42 | 90.20% → **92.51%** | PASS |
+| flask | 1,552 → 1,552 | 0 → 0 | 15 → 15 | 55.63% → 55.63% | PASS |
+| click | 3,768 → 3,768 | 0 → 0 | 20 → 20 | 81.98% → 81.98% | PASS |
+| pyparsing | 3,516 → 3,517 | 0 → 0 | 66 → 66 | 50.59% → 50.60% | PASS |
+
+Signed direction of fix:
+- `calls` rows by (path, line, target): rich +143, pyparsing +1, flask and click 0; lost 0 everywhere. Every
+  new row is `syntactic` with `via: "alias"`.
+- rich's 17 new suspects are one shape, `get_style = theme.get_style_for_token` on a `SyntaxTheme`-declared
+  receiver, the direct call's declared-target convention (5 such rows at HEAD).
+- Resolution coverage is not moved (ADR-160); `graph["aliases"]` counts rich 136 aliases, 294 sites, 145
+  drawn, `no-rhs-edge` 140, `already-drawn` 9.
+
+**Pre-registration:** the simulation predicted +135 confirmed and +18 suspect on rich; the build reads +124 and
++17. The 12 rows are step 4's pair convention (9) and step 2's nested-def exclusion (3), neither modelled by
+the probe. A5 missed on confirmed, A6 met; on pyparsing A1, A3, A4 met and A2 missed (1 drawn). Drivers:
+`~/.hobbes/bench/c9-local-alias/` (`RESULTS.md`, `probe.py`, `count.py`, `run.sh`, `before/`, `after/`,
+`units/`, `pp-index/`) and `~/.hobbes/bench/heldout-pyparsing/`.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

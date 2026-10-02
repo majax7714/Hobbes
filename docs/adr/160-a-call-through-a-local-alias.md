@@ -1,8 +1,8 @@
 # ADR-160 — A call through a local alias is drawn to what the alias's right-hand side names
 
 **Date:** 2026-10-02 · **Status:** accepted (Max, 2026-10-02: "good to move with recommended, syntatic over
-semantic when not clearly semantic to preserve honesty"); to be built after the held-out pyparsing cell is
-graded at 0.2.83-beta · **Owner:** Max · **Source:** the C-9 step 0, `~/.hobbes/bench/c9-local-alias/`
+semantic when not clearly semantic to preserve honesty") and **built** (0.2.85-beta, unit `3814`), after the
+held-out pyparsing cell was graded at 0.2.83-beta · **Owner:** Max · **Source:** the C-9 step 0, `~/.hobbes/bench/c9-local-alias/`
 (`RESULTS.md`, `probe.py`, `count.py`, `run.sh`, `before/`, `probe/`); the held-out pre-registration
 `~/.hobbes/bench/heldout-pyparsing/PREREG.md`.
 
@@ -110,3 +110,30 @@ more `calls` edges. A wrong right-hand-side answer would now be drawn twice (the
 C-9 keeps every other local binding: a parameter holding a callable, a value a call returned, a multiply
 bound name, and the aliases above. Other languages are not read (TS/JS has its checker's own `local-binding`
 proof; Go and Java were not measured).
+
+## Built (0.2.85-beta, unit `3814`, merged `07e4bde`)
+
+As decided. `pysource` records `ParsedFile.local_aliases` per definition (reusing ADR-153's binding helpers,
+bindings counted by node), keeping only aliases a bare call in that definition uses; `aliases.alias_calls`
+reads R's target off the settled graph and `_add_alias_call_edges` draws it after the `with` step. Shanks:
+gate clear, verify pass, 65 turns. Host: pytest 2,652, `lane_b` 22 of 22 (`minialias`: four sites on three
+edges, `parts.append` `no-rhs-edge`, the twice-bound name absent).
+
+| cell | confirmed | suspect | recall | export |
+|---|---|---|---|---|
+| rich (fitted) | 4,844 → **4,968** | 25 → 42 | 90.20% → **92.51%** | +143 rows, 0 removed |
+| flask, click | unchanged | unchanged | unchanged | identical |
+| pyparsing (held out) | 3,516 → 3,517 | 66 → 66 | 50.59% → 50.60% | +1 row |
+
+0 contradicted and poison PASS on every cell. Against step 0's simulation on rich (+135, +18) the build drew
+12 rows fewer, every one explained: 9 sites whose function also calls the target directly (step 4's pair
+convention: the pair is `already-drawn`, so the alias site adds no row), and 3 calls from a nested def to an
+alias the enclosing function binds, which step 2 leaves out. The probe had deduplicated by site and labelled
+those 3 same-scope. On pyparsing the rule drew 1 of 11 alias sites; the others' right-hand sides name a
+class attribute (`self._parse`, below the floor) or something outside the repo. Pre-registered A1, A3, A4 and
+A6 met; A2 (≥ 4 on pyparsing) and A5's confirmed row (rich within ±5 of +135) missed, as above.
+
+**What the held-out cell found beside the rule** is C-178: scip-python names most `pp.<name>` occurrences read
+through pyparsing's star re-export as an unrelated symbol, drawn as `semantic` `uses` edges the trace key
+cannot judge. A local alias of such an attribute would carry the wrong answer into a `calls` edge; pyparsing
+has none, and C-178's route will decide it for both.

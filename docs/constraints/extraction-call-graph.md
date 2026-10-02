@@ -237,7 +237,7 @@
 - **Source:** architecture §3.2/P6, ADR-029. Registered at V2.M3, when
   demoting lane A's resolver made the floor explicit rather than incidental.
 
-### C-9 — Only five descriptor kinds become graph symbols
+### C-9 — Only five descriptor kinds become graph symbols — *narrowed 2026-10-02 (ADR-160, 0.2.85-beta): a call through a local alias whose right-hand side the index names is drawn, `syntactic`*
 - **Cannot tell you:** about parameters, locals, or meta symbols; roughly
   **86%** of what a Python or TS indexer defines is dropped (**72%** for
   Go — 27.9% of `scip-go`'s definitions are graph-worthy, ADR-037).
@@ -247,7 +247,15 @@
   kbet's frontend alone offers 6,696 definitions against 949 graph-worthy;
   the whole v1 dogfood graph has 834 symbols.
 - **Bites at:** any expectation that the symbol layer is a complete index
-  of the code. It is an architectural view, not an IDE.
+  of the code. It is an architectural view, not an IDE. **The call side of
+  a local, narrowed 2026-10-02 (ADR-160, 0.2.85-beta):** a function that
+  binds a local exactly once by `N = R` (R a name or an attribute chain)
+  and calls `N(…)` draws `calls` to what the index named at R, at the
+  `syntactic` tier, `via: "alias"` (rich +124 confirmed, 90.20% →
+  92.51%; flask and click have none). Every other local binding still
+  draws nothing: a parameter holding a callable, a value a call returned,
+  a name bound twice, a module-level or class-level alias, and a call from
+  a nested def.
 - **You find out:** **partial.** The filter is stated in ADR-027 and the
   omission is uniform, so it does not mislead about *specific* code — but
   nothing in the artifact declares the modelled vocabulary.
@@ -628,7 +636,9 @@
     - truth testing (`__bool__`);
     - an f-string or `str()`/`hash()`/`len()` reaching `__str__`/`__hash__`/`__len__`;
     - a call of an instance (`__call__`);
-    - a property's getter and setter (*uses* to the property);
+    - a property's getter and setter (*uses* to the property at a read; where the property's value is
+      called, `obj.prop(…)`, the getter is drawn *calls*, since it does run there, and the value's own
+      `__call__` is not drawn: pyparsing's `ppu.Japanese.identifier(…)`, corrected 2026-10-02);
     - a descriptor's `__get__`/`__set__`, `__getattr__` and `__del__`;
     - a metaclass's `__call__`, and `__init_subclass__`.
   - **Rust:**
@@ -744,6 +754,30 @@
 - **Source:** the 2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); ADR-158
   (`~/.hobbes/bench/c176-ts-scope/`); `tsextract/extract.mjs` `enclosingScope`,
   `tssource._call_sites`, `scipsource.project`.
+
+### C-178 — scip-python names an attribute read through a star re-export as an unrelated symbol, and the join draws it — *registered 2026-10-02 (0.2.85-beta, the pyparsing held-out cell)*
+- **Cannot tell you:** what `pp.Word`, `pp.Forward` or `pp.alphas` name where `pp` is a package whose
+  `__init__.py` re-exports by `from .core import *`. scip-python names most such occurrences as one
+  unrelated symbol of the star-imported module, and the join draws what it names. On pyparsing 3.3.3:
+  397 `uses` and 7 `calls` edges to `pyparsing.core.CaselessLiteral`, all `semantic`, on 1,688 evidence
+  rows, where 36 source lines name the class; wrong `uses` rows to `pyparsing.helpers.one_of` (275) and
+  `pyparsing.actions.replace_with` (65). The call written at such a site draws nothing, because the
+  join's line-and-name claim refuses a name that is not the site's.
+- **Because:** read in the image with raw scip-python over the clone (empty environment): of 3,182
+  `pp.<name>` occurrences in tests and examples, 3,072 name a symbol other than `<name>` (`Word` 505,
+  `alphas` 227, `Group` 212, `Literal` 195, `nums` 166, `Forward` 101 as `CaselessLiteral#`). Why the
+  indexer resolves the re-export this way is not read.
+- **Bites at:** `who_calls` on `CaselessLiteral` (hundreds of wrong references, 7 callers that may be
+  wrong); impact and reach through `uses`; pyparsing's class and function recall (1,247 class and 130
+  function misses at `pp.<name>(…)` sites). The trace key grades calls only, so the cell's 0 contradicted
+  and its poison PASS say nothing about these rows. rich, flask and click show none of the shape: a
+  `semantic` row whose line does not hold its target's name is 108, 10 and 11 rows there, and the rows
+  sampled are a member reference rolled up to its class.
+- **You find out:** **unsurfaced** — no record names it, and `hobbes lanes` exits 0 on the cell because
+  the join never claims these occurrences as call sites. Debt; the route is Max's.
+- **Provider (P9):** scip-python **0.6.6**, its resolution through a `from … import *` re-export.
+- **Source:** the pyparsing held-out cell (`docs/oracle/cells/pyparsing-py-2026-10-02.md`,
+  `oracle-grading.md` §10.44); `~/.hobbes/bench/c9-local-alias/pp-index/` (the raw index).
 
 ---
 

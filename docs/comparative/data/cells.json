@@ -3311,6 +3311,57 @@
    }
   },
   {
+   "stem": "pyparsing-py",
+   "record": "pyparsing-py-2026-10-02.md",
+   "date": "2026-10-02",
+   "kind": "trace",
+   "oracle": "py-trace 3.12.13 sys.monitoring",
+   "lang": "Python",
+   "run": "contained",
+   "draw": "picked",
+   "label": "pyparsing",
+   "note": "held out: trace-graded under its own suite (tox's paths), no rule fitted on it, predictions pre-registered; picked in rich's place when ADR-160 was measured on rich; 66 suspects, 0 Hobbes-wrong calls (55 C-60, 5 a call through a property's value, 4 a decorator's wrapper, 1 a call after a raise, 1 one node for two defs); C-178's uses rows are outside what a trace key grades",
+   "edges": 5554,
+   "confirmed": 3516,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 66,
+   "unobserved": 1972,
+   "silent_by": {
+    "line-mixed": 16,
+    "line-not-called": 199,
+    "not-loaded": 1757
+   },
+   "confirmation_rate": {
+    "pct": 63.3,
+    "num": 3516,
+    "den": 5554
+   },
+   "recall": {
+    "pct": 50.6,
+    "hits": 3516,
+    "pairs": 6950,
+    "roots": null,
+    "runs": 2,
+    "basis": "recall-against-executed (coverage-limited)"
+   },
+   "misses": {
+    "observed→class": 1672,
+    "observed→closure": 153,
+    "observed→function": 329,
+    "observed→lambda": 250,
+    "observed→method": 1030
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 5554,
+    "refused": 2992,
+    "unjudged": 2562,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "quic-go-go",
    "record": "quic-go-go-2026-09-02.md",
    "date": "2026-09-02",
@@ -4782,7 +4833,7 @@
    "run": "contained",
    "draw": "picked",
    "label": "rich",
-   "note": "held out: trace-graded under its own suite, no rule fitted on it, predictions pre-registered; picked for diversity from click and flask; 25 suspects, 0 Hobbes-wrong (19 C-60, 5 a conditional expression's untaken branch, 1 a monkeypatch)",
+   "note": "held out: trace-graded under its own suite, no rule fitted on it until ADR-160 (0.2.85-beta), predictions pre-registered; picked for diversity from click and flask; 25 suspects, 0 Hobbes-wrong (19 C-60, 5 a conditional expression's untaken branch, 1 a monkeypatch)",
    "edges": 5874,
    "confirmed": 4748,
    "contradicted": 0,

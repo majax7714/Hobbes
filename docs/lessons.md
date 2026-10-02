@@ -13,6 +13,15 @@ writing a brief, a probe or a pre-registration. The resume point is
   ADR-159's step 0 called Preact's `html` a local without reading it; it
   was a module-level `const html = htm.bind(h)`. Lane B not indexing a
   directory is silence too, and lane A still answers there.
+- **A simulation adds edges the way the build merges them.** ADR-160's probe added one row per site; the
+  build leaves a pair the graph already carries alone (`already-drawn`), and 9 of rich's sites were such
+  pairs. Model the pair convention, and the scope rule exactly as worded (3 nested-def sites were labelled
+  same-scope).
+- **A bucket regex over a site's line is for ranking, never sizing.** rich's cell bucketed 121/12/24 local
+  aliases on rich/flask/click; an `ast` read found 155/0/0. Read the shape exactly before naming a
+  candidate's size in a handoff.
+- **A trace key grades calls only.** pyparsing's 0 contradicted sat beside 1,688 wrong `semantic` `uses`
+  rows (C-178). On a new cell, also count `semantic` rows whose line does not hold the target's name.
 - **A probe applies every condition the ADR states.** ADR-156's `sim.py`
   ignored step 2's `semantic` condition and over-predicted flask (about
   +102 against +28).

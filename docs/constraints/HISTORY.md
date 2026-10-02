@@ -6,6 +6,15 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-178 registered, C-9 narrowed, C-174 corrected, 2026-10-02 (0.2.85-beta; ADR-160, Max: "good to move with recommended"; the pyparsing held-out cell):
+- **C-9 narrowed** (ADR-160): a call through a local alias whose right-hand side the index names is drawn,
+  `syntactic`, `via: "alias"`. rich +124 confirmed (90.20% to 92.51%); flask and click unmoved; pyparsing +1.
+- **C-178 registered, unsurfaced.** The held-out pyparsing cell found scip-python naming `pp.<name>` read
+  through a star re-export as an unrelated symbol (`CaselessLiteral#` for most), drawn as 397 `uses` and 7
+  `calls` `semantic` edges the trace key cannot judge. The route is Max's.
+- **C-174's property clause corrected:** a call through a property's value draws `calls` to the getter.
+- 178 entries, 130 active (100 surfaced, 25 partial, 4 unsurfaced, 1 n/a), 31 lifted.
+
 C-32 corrected, 2026-10-02 (0.2.84-beta; found in the C-9 step 0, precedent 1; no entry added):
 - **C-32's surfacing corrected.** The `local-binding` gloss served by `list_blind_spots` said "the call stays
   inside that file", which a local alias of an imported name contradicts (rich's `_Segment = Segment`, 155

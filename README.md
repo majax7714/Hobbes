@@ -366,7 +366,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.84-beta** (2026-10-02). The Hobbes layer is versioned from here
+**Hobbes 0.2.85-beta** (2026-10-02). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -392,8 +392,8 @@ drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings: C-71 fixed and
 surfaced the same day (ADR-098), the other nine lifted the next day
 ([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and seventy-seven entries (one
-hundred and twenty-nine active, thirty-one lifted, eleven superseded, six
+The constraint register holds one hundred and seventy-eight entries (one
+hundred and thirty active, thirty-one lifted, eleven superseded, six
 folded), each naming where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -421,8 +421,12 @@ C++ lane A reads every definition it walks past (ADR-157, fmt 7,012 →
 symbol (ADR-158), and a tagged template is a call site (ADR-159, ajv's
 recall 67.5% → 86.3%), each at no contradiction. **Against fitting to
 the keys,** a held-out Python repo, rich, was graded once with no rule
-changed: 4,748 confirmed, 0 Hobbes-wrong, recall 89.7%; it is graded
-beside click and flask on every Python rule since.
+changed: 4,748 confirmed, 0 Hobbes-wrong, recall 89.7%. When the next rule
+(ADR-160, a call through a local alias, 0.2.85-beta: rich 90.2% → 92.5%) turned
+out to have rows only on rich, a second held-out repo, pyparsing, was graded
+before it was built: 0 Hobbes-wrong calls, recall 50.6%, and beside the key a
+lane B defect the trace cannot judge, scip-python naming names read through a
+star re-export as an unrelated class (C-178, registered).
 
 **The derivation programme is built and under test.** The latest run (the
 ADR-085 validation pair, 7B, 2026-08-24) mostly held, solved 0/5 (not the

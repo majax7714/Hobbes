@@ -596,7 +596,7 @@
   "run": "contained",
   "draw": "picked",
   "label": "rich",
-  "note": "held out: trace-graded under its own suite, no rule fitted on it, predictions pre-registered; picked for diversity from click and flask; 25 suspects, 0 Hobbes-wrong (19 C-60, 5 a conditional expression's untaken branch, 1 a monkeypatch)"
+  "note": "held out: trace-graded under its own suite, no rule fitted on it until ADR-160 (0.2.85-beta), predictions pre-registered; picked for diversity from click and flask; 25 suspects, 0 Hobbes-wrong (19 C-60, 5 a conditional expression's untaken branch, 1 a monkeypatch)"
  },
  "codegraphcontext-express": {
   "lang": "JavaScript",
@@ -677,5 +677,12 @@
   "label": "cue",
   "tool": "repowise",
   "note": "repowise graded by the same key as the Hobbes cue cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); converter@5 (a `__module__` caller is a call site); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "pyparsing-py": {
+  "lang": "Python",
+  "run": "contained",
+  "draw": "picked",
+  "label": "pyparsing",
+  "note": "held out: trace-graded under its own suite (tox's paths), no rule fitted on it, predictions pre-registered; picked in rich's place when ADR-160 was measured on rich; 66 suspects, 0 Hobbes-wrong calls (55 C-60, 5 a call through a property's value, 4 a decorator's wrapper, 1 a call after a raise, 1 one node for two defs); C-178's uses rows are outside what a trace key grades"
  }
 }
