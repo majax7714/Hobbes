@@ -84,6 +84,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | comparing Hobbes with other code-graph tools | `docs/comparative/README.md` (the claim page; ADR-101/102) → `field.md` (one row per tool, sourced or unstated) → the foreign cells in `docs/oracle/cells/`; never a self-reported scoreboard |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
+| writing a brief, a probe or a pre-registration | `docs/lessons.md` (the checks earlier sessions paid for); the off-tree scripts behind each decision in `docs/bench-drivers.md` |
 | looking for why something was done        | `docs/BUILDLOG.md` (append-only, one dated entry per session)        |
 
 ## Project map
@@ -140,7 +141,8 @@ box, against a repo on disk (architecture §10); the application mode in
 - `docs/` — architecture, ADRs, `constraints/` (the register of what
   Hobbes cannot tell you, one file per segment; `README.md` is the
   index), `extraction-evidence.md`, `BUILDLOG.md`, `session-handoff.md`,
-  `workstreams.md`, `future_additions.md` (parked backlog),
+  `workstreams.md`, `future_additions.md` (parked backlog), `lessons.md`,
+  `bench-drivers.md` (the `~/.hobbes/bench/` index),
   `shanks/` (the harness, `sessions/` — one log per dispatched
   session), `experiments/` (the two programmes: `mapped-agents/` — the
   benchmark, agent mapping, TTT — and `calvin/` — the charter, the

@@ -1,706 +1,286 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-01 (thirty-first session); Hobbes 0.2.83-beta on `main`.**
+**Reviewed 2026-10-02 (thirty-second session); Hobbes 0.2.83-beta on `main`.**
 Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
-0.2.83-beta, and this repo was ingested at the release commit; ingest at HEAD again if
-`main` has moved since. A new
-session's knowledge server is a new container from the current image
-(`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
-the restart after a rebuild is the closing session's last step, never a
-line carried here.
+0.2.83-beta, and this repo was ingested at the release commit; ingest at HEAD
+again if `main` has moved since. A new session's knowledge server is a new
+container from the current image (`sandbox/knowledge-serve` runs `podman run
+--rm`), so it is fresh.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.82-beta are untagged. Tags stay Max's call each time.
-- **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
-  by patch on 0.2.x, and the patch number counts on past nine
-  (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
-  reaches "supported"; a structural change bumps minor (ask); **a
-  constraint's fix is a patch even when structural** (Max, 2026-09-13;
-  confirmed for ADR-129 on 2026-09-17). **A minor is for a feature added
-  to Hobbes** (Max, 2026-09-20): the harness earned 0.2.0, the dev
-  environment would earn 0.3.0 and is not being worked on; an extraction
-  change is a patch even when it moves the symbol floor.
+  0.2.83-beta are untagged. Tags stay Max's call each time.
+- **Numbering** (Max; ADR-103's fourth amendment): patch by patch on 0.2.x,
+  counting past nine. A language addition or a constraint's fix is a patch,
+  even when structural; a minor is for a feature added to Hobbes (the
+  harness earned 0.2.0; the dev environment would earn 0.3.0 and is not
+  being worked on). Ask before a minor.
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
-0.2.42–0.2.55-beta) is in those days' BUILDLOG entries and the
-CHANGELOG; this file keeps only what the next session needs, and the
-drivers' paths below.
+This file keeps only what the next session needs. What shipped is the
+CHANGELOG's; how each session went is the BUILDLOG's. Two companions hold
+what used to sit here: **[`bench-drivers.md`](bench-drivers.md)**, where
+each measurement's scripts are, and **[`lessons.md`](lessons.md)**, the
+checks earlier sessions paid for. Read the lessons before writing a brief
+or a probe.
 
-## ⇢ START HERE NEXT SESSION (written 2026-10-01, thirty-first session)
+## ⇢ START HERE NEXT SESSION
 
-**Max's direction (2026-09-20): extraction first — "the most annoying work to do but
-the most important for hobbes"; "we never sacrifice honesty for higher recall".**
+**Max's direction (2026-09-20): extraction first — "the most annoying work to
+do but the most important for hobbes"; "we never sacrifice honesty for higher
+recall".** And (2026-10-01) against fitting: "if we try to 100% 100% everything
+we might be defeating the point of the [poison] check by conforming to our
+tested repos."
 
-**Next — the local alias of a global** (`_Segment = Segment` … `_Segment(…)`; rich 121, click 24, flask 12;
-C-9). The honesty audit's three fixes are all in (below). Measure first, and grade a candidate rule on the
-held-out rich cell as well as click and flask (Max, 2026-10-01, against fitting). Then `cls(…)` in a
-classmethod (rich 57), C-174's remainder per language, and C/C++ lane A's time.
+**Next — the local alias of a global** (`_Segment = Segment` … `_Segment(…)`;
+rich 121, click 24, flask 12; C-9). Measure first, and grade a candidate rule
+on the held-out rich cell as well as click and flask. Then `cls(…)` in a
+classmethod (rich 57), C-174's remainder per language, and C/C++ lane A's
+time. **Pick the next held-out repo before the next round of fitting.**
 
-- **Shipped this session, 0.2.83-beta (ADR-159, C-177 lifted).** A TS/JS tagged template is a call site, its
-  tag in callee position (`tsextract` `extractCalls`, facts v8). Where the index resolves the tag, the join
-  claims its occurrence and the `uses` edge becomes `calls semantic`.
-  - **Measured on 15 TS/JS repos**, pre-registered after a step-0 count and before the code. ajv 1,499 → 1,902
-    confirmed, recall 67.5% → 86.3% (its codegen's `` _`…` `` and `` str`…` ``); zod 9,885; hono 835;
-    0 contradicted and poison PASS on all 13 keyed cells. Every new `semantic` row was a `uses` row before.
-    Nothing was lost; test reach only grew (hono 28 tests).
-  - **Missed (P5):** six `syntactic` rows on Preact's `demo/`, to a module-level `const html =
-    htm.bind(h)`. Step 0 had called it a local without reading the file. They are the edge a written
-    `html(…)` draws.
-  - **Lesson:** a probe that classes a tag as "a local" from the graph's silence needs the file read. Lane B
-    not indexing a directory is silence too, and lane A still answers there.
-  - Drivers: `~/.hobbes/bench/c177-tagged-template/` (`PREREG.md`, `RESULTS.md`, `count.mjs`, `join.py`,
-    `predict.py`, `run.sh`, `compare.py`, `cells.tsv` (every keyed TS/JS cell and its H-34 key), `before/`,
-    `after/`). `run.sh` and `cells.tsv` are the reusable TS/JS before/after driver.
-- **Shipped earlier the same day, 0.2.82-beta (ADR-158, C-176 narrowed).** A TS/JS call's lane A scope is the
-  innermost enclosing graph symbol. Dangling callers went to 0 (ajv 341, Preact 145), and so did in-class
-  module rows (folio-2025 501), with no grade moved. Drivers: `~/.hobbes/bench/c176-ts-scope/`.
-  - **For Max:** ADR-158's amendment (nested functions file under their top-level symbol) was not in the route
-    he named; it was pre-registered and is in the ADR for his review. C-176 keeps the floor: an object
-    literal's method, an unnamed class, a property-assigned function, a namespace. Lifting it moves the symbol
-    set, so it is his call. The CJS literal member (cue 49, Express 46) is the same question.
-- **Shipped earlier the same day, 0.2.81-beta (ADR-157, C-175 lifted).** C++ lane A reads a reference return, a
-  conversion operator, an in-class friend and a nested type. fmt went 7,012 → 7,026 confirmed, 0 contradicted;
-  args, cJSON and sqlite-vector are unmoved. Drivers: `~/.hobbes/bench/c175-cpp-defs/`.
-  - **Lesson:** a before-arm worktree needs copied `node_modules`, not symlinks. (This session ran its before
-    arm at HEAD before editing, which needs no worktree, since the TS helper is read live at ingest.)
-- **Shipped the session before, 0.2.80-beta (the audit).** C-174 widened, and C-175–C-177 registered and
-  surfaced. The record is `~/.hobbes/bench/honesty-audit/RESULTS.md` (one fixture per language, the table of
-  what each shape drew, and the two counting scripts). **Not audited:** Terraform/HCL;
-  repo-scale counts of any implicit shape outside Python's `__exit__`; Go's and Java's caller roll-up on real
-  repos.
+**Where the last day left things** (2026-10-01; the CHANGELOG has each):
+the honesty audit (0.2.80-beta, precedent 1) widened C-174 and registered
+C-175 to C-177, and all three are fixed — C-175 lifted (ADR-157, 0.2.81), C-176
+narrowed to the symbol floor (ADR-158, 0.2.82), C-177 lifted (ADR-159, 0.2.83).
+**Not audited:** Terraform/HCL; repo-scale counts of any implicit shape outside
+Python's `__exit__`; Go's and Java's caller roll-up on real repos. The held-out
+rich cell (0.2.77-beta) reads 4,748 confirmed, 0 Hobbes-wrong, recall 89.7%,
+and is now in the loop.
 
-- **Shipped the session before (0.2.78-beta, 0.2.79-beta):** C-174 contained first (registered, surfaced in both
-  renderers, C-1 pointing to it). Then the oracle's **H-37** (unit `32b8`): CPython 3.12 calls a `with` statement's
-  `__enter__` and exception-path `__exit__` without a `CALL` event, and the tracer now reads both at `PY_START`.
-  **The standing Python keys are now `rich-py-r2`, `flask-py-r2` and `click-py-r4`** (`~/.hobbes/bench/oracle/`),
-  regenerated with it. Recall fell, rich 89.7% → 88.4%, flask 56.5% → 54.6%, click 82.4% → 81.7%, because the old
-  figures were flattering. Then **ADR-156** (unit `721c`): a sync `with` item's `__enter__`/`__exit__` is drawn
-  where its own call is `semantic` to a class, or to a def whose return annotation the index resolves to one.
-  Rich +96 confirmed (90.2%), flask +28 (55.6%), click +12 (82.0%), with 0 new suspects and 0 rows lost.
-  Drivers `~/.hobbes/bench/with-stmt/` (`RESULTS.md`, `probe.py`, `factory.py`, `sim.py`, `rekey.sh`,
-  `regrade.sh`, `after/`, `units/`).
-  - **Open for Max:** the rule does not build on ADR-145's `syntactic` fixture-value edges. That is 40 of
-    flask's items (`with app.app_context():` on the fixture's value), and allowing it would stack one
-    `syntactic` rule on another.
-  - **Lesson:** `sim.py` ignored step 2's `semantic` condition and over-predicted flask (about +102 against
-    +28). A probe must apply every condition the ADR states.
+## Open for Max (no spend)
 
-- **Max, 2026-10-01, on fitting:** "if we try to 100% 100% everything we might be defeating the point of the
-  [poison] check by conforming to our tested repos." Widening the test set is on the table when it outweighs
-  the next candidate. Every Python extraction rule since ADR-145 (nine ADRs: 145 to 150, 153 to 155; 0.2.63-beta to 0.2.75-beta) was measured
-  and fitted on click and flask. **Taken** (Max: "good to go ahead with recommended, your choice on repo"):
-  **Textualize/rich** v15.0.0, held out, `PREREG.md` written before the ingest and the key, and graded once at
-  0.2.76-beta: 4,748 confirmed, 25 suspect, **0 Hobbes-wrong**, recall 89.7%, poison PASS, lanes exit 0. R4
-  (recall 35–60%) and R5's method row were missed high, being calibrated on flask's closures. Only 12 confirmed
-  edges are `syntactic`. Cell `docs/oracle/cells/rich-py-2026-10-01.md`, §10.40; drivers
-  `~/.hobbes/bench/heldout-rich/`, `~/.hobbes/bench/oracle/rich-py/`. The repo is at
-  `~/.hobbes/bench/oracle/repos/rich` with its venv (pygments and markdown-it-py pinned to its `poetry.lock`).
-  **Keep a held-out cell in the loop:** grade a candidate's rule on rich as well as click and flask, and pick
-  the next held-out repo before the next round of fitting.
-- **Shipped this session (0.2.76-beta, unit `da88`, 32 turns, $0.97):** the gate's decorator false block
-  (`9326`, `c141`, `66c5`). A bare Python name a column-0 assignment binds at module level (in the calling file's
-  post-image, or in the repo module it is imported from) abstains `unknown-receiver`; other binding forms still
-  block (C-91 amended). Measured first: the three sessions' own diffs were replayed at their parents (re-ingested in
-  the image, their own partitions, `--map derive`). Before the fix, each matched its record exactly; after it,
-  each is clear with 0 rows, and only those 15 references moved. Lane-A-only parents do *not* reproduce: the
-  derived map reads the files as blind spots and splits the NULLs to `unknown`. Drivers
-  `~/.hobbes/bench/gate-decorator/` (`units/u1.md` the brief; the replays were in the session's scratchpad, and
-  the CHANGELOG has their numbers).
+Each is his call; nothing is built until he answers.
 
-- **Shipped the session before (0.2.75-beta, ADR-155, unit `78b9`, 42 turns, $1.30):** the handoff's
-  candidate 2, measured first. **Its premise was wrong**: scip-python gives a name one scope
-  defines more than once one definition at the first def and a reference at each later def's
-  name token, so references reach the node. What was wrong was the caller of lane B's `uses`
-  facts: with no lane A scope, `project` filed them by the first def's lines alone, so an
-  `@overload`'s stubs, a property setter or an `else` def gave `<class or module> uses
-  <qualname>` and their in-body uses went to the class or module. Each later live def is now its
-  node's for that lookup (`enclosing` only; `starting_at`, the record and the fallback still name
-  the first def). click 28 wrong `uses` edges gone and 14 drawn at the method, flask 13 and 4,
-  exactly as simulated; flask 1,524 and click 3,756, both exports byte-identical (§10.39). C-170's
-  "not affected" sentence corrected. Drivers `~/.hobbes/bench/py-samescope/` (`RESULTS.md`,
-  `probe.py`, `callers.py`, `sim.py`, `sim74-*.json` the predictions, `before/` and `after/` the
-  regrades and graphs, `units/`).
-- **Shipped earlier the same day (0.2.74-beta, ADR-154, unit `61b4`):** lane B reads Python as
-  Linux at one version and the ingest says where (C-173). Drivers `~/.hobbes/bench/py-platform/`.
-- **The earlier candidates, behind the two above** (2 and 3 are single-repo rows, the fitting Max warned of):
-  1. **C and C++ lane A time** grows about 8× per doubling of chain depth (6 s and 12 s at 800 calls): a
-     measured-fix candidate, no graph change.
-  2. **An aliased function-local import that draws nothing** (`from .testing import FlaskClient as
-     cls; cls(…)`: flask 2). click's `termui.py:980` draws since ADR-154; read why flask's do not.
-  3. **scip-python names no occurrence for flask's `urlsplit`**, at the import or the call
-     (`app.py:15`, `:725`). Not read.
-  4. **Other languages' duplicate qualnames** (ADR-155 is Python only). TS/JS was read on 2026-10-01 and the
-     shape is absent: an overload's span runs from the first signature to the implementation's end, and accessors
-     are not symbols. Go, Java and Rust are not measured.
-- **A lesson for the next brief:** a rule that *drops* a fallback can lose an edge the join places
-  only at its own column (ADR-143) — an aliased import's site, which the two lanes spell differently.
-  Re-pointing kept it. Ask what the join needs lane A's answer for before a brief drops one; the
-  host's `lane_b` case written from the ADR is what caught it.
+- **ADR-158's amendment:** nested functions file under their top-level
+  symbol. It was not in the route he named; it was pre-registered and is in
+  the ADR for review. C-176 keeps the floor (an object literal's method, an
+  unnamed class, a property-assigned function, a namespace); lifting it moves
+  the symbol set. The CJS literal member (cue 49, Express 46) is the same
+  question.
+- **The TS symbol floor's class-property functions** (zod 1,029 collapsed
+  pairs): off the table since 2026-09-10 "with the constructor grain settled
+  before `new`", which ADR-142 since settled. **Re-ask; do not start.**
+- **ADR-156 and fixture values:** the `with` rule does not build on
+  ADR-145's `syntactic` fixture-value edges (40 of flask's items, `with
+  app.app_context():`); allowing it would stack one `syntactic` rule on
+  another.
+- **ADR-126 §3:** whether to build the "may reach through dispatch (not
+  traced)" section in `tests_guarding` and `hobbes review` on §10.12's
+  numbers. It needs a syntax exclusion for every non-dispatched call (Java
+  `super.`/private/static/final, Python `super()`, C++ class-qualified) and
+  would say no key confirms reach.
+- **flask's `src/flask/sansio/`** has no `__init__.py` (PEP 420): lane A names
+  its modules `app`, `scaffold`, and the `implements` join places `App →
+  Scaffold` but not `Flask → App` (`graph["implements"]["outside"]` 79). Why is
+  not read; whether it is a constraint to register is his.
+- **Verify's `classify`** returns `error` for a row that errors on *both*
+  trees, and `FAILING` holds `error`, so a fixture repo's own uncollectable
+  test (`minifixval/tests/test_runner.py`) failed a verdict with 0
+  regressions (session `54cf`). A route, not changed.
+- **`npm ci` refused three of four lockfile-bearing JS repos** the draws met
+  (counted under C-23 in C-165): whether "pinned or declined" falls back to
+  anything. Nothing proposed.
+- **The ingest's `.gitignore` edit:** register it as a constraint or change
+  it.
+- **Calvin's open findings, proposed and not registered:** G-diff coverage
+  (the driver never puts inf/NaN in `b` alone, nor mixes inf kinds, so
+  one-sided masks pass; the fix is `inf_b`/`nan_b`/mixed specials, then a
+  zero-spend re-grade of the stored rows); G-hsr's macro-arity misfile; the
+  ISA-split golds.
+- **Parked by him:** C-150's remainder ("fine for now"); §3.8's paragraphs
+  stay in the architecture ("dont split for now"); constructions inside a
+  template stay `uses`; repowise's cells stay on 0.49.0 (0.53.0 is out).
 
-**Calvin, closed on sqlite-vector** (the record: `docs/experiments/calvin/calvin-reassessment.md`, §11 to §13; the
-runs: `~/.hobbes/bench/calvin-lattice/route1-s1/`, `PREREG.md` and `PREREG-s2.md` with their `RESULTS`).
-- **The residual is deterministic.** 16 of 21 families come from the compiler. The 5 guarded families come from a
-  tree-sitter lifter plus the compiler (609/609 rows, 3 builds). Two helpers come from Z3, and popcount from SIMDe by
-  lookup. By I7 all of it is Hobbes's, so Calvin has no job on this target.
-- **Calvin reopens only on a target where the job is not derivable.** Choosing one is a design question for Max,
-  not a run. The harness is Shanks (ADR-152), unchanged.
-- **Open for Max, proposed and not registered:**
-  - **G-diff coverage:** the driver's specials never put inf/NaN in `b` alone, and never mix inf kinds, so one-sided
-    masks pass. The fix is `inf_b`/`nan_b`/mixed specials, then a zero-spend re-grade of the stored lattice rows to see
-    whether any registered figure moves.
-  - **Two instrument findings from round 2:** G-hsr's macro-arity misfile, and the ISA-split golds.
-- **Before any later model run**, read the programme's register (`CV-1…21`, `MA-1…18`). The lattice's cost lessons
-  are in the Calvin README's "Instrument lessons".
+## Extraction candidates (each measured first)
 
-- **Extraction, shipped in the nineteenth session (0.2.71-beta, D-8):**
-  - one file's depth never ends an ingest (C-171);
-  - C's unread-region record (C-172);
-  - C and C++ lane A time grows about 8× per doubling of chain depth, which is a measured-fix candidate.
-- **The comparative programme reads JavaScript** (`fbf6198`, `8292c98`): CodeGraphContext and repowise on the five
-  JS keys. repowise's converter@5 fixed a `__module__` drop that had cost every repowise cell its top-level calls,
-  and all 22 published cells were regraded. C-94 has the chain-line residual. Drivers:
-  `~/.hobbes/bench/comparative/run-js-cell.sh`, `<tool>-<repo>/`, `at5/` in each repowise cell. repowise 0.53.0 is
-  out; the cells stay on 0.49.0 until Max says otherwise.
+- **C and C++ lane A time** grows about 8× per doubling of chain depth (6 s
+  and 12 s at 800 calls): a measured-fix candidate, no graph change.
+- **An aliased function-local import that draws nothing** (`from .testing
+  import FlaskClient as cls; cls(…)`: flask 2). click's `termui.py:980` draws
+  since ADR-154; read why flask's do not. A single-repo row.
+- **scip-python names no occurrence for flask's `urlsplit`**, at the import
+  or the call (`app.py:15`, `:725`). Not read. A single-repo row.
+- **Other languages' duplicate qualnames** (ADR-155 is Python only). TS/JS
+  was read and the shape is absent; Go, Java and Rust are not measured.
+- **An `extends`-chain walk (TS/JS):** 104 rows at 0 contradicted (ajv 18,
+  hono 8, xmpp.js 2, zod about 76), 0 on Preact. A chain of lane B hops would
+  be a new kind of rule, for under a point a cell. Measured, undecided.
+- **What click still misses** (806 on r3 before ADR-153): 460 closures
+  (callbacks through attributes and parameters, C-58), 215 methods (79 a
+  subclass override — ADR-126 §3's question; 90 duck-typed receivers and
+  test doubles), 81 lambdas, 37 classes, 13 functions. No decorator-line
+  shape with more than 10 rows is left; none has a syntactic rule ready.
+- **Preact's test-file misses** (closures in `it` bodies, calls through
+  `.d.ts` interface members, hook setters in locals): C-58's shapes.
+- **Older, none started:** C-142's remainder (the 273 headers nothing
+  includes; ADR-138's route b, a content read); C's residue (W1: C-134's
+  remainder, C-135's autotools, Meson and Bazel roots, C-133's unit 2 and its
+  macro half); C-139's finer extent and C-133's unit 2, each only if a graded
+  cell shows the cost; C-140's remainder (ADR-112's route 2). Optional and
+  no-spend: a `lane_b` end-to-end case for ADR-135.
+- **C++ recall's remainder** (Max's Route A, ADR-132 to ADR-136 built):
+  constructions' remainder is C-162; a lost definition's refused extents are
+  C-145; C-164's remainder is its own entry; operators at a macro's name are
+  C-131's (parked). dagger's docs snippet zones were not re-ingested after the
+  `corepack` fix.
 
-- **What click still misses** (806 on r3 before ADR-153's two): 460 closures — callbacks reached through
-  attributes and parameters (`self.callback(…)`, `callback(*args)`, monkeypatched doubles:
-  values, C-58), `@cli.command("sdist")` (10, a method factory with a positional —
-  `method-positional`), `make_pass_decorator` applied bare (7), decorators held in variables
-  — 215 methods (79 a subclass override of a base method drawn — ADR-126 §3's question; 90
-  duck-typed receivers and test doubles), 81 lambdas, 37 classes, 13 functions. **No
-  decorator-line shape with more than 10 rows is left**; none of the rest has a syntactic rule
-  ready. This repo's 450: 195 functions (values in tables and records), 154 lambdas, 76
-  closures, 22 methods.
-- **Also found:** `src/flask/sansio/` has no `__init__.py` (a PEP 420 namespace dir):
-  lane A names its modules `app`, `scaffold`, and the `implements` join places `App →
-  Scaffold` but not `Flask → App` (`graph["implements"]["outside"]` 79 on flask). Why is
-  not read; whether lane A's module ids for a namespace package are a constraint to
-  register is Max's.
-- **A harness finding (session `54cf`'s review):** verify's `classify` returns `error`
-  for a row that errors on *both* trees, and `FAILING` holds `error`, so a fixture repo's
-  own test the testmap names as a guard (`minifixval/tests/test_runner.py`, uncollectable
-  from `pipeline/` under `norecursedirs`) failed the verdict with 0 regressions — where
-  the fail/fail twin, F2F, is a fault. A route for Max, not changed.
-- **Other extraction candidates, each measured first:** the TS symbol floor's
-  class-property functions (zod 1,029 collapsed pairs — off the table since
-  2026-09-10 "with the constructor grain settled before `new`", which ADR-142 since
-  settled: **re-ask Max**, do not start); the CJS literal member (cue 49, Express 46).
+## Held, with all spend
 
+- **Calvin** is closed on sqlite-vector (2026-09-29; `calvin-reassessment.md`
+  §11–§13): the lattice's residual is deterministic. It reopens only on a
+  target where the job is not derivable; choosing one is a design question
+  for Max. Before any later model run, read the registers (`CV-1…21`,
+  `MA-1…18`) and the Calvin README's "Instrument lessons".
+- **Atlas-0** (held from 2026-09-07; `atlas-0.md` § Addendum, $22.28 of $25).
+  Max reads the B4 record, then decides: the T that carries the abstention act
+  (the memorising T, or §A.7 branch 2's computed `NO_EDGE` target, about
+  $3.5–4 plus B1's cells); the grid's second run (about $3.8, the programme
+  to about $26 against $25); T_v2 for the v2 grid (the plateau at 3,100 is
+  seed-variable); the corrected item-1 section and §6.6 as amended, and the
+  ADR number on *accepted*. The drivers build paths by string
+  (`Path.with_suffix` eats a dotted name's tail); the grid's B4 cells run four
+  at a time, about 14 min each.
+- **TTT:** the 10,000-step point (about 6 A100-hours) and the 3,000-step
+  adapter under the primary cell (about 0.7 A100-hour; deploy with
+  `TTT_APP=hobbes-ttt-cell … deploy`, then `ttt_cell.py run … --arm
+  A2=<name> --arm A3=<name>`); the cell's defect register (D-1–D-5): which
+  first; ADR-092's four embedded decisions. Records: `olmo3-ttt-results.md`
+  §9–§10.
+- Also held: the removal A/B re-run on the 7B; a second unseen repo through
+  the cell; DeepSWE's decomposed protocol; `hobbes narrate` on this repo.
 
-Max's standing direction: **honesty and accuracy come before a recall
-number on the extraction lane** — weigh every extraction decision
-against them first.
+## Running a session (`shanks-harness.md` §5)
 
-**Where JavaScript stands (ADR-140 to ADR-144; §10.28, 0.2.62-beta).**
-Five graded repos (`oracle-grading.md` §10.22–§10.28): Express
-**998/998** (recall 65.7%), Preact **2,447/2,447** (28.6%), xmpp.js
-**705/705** (84.6%), cypress-io/github-action **154/154** (89.0%),
-Blueturboguy07/cue **1,005/1,005** (61.8%) — 100%
-precision each, 0 contradicted, poison PASS. **Max's three JavaScript
-constraints are done:** C-167 (ADR-141), C-168 (ADR-142), and C-165 —
-the provisioned cell was drawn and graded with its tree and without, the
-rows and the graph identical, so the entry was **corrected**: Hobbes
-draws no symbol edge into a package (JS or TS), a third-party call is
-stated at module grain and no key grades it. Two JS cells of five have
-their tree: a thin one and cue (881 rows, identical without it). Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
-`regrade.sh`, `cells/`, `regrade/h34/` the standing keys,
-`fixture/minijs`, `oracle-trees/preact`; `c165/` — `DRAW-RULE.md`,
-`draw.py`, `walk.sh`, `draw-log.md`, `RESULTS.md`, `withheld-tree/`),
-`~/.hobbes/bench/c167-reexport/`, `~/.hobbes/bench/c168-construction/`.
+- Keep the token in the key file, and ingest at HEAD.
+- The doer's model is the checkout's: `HOBBES_DISPATCH_MODEL` in
+  `.claude/settings.local.json` (this box: `claude-opus-5-5`, Max
+  2026-09-30); `--model` beats it.
+- Decide the design in an ADR or an amendment **before** the dispatch.
+- Name one small unit: `hobbes dispatch --task-file … --partition …
+  --secrets "$HOBBES_SECRETS"`, with `--dry-run` first. Check that the argv
+  carries `--settings` (the hook) and the model.
+- **Launch a dispatch detached** (`setsid nohup sh -c '… hobbes dispatch …;
+  echo "exit $?"' > log 2>&1 < /dev/null &`), never as the assistant's
+  background Bash, which is capped at ten minutes. A short background waiter
+  over the log (`until grep -q '^exit '`) is fine.
+- Review the session file and the diff. Merge with `git merge --no-ff`, never
+  squash. **After filling the review block, re-render the tracker**
+  (`pipeline/scripts/shanks_tracker.py render`).
+- **Run every live and `lane_b` test on the host before merging**: they skip
+  in the sandbox.
+- **Testing a branch on the host:** `git worktree add` it, copy
+  `scip/node_modules` and `tsextract/node_modules` as real trees, `uv sync` in
+  its `pipeline/`. Node 22 prints `ℹ pass N`, not `# pass N`.
+- Do not rebuild `go/bin` while a dispatch runs; do not re-ingest while one
+  is gating.
+- Clean up a killed session with `podman rm -f -t 0 hobbes-side-<id>` and
+  `podman network rm -f hobbes-int-<id>`.
 
-**Measured on JavaScript, not yet constraints or decisions:**
-- **Done (ADR-143, 0.2.59-beta, unit `061a`, 71 turns, $5.87):** a callee
-  whose site name is not its definition's is matched at its own column
-  where both lanes name one definition; 134 tiers raised on seven TS/JS
-  cells, nothing added or lost (§10.25). Left, and rightly: xmpp.js's 3
-  namespace-member sites. Drivers `~/.hobbes/bench/adr141-name-mismatch/`
-  (`PREREG.md`, `count.py`, `RESULTS.md`; `probe_join.py`;
-  `PREREG-sim.md`, `ingest_rule.py`, `sim.sh`, `sim/`; `real.sh`, `real/`;
-  `lang-cells.tsv`, `lang-regrade.sh`, `lang/` — a pre/post driver over
-  one cell per language, reusable; `units/`; `wt/` a worktree, removable).
-- **Done (0.2.60-beta, unit `d2de`, 19 turns, $0.95):** hono's two
-  yarn-v1 zones failed to provision because the argv carried the *host's*
-  `corepack` path into the image — a defect, not C-23's. Contained, the
-  argv now names `corepack`. On hono: provisioned, three extraction
-  errors gone, dependency coverage 0 → 9 of 47, no edge moved. dagger's
-  docs snippet zones had the same failure and were **not** re-ingested.
-  Drivers `~/.hobbes/bench/corepack-path/` (`units/`, `hono/` the clone,
-  `hono-ingest-after.log`; its worktree was removed).
-- Preact's test-file misses (closures in `it` bodies, calls through
-  `.d.ts` interface members, hook setters in locals) — C-58's shapes.
-- **C-168's remainder: read, the entry corrected a second time, nothing
-  built** (Max: route a; `oracle-grading.md` §10.26). The index emits
-  nothing at `super` and names the class, never the constructor, at a
-  JSX tag. Preact's 570 rows are one `.d.ts` class that *is* a symbol;
-  the index names the merged interface beside it, and the 377 JSX tags
-  name test-body locals. **Measured, undecided:** an `extends`-chain
-  walk reads 104 rows at 0 contradicted (ajv 18, hono 8, xmpp.js 2, zod
-  about 76), 0 on Preact — a chain of lane B hops would be a new kind of
-  rule, for under a point a cell. Drivers `~/.hobbes/bench/c168-remainder/`.
-- **`npm ci` refused three of the four lockfile-bearing JS repos the
-  draws met** (xmpp.js and tileserver-gl: lockfile out of sync with the
-  manifest; hack-chat: a tarball unpublished). Counted under C-23 in
-  C-165's entry; whether "pinned or declined" should fall back to
-  anything is Max's, and nothing is proposed.
-- **Done (0.2.61-beta, §10.27): the larger provisioned cell.**
-  Blueturboguy07/cue (position 41), 881/881, recall 54.3%, the same 881
-  rows with its 276-package tree and without. The `javascript` row reads
-  five repos, two with their tree. `npm ci` refused four of eight
-  lockfile-bearing candidates. Drivers: `c165/DRAW-RULE-2.md`,
-  `walk2.sh` (resumes at `walk2.sh 41`), `RESULTS-2.md`, `withheld-cue/`,
-  `../cells/cue-{provisioned,withheld}/`.
-- **Done (ADR-144, 0.2.62-beta, unit `12ad`, 53 turns, $3.53):** cue's
-  untraced shape. `m.f()` on a namespace `require` over `module.exports =
-  { f }`: the index names the literal's *property* at the site and the
-  function at that property's one range, so the helper's decode files
-  the reference under the function. cue 1,005/1,005 (61.8%), xmpp.js
-  705/705 (84.6%), fourteen other cells row-identical (§10.28). Left,
-  refused and unmeasured: a value property (`delta: alpha`); no symbol
-  at all: a member written *in* a literal (cue 49, C-9/C-58). Drivers
-  `~/.hobbes/bench/cjs-namespace/` (`classify.py`, `inrepo_ext.py`,
-  `mini/` with a raw-SCIP `dump.mjs`, `PREREG-sim.md`, `sim.sh`,
-  `real.sh`, `lang-regrade.sh` + `lang-cells.tsv`, `sim/`, `real/`,
-  `lang/`, `units/`; its worktree was removed).
+## A regrade against stored keys
 
-**Older candidates, each measured first** (none started): C-142's
-remainder — the 273 headers nothing includes (ADR-138's route b, a
-content read, not taken); ADR-126 §3 once Max decides it; C's residue
-(W1). Small and no-spend, optional: a `lane_b` end-to-end case for
-ADR-135 (a fixture tree-sitter-cpp misreads *and* scip-clang compiles —
-an annotation macro after a declarator — without moving the lines other
-tests pin).
+- For one cell: re-ingest, `oracle export`, then `oracle grade --poison`
+  against the cell's saved `oracle.json`.
+- For many: `~/.hobbes/bench/adr111-drivers/regrade3.sh` over a `cells.tsv`
+  (ROOT=<worktree>); run a pre pass only when ingest code changed; never two
+  passes over one clone at once. The TS/JS one is
+  `~/.hobbes/bench/c177-tagged-template/run.sh` over its `cells.tsv`.
+- A regrade after a fix carries signed direction-of-fix lines in its record.
+- **Pre-register before grading a new cell.** Check `oracle-grading.md` §10
+  for the language's section first.
 
-**What stays from C++ recall (Max's Route A, 2026-09-17; items 1–4
-built or closed, ADR-132 to ADR-136):** constructions' remainder is
-C-162 (the macro class, templates, untokened conversions); a lost
-definition's refused extents are C-145; C-164's remainder is its own
-entry; operators at a macro's name (3,011 references on fmt) are the
-macro class's (C-131, parked); TS's floor shapes stay off the table
-(Max, 2026-09-10). The 2026-09-16 review's list is done but for §3.8's
-paragraph cells as per-language pages (Max: "dont split for now").
-
-**Lessons the last sessions paid for:**
-- **Read every suspect of a new key, row by row.** A trace key never contradicts, so a
-  wrong edge sits in the suspect queue beside C-60's asymmetry: three of flask's 18 were
-  Hobbes-wrong, and "suspect rate 1.6%" said nothing about them.
-- **A fixture repo's new file can move another fixture's module id.** `flask-excerpt/
-  conftest.py` made ADR-006 root-prefix `minifixval`'s conftest too; check the whole
-  repo's `discover_modules` ids when a brief adds a package-less fixture file.
-- **Read the factory from its real source, not a trimmed one.** ADR-148's unit tested
-  every shape on untyped, trimmed signatures and simulated the fold on hand-built
-  digests; click annotates every factory (`**attrs: t.Any`), which the grammar wraps in a
-  `typed_parameter`, and the first build folded nothing. One `parse_source` over the real
-  file on the host showed it in a minute. Put a real-source case in the brief.
-- **"Exactly as X does" in a brief copies X's assumptions.** ADR-145's callers are
-  never modules; ADR-147's usually are. The hand-built-graph tests could not see it;
-  the host's `lane_b` run did. Name the caller kinds in the brief, and give the append
-  step its own lane A test.
-- **A probe's premise can be the docs' error.** `oracle-misses.md` said Python nested
-  defs are not symbols; the export said otherwise in one grep for a nested name. Read
-  the export's `target_id`s before sizing a "missing symbol" rule.
-- **Read a doer's idiom against the grammar, not only its tests.** `children[-1]` passed
-  eleven cases and lost every commented decorator; a three-line parse on the host found
-  it, and the same line had been wrong in the digest since it was written.
-- **`-v -q` cancel.** A fixture key collected that way hides every `_…` fixture
-  and the *built* lookup reads thousands "wrong" (missy: 26,474). `-v` alone.
-- **A code search's hit is not the repo's use.** `pytestmark = …usefixtures(` hits
-  are mostly strings pytest's own suite writes, and docstrings; read the clone
-  with `ast` (`c4-pytestmark/scan.py`) before judging a candidate.
-- **A deny in a session log was new** (unit `1527`): a multi-line command split
-  the Policy line and the tracker had no `denied` clause. Both fixed; if the
-  tracker refuses a log again, read the log's line before the parser.
-- **The architecture's §8 header is a seventh version copy no test
-  holds** — bump it by hand (missed at 0.2.51-beta).
-- **A fixture key is collected with `-v`:** without it pytest prints no
-  fixture whose name starts with `_`. flask also needs `-p
-  no:hypothesispytest`, and the mounts need `--security-opt
-  label=disable` on this box.
-- **Collecting a foreign Python suite in the image:** `uv pip install
-  --target deps --python-version 3.12 --only-binary :all: pytest <its
-  deps>` on the host, then `podman run --network none -v <clone>:/work:ro
-  -v deps:/deps:ro --env PYTHONPATH=/deps:/work/src … python3 -m pytest
-  --fixtures-per-test -q tests`. pytest prints a test one line past its
-  first line, a fixture at its first decorator line, and one row per
-  fixture name.
-- **Read a brief's premises in the tree before dispatch** (ADR-134's
-  brief was wrong about a site's scope), and run the real cell before
-  merging; a doer may narrow a brief's wording rightly (unit `5587`
-  kept H-33's row).
-- **A write partition is a file list, at file grain.** A directory entry
-  (`tests/fixtures/new/`) matches nothing and every code file created
-  under it is a `partition` row: unit `b444` was blocked that way and
-  the fault was the brief's. Spell a new fixture's files out, one path
-  per line. `not-code` files (a `package.json`) pass on the `reach`
-  rule; code files do not.
-- **An in-repo `external_ref` is the index speaking, not silence.** Its
-  moniker says what was named; ADR-144's whole shape sat there unread.
-  `inrepo_ext.py` groups them by descriptor — run it on a new cell.
-- **Ask what the index emits at a token before counting a shape as a
-  rule's** — a ten-line fixture indexed in the image answered `super`
-  and JSX in a minute (`c168-remainder/mini/`, with a `dump.mjs` over
-  `streamDocuments`).
-- **Read a register entry's rows before building on it.** C-168 named
-  the wrong shape *and* the wrong numbers, and a row-by-row read of the
-  key (not the miss-class totals) was what caught it. C-165 named an
-  edge that is never drawn; checking the TS cells' rows for a
-  `node_modules` target, before the draw, was what caught it.
-- The hobbes-go cell cannot be regraded on its stored key, nor hobbes-py on its
-  old ones (a fresh hobbes-py key at `2c915a8` is in `oracle-defect-drivers/h36/`):
-  their clone (`adr111-before/hobbes-wt`) is gone; a full regrade needs
-  a worktree at the key's sha or fresh keys.
-- scip-clang 0.4.0 emits no `enclosing_range` (checked in the image).
-
-## Where earlier sessions' drivers are (their records are the BUILDLOG's)
-
-The resume points of 2026-09-15 to 2026-09-19 were folded into their
-BUILDLOG entries; only the paths a next session reaches for stay here.
-Run the probes with `uv run --project pipeline python`; every worktree
-named below was removed unless it says otherwise.
-
-- **Python recall, 2026-09-20 to 2026-09-24 (ADR-139 amended, ADR-145 to ADR-150, H-36):**
-  their records are the BUILDLOG's, the CHANGELOG's and `oracle-grading.md` §10.29–§10.36; the
-  worktrees were removed.
-  - ADR-150 (C-170): `~/.hobbes/bench/py-multidef/` (`index.sh` raw scip-python in the image,
-    `dump.mjs`, `classify.py` — **filter out parameter monikers** (`(x)` descriptors) before reading
-    it — `rows.py`, `cells.tsv`, `probe/`, `built/`, `RESULTS.md`, `units/`; `wt/` removable). **The
-    flask and click clones' `.hobbes/derived/` hold the built branch's graph.**
-  - ADR-145 amended (flask keyed): `~/.hobbes/bench/c4-local-value/` (`PREREG-worded.md`,
-    `probe_worded.py` over a cell's own graph, reusable; `simulate_local.py`, `real/`, `units/`). The
-    key and the clone: `~/.hobbes/bench/oracle/flask-py/`, `~/.hobbes/bench/oracle/repos/flask` (its
-    `.venv` from `uv sync --group tests --python 3.12`).
-  - ADR-149: `~/.hobbes/bench/py-factory-chain/` (`probe_chain.py`, `click_real.py`, `real149/`).
-    ADR-148: `~/.hobbes/bench/py-optparens/` (`probe.py --new-only --emit --method-positional`,
-    `real148/click/`). ADR-146/147: `~/.hobbes/bench/py-nested-defs/` (`probe.py`, `probe_b.py
-    --show`, `real147/click/`).
-  - H-36: `~/.hobbes/bench/oracle-defect-drivers/h36/` (`trace-hobbes-py.sh`; `hobbes-py/` holds
-    **a usable fresh hobbes-py key**, `post-oracle.json` @ `2c915a8`). click's standing key is
-    `click-py-r3`.
-  - ADR-145: `~/.hobbes/bench/c4-returned-value/` (`simulate_real.py`'s `own_nodes` enters a nested
-    def written at a body's top level — fix it before reusing it; `lang-regrade.sh` +
-    `lang-cells.tsv`). ADR-139 amended: `~/.hobbes/bench/c4-pytestmark/` (`scan.py`, `probe.py`,
-    `missy/`, `missy-key-v.txt`; `try/` removable).
-  - C-4 keeps: a fixture value that is not a construction, an inherited method, a non-literal
-    `autouse=`, a class-body or annotated `pytestmark`, and the abstentions.
-- **JavaScript (ADR-140):** `~/.hobbes/bench/js-cells/` (above);
-  `~/.hobbes/bench/h33-regrade/` (`regrade.sh <label> <tsc-oracle.mjs>
-  <oracle>` runs the oracle in the image over the five TS cells' stored
-  exports; `before/`, `after/`, `compare.txt`, `h34/`); the five TS/JS
-  cells' reports at `~/.hobbes/bench/v018/{kbet-ts,ajv-ts,cheerio-ts,zod,hono-build}/report.json`.
-- **Fixture reach (ADR-137, ADR-139):** `~/.hobbes/bench/c4-fixtures/`
-  (`probe.py` and `probe-v1.py`, `compare.py`, `compare-v1.py`,
-  `lookup.py`, `heldout/` flask, attrs, `deps/` and their lists,
-  `units/`) and `~/.hobbes/bench/c4-remainder/` (`probe.py`,
-  `PREREG.md`, `compare.py`, `lookup.py`, `*-key-v.txt` the three
-  verbose keys, `<repo>-{base,use,auto,both,built}.json`, `units/`).
-- **Headers (ADR-138):** `~/.hobbes/bench/c133-include-path/`
-  (`claim.py`, `place.py`, `regrade/` the five cells,
-  `scummvm-ingest.log`, `units/`).
-- **ScummVM and the vacated line (ADR-136):**
-  `~/.hobbes/bench/scummvm-scale/` (`vacated.py`, `sample.py`,
-  `regrade/`, `units/`); `~/.hobbes/bench/lane-a-symbol-near/probe.py`.
-- **C-164's wrong callers (ADR-135):** `~/.hobbes/bench/c164-wrong-callers/`
-  (`findstream.py` a clone's cached facts stream; `shapes.py`,
-  `nameref.py`; `simulate.py` + `PREREG-sim.md`; `inspect_r1.py`;
-  `regrade.sh` with `ROOT=`/`OUT=`, which borrows `c145-extent`'s
-  `oracle`, `probe.py` and `compare.py`; `regrade/`; `units/`).
-- **A lost definition's extent (ADR-134):** `~/.hobbes/bench/c145-extent/`
-  (`probe.py` — `probe-v1.py` its first form — `simulate.py`,
-  `simulate_r3.py`, `regrade.sh` with `ROOT=`/`OUT=`, `regrade/`,
-  `units/` with `u1-fix.patch`; `oracle` the binary built from the tree).
-- **The join's claim (ADR-133):** `~/.hobbes/bench/join-claim/`
-  (`probe.py` step 0, `run-all.sh` and `out/` the 24 clones;
-  `ingest_bypos.py` the in-memory rule, `sim.sh` + `sim-cells.tsv` +
-  `diff.py`, `PREREG-sim.md`, `sim/` the stock and by-position graphs,
-  exports and reports; `regrade.sh` + `regrade-cells.tsv` +
-  `compare.py`, `PREREG-regrade.md`, `regrade/` the 44 cells before and
-  after, `final/fmt-cpp/`; `units/` the brief).
-- **Constructions (ADR-132):** `~/.hobbes/bench/cpp-constructions/`
-  (step 0: `probe.py` the per-pair read, `classes.py` the six classes,
-  `PREREG-args.md`, `fmt-out/`, `args-out/`; step 1: `simulate.py` the
-  exports a rule would produce — `simulate-v1.py` its first form —
-  `grade.sh`, `buckets.py` bucket × token class, `tokenpos.py`,
-  `PREREG-args-sim.md`, `fmt-sim2/` and `args-sim2/` the probe exports;
-  `regrade.sh` with `OUT=`/`ROOT=`, which compares against 0.2.43-beta's
-  export and the probe's; `final/` the 0.2.44-beta grades; `units/` the
-  brief; `wt/` a worktree, removable). Run as `uv run --project pipeline python probe.py <clone>
-  <facts.ndjson> <report.json> <out-dir>`; the facts stream is the
-  cell's newest `~/.hobbes/cache/index/*.facts.ndjson`.
-- **Operator `uses` withheld (ADR-131 amended):**
-  `~/.hobbes/bench/c153-operator-uses/` (`ingest_withheld.py` the scratch
-  wrapper, `diff.py`, `before/` and `after/` the graphs, `regrade.sh`
-  with `OUT=`/`ROOT=`, which compares the export with 0.2.42-beta's and
-  the graph with both; `final/` the 0.2.43-beta grades; `units/` the
-  brief; `wt/` a worktree, removable).
-- **Operators (ADR-131):** `~/.hobbes/bench/c146-operators/` (`probe.py`,
-  `match.py`, `exact.py` the first reads; `simulate.py` the export a
-  rule would produce, five variants; `template_split.py`,
-  `tokencheck.py`, `count_tokens.py`; `PREREG-args.md`; `regrade.sh`
-  with `OUT=`/`ROOT=`, which also compares against the probe's export;
-  `final/` the 0.2.42-beta grades; `units/` the brief).
-- **C++ recall (ADR-129, ADR-130):** `~/.hobbes/bench/c145-recovery/`
-  (`probe.py`, `analyze.py`, `arity.py` the step-0 probes; `PREREG-args.md`;
-  `regrade.sh` with `OUT=`/`ROOT=`; `ingest_no_arity.py` the rule-off
-  wrapper; `p84-named-rows.json`; `final/` the 0.2.41-beta grades;
-  `units/` the three briefs; `wt/` a worktree, removable).
-- **Lane A's C++ cache (ADR-128):** `~/.hobbes/bench/laneA-cache/`
-  (`equiv.py`, `split.py`, `cacheproto.py`, `scummvm-tree.json` the
-  reference output, `units/` the briefs).
-- **The ingest lock (ADR-127):** `~/.hobbes/bench/ingest-lock/`.
-- **ADR-123–126:** `~/.hobbes/bench/lanes-shape-drivers/`, `c153-rule/`
-  (measure.py, regrade.sh, the briefs), `dispatch-reach/` (measure.py,
-  jsoup/click/args JSON).
-- **The index cache (ADR-122):** the store `~/.hobbes/cache/index/`
-  (30-day sweep at the next write); the timings logs
-  `~/.hobbes/cache/timings/<key>.jsonl`.
-- **Unevaluated operands (ADR-121):** `~/.hobbes/bench/uneval-drivers/`
-  (the task files and partitions, `ingest-cell.sh`, `grade-cell.sh`).
-- **The override set (ADR-120):** `~/.hobbes/bench/relationships-probe/`.
-- **O10's defects:** `~/.hobbes/bench/oracle-defect-drivers/` (task
-  files, partitions, `rerun-cpp-key.sh`, `regrade-stored.sh`,
-  `regrade-foreign.sh`, `foreign-pairs.tsv`) and its `regrade-out/`.
-- **The foreign C++ cells:** `~/.hobbes/bench/comparative/{codegraphcontext,repowise}-{fmt,args}/`,
-  with `run-cpp-cell.sh` and `regrade-cpp-cell.sh`.
-- **C++ close-out and the facts stream (ADR-113, ADR-115/116):**
-  `~/.hobbes/bench/cpp-cells/{fmt,args}-cell/`,
-  `~/.hobbes/bench/cpp-cells/scummvm-cost/` (the large clone; sweep it
-  if space is needed), `~/.hobbes/bench/cpp-drivers/closeout-task.md`
-  and `probes/` (`decode_equiv.mjs`, `py_facts_probe.py`,
-  `capture_join.py`, `probe_helper.py`).
-- **The gate's arrow-parameter fix (C-91):** `~/.hobbes/bench/gate-drivers/`,
-  a pattern for the next brief.
-
-## Standing items (carried)
-
-1. **Open for Max (no spend):**
-   - **The Calvin experiments programme** ([`calvin/calvin-experiments.md`](experiments/calvin/calvin-experiments.md),
-     ADR-151; D-1 to D-4 taken 2026-09-24): a model that writes C, from sqlite-vector's SIMD kernel lattice.
-     E0 built and accepted; E1 run on both 7Bs ($6.59 of $10); **E2 run on Qwen's two shadows ($1.89 of $3,
-     2026-09-26; runner unit `157a`, routes E2-a to E2-g)**. E3 run (≈ $5.55 of $25) and E4 run on all three native files (≈ $1.25 of $8), nineteenth session; D-11 (≈ $2.11 of $5) and D-12 (≈ $0.67) run, twentieth session; D-13 (≈ $0.32) run and D-14 probed (no spend), twenty-first; D-15 finished under D-16's $4 (≈ $3.08), null; **closed on sqlite-vector** (Max, 2026-09-29; kept here for its drivers, nothing in it is open). Drivers:
-     `~/.hobbes/bench/calvin-lattice/` (`e1/`, `e2/` — `lattice e1 report <dir>`, `lattice e2 compare <orig>
-     <shadow>…` — `shadows/`, `units/`, `selftest/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
-     history clone `sqlite-vector-full/`). The target was re-ingested at 0.2.70-beta; the ledger is its
-     `.hobbes/derived/graph.json`, `~/.hobbes/bench/oracle/sqlite-vector-c/oracle.json` and the intrinsics index.
-   - **The gate's decorator false block (`9326`, `c141`, `66c5`) is closed** at 0.2.76-beta (C-91, grounder
-     v5, unit `da88`). The residue that still blocks is any binding that is not a column-0 assignment.
-   - Every route Max settled from 2026-09-17 to 2026-09-20 (ADR-123 to
-     ADR-144) is built; each ADR carries his word. Standing from them:
-     constructions inside a template stay `uses`; §3.8's paragraphs stay
-     in the architecture ("dont split for now", again 2026-09-20).
-   - **ADR-126 §3:** whether to build the "may reach through
-     dispatch (not traced)" section in `tests_guarding` and `hobbes
-     review` on §10.12's numbers. It would need a syntax exclusion for
-     every non-dispatched call (Java `super.`/private/static/final,
-     Python `super()`, C++ class-qualified) and would say no key confirms
-     reach. Nothing is drawn until then.
-   - **C-150's remainder** (large repos, every language): the join's
-     output and the graph built from it, after ADR-115 and ADR-116 took
-     the decode's and the read's share. Parked (Max: "fine for now").
-   - Carried: C-139's finer extent (only if a cell shows the recall
-     cost); the tracker's area for a test-only session (row 17, `—`);
-     C-140's remainder (ADR-112's route 2); C-133's unit 2 (the `-I`
-     read), deferred until a graded cell shows the cost.
-2. **Running a session** (`shanks-harness.md` §5):
-   - Keep the token in the key file, and ingest at HEAD.
-   - The doer's model is the checkout's: `HOBBES_DISPATCH_MODEL` in
-     `.claude/settings.local.json` (this box: `claude-opus-5-5`, Max 2026-09-30); `--model`
-     beats it.
-   - Decide the design in an ADR or an amendment **before** the
-     dispatch.
-   - Name one small unit: `hobbes dispatch --task-file … --partition …
-     --secrets "$HOBBES_SECRETS"`, with `--dry-run` first. Check that the
-     argv carries `--settings` (the hook) and the model.
-   - **Launch a dispatch detached** (`setsid nohup sh -c '… hobbes
-     dispatch …; echo "exit $?"' > log 2>&1 < /dev/null &`), never as the
-     assistant's background Bash, which is capped at ten minutes. A
-     short background waiter over the log (`until grep -q '^exit '`) is
-     fine; killing it does not touch the dispatch.
-   - Review the session file and the diff. Merge with `git merge --no-ff`,
-     never squash. **After filling the review block, re-render the
-     tracker** (`pipeline/scripts/shanks_tracker.py render`).
-   - **Run every live and `lane_b` test on the host before merging**:
-     they skip in the sandbox. `8302`'s blind `lane_b` assertion was red
-     on the host, as live tests had been after `2aa9`, `3ebb` and
-     `de81`.
-   - **Testing a branch on the host:** `git worktree add` it, copy
-     `scip/node_modules` and `tsextract/node_modules` as real trees, `uv
-     sync` in its `pipeline/`. Node 22 prints `ℹ pass N`, not `# pass N`.
-   - Do not rebuild `go/bin` while a dispatch runs; do not re-ingest
-     while one is gating.
-   - Clean up a killed session with `podman rm -f -t 0
-     hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 96 of 40, 4
-     areas, 4 false blocks, all closed (`f3c1` at 0.2.28-beta; `9326`, `c141`,
-     `66c5`, the decorator case, at 0.2.76-beta), 0 missed.
-3. **A regrade against stored keys:**
-   - For one cell: re-ingest, `oracle export`, then `oracle grade
-     --poison` against the cell's saved `oracle.json` (as the C++
-     regrades did).
-   - For many: `~/.hobbes/bench/adr111-drivers/regrade3.sh` over a
-     `cells.tsv` (ROOT=<worktree>); run a pre pass only when ingest code
-     changed; never two passes over one clone at once.
-   - A regrade after a fix carries signed direction-of-fix lines in its
-     record.
-4. **Carried:**
-   - **The ingest's `.gitignore` edit.** Register it as a constraint or
-     change it, on Max's reading.
-   - **`stringer` is not in the image.**
-   - **The Gradle attach route's residuals** (C-67); `recall-collapsed`
-     and H-23; ADR-105/P13; the C-98 residuals.
-   - **The comparative queue:** the two SQLite tools in `field.md`
-     (converters first); syft's keys on a bigger box. The foreign C++
-     cells are done, and the JS cells (2026-09-26). repowise's chain-line
-     residual (C-94) would need a source-reading heuristic: not built.
-   - **C's residue:** C-134's remainder, C-135's autotools, Meson and
-     Bazel roots, C-133's unit 2 and its macro half; the macro gap is
-     parked (C-131).
-   - **`build-logic/`** is recorded, not built (ADR-097).
-   - `~/.hobbes/cache/stage/` holds small leftover `.scip` outputs.
-
-## Atlas-0 — held from 2026-09-07: Max reads the B4 record; then the T that carries the abstention act, and T_v2
-
-**Done 2026-09-07** (`docs/experiments/calvin/atlas0/atlas-0.md` § Addendum), $22.28
-assumed of $25: the §A.1 checks on saved weights (B1 reads through
-eight heads and stores in six FFNs; B2's refusal is a linear direction;
-B3's copy circuit is layer 0), B4 (typed attention), the λ sweep, and
-the grid at λ = 0 (§A.7 branch 3, B4-given, is what the results select).
-
-**What needs Max:**
-1. **The T that carries the abstention act:** the memorising T (3,500
-   steps, batch 64) or §A.7 branch 2's computed `NO_EDGE` target in a
-   B4-given block. About $3.5–4 plus B1's cells.
-2. **The grid's second run:** about $3.8 (the programme to about $26
-   against its $25 ceiling).
-3. **T_v2 for the v2 grid:** the plateau at 3,100 is seed-variable.
-4. **The corrected item-1 section and §6.6 as amended**, and the ADR
-   number on *accepted*.
-
-Practical: `modal_atlas0.py mech` for checkpoint checks (about a minute
-each); the drivers build paths by string (`Path.with_suffix` eats a
-dotted name's tail); the grid's B4 cells run four at a time, about 14
-min each.
-
-## TTT — held
-
-1. **The 10,000-step point** (about 6 A100-hours), and **the 3,000-step
-   adapter under the primary cell** (about 0.7 A100-hour). The adapter is
-   on the volume at
-   `adapters/allenai-olmo-3-7b-instruct/hobbes/ebdf7a510eff/cc9e99c14215`;
-   deploy with `TTT_APP=hobbes-ttt-cell … deploy`, then `ttt_cell.py run
-   … --arm A2=<name> --arm A3=<name>` (arms A2_3000 and A3_3000, added to
-   `cell.ARMS`). Records: `docs/experiments/mapped-agents/ttt/olmo3-ttt-results.md` §9–§10.
-2. **The cell's defect register** (D-1–D-5): which to fix first.
-3. **ADR-092's four embedded decisions.** Nothing blocks on them.
-
-## WHERE THINGS STAND (2026-10-01)
+## WHERE THINGS STAND (2026-10-02)
 
 - **Languages:** Python, TypeScript, Go, Rust, Java, C and C++ supported,
-  each as far as its §3.8 row (P11); Terraform/HCL structure. JavaScript
-  is drawn through TypeScript's lanes and graded on five repos of its
-  own (ADR-140), two with their dependencies installed (C-165). A TS/JS
-  construction is drawn `calls` since 0.2.57-beta (ADR-142).
+  each as far as its §3.8 row (P11); Terraform/HCL structure. JavaScript is
+  drawn through TypeScript's lanes and graded on five repos of its own
+  (ADR-140, `oracle-grading.md` §10.22–§10.28), two with their dependencies
+  installed (C-165).
 - **Shanks, the harness** (ADR-107, ADR-112, ADR-152): each session's state is
-  under `~/.hobbes/sessions/<id>/`, written by its sidecar
-  `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Ninety-six log files under `docs/shanks/sessions/`; the tracker reads 96 of 40 (4 areas, 4 false blocks, 0 missed; 1 deny).
-- **The comparative graphics** (`docs/comparative/graphics/`): four,
-  from 96 cells (22 same-key rows, C++'s two among them; flask's new
-  cell at 0.2.68-beta's figures); `render.py
-  check` green.
-- **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
-  deployed and idle): held.
+  under `~/.hobbes/sessions/<id>/`, written by its sidecar `hobbes-side-<id>`;
+  the doer mounts only `in/`, read-only, and its HOME is a tmpfs. Ninety-six
+  log files under `docs/shanks/sessions/`; the tracker reads 96 of 40 (4
+  areas, 4 false blocks, all closed, 0 missed; 1 deny).
+- **The comparative graphics** (`docs/comparative/graphics/`): four, from 96
+  cells (22 same-key rows); `render.py check` green.
+- **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps deployed
+  and idle): held.
 - **Register:** 177 entries: 129 active (100 surfaced, 25 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 31 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
-- **Oracle defect log: nothing open** (H-36, a `<genexpr>` frame keyed as a call,
-  found and fixed 2026-09-20; H-33–H-35 fixed 2026-09-19,
-  H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
-  carries its price: silencing is indiscriminate, and it hides 6 of
-  C-153's rows.
-- **Suites** (2026-10-01; pytest, Go, tsextract and vitest re-run on the host at 0.2.83-beta, the rest at
-  0.2.74-beta): 2,605 pytest (`lane_b` 21 of them, run with the image rebuilt at
-  0.2.83-beta), Go `./...` 402 with subtests (402 pass), 97 scip node, 49 tsextract, 52 vitest, 84 atlas0, 656
-  lattice (624 pass / 32 skip without clang, after D-13's unit); oracle-lane Go 131 with subtests, 119 pass /
-  12 skip on this host, which has no clang++ or cmake (the C++ fixture tests run and pass
-  in the image).
-- **Disk:** `~/.hobbes` is about 50 GB plus the C++ cells (ScummVM's
-  cost clone at `cpp-cells/scummvm-cost` is the large one; sweep it if
-  space is needed).
+- **Oracle defect log: nothing open** (H-37 the latest, fixed 0.2.79-beta;
+  `docs/oracle/oracle-defects.md`). RC-4 still carries its price: silencing is
+  indiscriminate, and it hides 6 of C-153's rows.
+- **Suites** (2026-10-01; pytest, Go, tsextract and vitest re-run on the host
+  at 0.2.83-beta, the rest at 0.2.74-beta): 2,605 pytest (`lane_b` 21 of
+  them, run with the image rebuilt at 0.2.83-beta), Go `./...` 402 with
+  subtests (402 pass), 97 scip node, 49 tsextract, 52 vitest, 84 atlas0, 656
+  lattice (624 pass / 32 skip without clang); oracle-lane Go 131 with
+  subtests, 119 pass / 12 skip on this host, which has no clang++ or cmake
+  (the C++ fixture tests run and pass in the image).
+- **Disk:** `~/.hobbes` is about 50 GB plus the C++ cells
+  (`cpp-cells/scummvm-cost` is the large one; sweep it if space is needed).
 
 ## NEXT (in order; no API spend)
 
-1. **Keep dispatching named no-spend work through the harness,** one
-   unit per brief (the validating 40 are done; the harness stays the way
-   work is done): **the candidates under START HERE once named**;
-   ADR-126's surface once
-   Max decides it;
-   C's residue (W1); W1/W3's no-spend items
-   (the decorated-declaration line convention, the C-15 namespacing ADR,
-   `fetch-java` on the egress proxy); the comparative queue's next tools
-   if named.
-2. **W0's remainder:** the registry-pulled image and the drift audit, when named. (The
-   forgotten red review and the fixtures closed with ADR-114.)
-
-**Held, with all spend:** the Atlas-0 T items; the TTT adapter points;
-the removal A/B re-run on the 7B; a second unseen repo through the cell;
-DeepSWE's decomposed protocol; `hobbes narrate` on this repo; the Calvin
-experiments (`calvin-experiments.md`; closed on sqlite-vector, 2026-09-29; they reopen only on a target where the job is not derivable). The keyed Calvin runs are closed, not
-held.
+1. **Extraction, as under START HERE**, one unit per brief through the
+   harness once named; ADR-126's surface once Max decides it; C's residue
+   (W1); W1/W3's no-spend items (the decorated-declaration line convention,
+   the C-15 namespacing ADR, `fetch-java` on the egress proxy); the
+   comparative queue's next tools if named (the two SQLite tools in
+   `field.md`, converters first; syft's keys on a bigger box).
+2. **W0's remainder:** the registry-pulled image and the drift audit, when
+   named.
+3. **Carried, small:** `stringer` is not in the image; the Gradle attach
+   route's residuals (C-67); `recall-collapsed` and H-23; ADR-105/P13; the
+   C-98 residuals; `build-logic/` is recorded, not built (ADR-097); the
+   tracker's area for a test-only session (row 17, `—`).
 
 ## STANDING POLICY (Max) — read before doing anything
 
 0. **API spend and Modal compute are off the table** (Max, 2026-09-04)
-   unless Max names a run and its ceiling. No remainder carries to
-   another run. **A `hobbes dispatch`** spends the owner's Claude Code
-   subscription, not API dollars.
+   unless Max names a run and its ceiling. No remainder carries to another
+   run. **A `hobbes dispatch`** spends the owner's Claude Code subscription,
+   not API dollars.
 1. **Experiments are PARKED** except what Max clears by name.
-2. **The 7B is the instrument, by speed not capability.** GPU-hours
-   stated first; ≥15 min of evaluation before any run over 30 min.
-3. **P12 (ADR-082):** every TTT arm is *model + prompt* and is labelled
-   so.
-4. **The 27B is untouched** until the mapping fixes are validated on
-   the 7B, and only on a decontaminated set.
+2. **The 7B is the instrument, by speed not capability.** GPU-hours stated
+   first; ≥15 min of evaluation before any run over 30 min.
+3. **P12 (ADR-082):** every TTT arm is *model + prompt* and is labelled so.
+4. **The 27B is untouched** until the mapping fixes are validated on the 7B,
+   and only on a decontaminated set.
 
 ## PRACTICAL NOTES
 
-- **Two sessions may share this checkout.** Before assuming `main`'s
-  state or a file's content, read `git reflog` and the file itself.
-- **Pre-register before grading a new cell.** Check
-  `oracle-grading.md` §10 for the language's section first; fmt was
-  graded before its section existed (2026-09-15).
-- **A session sees only its own `in/`** (0.2.14-beta, ADR-112); an
-  explicit `--network` is the old file world (C-140 in full).
-- **The sidecar and the route:** every session gets `hobbes-int-<id>`
-  and `hobbes-side-<id>`; `hobbes-egress` is a shared bridge. Name every
-  probe container before removing by name.
+- **Two sessions may share this checkout.** Before assuming `main`'s state or
+  a file's content, read `git reflog` and the file itself.
+- **A session sees only its own `in/`** (0.2.14-beta, ADR-112); an explicit
+  `--network` is the old file world (C-140 in full).
+- **The sidecar and the route:** every session gets `hobbes-int-<id>` and
+  `hobbes-side-<id>`; `hobbes-egress` is a shared bridge. Name every probe
+  container before removing by name.
 - **A no-spend route check:** `CLAUDE_CODE_OAUTH_TOKEN=invalid
   go/bin/hobbes-session start --repo <a tiny repo> --role implementer
-  --egress api.anthropic.com --task "Reply ok." --max-turns 1`: expect a
-  401, tunnels to `api.anthropic.com:443`, no refusals.
-- **After an image rebuild, restart the knowledge server** (C-65) —
-  inside the session that rebuilt it, as its last step (`/mcp`
-  reconnect, or stop the server's container). Do not hand it on: the
-  next session starts its own container from the current image, and
-  the version that opens every answer is the check.
-- **The comparative graphics** are rendered by
-  `bench/oracle/report/render.py` (`cells`, `render`, `check`); a
-  caption that names cells reads them from `cells.json`.
-- **A model run:** state the total dollar ceiling, run a few units
-  first, compare the cost to the estimate before widening.
-- **Worktrees for sub-agents:** make one with `git worktree add` from
-  `main`; a worktree lacks the gitignored build outputs.
-- **`pgrep -f` / `pkill -f` match your own waiting shell too.** Wait on
-  a log line and kill by PID.
-- **Always `uv run --project pipeline hobbes … --repo <target>` from
-  this checkout** (ADR-094).
-- **The oracle lane:** build `oracle` from the tree before a regrade;
-  `go test -count=1 ./report/` after a record changes; send a regrade's
-  report to a file; `run-cell.sh --lang cpp` runs O10 (`77cbd44`).
+  --egress api.anthropic.com --task "Reply ok." --max-turns 1`: expect a 401,
+  tunnels to `api.anthropic.com:443`, no refusals.
+- **After an image rebuild, restart the knowledge server** (C-65) — inside
+  the session that rebuilt it, as its last step. Do not hand it on.
+- **The comparative graphics** are rendered by `bench/oracle/report/render.py`
+  (`cells`, `render`, `check`); a caption that names cells reads them from
+  `cells.json`.
+- **A model run:** state the total dollar ceiling, run a few units first,
+  compare the cost to the estimate before widening.
+- **Worktrees for sub-agents:** `git worktree add` from `main`; a worktree
+  lacks the gitignored build outputs.
+- **`pgrep -f` / `pkill -f` match your own waiting shell too.** Wait on a log
+  line and kill by PID.
+- **Always `uv run --project pipeline hobbes … --repo <target>` from this
+  checkout** (ADR-094).
+- **The oracle lane:** build `oracle` from the tree before a regrade; `go test
+  -count=1 ./report/` after a record changes; send a regrade's report to a
+  file; `run-cell.sh --lang cpp` runs O10.
 - **Olmo 3 on vLLM has no tool-call parser:** send no `tools`.
-- **The key file is off the tree.** Never write its path into repo
-  prose. It holds `anthropic_key` and `claude_oauth_token` (the
-  harness's default `--key-name`).
+- **The key file is off the tree.** Never write its path into repo prose. It
+  holds `anthropic_key` and `claude_oauth_token` (the harness's default
+  `--key-name`).
 
 ## Housekeeping
 
@@ -708,4 +288,5 @@ held.
 - One ADR per design decision; one BUILDLOG entry per session.
 - Every concession gets a `C-n` in its segment file under
   `docs/constraints/`.
-- Rewrite this doc; do not append to it.
+- Rewrite this doc; do not append to it. A driver path goes in
+  `bench-drivers.md`, a lesson in `lessons.md`, history in the BUILDLOG.

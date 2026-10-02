@@ -15300,3 +15300,27 @@ and start measuring c-177", then "proceed with the not done work and commit".
 - **Verified on the host:** pytest 2,605, all passing, its 21 `lane_b` cases against the image rebuilt at
   0.2.83-beta; Go 402, all passing; tsextract 49; vitest 52; the oracle lane's report test; `render.py check`.
   The static proxy and the image were rebuilt.
+
+## 2026-10-02 (thirty-second session) — the top-level docs reviewed, their drift fixed, and the handoff split
+
+**Task:** "review top level documentation and report back with current state", then "good to fix the
+staleness. the rest can be trimmed by your choice as long as history is in ledger smaller more specific docs
+are encouraged."
+
+- **Drift fixed:** the handoff's tags line still read "0.2.11-beta to 0.2.82-beta untagged". The README's
+  Status had no line for the honesty audit, C-175 to C-177's fixes or the held-out rich cell; it has one
+  paragraph now.
+- **The handoff split** (711 lines → about 290): the driver paths of every earlier session went to a new
+  `docs/bench-drivers.md`, an index of `~/.hobbes/bench/` by decision and date (the key paths checked on
+  disk: `oracle/<repo>-py-rN/`). The lessons list and the inline "Lesson:" bullets went to a new
+  `docs/lessons.md`, grouped by probes, briefs, grading and tool facts. Shipped-work narratives already in the
+  CHANGELOG and the BUILDLOG were dropped. Every open-for-Max item, candidate, held item and operating note
+  was kept, regrouped under one "Open for Max" list and one candidates list.
+- **The README's Calvin experiments paragraph** (E0 to D-15 run by run) is down to one paragraph. Every
+  figure stays in `calvin-experiments.md`.
+- **`workstreams.md`'s header**, one sentence listing each refresh since 2026-08-24, now reads "last
+  refreshed 2026-10-01"; the refreshes are in their BUILDLOG entries.
+- CLAUDE.md and AGENTS.md name the two new docs (the read-next table and the docs map). No version bump:
+  nothing the layer draws, refuses or says moved.
+- **Tests:** `test_register_tally.py`, `test_version.py` and `test_shanks_tracker.py`, 20 passing; every
+  relative link in the edited docs resolves.

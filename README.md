@@ -413,6 +413,17 @@ contradiction the oracle's grain). C++'s fmt reads 100% with a strict
 99.62% beside it (ADR-124; three C-153 rows unjudged, ADR-125, ADR-130). The
 misses are registered by class.
 
+**The honesty audit** (0.2.80-beta, 2026-10-01) looked for what
+`list_blind_spots` did not name, with one fixture per language. It
+widened C-174 and registered C-175 to C-177, and all three are fixed:
+C++ lane A reads every definition it walks past (ADR-157, fmt 7,012 →
+7,026 confirmed), a TS/JS call's caller is the innermost enclosing
+symbol (ADR-158), and a tagged template is a call site (ADR-159, ajv's
+recall 67.5% → 86.3%), each at no contradiction. **Against fitting to
+the keys,** a held-out Python repo, rich, was graded once with no rule
+changed: 4,748 confirmed, 0 Hobbes-wrong, recall 89.7%; it is graded
+beside click and flask on every Python rule since.
+
 **The derivation programme is built and under test.** The latest run (the
 ADR-085 validation pair, 7B, 2026-08-24) mostly held, solved 0/5 (not the
 measure), and registered eight harness defects, since all fixed
@@ -468,53 +479,19 @@ and the three diffs, replayed, now clear.
 
 **The Calvin experiments** (ADR-151,
 [`docs/experiments/calvin/calvin-experiments.md`](docs/experiments/calvin/calvin-experiments.md))
-ask whether a model can write one language, C, when the skill lives in
-its weights and the target's facts come from the ledger every time. The
-target is sqlite-vector's SIMD kernel lattice: 31 names across six
-instruction sets, with the scalar file as the numeric oracle. E0, the
-instruments (`bench/calvin/lattice/`), was built and accepted on the
-real target on 2026-09-25: all 93 golds pass, and the two rename shadows
-pass the target's own suite. E1's runner was built the same day, and its
-run, E1, covered both 7B bases over all 93 cells for $6.59 of a $10
-ceiling. On Qwen2.5-Coder, pattern examples in context raised pass@1 from
-0.05 (the same volume of unrelated code) to 0.29, and facts from the
-graph helped only beside them (0.38). E2 (2026-09-26, $1.89 of $3) ran
-the same prompts on two rename shadows: equally meaningful names kept
-the effect, while meaningless names also removed the only statement of
-what each function computes, so that gap is not read as name-reading.
-E3 (2026-09-26, about $5.55 of $25) trained a 300-step LoRA on 21,290
-pattern examples drawn from 40 permissively licensed C repos: it lifted
-the use of examples (+0.148 pass@1 against the base, p 0.0002) and not
-the no-example arm, and the gain vanished on meaningless names — training
-sharpens reading named neighbours, not skill in the weights. E4
-(2026-09-26, about $1.25 of $8) was the first run on the page that
-decomposes, so the first that is a Hobbes test: a 7B rebuilt each of the
-three native files one definition at a time, leaves first, and the
-graph's shots from the other files lifted it by +0.21 to +0.26 pass@1
-(p ≤ 0.0003 each), while a 7B parser's written spec made it worse. D-11
-(2026-09-27, about $2.11 of $5) gave the file's helpers shots by name
-family, +0.26 pooled (p 0.0001), except where the shot is from a wider
-instruction set than the target has; the 32B student added +0.13 on
-cells and +0.30 on helpers over the 7B. D-12 (about $0.67) listed, beside
-the shots, which of their intrinsics the target has: null (+0.011,
-p 0.59), since the 7B still wrote the renames the list said do not
-exist. D-13 (about $0.32) gave the same list to a failed unit on its
-one retry, beside the compiler's error, against the same retry without
-it: null again (−0.001, p 1.0). The retry itself buys +0.02, and the
-student drops the name it was told about and invents another. D-14
-(no spend) looked for a positive instead, a rule naming an intrinsic the
-file does have: it answers 12.7% of the invented names, and 4.1% of those
-answers are what the target uses. Two thirds of the invented names are
-declared by no header at all. D-15 (2026-09-27/28, about $3.08 of $4)
-gave the same list to the 32B student, beside the shots and beside its
-retry: null both ways (+0.017, p 0.34; +0.002, p 0.86). With no positive
-result, the experiments were closed for now (2026-09-28), at about $21.50
-over the programme. The zero-spend reassessment that followed
+asked whether a model can write one language, C, with the skill in its
+weights and the target's facts from the ledger, on sqlite-vector's SIMD
+kernel lattice. Over E0 to E4 and D-11 to D-15 (about $21.50 in all),
+pattern examples in context lifted a 7B's pass@1 (0.05 → 0.29), and in
+the run that decomposes, shots the graph drew from the other files lifted
+it by +0.21 to +0.26. A LoRA, a list of the
+target's intrinsics, and a retry with the compiler's error added no skill
+beyond reading named neighbours. The zero-spend reassessment that followed
 ([`calvin-reassessment.md`](docs/experiments/calvin/calvin-reassessment.md)
 §11–§13) found the lattice's residual deterministic: the compiler, a
 lifter, a solver and a lookup. Calvin is closed on sqlite-vector
 (2026-09-29) and reopens only on a target where the job is not
-derivable; the harness is unaffected. The records are in the
+derivable; the harness is unaffected. Every run's figures are in the
 experiments page.
 
 The work built through it includes C's lane A and its oracle, the
@@ -560,6 +537,8 @@ point); the session-by-session record is
 | [`docs/experiments/calvin/atlas0/atlas-0.md`](docs/experiments/calvin/atlas0/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
 | [`docs/reviews/`](docs/reviews/) | Dated agent reviews of the tree against its records (the 2026-09-10 baseline) |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |
+| [`docs/lessons.md`](docs/lessons.md) | The checks earlier sessions paid for: read before writing a brief, a probe or a pre-registration |
+| [`docs/bench-drivers.md`](docs/bench-drivers.md) | Where each measurement's off-tree scripts are (`~/.hobbes/bench/`), by decision and date |
 | [`docs/workstreams.md`](docs/workstreams.md) | The backlog grouped into assignable workstreams, with gating and contributor profiles |
 
 Three decisions are settled and not revisited: Python + Go + TS split
