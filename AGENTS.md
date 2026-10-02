@@ -278,7 +278,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-10-02) — Hobbes 0.2.85-beta
+## Status (2026-10-02) — Hobbes 0.2.86-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -305,7 +305,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   graded once with no rule changed (§10.40), then fitted by ADR-160; its
   place taken by **pyparsing** 3.3.3 (2026-10-02, §10.44): 3,516
   confirmed, 0 Hobbes-wrong calls, recall 50.6%.
-  **Register:** 178 entries; 130 active (100 surfaced, 25 partial, 4
+  **Register:** 178 entries; 130 active (101 surfaced, 25 partial, 3
   unsurfaced, 1 n/a), 31 lifted; the tally is
   held by `test_register_tally.py`, its dated notes are
   `docs/constraints/HISTORY.md`.
@@ -314,23 +314,24 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   verify → one log in `docs/shanks/sessions/`. The tracker at the end of
   that directory's `README.md` (`pipeline/scripts/shanks_tracker.py
   render`, held by a drift test; re-render after filling a review block)
-  reads **97 of 40** sessions that validate the harness: 4 areas, 4 false
+  reads **98 of 40** sessions that validate the harness: 4 areas, 4 false
   blocks, all closed (`f3c1` at 0.2.28-beta; `9326`, `c141` and `66c5`,
   the decorator case, at 0.2.76-beta), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.85-beta, ADR-160, C-9 narrowed** (unit `3814`): a call
+- **Latest — 0.2.86-beta, ADR-161, C-178 contained** (unit `aa88`;
+  precedent 1, investigated first): scip-python answers the first
+  `pkg.Name` it resolves through a `from … import *` re-export for every
+  later one; such a reference (token not its name, through an imported
+  module) is refused and counted. pyparsing 2,919 refused, wrong `uses`
+  rows to `CaselessLiteral` 1,671 → 10, no `calls` row moved; rich,
+  flask, click identical.
+- **Before it, 0.2.85-beta, ADR-160, C-9 narrowed** (unit `3814`): a call
   through a local alias (`_Segment = Segment` … `_Segment(…)`) is drawn
   `syntactic` to what the index named at the right-hand side. rich 4,844 →
   4,968 confirmed (90.20% → 92.51%), flask and click identical, pyparsing
   +1; 0 contradicted. 0.2.84-beta before it corrected C-32's
   `local-binding` gloss (precedent 1).
-- **Open for Max — C-178, registered unsurfaced** (found beside the
-  pyparsing key): scip-python names most `pp.<name>` read through a
-  `from .core import *` re-export as an unrelated symbol
-  (`CaselessLiteral#`), drawn as 397 `uses` and 7 `calls` `semantic`
-  edges the trace key cannot judge. Precedent 1: its route comes before
-  the next recall rule.
 - **The honesty audit** (0.2.80-beta, precedent 1): C-174 widened, and
   C-175 to C-177 registered and surfaced, after one fixture per language
   (`~/.hobbes/bench/honesty-audit/RESULTS.md`). All three fixes are in:
@@ -338,9 +339,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (0.2.82-beta, ADR-158), C-177 lifted (0.2.83-beta).
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
   sacrifice honesty for higher recall").
-  **Next — C-178's route** (Max's), then `cls(…)` in a classmethod (rich
-  57, pyparsing 17): measuring it on pyparsing would fit the held-out
-  cell, so pick the next held-out repo first.
+  **Next — `cls(…)` in a classmethod** (rich 57, pyparsing 17): measuring
+  it on pyparsing would fit the held-out cell, so pick the next held-out
+  repo first.
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
   necessarily an LLM (ADR-152). **Closed on its lattice** (Max,

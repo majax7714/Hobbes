@@ -31,6 +31,14 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-02 — C-178 contained (0.2.86-beta)
+
+- ADR-161: `c178-star-reexport/` (`RESULTS.md`, `PREREG.md`; `index.sh <clone> <name>` raw scip-python in
+  the image with `dump.mjs`; `mismatch.py`, `mismatch2.py <repo> <occ.ndjson> [--rows f]` — token against the
+  named symbol, UTF-16 columns, classed by receiver, reusable on any Python cell; fixtures `v1`–`v6` and `fx`
+  the ten-line reproductions; `rich/`, `flask/`, `click/`, `hobbes/` raw indexes; `run.sh <arm>` with `ROOT=`
+  and `compare.py`, the five-repo before/after; `before/`, `after/`, `units/`; `wt/` removable).
+
 ## 2026-10-02 — the local alias and the pyparsing held-out cell (0.2.84–0.2.85-beta)
 
 - ADR-160, C-9: `c9-local-alias/` (`RESULTS.md`; `probe.py` the exact `ast` read and simulation, `count.py`

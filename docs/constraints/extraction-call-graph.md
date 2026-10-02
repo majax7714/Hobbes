@@ -755,15 +755,24 @@
   (`~/.hobbes/bench/c176-ts-scope/`); `tsextract/extract.mjs` `enclosingScope`,
   `tssource._call_sites`, `scipsource.project`.
 
-### C-178 — scip-python names an attribute read through a star re-export as an unrelated symbol, and the join draws it — *registered 2026-10-02 (0.2.85-beta, the pyparsing held-out cell)*
-- **Cannot tell you:** what `pp.Word`, `pp.Forward` or `pp.alphas` name where `pp` is a package whose
+### C-178 — scip-python names an attribute read through a star re-export as an unrelated symbol — *registered 2026-10-02 (0.2.85-beta, the pyparsing held-out cell); contained the same day (ADR-161, 0.2.86-beta): such a reference is refused before the join and counted*
+- **Contained 2026-10-02 (ADR-161, 0.2.86-beta).** A Python reference whose token is not its name,
+  written as the member of a dotted chain rooted at a name the file binds by `import`, is refused before
+  the join: it draws no edge and is counted. pyparsing: 2,919 refused, `uses` rows to `CaselessLiteral`
+  1,671 → 10, `one_of` 338 → 23, `replace_with` 69 → 5; 561 `uses` pairs gone, none added, no `calls` row
+  moved; rich, flask and click byte-identical. **What is left:** such a reference has no lane B answer, so
+  the call written there stays unresolved; and an external reference (the stdlib's own star re-exports:
+  `os.path.dirname` named `join`) keeps its misnamed moniker, which draws no repo edge.
+- **Cannot tell you (as registered):** what `pp.Word`, `pp.Forward` or `pp.alphas` name where `pp` is a package whose
   `__init__.py` re-exports by `from .core import *`. scip-python names most such occurrences as one
   unrelated symbol of the star-imported module, and the join draws what it names. On pyparsing 3.3.3:
   397 `uses` and 7 `calls` edges to `pyparsing.core.CaselessLiteral`, all `semantic`, on 1,688 evidence
   rows, where 36 source lines name the class; wrong `uses` rows to `pyparsing.helpers.one_of` (275) and
   `pyparsing.actions.replace_with` (65). The call written at such a site draws nothing, because the
   join's line-and-name claim refuses a name that is not the site's.
-- **Because:** read in the image with raw scip-python over the clone (empty environment): of 3,182
+- **Because:** the first `<pkg>.<name>` scip-python resolves through a star re-export answers every later
+  one, index-wide, across files (reproduced in ten lines in the image, `~/.hobbes/bench/c178-star-reexport/`).
+  Read with raw scip-python over the clone (empty environment): of 3,182
   `pp.<name>` occurrences in tests and examples, 3,072 name a symbol other than `<name>` (`Word` 505,
   `alphas` 227, `Group` 212, `Literal` 195, `nums` 166, `Forward` 101 as `CaselessLiteral#`). Why the
   indexer resolves the re-export this way is not read.
@@ -773,11 +782,14 @@
   and its poison PASS say nothing about these rows. rich, flask and click show none of the shape: a
   `semantic` row whose line does not hold its target's name is 108, 10 and 11 rows there, and the rows
   sampled are a member reference rolled up to its class.
-- **You find out:** **unsurfaced** — no record names it, and `hobbes lanes` exits 0 on the cell because
-  the join never claims these occurrences as call sites. Debt; the route is Max's.
+- **You find out:** **surfaced** (0.2.86-beta) — one `scip-python` degradation record per ingest with any
+  refusal names the count, the cause and three examples, and `list_blind_spots` prints it. Until then it was
+  unsurfaced: `hobbes lanes` exits 0 on the cell because the join never claims these occurrences as call
+  sites.
 - **Provider (P9):** scip-python **0.6.6**, its resolution through a `from … import *` re-export.
 - **Source:** the pyparsing held-out cell (`docs/oracle/cells/pyparsing-py-2026-10-02.md`,
-  `oracle-grading.md` §10.44); `~/.hobbes/bench/c9-local-alias/pp-index/` (the raw index).
+  `oracle-grading.md` §10.44, §10.45); ADR-161; `~/.hobbes/bench/c9-local-alias/pp-index/` (the raw index),
+  `~/.hobbes/bench/c178-star-reexport/`.
 
 ---
 

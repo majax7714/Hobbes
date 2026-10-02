@@ -22,6 +22,10 @@ writing a brief, a probe or a pre-registration. The resume point is
   candidate's size in a handoff.
 - **A trace key grades calls only.** pyparsing's 0 contradicted sat beside 1,688 wrong `semantic` `uses`
   rows (C-178). On a new cell, also count `semantic` rows whose line does not hold the target's name.
+- **scip-python counts columns in UTF-16 code units.** A character above U+FFFF is two; read a token at a
+  raw column with that conversion or a line holding an emoji reads mid-word (`'gment'`, C-178's step 0).
+- **A prediction about this repo includes the fixture the unit adds.** ADR-161's Q5 predicted 0 refusals
+  here; the 3 were its own `minireexport`, which this repo ingests like every fixture.
 - **A probe applies every condition the ADR states.** ADR-156's `sim.py`
   ignored step 2's `semantic` condition and over-predicted flask (about
   +102 against +28).

@@ -493,6 +493,10 @@ than once outside a dead branch is one definition there too, at its first def, a
 0.2.75-beta each later live def's lines are the node's when the projection looks for a lane B
 `uses` fact's caller, so an `@overload`'s stubs or a property's setter no longer file a use under
 the class; ADR-155),
+C-178 (scip-python 0.6.6 answers the first `pkg.Name` it resolves through a `from … import *`
+re-export for every later one, index-wide; since 0.2.86-beta a Python reference whose token is not
+its name, written as the member of a chain rooted at a name the file binds by `import`, is refused
+before the join and counted in one `scip-python` record; ADR-161),
 C-29 (indexing a Rust repo executes
 its build scripts and proc macros — the one provider that runs
 repo-authored code, disclosed at every ingest and, since ADR-092,
@@ -2226,7 +2230,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.85-beta** (2026-10-02, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.85-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.86-beta** (2026-10-02, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.86-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

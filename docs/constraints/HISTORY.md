@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-178 contained and surfaced, 2026-10-02 (0.2.86-beta; ADR-161, Max: "good to proceed with recommended investigate and contain for c-178"):
+- **C-178 contained.** The first `<pkg>.<name>` scip-python resolves through a star re-export answers every
+  later one (reproduced in ten lines). A Python reference whose token is not its name, through a chain rooted
+  at an imported name, is refused before the join and counted in one record: pyparsing 2,919 refused,
+  1,671 wrong `uses` rows to `CaselessLiteral` down to 10, no `calls` row moved; rich, flask, click identical.
+- 178 entries, 130 active (101 surfaced, 25 partial, 3 unsurfaced, 1 n/a), 31 lifted.
+
 C-178 registered, C-9 narrowed, C-174 corrected, 2026-10-02 (0.2.85-beta; ADR-160, Max: "good to move with recommended"; the pyparsing held-out cell):
 - **C-9 narrowed** (ADR-160): a call through a local alias whose right-hand side the index names is drawn,
   `syntactic`, `via: "alias"`. rich +124 confirmed (90.20% to 92.51%); flask and click unmoved; pyparsing +1.

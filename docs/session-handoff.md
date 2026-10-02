@@ -1,15 +1,15 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-02 (thirty-second session); Hobbes 0.2.85-beta on `main`.**
+**Reviewed 2026-10-02 (thirty-second session); Hobbes 0.2.86-beta on `main`.**
 Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
-0.2.85-beta, and this repo was ingested at the release commit; ingest at HEAD
+0.2.86-beta, and this repo was ingested at the release commit; ingest at HEAD
 again if `main` has moved since. A new session's knowledge server is a new
 container from the current image (`sandbox/knowledge-serve` runs `podman run
 --rm`), so it is fresh.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.85-beta are untagged. Tags stay Max's call each time.
+  0.2.86-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment): patch by patch on 0.2.x,
   counting past nine. A language addition or a constraint's fix is a patch,
   even when structural; a minor is for a feature added to Hobbes (the
@@ -33,25 +33,10 @@ we might be defeating the point of the [poison] check by conforming to our
 tested repos." **New rule tiering** (2026-10-02): "syntatic over semantic when
 not clearly semantic to preserve honesty".
 
-**Next — C-178's route (precedent 1, Max's call).** The pyparsing held-out cell
-found scip-python 0.6.6 naming most `pp.<name>` read through pyparsing's `from
-.core import *` re-export as an unrelated symbol (`pyparsing.core/CaselessLiteral#`
-for `Word`, `Forward`, `alphas`, …; `one_of`, `replace_with` for others): 3,072 of
-3,182 occurrences in tests and examples. The join draws 397 `uses` and 7 `calls`
-`semantic` edges to `CaselessLiteral` (1,688 rows; 36 source lines name it),
-which no trace key grades. Registered unsurfaced. Routes to put to him, measured
-first:
-- **a (contain):** refuse a lane B reference whose token text is not the named
-  symbol's name, except where the file's own import binds that text as an alias of
-  it (`import x as y`, `from m import a as b`). Measure on all keyed Python cells
-  first: rich/flask/click show 108/10/11 rows of "target name not on the line",
-  sampled as member-to-class roll-ups, which a token check must keep.
-- **b (surface only):** a degradation record per ingest counting such references.
-- Read why scip-python does it (a ten-line fixture in the image with `from .core
-  import *` and `import pkg as pp`) before choosing; a fixture tells whether the
-  shape is any star re-export or pyparsing's.
-Then `cls(…)` in a classmethod (rich 57, pyparsing 17), after picking the next
-held-out repo (measuring on pyparsing would fit it).
+**Next — `cls(…)` in a classmethod** (rich 57, pyparsing 17), measured first. **Pick the next held-out
+Python repo before measuring it**: pyparsing is held out now, and fitting the rule on it would spend it. On
+the new cell, also count `semantic` rows whose line does not hold the target's name (C-178's check), since a
+trace key grades calls only. Then C-174's remainder per language, and C/C++ lane A's time.
 
 **Where the day left things** (2026-10-02; the CHANGELOG has each):
 - **0.2.84-beta:** C-32's `local-binding` gloss no longer says "the call stays
@@ -65,6 +50,14 @@ held-out repo (measuring on pyparsing would fit it).
   50.6%. rich counts as fitted from ADR-160 on.
 - **C-174's property clause corrected:** a call through a property's value draws
   `calls` to the getter.
+- **0.2.86-beta, ADR-161 (unit `aa88`), C-178 contained (precedent 1):** scip-python
+  0.6.6 answers the first `pkg.Name` it resolves through a `from … import *` re-export
+  for every later one, index-wide (ten-line fixtures in the image). A Python reference
+  whose token is not its name, through a chain rooted at an imported name, is refused
+  before the join and counted in one record. pyparsing 2,919 refused, wrong `uses` rows
+  to `CaselessLiteral` 1,671 → 10, no `calls` row moved; rich, flask, click identical.
+  Left: such a call has no lane B answer; external references to the stdlib's star
+  re-exports keep misnamed monikers (no repo edge).
 - **Not audited** (carried from the honesty audit): Terraform/HCL; repo-scale
   counts of any implicit shape outside Python's `__exit__`; Go's and Java's caller
   roll-up on real repos.
@@ -219,15 +212,15 @@ Each is his call; nothing is built until he answers.
   installed (C-165).
 - **Shanks, the harness** (ADR-107, ADR-112, ADR-152): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar `hobbes-side-<id>`;
-  the doer mounts only `in/`, read-only, and its HOME is a tmpfs. Ninety-seven
-  log files under `docs/shanks/sessions/`; the tracker reads 97 of 40 (4
+  the doer mounts only `in/`, read-only, and its HOME is a tmpfs. Ninety-eight
+  log files under `docs/shanks/sessions/`; the tracker reads 98 of 40 (4
   areas, 4 false blocks, all closed, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four, from 108
   cells (22 same-key rows); `render.py check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps deployed
   and idle): held.
-- **Register:** 178 entries: 130 active (100 surfaced, 25 partial, 4
-  unsurfaced — C-19, C-20, C-112, C-178 — 1 n/a), 31 lifted, 11 superseded, 6
+- **Register:** 178 entries: 130 active (101 surfaced, 25 partial, 3
+  unsurfaced — C-19, C-20, C-112 — 1 n/a), 31 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open** (H-37 the latest, fixed 0.2.79-beta;
   `docs/oracle/oracle-defects.md`). RC-4 still carries its price: silencing is

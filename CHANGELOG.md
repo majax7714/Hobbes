@@ -11,9 +11,30 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.85-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.86-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.86-beta — 2026-10-02 (a Python reference lane B misnames through an imported module is refused; ADR-161, C-178 contained)
+
+**Patch: what the layer draws and says**, Python. Precedent 1, investigated first (Max: "good to proceed with
+recommended investigate and contain for c-178").
+
+- **The cause, reproduced in ten lines.** scip-python 0.6.6 answers the first `<pkg>.<name>` it resolves
+  through a `from … import *` re-export for every later one, across files. pyparsing's `pp.Word`, `pp.Forward`,
+  `pp.alphas` … all came back as `CaselessLiteral#`. Elsewhere only the stdlib's own star re-exports are hit
+  (`os.path.dirname` named `join`), outside the repo.
+- **Refused now.** Where lane B ran for Python, a reference whose token (UTF-16 columns, as scip-python
+  writes them) is not its name, written as the member of a chain rooted at a name the file binds by
+  `import`, reaches no edge. A value receiver's mismatch (`self._link` named `Style#`, a true `uses`) is kept.
+  Nothing is repaired or guessed.
+- **Said where a user meets it.** One `scip-python` degradation record per ingest with any refusal: the count,
+  the cause, three examples. `list_blind_spots` prints it.
+- **Measured.** pyparsing: 2,919 refused; `uses` rows to `CaselessLiteral` 1,671 → 10, `one_of` 338 → 23,
+  `replace_with` 69 → 5; 561 `uses` pairs gone, none added; the key's grade and the `calls` export identical.
+  rich, flask and click byte-identical.
+- **Register:** C-178 contained and surfaced; 178 entries, 130 active (101 surfaced, 25 partial, 3
+  unsurfaced), 31 lifted.
 
 ## 0.2.85-beta — 2026-10-02 (a call through a local alias is drawn; ADR-160, C-9 narrowed; C-178 registered)
 

@@ -15356,3 +15356,27 @@ when not clearly semantic to preserve honesty".
   base (Python 11 repos), architecture §3.8 and header; `oracle-grading.md` §10.44; the pyparsing cell record
   and evidence entry; CHANGELOG, README, workstreams, CLAUDE.md and AGENTS.md; the handoff (next: C-178's
   route), `bench-drivers.md`, `lessons.md`.
+
+## 2026-10-02 (thirty-second session, continued) — C-178 investigated and contained — 0.2.86-beta
+
+**Task:** "good to proceed with recommended investigate and contain for c-178".
+
+- **Investigated, no code changed** (`~/.hobbes/bench/c178-star-reexport/`). Ten-line fixtures in the image
+  (`v1`–`v6`, `fx`): where `__init__.py` re-exports by `from .core import *`, with or without `__all__`,
+  scip-python 0.6.6 answers the first `<pkg>.<name>` it resolves for every later one, across files; explicit
+  re-imports resolve right; a bare star-imported name draws no occurrence. Raw indexes of pyparsing, rich,
+  flask, click and this repo, token against named symbol (UTF-16 columns; rich's `'gment'` rows were the
+  column unit), classed by receiver: through a module, pyparsing 2,940 (2,919 in-repo), elsewhere only the
+  stdlib's own star re-exports; through a value, the index naming the receiver's class at a member (rich
+  122), true and kept. pyparsing's 7 `calls` to `CaselessLiteral` were genuine.
+- **ADR-161** pre-registered (Q1–Q6) and committed before the dispatch; unit `aa88` (34 turns, $0.94): gate
+  clear, verify pass. Its two departures kept (line splitting; a chain off a call). Host from a worktree:
+  pytest 2,674, `lane_b` 23 of 23; the fixture refuses exactly its three.
+- **After arm:** pyparsing 2,919 refused, `uses` rows to `CaselessLiteral` 1,671 → 10, `one_of` 338 → 23,
+  `replace_with` 69 → 5, 561 `uses` pairs gone, 0 added, grade and `calls` export identical; rich, flask,
+  click byte-identical. Q5 missed as worded: this repo's 3 refusals are the unit's own fixture.
+- **Released as 0.2.86-beta:** ADR-161 Built; C-178 contained and surfaced (178 entries, 130 active, 101
+  surfaced, 3 unsurfaced), HISTORY; architecture's provider paragraph and header; `oracle-grading.md` §10.45;
+  the pyparsing cell record; CHANGELOG, README, workstreams, CLAUDE.md and AGENTS.md; the session review and
+  tracker (98 of 40); the handoff (next: `cls(…)` after picking the next held-out repo), `bench-drivers.md`,
+  `lessons.md`. Image rebuilt.

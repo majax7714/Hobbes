@@ -366,7 +366,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.85-beta** (2026-10-02). The Hobbes layer is versioned from here
+**Hobbes 0.2.86-beta** (2026-10-02). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -426,7 +426,8 @@ changed: 4,748 confirmed, 0 Hobbes-wrong, recall 89.7%. When the next rule
 out to have rows only on rich, a second held-out repo, pyparsing, was graded
 before it was built: 0 Hobbes-wrong calls, recall 50.6%, and beside the key a
 lane B defect the trace cannot judge, scip-python naming names read through a
-star re-export as an unrelated class (C-178, registered).
+star re-export as an unrelated class (C-178), contained at 0.2.86-beta:
+such references are refused and counted (ADR-161).
 
 **The derivation programme is built and under test.** The latest run (the
 ADR-085 validation pair, 7B, 2026-08-24) mostly held, solved 0/5 (not the

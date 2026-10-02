@@ -1,7 +1,7 @@
 # ADR-161 — A Python reference lane B names with another symbol's name through an imported module is refused
 
 **Date:** 2026-10-02 · **Status:** accepted (Max, 2026-10-02: "good to proceed with recommended investigate and
-contain for c-178"); to be built · **Owner:** Max · **Source:** C-178's step 0,
+contain for c-178") and **built** (0.2.86-beta, unit `aa88`) · **Owner:** Max · **Source:** C-178's step 0,
 `~/.hobbes/bench/c178-star-reexport/` (`RESULTS.md`, `PREREG.md`, `mismatch2.py`, the fixtures `v1`–`v6`, `fx`).
 
 Contains **C-178**. Draws less: it removes wrong `semantic` rows and adds none.
@@ -70,3 +70,21 @@ leave the join; elsewhere none is expected.
 
 C-178 narrows to: a module attribute read through a star re-export has no lane B answer, refused and counted
 (surfaced). The call written there stays unresolved; recall does not move.
+
+## Built (0.2.86-beta, unit `aa88`, merged `82bd5df`)
+
+As decided, in `extract/reexport.py`, wired after ADR-154's step. Two readings the unit took beyond the brief,
+both kept: a file's lines are split at `\r\n`, `\r` and `\n` only, since `str.splitlines` breaks at a form
+feed and would move lines off the index's numbering; and a chain hanging off a call (`f().os.X`) has no root
+to read and is kept. Shanks: gate clear, verify pass, 34 turns. Host: pytest 2,674, `lane_b` 23 of 23 (the
+`minireexport` fixture refuses `mr.Gamma`, `mr.two`, `mr.CONST` and draws `build` → `Beta`).
+
+| repo | refused | effect |
+|---|---:|---|
+| pyparsing | 2,919 | `uses` rows to `CaselessLiteral` 1,671 → 10, `one_of` 338 → 23, `replace_with` 69 → 5; 561 `uses` pairs gone, none added; the key's grade (3,517 / 0 / 66) and the `calls` export identical |
+| rich, flask, click | 0 | graphs and grades byte-identical |
+| this repo | 3 | the unit's own fixture; nothing else |
+
+Pre-registered (`~/.hobbes/bench/c178-star-reexport/PREREG.md`): Q1–Q4 and Q6 met. **Q5 missed as worded**
+(0 refused on this repo): the 3 are `minireexport`, the fixture the unit added, which this repo ingests like
+every fixture; outside the unit's files nothing is refused.

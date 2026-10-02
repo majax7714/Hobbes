@@ -70,7 +70,9 @@ else, most often `pyparsing.core/CaselessLiteral#` (`Word` 505, `alphas` 227, `G
 `nums` 166, `Forward` 101, …), and `one_of` or `replace_with` for others. The join draws what it names: 397
 `uses` and 7 `calls` edges to `CaselessLiteral`, all `semantic`, on 1,688 evidence rows, where 36 source
 lines name the class. The calls written there draw nothing (the join's line-and-name claim refuses them),
-which is most of the class and function misses below.
+which is most of the class and function misses below. **Contained at 0.2.86-beta (ADR-161, §10.45):** 2,919
+such references are refused before the join and counted; the `uses` rows to `CaselessLiteral` fall to 10, and
+the key's grade does not move.
 
 ## Pre-registered predictions, scored (`PREREG.md`)
 

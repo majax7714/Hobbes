@@ -2726,6 +2726,28 @@ the probe. A5 missed on confirmed, A6 met; on pyparsing A1, A3, A4 met and A2 mi
 `~/.hobbes/bench/c9-local-alias/` (`RESULTS.md`, `probe.py`, `count.py`, `run.sh`, `before/`, `after/`,
 `units/`, `pp-index/`) and `~/.hobbes/bench/heldout-pyparsing/`.
 
+### 10.45 C-178 contained — `PREREG.md` written 2026-10-02 after step 0 and before the code; this section written after the regrade (ADR-161)
+
+**Step 0** (`~/.hobbes/bench/c178-star-reexport/RESULTS.md`): the first `<pkg>.<name>` scip-python 0.6.6
+resolves through a `from … import *` re-export answers every later one, index-wide (fixtures `v1`–`v6`,
+`fx`, in the image). Over raw indexes, a reference whose token is not its name through a module receiver:
+pyparsing 2,940 (2,919 to a repo symbol); rich 21, flask 44, click 136, this repo 96, all to the stdlib.
+
+**Regraded** against the standing keys, poison on; before is 0.2.85-beta's graphs (§10.44's after arm),
+after is the unit's branch from a worktree.
+
+| Cell | Refused | Confirmed | Contradicted | Suspect | `calls` export | `symbol_edges` |
+|---|---:|---|---|---|---|---|
+| pyparsing | 2,919 | 3,517 → 3,517 | 0 → 0 | 66 → 66 | identical | 561 `uses` pairs gone, 9 lose rows, 0 added |
+| rich | 0 | 4,968 → 4,968 | 0 → 0 | 42 → 42 | identical | identical |
+| flask | 0 | 1,552 → 1,552 | 0 → 0 | 15 → 15 | identical | identical |
+| click | 0 | 3,768 → 3,768 | 0 → 0 | 20 → 20 | identical | identical |
+
+Signed direction of fix: pyparsing's `uses` rows to `CaselessLiteral` 1,671 → 10, `one_of` 338 → 23,
+`replace_with` 69 → 5; no `calls` row added or lost anywhere; poison PASS on every cell. Pre-registration:
+Q1–Q4, Q6 met; Q5 missed as worded (this repo's 3 are the unit's own fixture). The trace key cannot grade
+`uses` rows, so the cell's figures do not move; the record is the row counts above.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
