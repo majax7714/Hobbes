@@ -29,6 +29,7 @@ from pathlib import Path, PurePosixPath
 
 from hobbes.extract import evidence as ev
 from hobbes.extract import (
+    aliases,
     containment,
     decorators,
     fixtures,
@@ -876,6 +877,19 @@ def _build_symbol_layer(
         if with_counts:
             # Additive, and absent where no `with` item is a call.
             graph["with_statements"] = with_counts
+    # ADR-160, after the `with` step and for the same reason: a call
+    # through a local alias names the local at the site, below the symbol
+    # floor (C-9), so the join has nothing to draw. The target is the
+    # index's own edge at the alias's assignment, read off the settled
+    # graph. Resolution coverage is not moved (ADR-160 *Not taken*).
+    with timings.step("aliases"):
+        alias_rows, alias_counts = aliases.alias_calls(
+            modules, parsed, graph["symbols"], graph["symbol_edges"]
+        )
+        _add_alias_call_edges(graph, alias_rows)
+        if alias_counts:
+            # Additive, and absent where no file records an alias.
+            graph["aliases"] = alias_counts
     if injections is not None:
         injections.extend(drawn)
     # C-153's surfacing (ADR-125 §4), read off the edges the projection has
@@ -1138,6 +1152,45 @@ def _add_with_call_edges(graph: dict, drawn: list[dict]) -> None:
                 "calls",
                 [
                     {"path": path, "line": line, "via": withstmt.WITH}
+                    for path, line in sorted(evidence)
+                ],
+                tier=SYNTACTIC,
+                lane=LANE_TREE_SITTER,
+            )
+            for (source, target), evidence in sorted(sightings.items())
+        ],
+        key=_edge_order,
+    )
+
+
+def _add_alias_call_edges(graph: dict, drawn: list[dict]) -> None:
+    """Draw each call through a local alias as one ``calls`` edge
+    (ADR-160), evidence at every site that made it.
+
+    The same shape as :func:`_add_with_call_edges`: an end the graph does
+    not carry is dropped rather than drawn to nothing, the sightings merge
+    per ``(from, to)``, and the list is re-sorted by the projection's own
+    key. The caller is always a function or method — a module body records
+    no alias — and the target is whatever the index named at the alias's
+    right-hand side. The tier is ``syntactic``: the binding is read from
+    syntax, and the index answered at the assignment, not at the call.
+    """
+    ids = {symbol["id"] for symbol in graph["symbols"]}
+    sightings: dict[tuple[str, str], set] = defaultdict(set)
+    for call in drawn:
+        if call["from"] in ids and call["to"] in ids:
+            sightings[(call["from"], call["to"])].add((call["path"], call["line"]))
+    if not sightings:
+        return
+    graph["symbol_edges"] = sorted(
+        graph["symbol_edges"]
+        + [
+            tiered_edge(
+                source,
+                target,
+                "calls",
+                [
+                    {"path": path, "line": line, "via": aliases.ALIAS}
                     for path, line in sorted(evidence)
                 ],
                 tier=SYNTACTIC,

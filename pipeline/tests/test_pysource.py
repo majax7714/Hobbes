@@ -2182,6 +2182,223 @@ class TestLocalDefs:
         assert self.defs(CLICK_GROUP_COMMAND) == {"Group.command": ("decorator",)}
 
 
+#: rich's ``rich/progress_bar.py`` (MIT), ``ProgressBar._get_pulse_segments``
+#: verbatim but for its docstring, with the imports and the constant it
+#: reads: the shape ADR-160 was measured on.
+RICH_PULSE_SEGMENTS = """\
+import math
+from .color import Color, blend_rgb
+from .segment import Segment
+from .style import Style
+
+PULSE_SIZE = 20
+
+class ProgressBar:
+    def _get_pulse_segments(self, fore_style, back_style, color_system, no_color, ascii=False):
+        bar = "-" if ascii else "━"
+        segments = []
+        append = segments.append
+        fore_color = fore_style.color.get_truecolor()
+        back_color = back_style.color.get_truecolor()
+        cos = math.cos
+        pi = math.pi
+        _Segment = Segment
+        _Style = Style
+        from_triplet = Color.from_triplet
+
+        for index in range(PULSE_SIZE):
+            position = index / PULSE_SIZE
+            fade = 0.5 + cos(position * pi * 2) / 2.0
+            color = blend_rgb(fore_color, back_color, cross_fade=fade)
+            append(_Segment(bar, _Style(color=from_triplet(color))))
+        return segments
+"""
+
+
+class TestLocalAliases:
+    """ADR-160 step 1: the names a function's own scope binds exactly once,
+    by a plain ``N = R`` with R a name or an attribute chain, that a bare
+    call in that scope uses.
+
+    As for :class:`TestLocalDefs`, the claim is that nothing else in the
+    scope can have bound the name, so most cases are refusals, one per
+    form; each case calls the name, so the "a call uses it" rule is never
+    what leaves it out unless the case says so.
+    """
+
+    def aliases(self, text: str, qualname: str = "f") -> dict:
+        """``{N: (assignment line, R's last name)}`` for *qualname*, one
+        definition of it."""
+        found = parse(text).local_aliases
+        definitions = found.get(qualname, ())
+        assert len(definitions) <= 1, found
+        if not definitions:
+            return {}
+        return {name: (line, last) for name, line, last in definitions[0][2]}
+
+    # --- the measured shape, on real source ---
+
+    def test_richs_pulse_segments(self):
+        text = RICH_PULSE_SEGMENTS
+        found = self.aliases(text, "ProgressBar._get_pulse_segments")
+
+        def at(needle: str) -> int:
+            return text.splitlines().index(needle) + 1
+
+        assert found == {
+            "_Segment": (at("        _Segment = Segment"), "Segment"),
+            "_Style": (at("        _Style = Style"), "Style"),
+            "from_triplet": (at("        from_triplet = Color.from_triplet"), "from_triplet"),
+            "cos": (at("        cos = math.cos"), "cos"),
+            # Recorded: the fact does not know what is outside the repo;
+            # the rule's `no-rhs-edge` does.
+            "append": (at("        append = segments.append"), "append"),
+        }
+        # `pi` is an alias no call uses.
+        assert "pi" not in found
+
+    # --- recorded ---
+
+    def test_an_attribute_chain(self):
+        assert self.aliases("def f(theme):\n    g = theme.a.get\n    g()\n") == {
+            "g": (2, "get")
+        }
+
+    def test_a_binding_in_a_branch_counts(self):
+        assert self.aliases("def f():\n    if x:\n        g = h\n    g()\n") == {
+            "g": (3, "h")
+        }
+
+    def test_a_comment_between_the_assignment_and_the_call(self):
+        """A comment is a child of the block and, at the end of a line, of
+        nothing in the assignment: the sides are read by field, never by
+        position."""
+        source = "def f():\n    g = h  # the alias\n    # a whole line\n    g()  # the call\n"
+        assert self.aliases(source) == {"g": (2, "h")}
+
+    def test_a_call_inside_a_lambda_is_the_functions(self):
+        assert self.aliases("def f():\n    g = h\n    return lambda: g()\n") == {
+            "g": (2, "h")
+        }
+
+    def test_a_call_inside_a_comprehension_is_the_functions(self):
+        assert self.aliases("def f(xs):\n    g = h\n    return [g(x) for x in xs]\n") == {
+            "g": (2, "h")
+        }
+
+    def test_a_call_inside_a_nested_def_is_not_the_functions(self):
+        """The nested def's call has the nested def's scope, which binds no
+        alias of its own; the outer alias is no call's."""
+        found = parse(
+            "def f():\n"
+            "    g = h\n"
+            "    def inner():\n"
+            "        return g()\n"
+            "    return inner\n"
+        ).local_aliases
+        assert found == {}
+
+    def test_a_nested_defs_own_alias_is_its_own(self):
+        found = parse(
+            "def f():\n"
+            "    def inner():\n"
+            "        g = h\n"
+            "        return g()\n"
+            "    return inner\n"
+        ).local_aliases
+        assert found == {"f.inner": ((2, 4, (("g", 3, "h"),)),)}
+
+    def test_two_definitions_of_a_qualname_each_keep_their_own_lines(self):
+        assert parse(
+            "if flag:\n"
+            "    def f():\n"
+            "        g = a\n"
+            "        return g()\n"
+            "else:\n"
+            "    def f():\n"
+            "        g = b.c\n"
+            "        return g()\n"
+        ).local_aliases == {"f": ((2, 4, (("g", 3, "a"),)), (6, 8, (("g", 7, "c"),)))}
+
+    def test_a_module_or_class_body_records_nothing(self):
+        assert parse("g = h\ng()\nclass C:\n    k = h\n    k()\n").local_aliases == {}
+
+    # --- refused ---
+
+    def test_an_alias_no_call_uses(self):
+        assert self.aliases("def f():\n    g = h\n    return g\n") == {}
+
+    def test_a_second_assignment(self):
+        assert self.aliases("def f():\n    g = h\n    g = k\n    g()\n") == {}
+
+    def test_an_augmented_assignment(self):
+        assert self.aliases("def f():\n    g = h\n    g += k\n    g()\n") == {}
+
+    def test_a_for_target(self):
+        assert self.aliases("def f(xs):\n    g = h\n    for g in xs:\n        g()\n") == {}
+
+    def test_a_parameter(self):
+        assert self.aliases("def f(g=None):\n    g = h\n    g()\n") == {}
+
+    def test_global(self):
+        assert self.aliases("def f():\n    global g\n    g = h\n    g()\n") == {}
+
+    def test_nonlocal_in_a_nested_def(self):
+        assert self.aliases(
+            "def f():\n"
+            "    g = h\n"
+            "    def inner():\n"
+            "        nonlocal g\n"
+            "        g = k\n"
+            "    g()\n"
+        ) == {}
+
+    def test_a_nested_def_of_the_name(self):
+        assert self.aliases(
+            "def f():\n    g = h\n    def g():\n        return 1\n    g()\n"
+        ) == {}
+
+    def test_a_nested_class_of_the_name(self):
+        assert self.aliases("def f():\n    g = h\n    class g:\n        pass\n    g()\n") == {}
+
+    def test_a_lambda_parameter(self):
+        assert self.aliases("def f():\n    g = h\n    return lambda g: g()\n") == {}
+
+    def test_a_comprehension_target(self):
+        assert self.aliases("def f(xs):\n    g = h\n    return [g() for g in xs]\n") == {}
+
+    def test_a_chained_assignment_refuses_both_names(self):
+        assert self.aliases("def f():\n    g = k = h\n    g()\n    k()\n") == {}
+
+    def test_an_annotated_assignment(self):
+        assert self.aliases("def f():\n    g: T = h\n    g()\n") == {}
+
+    def test_a_call_on_the_right(self):
+        assert self.aliases("def f():\n    g = h()\n    g()\n") == {}
+
+    def test_a_subscript_on_the_right(self):
+        assert self.aliases("def f(xs):\n    g = xs[0]\n    g()\n") == {}
+
+    def test_a_call_inside_the_chain_on_the_right(self):
+        assert self.aliases("def f():\n    g = h().k\n    g()\n") == {}
+
+    def test_a_right_hand_side_rooted_at_the_name(self):
+        assert self.aliases("def f():\n    g = g.k\n    g()\n") == {}
+
+    def test_a_tuple_target(self):
+        assert self.aliases("def f():\n    g, k = h, m\n    g()\n") == {}
+
+    def test_a_match_statement_refuses_the_function(self):
+        assert self.aliases(
+            "def f(x):\n"
+            "    g = h\n"
+            "    match x:\n"
+            "        case 1:\n"
+            "            pass\n"
+            "    g()\n"
+        ) == {}
+
+
 class TestStaticTests:
     """ADR-154: the walk records each test Pyright may read statically,
     encoded, with the spans it kills on each value. What the test reads

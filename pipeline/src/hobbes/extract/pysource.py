@@ -13,6 +13,7 @@ partial facts instead of failing the ingest.
 from __future__ import annotations
 
 import re
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
 import tree_sitter_python
@@ -636,6 +637,23 @@ class ParsedFile:
     local_defs: dict[str, tuple[tuple[int, int, tuple[str, ...]], ...]] = field(
         default_factory=dict
     )
+    #: Per function or method qualname, one ``(first line, last line,
+    #: aliases)`` per definition written under it, shaped as
+    #: :attr:`local_defs` and for the same reason (a qualname is not always
+    #: one definition; the call's line says which): each alias is ``(N,
+    #: the assignment's line, R's last name)`` for a name the definition's
+    #: scope binds exactly once, by a plain ``N = R`` whose right-hand side
+    #: is an identifier or an attribute chain of identifiers (ADR-160 step
+    #: 1, :func:`_local_aliases`), sorted. Only an alias some bare call
+    #: ``N(…)`` written in that definition's own scope uses is recorded: a
+    #: fact nobody reads would cost every file a field. A definition left
+    #: with no alias is left out, so most files carry an empty mapping;
+    #: a class, and a module body, never has an entry.
+    #: :mod:`hobbes.extract.aliases` reads the target off the settled graph
+    #: at the assignment's line.
+    local_aliases: dict[
+        str, tuple[tuple[int, int, tuple[tuple[str, int, str], ...]], ...]
+    ] = field(default_factory=dict)
     #: Whether the file binds the name ``callable`` anywhere (ADR-148).
     #: A module fact, read once per file and copied onto every
     #: :attr:`Symbol.inner_fold` the walk digests, because the fold must
@@ -678,6 +696,7 @@ def parse_source(source: bytes) -> ParsedFile:
     parsed.pytestmark_usefixtures = sum(1 for m in parsed.pytestmark if not m.args)
     _walk(root, [], parsed, ())
     parsed.local_defs = _unshared_local_defs(parsed)
+    parsed.local_aliases = _called_local_aliases(parsed)
     parsed.local_bindings = _collect_local_bindings(root)
     parsed.local_imports = _collect_local_imports(root)
     parsed.static_tests = _collect_static_tests(root)
@@ -1915,6 +1934,115 @@ def _unshared_local_defs(parsed: ParsedFile) -> dict:
     return out
 
 
+def _alias_binder(current: Node) -> tuple[str, str, str] | None:
+    """``(N, R's root, R's last name)`` where *current* is ADR-160's binder,
+    else None.
+
+    A plain ``N = R``: one identifier target, no annotation (``N: T = R``
+    is another binder), and a right-hand side that is an identifier or an
+    attribute chain of identifiers and nothing else — no call, subscript,
+    string or other expression anywhere in it. A chained ``N = M = R``
+    nests one assignment as the other's right-hand side, and neither one
+    is the binder: the outer's right is no name, and the inner is refused
+    by its parent. The fields are read by name, never by position, so a
+    comment child is never mistaken for a side.
+    """
+    if current.type != "assignment" or current.child_by_field_name("type") is not None:
+        return None
+    if current.parent is not None and current.parent.type == "assignment":
+        return None
+    left = current.child_by_field_name("left")
+    right = current.child_by_field_name("right")
+    if left is None or left.type != "identifier" or right is None:
+        return None
+    dotted = _dotted(right)
+    if dotted is None:
+        return None
+    root, _, _ = dotted.partition(".")
+    return _text(left), root, dotted.rpartition(".")[2]
+
+
+def _local_aliases(node: Node) -> tuple[tuple[str, int, str], ...]:
+    """``(N, the assignment's line, R's last name)`` for each name a
+    function's own scope binds **exactly once, by a plain** ``N = R``
+    (ADR-160 step 1), sorted.
+
+    :func:`_alias_binder` says what the one binding must be, and R's root
+    must not be N (``N = N.x`` reads N before it binds it). Everything
+    else is :func:`_local_defs`' refusal, read for this binder: N is left
+    out where the own body binds it a second time by any of
+    :func:`_bound_here`'s forms — nodes counted, so the alias's own
+    assignment is one and anything else is a second — or where a nested
+    ``def`` or ``class`` writes it (:func:`_own_definitions`), a parameter
+    is named it, a lambda parameter or comprehension target in the own
+    scope is named it (:func:`_lambda_and_comprehension_binds`), or a
+    ``global`` / ``nonlocal`` anywhere under the definition names it. A
+    body holding a ``match`` or a ``type`` alias statement is refused
+    whole. Order is not guarded (ADR-160 step 6): with one binding, a call
+    the binding has not reached raises rather than reaching anything else.
+    """
+    own = list(_own_body(node))
+    candidates: list[tuple[str, int, str]] = []
+    for current in own:
+        if current.type in ("match_statement", "type_alias_statement"):
+            return ()
+        binder = _alias_binder(current)
+        if binder is not None and binder[1] != binder[0]:
+            candidates.append((binder[0], _line(current), binder[2]))
+    if not candidates:
+        return ()
+    counts: Counter = Counter()
+    for current in own:
+        counts.update(_bound_here(current))
+    for definition, _decorated in _own_definitions(node):
+        name_node = definition.child_by_field_name("name")
+        if name_node is not None:
+            counts[_text(name_node)] += 1
+    otherwise = _parameter_names(node) | _lambda_and_comprehension_binds(node)
+    return tuple(
+        sorted(
+            (name, line, last)
+            for name, line, last in candidates
+            if counts[name] == 1
+            and name not in otherwise
+            and not _declared_outer(node, name)
+        )
+    )
+
+
+def _called_local_aliases(parsed: ParsedFile) -> dict:
+    """:attr:`ParsedFile.local_aliases` as the walk collected it, less every
+    alias no call uses (ADR-160 step 2).
+
+    An alias is kept where some :class:`Call` whose callee is the bare name
+    N has the definition's qualname as its scope and a line inside that
+    definition's extent. A call in a nested ``def`` or class has another
+    scope and keeps nothing here; one in a lambda or a comprehension is
+    the definition's own, as lane A records its scope. Definitions left
+    with no alias, and qualnames left with no definition, go.
+    """
+    if not parsed.local_aliases:
+        return {}
+    sites: dict[tuple[str, str], list[int]] = defaultdict(list)
+    for call in parsed.calls:
+        if call.scope is not None and "." not in call.callee:
+            sites[(call.scope, call.callee)].append(call.line)
+    out: dict = {}
+    for qualname, definitions in parsed.local_aliases.items():
+        kept = []
+        for start, end, aliases in definitions:
+            aliases = tuple(
+                alias
+                for alias in aliases
+                if any(start <= line <= end for line in sites.get((qualname, alias[0]), ()))
+            )
+            if aliases:
+                kept.append((start, end, aliases))
+        if kept:
+            out[qualname] = tuple(kept)
+    return out
+
+
 def _returns_inner(node: Node) -> str | None:
     """The nested ``def`` a decorator factory hands back (ADR-147).
 
@@ -2759,6 +2887,14 @@ def _walk(
                 *parsed.local_defs.get(qualname, ()),
                 (_line(node), node.end_point.row + 1, _local_defs(node)),
             )
+            # ADR-160 step 1, kept the same way; the aliases no call uses
+            # are dropped once every call is recorded (_called_local_aliases).
+            aliases = _local_aliases(node)
+            if aliases:
+                parsed.local_aliases[qualname] = (
+                    *parsed.local_aliases.get(qualname, ()),
+                    (_line(node), node.end_point.row + 1, aliases),
+                )
         body = node.child_by_field_name("body")
         if body is not None:
             child_stack = [*stack, (name, "class" if kind == "class_definition" else "function")]
