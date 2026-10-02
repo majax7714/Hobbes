@@ -2651,6 +2651,40 @@ Signed direction of fix:
 a symbol at the name's line below the declarator's first line. Drivers: `~/.hobbes/bench/c175-cpp-defs/`
 (`regrade.sh`, `posdiff.py`, `diff.py`, `RESULTS.md`).
 
+### 10.43 A tagged template is a call site — `PREREG.md` written 2026-10-01 after step 0 and before the code; this section written after the regrade (ADR-159, C-177 lifted)
+
+**The defect** came from the honesty audit (C-177). Lane A made no site at a `TaggedTemplateExpression`, so
+the index's occurrence at the tag became a `uses` edge, and the tsc key's tagged-template sites read as
+recall. Step 0 counted 727 tagged templates over 15 TS/JS repos (ajv 510, hono 115, xmpp.js 73, zod 14,
+Preact 13, cheerio 1, npq 1); every keyed in-repo one on ajv, zod and hono already drew a `uses` edge to
+exactly the key's target.
+
+**Regraded** against the H-34 keys (row-identical to the stored ones; ajv checked against `ajv-ts-r3`),
+poison on. Before is HEAD at 0.2.82-beta (`8339ecd`, clean); the TS helper is read live at ingest, so no
+worktree was needed.
+
+| Cell | Confirmed | Contradicted | Strict (confirmed / exported) | Recall | Poison |
+|---|---|---|---|---|---|
+| ajv | 1,499 → **1,902** | 0 → 0 | 90.08% → 92.02% | 67.5% → **86.3%** | PASS |
+| zod | 9,872 → 9,885 | 0 → 0 | 99.51% → 99.51% | 45.8% → 45.8% | PASS |
+| hono | 833 → 835 | 0 → 0 | 15.37% → 15.35% | 59.7% → 59.8% | PASS |
+| Preact | 2,447 → 2,447 | 0 → 0 | 89.37% → 89.18% | 28.6% → 28.6% | PASS |
+| kbet, cheerio, Express, xmpp.js, cue, github-action, folio, npq, tileserver | unchanged | 0 | unchanged | unchanged | PASS |
+
+Signed direction of fix:
+- `calls` rows by (path, line, target, caller): ajv +403, zod +13, hono +21, Preact +6, everywhere else 0;
+  lost 0 everywhere.
+- `uses` rows −403, −13 and −21: exactly the re-typed ones. Nodes and symbols identical on every repo.
+- Sites in `resolution_coverage` rose by exactly each repo's tagged count.
+- Test reach: hono 28 tests grew; none shrank on any repo.
+- Strict falls on hono and Preact by rows outside the key's program (`not-loaded`), which no key judges.
+
+**Pre-registration:** P1, P2, P6 and P7 met exactly. P3 met but for Preact's six rows. **P5 missed**: those
+six are `syntactic` rows in Preact's `demo/` (lane A only) to a module-level `const html = htm.bind(h)`,
+which step 0 had called a local without reading the file. They are the edge a written `html(…)` draws.
+**P4 missed as worded**: folio, tileserver and hack-chat differ only by an `npm ci` log timestamp in
+`extraction_errors`. Drivers: `~/.hobbes/bench/c177-tagged-template/` (`RESULTS.md`).
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

@@ -627,6 +627,35 @@ test("a call's scope is the innermost graph symbol: a class owns its constructor
   }
 });
 
+test("a tagged template is a call site, its tag in callee position (C-177, facts v8)", () => {
+  const root = makeRepo({
+    "src/t.ts": [
+      "export function tag(s: TemplateStringsArray, ...v: unknown[]): string { return s.join(''); }", // 1
+      "export function g(): number { return 1; }", // 2
+      "const ns = { t: tag };", // 3
+      "export function use(): string {", // 4
+      "  const a = tag`one ${g()}`;", // 5  the tag, and the substitution's call
+      "  const b = ns.\n    t`two`;", // 6–7  a member tag sits at its terminal
+      "  const c = (() => tag)()`three`;", // 8  a tag that is an expression
+      "  return a + b + c;", // 9
+      "}", // 10
+    ].join("\n"),
+  });
+  const file = byPath(extractRepo(root), "src/t.ts");
+  const at = (line) => file.calls.filter((c) => c.line === line).map((c) => [c.col, c.name, c.callee, c.scope]);
+  assert.deepEqual(at(5), [
+    [12, "tag", "tag", "use"],
+    [22, "g", "g", "use"],
+  ]);
+  // `ns.t` is an object literal's member: no lane A answer (below the floor).
+  assert.deepEqual(at(7), [[4, "t", null, "use"]]);
+  // The IIFE's call and the tagged call through its result: two sites, one column.
+  assert.deepEqual(at(8), [
+    [12, "<expr>", null, "use"],
+    [12, "<expr>", null, "use"],
+  ]);
+});
+
 test("nested tsconfig zone resolves its own path aliases", () => {
   const root = makeRepo({
     "web/tsconfig.json": JSON.stringify({

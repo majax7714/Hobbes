@@ -12,8 +12,8 @@
    "draw": "picked",
    "label": "ajv",
    "note": "regraded 2026-09-09 after the union-member abstention (ADR-104, C-97): the three static→union-member rows are abstentions now, ten sites in the tail; contained on the regrade",
-   "edges": 1664,
-   "confirmed": 1499,
+   "edges": 2067,
+   "confirmed": 1902,
    "contradicted": 0,
    "abstract": 0,
    "silent": 165,
@@ -24,12 +24,12 @@
    },
    "precision": {
     "pct": 100.0,
-    "num": 1499,
-    "den": 1499
+    "num": 1902,
+    "den": 1902
    },
    "recall": {
-    "pct": 67.5,
-    "hits": 1506,
+    "pct": 86.3,
+    "hits": 1926,
     "pairs": 2232,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -40,14 +40,14 @@
     "interface→type-member": 12,
     "static→class": 18,
     "static→closure": 151,
-    "static→function": 456,
+    "static→function": 36,
     "static→method": 36,
     "static→type-member": 17
    },
    "poison": {
     "passed": true,
-    "seeded": 1664,
-    "refused": 1499,
+    "seeded": 2067,
+    "refused": 1902,
     "unjudged": 165,
     "falsely": 0
    }
@@ -2936,24 +2936,24 @@
    "draw": "repowise-bench's draw (its corpus.lock pin)",
    "label": "hono (tsconfig.build.json)",
    "note": "a draw of repowise's G4 experiment on our key; 7 static→union-member rows before ADR-104, 1 after — a site lane A could not type under hono's solution-style root tsconfig (C-98) — and 0 once C-98 was lifted (2026-09-10, 768/768)",
-   "edges": 5420,
-   "confirmed": 833,
+   "edges": 5441,
+   "confirmed": 835,
    "contradicted": 0,
    "abstract": 0,
-   "silent": 4587,
+   "silent": 4606,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "not-loaded": 4587
+    "not-loaded": 4606
    },
    "precision": {
     "pct": 100.0,
-    "num": 833,
-    "den": 833
+    "num": 835,
+    "den": 835
    },
    "recall": {
-    "pct": 59.7,
-    "hits": 840,
+    "pct": 59.8,
+    "hits": 842,
     "pairs": 1408,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -2971,13 +2971,13 @@
     "static→method": 90,
     "static→property": 93,
     "static→type-member": 20,
-    "static→variable": 7
+    "static→variable": 5
    },
    "poison": {
     "passed": true,
-    "seeded": 5420,
-    "refused": 830,
-    "unjudged": 4590,
+    "seeded": 5441,
+    "refused": 832,
+    "unjudged": 4609,
     "falsely": 0
    }
   },
@@ -5095,8 +5095,8 @@
    "draw": "repowise-bench's draw (its corpus.lock pin)",
    "label": "zod",
    "note": "a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)",
-   "edges": 9921,
-   "confirmed": 9872,
+   "edges": 9934,
+   "confirmed": 9885,
    "contradicted": 0,
    "abstract": 0,
    "silent": 49,
@@ -5107,12 +5107,12 @@
    },
    "precision": {
     "pct": 100.0,
-    "num": 9872,
-    "den": 9872
+    "num": 9885,
+    "den": 9885
    },
    "recall": {
     "pct": 45.8,
-    "hits": 10034,
+    "hits": 10047,
     "pairs": 21931,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -5120,7 +5120,7 @@
    "misses": {
     "func-value→local-binding": 59,
     "func-value→parameter": 117,
-    "func-value→variable": 118,
+    "func-value→variable": 105,
     "interface→type-member": 88,
     "static→anonymous-signature": 13,
     "static→class": 77,
@@ -5133,8 +5133,8 @@
    },
    "poison": {
     "passed": true,
-    "seeded": 9921,
-    "refused": 8718,
+    "seeded": 9934,
+    "refused": 8731,
     "unjudged": 1203,
     "falsely": 0
    }

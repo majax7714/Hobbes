@@ -26,7 +26,7 @@ import { Node, Project, ts } from "ts-morph";
 // v3 (C-5 surfacing): every file carries `routes_declined` — route
 // registrations seen and declined because their path is computed, so the
 // http-ts pack can report the absence instead of leaving it silent.
-export const HELPER_VERSION = 7;
+export const HELPER_VERSION = 8;
 // v4, since 2026-09-05 (C-63 surfaced): a call whose callee is itself an
 // expression — an element access, a call's result, a parenthesised
 // value — is a `calls` record named `<expr>` alone, with callee and
@@ -55,6 +55,9 @@ export const UNION_MEMBER = "union-member";
 // (the module); a nested function, nested arrow const or a method of a
 // class declared inside a function names the top-level symbol around it,
 // where it named itself and the caller dangled. No field changed.
+// v8 (C-177): a tagged template is a `calls` record, its tag in callee
+// position (`` tag`x` `` as `tag(..)`, `` a.b`x` `` at `b`). No field
+// changed.
 
 const EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 
@@ -749,6 +752,16 @@ function extractCalls(sourceFile, repoRoot, fileSet) {
       // `super(..)` a keyword, not a value in callee position: neither
       // is a site, as before.
       else if (!isKeywordCallee(callee)) pushExpressionCallee(callee, node);
+      return;
+    }
+    // C-177: `` tag`text` `` calls `tag` with the template's strings and
+    // values, so it is a site exactly as `tag(..)` is, its tag in callee
+    // position; until v8 the index's occurrence there was a `uses` alone.
+    if (Node.isTaggedTemplateExpression(node)) {
+      const tag = node.getTag();
+      const terminal = terminalIdentifier(tag);
+      if (terminal) push(terminal, tag, node);
+      else pushExpressionCallee(tag, node);
       return;
     }
     if (Node.isJsxSelfClosingElement(node) || Node.isJsxOpeningElement(node)) {

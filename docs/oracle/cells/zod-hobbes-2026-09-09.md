@@ -174,3 +174,23 @@ poison check: PASS — 9921 seeded wrong edges: 8718 refused, 1203 unjudged (ora
 
 The `missed` rows are elided; the classes are in the block above.
 
+## Regrade, Hobbes 0.2.83-beta (C-177 lifted — ADR-159: a tagged template is a call site)
+
+**Pre-registered** (`~/.hobbes/bench/c177-tagged-template/PREREG.md`, written after step 0 and before the code). Both arms were ingested contained against this clone, before at 0.2.82-beta (`8339ecd`, clean) and after with the change, and graded with `-poison` against the H-34 regenerated key (`~/.hobbes/bench/h33-regrade/h34/`), which is row-identical to the stored key on these cells (checked on ajv against `ajv-ts-r3`: the same report). Outputs: `before/` and `after/` beside the PREREG.
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha bbc68f99
+hobbes edges 9934: confirmed 9885  contradicted 0  abstract 0  silent 49 map[not-loaded:49]
+precision-against-oracle 100.0% (9885/9885)
+recall 45.8% (10047/21931 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 3239; misses map[func-value→local-binding:59 func-value→parameter:117 func-value→variable:105 interface→type-member:88 static→anonymous-signature:13 static→class:77 static→closure:207 static→function:4220 static→method:531 static→property:1274 static→type-member:4955 static→variable:238]
+recall-collapsed 59.4% (9885/16634 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  tier semantic   confirmed 8828  contradicted 0  abstract 0  silent 38
+  tier syntactic  confirmed 1057  contradicted 0  abstract 0  silent 11
+poison check: PASS — 9934 seeded wrong edges: 8731 refused, 1203 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+**Direction of fix (signed):**
+- **Confirmed:** 9,872 → **9,885** (+13), every one `semantic` at a `` $`…` `` tag in the bench files, each a `uses` row before. Contradicted 0 → 0.
+- **Recall:** 45.8% → 45.8% (10,034 → 10,047 of 21,931).
+- **Rows lost:** 0. Nodes and symbols identical; test reach unchanged.
+- **Poison:** PASS, 9,934 seeded: 8,731 refused, 1,203 unjudged, 0 falsely confirmed.

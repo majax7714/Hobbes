@@ -15264,3 +15264,39 @@ honesty audit's route 2, C-176 (Max: "leave 176 177 for next session"; measure e
   - Go 402, all passing;
   - tsextract 48, all passing;
   - the static proxy and the image were rebuilt.
+
+## 2026-10-01 (thirty-first session) — the top-level docs reviewed and their drift fixed; C-177 measured, built and released — 0.2.83-beta
+
+**Task:** "review top level docs and report back with current state of extraction work", then "fix the drift
+and start measuring c-177", then "proceed with the not done work and commit".
+
+- **Drift fixed** (`8339ecd`): the handoff's "where things stand" still read 93 Shanks logs and 0.2.77-beta's
+  suite sizes, and carried one bullet twice. The tracker's own block was current (`check` exit 0).
+- **Step 0, no code changed.** A parse-only count (`count.mjs`, TypeScript's parser from the oracle lane) of
+  every `TaggedTemplateExpression` in 15 TS/JS repos: 727 in all, on 7 repos (ajv 510, hono 115, xmpp.js 73,
+  zod 14, Preact 13, cheerio 1, npq 1). Joined with each H-34 key at the tag's start and with the HEAD graph
+  (`join.py`, `predict.py`). Every keyed in-repo tag on ajv, zod and hono already drew a `semantic` `uses` edge
+  to exactly the key's target. The join's own rule (`evidence.join`: a site matched by line and name claims
+  the occurrence) then predicted each one becomes `calls semantic`.
+- **Before** at HEAD (`8339ecd`, clean), lane B in the image: every standing grade reproduced, 0 contradicted.
+- **Pre-registered** (`PREREG.md`) with seven predictions and the rule as worded, then built: one branch in
+  `extractCalls` (the tag through `push`, or `<expr>`); facts v8 on both sides.
+- **After: P1, P2, P6, P7 met exactly.** ajv +403 rows (1,499 → 1,902 confirmed, recall 67.5% → 86.3%), zod
+  +13, hono +21; each was a `uses` row before; 0 lost; test reach only grew. **P5 missed:** six `syntactic`
+  rows on Preact's `demo/`, which lane B does not index, to a module-level `const html = htm.bind(h)` step 0
+  had called a local without reading the file; the edge a written `html(…)` draws. **P4 missed as worded:**
+  three tag-free repos differ only by an `npm ci` log timestamp.
+- **A test's premise was wrong too:** the first `lane_b` case asserted that `` ns.html`…` `` over `ns = { html }`
+  draws nothing; the index follows the shorthand (ADR-144) and draws it `semantic`, as it does `ns.html(…)`.
+  The case now asserts that.
+- **Released as 0.2.83-beta:** ADR-159; C-177 lifted (its residual: the key's position grain for a member tag
+  split across lines); the "not detected at all" statement (Go and the plan manifest) and `who_calls`'
+  references heading no longer name it, each test asserting the absence; HISTORY and the tally (129 active,
+  100 surfaced, 31 lifted); architecture §3, §3.8 and §8; `oracle-grading.md` §10.43; the ajv, zod and hono
+  cell records and the re-rendered comparative tables; CHANGELOG, README, workstreams, CLAUDE.md and AGENTS.md;
+  the handoff (next: the local alias of a global, C-9).
+- **Tests:** a tsextract case, and `test_tsjs_tagged_template.py` over the new `minitag` fixture (a `lane_b`
+  case and its lane A twin); both fail on the old helper.
+- **Verified on the host:** pytest 2,605, all passing, its 21 `lane_b` cases against the image rebuilt at
+  0.2.83-beta; Go 402, all passing; tsextract 49; vitest 52; the oracle lane's report test; `render.py check`.
+  The static proxy and the image were rebuilt.

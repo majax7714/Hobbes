@@ -199,12 +199,12 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # Shanks, t
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-10-01; pytest, Go and tsextract
-re-run on the host at 0.2.82-beta, the rest at 0.2.74-beta): 2,603 pytest
-(20 `lane_b`, run with the image built at 0.2.82-beta) / 402 Go with
+Suite sizes at the last check (2026-10-01; pytest, Go, tsextract and
+vitest re-run on the host at 0.2.83-beta, the rest at 0.2.74-beta): 2,605 pytest
+(21 `lane_b`, run with the image built at 0.2.83-beta) / 402 Go with
 subtests (402 pass) + 131
 oracle-lane Go with subtests (119 pass, 12 skip on a host without
-clang++ or cmake; the C++ ones pass in the image) / 52 vitest / 48
+clang++ or cmake; the C++ ones pass in the image) / 52 vitest / 49
 tsextract + 97 scip node / 84 atlas0 / 656 lattice (624 pass, 32 skip
 on a host without clang; they run in the image). Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
@@ -222,7 +222,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 158;
+  architecture doesn't already make. Number sequentially (last: 159;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -276,7 +276,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-10-01) — Hobbes 0.2.82-beta
+## Status (2026-10-01) — Hobbes 0.2.83-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -302,8 +302,8 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   **Held out** (Max, 2026-10-01, against fitting to the keys): rich,
   graded once with no rule changed, 4,748 confirmed, 0 Hobbes-wrong,
   recall 89.7% (§10.40).
-  **Register:** 177 entries; 130 active (101 surfaced, 25 partial, 3
-  unsurfaced, 1 n/a), 30 lifted; the tally is
+  **Register:** 177 entries; 129 active (100 surfaced, 25 partial, 3
+  unsurfaced, 1 n/a), 31 lifted; the tally is
   held by `test_register_tally.py`, its dated notes are
   `docs/constraints/HISTORY.md`.
 - **Active — Shanks, the harness** (ADR-107; named by ADR-152): `hobbes
@@ -316,23 +316,22 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   the decorator case, at 0.2.76-beta), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.82-beta, C-176 narrowed** (ADR-158; the audit's route 2,
-  measured first). A TS/JS call's caller is the innermost enclosing graph
-  symbol. A named class owns its constructor, accessors, static blocks,
-  field initializers and member decorators (folio-2025: 501 module-filed
-  rows → 0). A nested function's calls are its top-level symbol's: they
-  had named the nested function, an id with no node (ajv 341, Preact 145
-  → 0). Every site, target and grade is unchanged; test reach only grew
-  (npq 139 tests).
+- **Latest — 0.2.83-beta, C-177 lifted** (ADR-159; the audit's last fix,
+  measured first). A TS/JS tagged template is a call site, its tag in
+  callee position (facts v8); where the index resolves the tag, the `uses`
+  edge it was becomes `calls semantic`. ajv 1,499 → 1,902 confirmed, recall
+  67.5% → 86.3%; zod 9,885, hono 835; 0 contradicted on every keyed cell,
+  nothing lost, test reach only grew.
 - **The honesty audit** (0.2.80-beta, precedent 1): C-174 widened, and
   C-175 to C-177 registered and surfaced, after one fixture per language
-  (`~/.hobbes/bench/honesty-audit/RESULTS.md`). C-175 was lifted at
-  0.2.81-beta (ADR-157: fmt 7,012 → 7,026 confirmed, 0 contradicted).
+  (`~/.hobbes/bench/honesty-audit/RESULTS.md`). All three fixes are in:
+  C-175 lifted (0.2.81-beta, ADR-157), C-176 narrowed to the symbol floor
+  (0.2.82-beta, ADR-158), C-177 lifted (0.2.83-beta).
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
   sacrifice honesty for higher recall").
-  **Next — C-177, the audit's last fix** (measured first): a tagged
-  template becomes a site.
-  Then the local alias of a global (C-9).
+  **Next — the local alias of a global** (`_Segment = Segment` …
+  `_Segment(…)`, C-9; rich 121, click 24, flask 12), measured first, with
+  rich graded beside click and flask; then `cls(…)` in a classmethod.
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
   necessarily an LLM (ADR-152). **Closed on its lattice** (Max,

@@ -672,9 +672,10 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 		// (ADR-029): a type annotation, an except clause, a value passed
 		// by name — or a call through a receiver lane A could not see
 		// (C-1), an operator or a property read the language turns into
-		// a call (C-174), a TS tagged template (C-177). Worded as what is
-		// known, not as "not a call" (C-80).
-		b.WriteString(fmt.Sprintf("references %s where no call site was detected (type annotations, except clauses, values passed by name; a call through a receiver lane A cannot see, C-1; an operator or a property read the language turns into a call, C-174; a TS tagged template, C-177):\n", symbolID))
+		// a call (C-174). A TS tagged template is a call site since
+		// 0.2.83-beta (C-177 lifted). Worded as what is known, not as
+		// "not a call" (C-80).
+		b.WriteString(fmt.Sprintf("references %s where no call site was detected (type annotations, except clauses, values passed by name; a call through a receiver lane A cannot see, C-1; an operator or a property read the language turns into a call, C-174):\n", symbolID))
 		b.WriteString(uses.String())
 	}
 	if implementors > 0 {
@@ -1262,9 +1263,9 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 		"route paths (C-5), calls the language makes with no call written\n" +
 		"(C-174) — a `with` statement's __enter__/__exit__ where the item's\n" +
 		"class is not known, an operator's or a loop's hook, a property's\n" +
-		"accessor, a destructor, an initializer the runtime runs — and a\n" +
-		"TypeScript tagged template (C-177). Every percentage here is a\n" +
-		"floor over DETECTED call sites, not over the repo.\n")
+		"accessor, a destructor, an initializer the runtime runs. Every\n" +
+		"percentage here is a floor over DETECTED call sites,\n" +
+		"not over the repo.\n")
 	// Languages with detected call sites under the scope, by tail bucket
 	// — the scoped verification line names only these (whole-repo scope
 	// names every language the artifact lists, call sites or not).

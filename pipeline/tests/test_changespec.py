@@ -118,14 +118,14 @@ class TestComplement:
         assert "a plugin's or a base class's (C-4)" in complement.denominator
         # C-174: a call the language makes with no call written is named, not left to C-1's title.
         # ADR-156 narrows it to the items whose class is not known; the 2026-10-01 audit names
-        # every language's shapes, and C-177's uncounted tagged template.
+        # every language's shapes. C-177's tagged template is a site since 0.2.83-beta, so it is gone.
         assert "calls the language makes with no call written (C-174)" in complement.denominator
         assert (
             "a `with` statement's __enter__/__exit__ where the item's "
             "class is not known" in complement.denominator
         )
         assert "a destructor, an initializer the runtime runs" in complement.denominator
-        assert "TypeScript tagged template (C-177)" in complement.denominator
+        assert "tagged template" not in complement.denominator
         assert "autouse" not in complement.denominator
         assert "fixture-injected" not in complement.denominator
 

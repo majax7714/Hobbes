@@ -49,9 +49,8 @@ DENOMINATOR = (
     "route paths (C-5), calls the language makes with no call written "
     "(C-174) — a `with` statement's __enter__/__exit__ where the item's "
     "class is not known, an operator's or a loop's hook, a property's "
-    "accessor, a destructor, an initializer the runtime runs — and a "
-    "TypeScript tagged template (C-177); every figure is over DETECTED "
-    "call sites, not over the repo"
+    "accessor, a destructor, an initializer the runtime runs; every figure "
+    "is over DETECTED call sites, not over the repo"
 )
 
 #: What each tail class means, with the register entry it points to.

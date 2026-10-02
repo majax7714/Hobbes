@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-01 (thirtieth session); Hobbes 0.2.82-beta on `main`.**
+**Reviewed 2026-10-01 (thirty-first session); Hobbes 0.2.83-beta on `main`.**
 Max pushed through `3d1dda7` (Calvin closed, 2026-09-29); `main` is ahead of
 `origin/main` by the commits since, unpushed. The image and the proxy are at
-0.2.82-beta, and this repo was ingested at the release commit; ingest at HEAD again if
+0.2.83-beta, and this repo was ingested at the release commit; ingest at HEAD again if
 `main` has moved since. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -28,36 +28,37 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-10-01, thirtieth session)
+## ⇢ START HERE NEXT SESSION (written 2026-10-01, thirty-first session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**Next — C-177, the honesty audit's last fix** (Max, 2026-10-01: "leave 176 177 for next session"; C-176 is
-done, below). A TS tagged template becomes a site: lane A's walk takes `TaggedTemplateExpression`. It has not
-been sized on a cell, and the tsc oracle keys it (`siteName` reads `node.tag`). Measure first, as before. Reuse
-`~/.hobbes/bench/c176-ts-scope/` (`run.sh`, `repos.txt`, `compare.py`, the three probe keys under `keys/`).
-Unlike C-176, this change *adds* sites, so the regrade will move: grade every keyed cell before and after.
+**Next — the local alias of a global** (`_Segment = Segment` … `_Segment(…)`; rich 121, click 24, flask 12;
+C-9). The honesty audit's three fixes are all in (below). Measure first, and grade a candidate rule on the
+held-out rich cell as well as click and flask (Max, 2026-10-01, against fitting). Then `cls(…)` in a
+classmethod (rich 57), C-174's remainder per language, and C/C++ lane A's time.
 
-- **Shipped this session, 0.2.82-beta (ADR-158, C-176 narrowed).** A TS/JS call's lane A scope is now the
-  innermost enclosing **graph symbol** (`tsextract` `enclosingScope`, facts v7).
-  - A named class owns its constructor, accessors, `static {}` blocks, field initializers, member decorators
-    and computed names; the class's own decorators and heritage clauses stay the module's, as in Python.
-  - **Amendment, found reading the code and pre-registered:** a nested function, a nested arrow const or a
-    method of a class declared in a function had named *itself*, an id with no node. Those calls are now
-    filed under the top-level symbol around them, or under the module where that encloser is below the
-    floor (ajv's object-literal `code(cxt)` methods, 143 rows; Preact's `X.prototype.y = function`, 129).
-  - **Measured on 12 TS/JS repos:**
-    - dangling callers went to 0 (ajv 341, Preact 145, …);
-    - in-class module rows went to 0 (folio-2025 501, …);
-    - every site, target, node, symbol, `uses` row and grade is identical;
-    - test reach only grew (npq 139 tests, cue 48, ajv 51);
-    - the tsc-key caller probe's `wrong` stayed 0, and folio-2025's agreeing rows went 400 → 826.
-  - Drivers: `~/.hobbes/bench/c176-ts-scope/` (`PREREG.md`, `RESULTS.md`, `run.sh`, `probe.py`,
-    `compare.py`, `dangling.py`, `keygen.sh`, `before/`, `after/`).
-  - **For Max:** the amendment was not in the route he named. It was pre-registered and is recorded in
-    ADR-158 for his review. What C-176 keeps is the floor: an object literal's method, an unnamed class, a
-    property-assigned function, a namespace. Lifting it means making those symbols, which moves the symbol
+- **Shipped this session, 0.2.83-beta (ADR-159, C-177 lifted).** A TS/JS tagged template is a call site, its
+  tag in callee position (`tsextract` `extractCalls`, facts v8). Where the index resolves the tag, the join
+  claims its occurrence and the `uses` edge becomes `calls semantic`.
+  - **Measured on 15 TS/JS repos**, pre-registered after a step-0 count and before the code. ajv 1,499 → 1,902
+    confirmed, recall 67.5% → 86.3% (its codegen's `` _`…` `` and `` str`…` ``); zod 9,885; hono 835;
+    0 contradicted and poison PASS on all 13 keyed cells. Every new `semantic` row was a `uses` row before.
+    Nothing was lost; test reach only grew (hono 28 tests).
+  - **Missed (P5):** six `syntactic` rows on Preact's `demo/`, to a module-level `const html =
+    htm.bind(h)`. Step 0 had called it a local without reading the file. They are the edge a written
+    `html(…)` draws.
+  - **Lesson:** a probe that classes a tag as "a local" from the graph's silence needs the file read. Lane B
+    not indexing a directory is silence too, and lane A still answers there.
+  - Drivers: `~/.hobbes/bench/c177-tagged-template/` (`PREREG.md`, `RESULTS.md`, `count.mjs`, `join.py`,
+    `predict.py`, `run.sh`, `compare.py`, `cells.tsv` (every keyed TS/JS cell and its H-34 key), `before/`,
+    `after/`). `run.sh` and `cells.tsv` are the reusable TS/JS before/after driver.
+- **Shipped earlier the same day, 0.2.82-beta (ADR-158, C-176 narrowed).** A TS/JS call's lane A scope is the
+  innermost enclosing graph symbol. Dangling callers went to 0 (ajv 341, Preact 145), and so did in-class
+  module rows (folio-2025 501), with no grade moved. Drivers: `~/.hobbes/bench/c176-ts-scope/`.
+  - **For Max:** ADR-158's amendment (nested functions file under their top-level symbol) was not in the route
+    he named; it was pre-registered and is in the ADR for his review. C-176 keeps the floor: an object
+    literal's method, an unnamed class, a property-assigned function, a namespace. Lifting it moves the symbol
     set, so it is his call. The CJS literal member (cue 49, Express 46) is the same question.
 - **Shipped earlier the same day, 0.2.81-beta (ADR-157, C-175 lifted).** C++ lane A reads a reference return, a
   conversion operator, an in-class friend and a nested type. fmt went 7,012 → 7,026 confirmed, 0 contradicted;
@@ -69,9 +70,6 @@ Unlike C-176, this change *adds* sites, so the regrade will move: grade every ke
   what each shape drew, and the two counting scripts). **Not audited:** Terraform/HCL;
   repo-scale counts of any implicit shape outside Python's `__exit__`; Go's and Java's caller roll-up on real
   repos.
-- **Then** come C-174's remainder (recall, per language, each measured on a keyed cell) and the local alias of
-  a global (`_Segment = Segment` … `_Segment(…)`; rich 121, flask 12, click 24; C-9), `cls(…)` in a classmethod
-  (rich 57), and C/C++ lane A's time.
 
 - **Shipped the session before (0.2.78-beta, 0.2.79-beta):** C-174 contained first (registered, surfaced in both
   renderers, C-1 pointing to it). Then the oracle's **H-37** (unit `32b8`): CPython 3.12 calls a `with` statement's
@@ -612,17 +610,17 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 177 entries: 130 active (101 surfaced, 25 partial, 3
-  unsurfaced — C-19, C-20, C-112 — 1 n/a), 30 lifted, 11 superseded, 6
+- **Register:** 177 entries: 129 active (100 surfaced, 25 partial, 3
+  unsurfaced — C-19, C-20, C-112 — 1 n/a), 31 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open** (H-36, a `<genexpr>` frame keyed as a call,
   found and fixed 2026-09-20; H-33–H-35 fixed 2026-09-19,
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** (2026-10-01; pytest, Go and tsextract re-run on the host at 0.2.82-beta, the rest at
-  0.2.74-beta): 2,603 pytest (`lane_b` 20 of them, run with the image rebuilt at
-  0.2.82-beta), Go `./...` 402 with subtests (402 pass), 97 scip node, 48 tsextract, 52 vitest, 84 atlas0, 656
+- **Suites** (2026-10-01; pytest, Go, tsextract and vitest re-run on the host at 0.2.83-beta, the rest at
+  0.2.74-beta): 2,605 pytest (`lane_b` 21 of them, run with the image rebuilt at
+  0.2.83-beta), Go `./...` 402 with subtests (402 pass), 97 scip node, 49 tsextract, 52 vitest, 84 atlas0, 656
   lattice (624 pass / 32 skip without clang, after D-13's unit); oracle-lane Go 131 with subtests, 119 pass /
   12 skip on this host, which has no clang++ or cmake (the C++ fixture tests run and pass
   in the image).

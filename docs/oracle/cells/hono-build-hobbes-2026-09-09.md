@@ -322,3 +322,25 @@ The `missed` rows are elided; the classes are in the block above.
 ## Regrade, Hobbes 0.2.59-beta (ADR-143: a renamed callee is matched at its own column where both lanes name one definition)
 
 Re-ingested contained with the unit's code, the stored key, `-poison` (`oracle-grading.md` §10.25; outputs in `~/.hobbes/bench/adr141-name-mismatch/real/`). **The head of the report is unchanged, line for line** — the same rows, the same confirmed, contradicted, abstract and silent counts, the same recall — so the block above stands as this cell's numbers. What moved is the tier of 76 (35 of them outside the graded zone) call site(s): confirmed at `semantic` 792 → 833, at `syntactic` 41 → 0. Direction of the fix, signed: precision 0, recall 0, rows 0; tier `syntactic → semantic` +76. Poison PASS, 0 falsely confirmed. The export is row-identical, tiers included, to the simulation made before the unit was dispatched.
+
+## Regrade, Hobbes 0.2.83-beta (C-177 lifted — ADR-159: a tagged template is a call site)
+
+**Pre-registered** (`~/.hobbes/bench/c177-tagged-template/PREREG.md`, written after step 0 and before the code). Both arms were ingested contained against this clone, before at 0.2.82-beta (`8339ecd`, clean) and after with the change, and graded with `-poison` against the H-34 regenerated key (`~/.hobbes/bench/h33-regrade/h34/`), which is row-identical to the stored key on these cells (checked on ajv against `ajv-ts-r3`: the same report). Outputs: `before/` and `after/` beside the PREREG.
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha 97c6fe1f
+hobbes edges 5441: confirmed 835  contradicted 0  abstract 0  silent 4606 map[not-loaded:4606]
+precision-against-oracle 100.0% (835/835)
+recall 59.8% (842/1408 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 2117; misses map[func-value→local-binding:61 func-value→parameter:140 func-value→variable:4 interface→type-member:30 static→anonymous-function:1 static→anonymous-signature:15 static→class:13 static→closure:89 static→function:5 static→method:90 static→property:93 static→type-member:20 static→variable:5]
+recall-collapsed 63.8% (835/1308 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  tier semantic   confirmed 835  contradicted 0  abstract 0  silent 4521
+  tier syntactic  confirmed 0  contradicted 0  abstract 0  silent 85
+poison check: PASS — 5441 seeded wrong edges: 832 refused, 4609 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+**Direction of fix (signed):**
+- **Confirmed:** 833 → **835** (+2), both `semantic` to `src/helper/html/index.html`, each a `uses` row before. Contradicted 0 → 0.
+- **Not loaded:** 4,587 → 4,606 (+19), the same tag in test files outside `tsconfig.build.json`'s program; no key judges them.
+- **Recall:** 59.7% → 59.8% (840 → 842 of 1,408).
+- **Rows lost:** 0. Nodes and symbols identical; test reach grew (28 tests), shrank nowhere.
+- **Poison:** PASS, 5,441 seeded: 832 refused, 4,609 unjudged, 0 falsely confirmed.

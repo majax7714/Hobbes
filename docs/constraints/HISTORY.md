@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-177 lifted, 2026-10-01 (0.2.83-beta; ADR-159, the honesty audit's last fix; measured first):
+- **C-177 lifted.** A TS/JS tagged template is a call site, its tag in callee position (tsextract facts v8).
+  Where the index resolves the tag, the `uses` edge it was becomes `calls semantic`: ajv 1,499 to 1,902
+  confirmed (recall 67.5% to 86.3%), zod 9,885, hono 835, 0 contradicted on every keyed cell. The always-on
+  "not detected at all" statement and `who_calls`' references heading no longer name it. 177 entries, 129
+  active (100 surfaced, 25 partial), 31 lifted.
+
 C-176 narrowed, 2026-10-01 (0.2.82-beta; ADR-158, route 2 of the honesty audit; no entry added):
 - **C-176 narrowed (still partial).** A TS/JS call's lane A scope is the innermost enclosing graph symbol.
   A named class owns its constructor, accessors, static blocks, field initializers and member decorators

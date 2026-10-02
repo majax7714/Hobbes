@@ -11,9 +11,42 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.82-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.83-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.83-beta — 2026-10-01 (a TS/JS tagged template is a call site; ADR-159, C-177 lifted)
+
+**Patch: what the layer draws and says**, TS/JS. This is the honesty audit's last fix (Max: "leave 176 177
+for next session"). It was pre-registered (`~/.hobbes/bench/c177-tagged-template/PREREG.md`) after a step-0
+count and before the code, then measured before and after on 15 TS/JS repos.
+
+- **What was missing (C-177).** `` tag`text` `` calls `tag`, but lane A made no site there, so the index's
+  occurrence at the tag became a `uses` edge. `who_calls` listed the caller under references, test reach
+  did not pass through it, and coverage did not count it.
+- **Drawn now.** A tagged template is a site exactly as a call is, its tag in callee position (`b` in
+  `` a.b`x` ``; an expression tag is an `<expr>` site). Where the index resolves the tag, the `uses` row
+  becomes `calls semantic`. tsextract facts v8; no field changed.
+- **Measured.**
+
+  | Cell | Before | After |
+  |---|---|---|
+  | ajv (confirmed / contradicted) | 1,499 / 0 | **1,902** / 0 |
+  | ajv recall | 67.5% | **86.3%** |
+  | ajv strict (confirmed / exported) | 90.08% | 92.02% |
+  | zod | 9,872 | 9,885 |
+  | hono | 833 | 835 |
+  | the 10 other keyed TS/JS cells | unchanged | unchanged |
+
+  The poison check passed on every cell. Every new `semantic` row (ajv 403, zod 13, hono 21) was a `uses` row
+  at the same site and target before. Six `syntactic` rows on Preact's `demo/` (lane A only) were not
+  predicted. They go to a module-level `const html = htm.bind(h)`, the edge a written `html(…)` draws.
+  Nothing was lost, and test reach only grew (hono 28 tests).
+- **Said where a user meets it.** The "not detected at all" statement in `list_blind_spots` and `hobbes
+  plan`'s manifest, and `who_calls`' references heading, no longer name the tagged template.
+- **Register:** C-177 lifted. Its residual edge case is the key's position grain (the tag's start against
+  lane A's terminal), which matters only for a member tag split across lines. 177 entries, 129 active (100
+  surfaced, 25 partial), 31 lifted.
 
 ## 0.2.82-beta — 2026-10-01 (a TS/JS call's caller is the innermost enclosing graph symbol; ADR-158, C-176 narrowed)
 

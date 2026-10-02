@@ -165,6 +165,11 @@ func TestWhoCallsSeparatesUsesFromCalls(t *testing.T) {
 	if !strings.Contains(out, "app.api.Config") {
 		t.Errorf("the `uses` edge was discarded rather than relabelled:\n%s", out)
 	}
+	// C-177 lifted (0.2.83-beta): a tagged template is a call site, so the
+	// heading no longer offers it as a reason a reference may be a call.
+	if strings.Contains(out, "tagged template") {
+		t.Errorf("the references heading still names the tagged template:\n%s", out)
+	}
 }
 
 // ADR-120: the override set. An `implements` edge into a symbol is what
@@ -1255,11 +1260,11 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		// C-174: an implicit call has no call token, so it is no site;
 		// ADR-156 draws a `with` item's pair where its class is known. The
 		// statement names every language's shapes since the 2026-10-01
-		// audit, and C-177's uncounted tagged template beside them.
+		// audit. C-177's tagged template left it at 0.2.83-beta: it is a
+		// site now (asserted absent below).
 		"calls the language makes with no call written\n(C-174)",
 		"a `with` statement's __enter__/__exit__ where the item's\nclass is not known",
 		"a destructor, an initializer the runtime runs",
-		"TypeScript tagged template (C-177)",
 		// meanings appear only for classes present, with their C-refs:
 		"attr-call — an attribute call whose receiver no static provider could type",
 		// C-63 (surfaced 2026-09-05): a callee that is an expression is a
@@ -1285,6 +1290,10 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 	}
 	if strings.Contains(out, "path-call —") {
 		t.Fatalf("meaning printed for a class not present:\n%s", out)
+	}
+	// C-177 lifted (0.2.83-beta): a tagged template is a detected site.
+	if strings.Contains(out, "tagged template") {
+		t.Fatalf("the statement still names the tagged template as undetected:\n%s", out)
 	}
 }
 

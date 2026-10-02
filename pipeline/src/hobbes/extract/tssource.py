@@ -48,7 +48,9 @@ TSEXTRACT_CMD_ENV = "HOBBES_TSEXTRACT_CMD"
 #: graph symbol — a named class for its constructor, accessors, static
 #: block, field initializers and member decorators; the top-level symbol
 #: around a nested function. No field changed.
-HELPER_VERSION = 7
+#: v8 (C-177): a tagged template is a call site, its tag in callee
+#: position. No field changed.
+HELPER_VERSION = 8
 
 #: Extensions the helper extracts; used only for the cheap "does this repo
 #: have TS/JS at all" scan that decides whether the helper must run.

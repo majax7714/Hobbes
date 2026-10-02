@@ -270,21 +270,6 @@
 - **Source:** ADR-140 step 4, §10.22's triage, 2026-09-19; corrected and
   narrowed by ADR-142 and §10.23, 2026-09-20.
 
-### C-177 — A tagged template is not a call site — *registered 2026-10-01 (0.2.80-beta, the honesty audit)*
-- **Cannot tell you:** that `` tag`text` `` calls `tag`. A tagged template is a call the source
-  writes, but no `calls` edge is drawn. Lane B's reference at the tag becomes a `uses` edge,
-  which `who_calls` lists under references and not under callers.
-- **Because:** lane A records a `CallExpression`, and a `TaggedTemplateExpression` is not one.
-  So the site is never made, it is not in `resolution_coverage`'s denominator, and the join has
-  nothing to pair the index's occurrence with. The tsc oracle does key it (`isSite` takes a tagged
-  template), so a graded cell reads it as recall, never as precision.
-- **Bites at:** `who_calls` on a template tag: styled-components, `html`/`css`/`sql` helpers, GraphQL
-  `gql`, and a repo's own tags. Not measured on a cell. The audit's fixture drew one `uses` edge
-  and no `calls` edge.
-- **You find out:** **surfaced** (0.2.80-beta). The always-on "not detected at all" statement
-  names it. `who_calls`'s references heading names it as one reason a reference can be a call.
-- **Source:** the 2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); `tsextract/extract.mjs`
-  (the call walk takes `Node.isCallExpression` only).
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what
@@ -294,6 +279,34 @@ cases**: inputs the technique does not classify, where the old concession
 quietly survives. When a residual case turns out to bite, it becomes a
 new active entry and the two cross-reference. Field key: `README.md`,
 "How to read a lifted entry".
+
+### C-177 — A tagged template was not a call site — *registered 2026-10-01 (0.2.80-beta, the honesty audit), lifted 2026-10-01 (0.2.83-beta, ADR-159)*
+- **Was:** `` tag`text` `` calls `tag`, but lane A recorded a `CallExpression` only, so the site was never
+  made. It was in no `resolution_coverage` denominator, and the join had nothing to pair the index's
+  occurrence at the tag with, so that occurrence became a `uses` edge: `who_calls` listed it under
+  references, and test reach did not pass through it. The tsc oracle keys a tagged template (`isSite`), so
+  a graded cell read it as recall, never as precision. *Surfaced* while it stood: the always-on "not
+  detected at all" statement and `who_calls`' references heading named it.
+- **Lifted by — the technique:** `extractCalls` in `tsextract/extract.mjs` (facts v8) takes a
+  `TaggedTemplateExpression` exactly as a call, its tag in callee position: `terminalIdentifier(tag)` (an
+  identifier, or a property access's name) goes through the same `push` (position, name, lane A's fallback,
+  `calleeOrigin`, the union abstention, `enclosingScope`), and any other tag is an `<expr>` site (C-63).
+  The join is unchanged: where the index resolves the tag, the site claims that occurrence and the `uses`
+  edge becomes `calls semantic`. **Measured** (pre-registered, `~/.hobbes/bench/c177-tagged-template/`,
+  15 TS/JS repos before and after): ajv 1,499 → **1,902** confirmed, recall 67.5% → **86.3%**, its codegen
+  tags `` _`…` `` and `` str`…` ``; zod 9,872 → 9,885; hono 833 → 835; 0 contradicted and poison PASS on
+  every keyed cell. Every new `semantic` row was a `uses` row at the same (path, line, target). Six
+  `syntactic` rows were not predicted: Preact's `demo/` tags through a module-level `const html =
+  htm.bind(h)`, lane A only, the edge a written `html(…)` draws. Nothing was lost; test reach only grew.
+- **Residual edge cases:**
+  - A tag the graph has no symbol for draws nothing, as the same call would: a package's tag (xmpp.js's
+    73, styled-components, `gql`) is a counted site in the external tail; a tag below the symbol floor (a
+    local, a parameter, a destructured const, an object literal's non-shorthand member) is C-58's, C-9's.
+  - **Position grain:** the tsc key sites a tagged template at the tag's start (`a` in `` a.b`x` ``) and
+    lane A at its terminal identifier (`b`), where the index's occurrence is. The grade matches by line, so
+    only a member tag split across lines would differ, and no keyed cell has an in-repo one.
+- **Source:** the 2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); the lift, ADR-159 and
+  `~/.hobbes/bench/c177-tagged-template/` (`PREREG.md`, `RESULTS.md`).
 
 ### C-98 — Lane A's checker ran with no compiler options under a solution-style `tsconfig.json` — *registered 2026-09-09, lifted 2026-09-10*
 - **Was:** the helper built one ts-morph project per zone from the
