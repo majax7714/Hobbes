@@ -38,6 +38,7 @@ from hobbes.extract import (
     laneacache,
     minted,
     pystatic,
+    reexport,
     scipsource,
     staging,
     tail,
@@ -635,6 +636,29 @@ def _build_symbol_layer(
     if python_reading is not None and modules:
         static_reading = _read_static_tests(graph, modules, parsed, fallback, python_reading)
         later_defs = _later_defs(graph, modules, parsed, python_reading)
+        # ADR-161, before the join: a Python reference lane B named with
+        # another symbol's name through a module the file imports is
+        # scip-python's reading of a `from … import *` re-export (C-178).
+        # It is refused — it reaches no edge, row or count — and counted in
+        # one record; nothing is repaired. Without lane B for Python there
+        # is nothing to refuse and nothing is recorded (P6).
+        python_files: dict[str, tuple[list[str], frozenset[str]]] = {}
+        for module in modules:
+            facts_file = parsed.get(module.id)
+            if facts_file is None:
+                continue
+            try:
+                text = (repo_root / module.path).read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                continue
+            python_files[module.path] = (
+                reexport.source_lines(text),
+                reexport.module_names(facts_file),
+            )
+        resolutions, refused_rows = reexport.refuse(resolutions, python_files)
+        refusal = reexport.record(refused_rows)
+        if refusal is not None:
+            degraded.append(refusal)
 
     withhold = frozenset(cpp_withheld_files)
     # ADR-131: lane A's operator tokens, read by the join alone and only
