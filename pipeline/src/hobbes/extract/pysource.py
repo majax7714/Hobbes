@@ -656,8 +656,9 @@ class ParsedFile:
     #: Each name an ``import`` / ``from … import`` binds inside a function,
     #: with that innermost function's extent (ADR-154 step 6). Kept apart
     #: from :attr:`local_bindings` on purpose: the tail's ``local-binding``
-    #: class means "the call stays inside that file", which an import is
-    #: not; the fallback reads these to refuse a bare call they shadow.
+    #: class names a binding the file writes itself, and an import names
+    #: another module's; the fallback reads these to refuse a bare call they
+    #: shadow.
     local_imports: list[LocalBinding] = field(default_factory=list)
     #: Every item of a sync ``with`` statement whose context expression is
     #: a call, in source order (ADR-156 step 1). The language runs the
@@ -808,8 +809,8 @@ def _collect_local_imports(root: Node) -> list[LocalBinding]:
     enclosing function's extent (ADR-154 step 6).
 
     A walk of its own beside :func:`_collect_local_bindings`, not part of
-    it: ADR-046's list is what the tail classes ``local-binding``, a call
-    that stays inside its file, and an imported name does not. A class
+    it: ADR-046's list is what the tail classes ``local-binding``, a
+    binding the file writes itself, and an imported name is not. A class
     body is its own namespace, so an import written there binds nothing
     in the function around it, as in :func:`_collect_local_bindings`.
     """

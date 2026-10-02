@@ -6,6 +6,12 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-32 corrected, 2026-10-02 (0.2.84-beta; found in the C-9 step 0, precedent 1; no entry added):
+- **C-32's surfacing corrected.** The `local-binding` gloss served by `list_blind_spots` said "the call stays
+  inside that file", which a local alias of an imported name contradicts (rich's `_Segment = Segment`, 155
+  sites). It now says the binding is in the file and what it holds may be defined anywhere; `hobbes plan`'s
+  manifest says the same. The tally is unchanged: 177 entries, 129 active, 31 lifted.
+
 C-177 lifted, 2026-10-01 (0.2.83-beta; ADR-159, the honesty audit's last fix; measured first):
 - **C-177 lifted.** A TS/JS tagged template is a call site, its tag in callee position (tsextract facts v8).
   Where the index resolves the tag, the `uses` edge it was becomes `calls semantic`: ajv 1,499 to 1,902

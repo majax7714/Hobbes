@@ -59,7 +59,7 @@ DENOMINATOR = (
 #: probability about a hypothetical edge.
 TAIL_MEANINGS = {
     "fallback-resolved": "syntactic-tier edge from lane A's fallback; semantics could not confirm it (C-7) — trust it less",
-    "local-binding": "bound below the modelled vocabulary in its own file (C-9) — seen and deliberately not modelled",
+    "local-binding": "bound below the modelled vocabulary in its own file (C-9) — seen and deliberately not modelled; what it holds may be defined anywhere",
     "nested-decl": "declared in another repo file below the modelled vocabulary (C-9)",
     "external-origin": "every declaration lives outside the repo — often an environment gap (C-23/C-27/C-30)",
     "import-binding": "bound by a same-file import; the landing site is unresolved — usually a missing environment (C-23/C-27/C-30)",

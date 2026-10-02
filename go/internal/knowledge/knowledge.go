@@ -1155,7 +1155,7 @@ func (s *Store) ListInvariants(scope string) (string, error) {
 // a probability about a hypothetical edge (C-2's rule).
 var tailMeanings = []struct{ class, meaning string }{
 	{"fallback-resolved", "has a syntactic-tier edge from lane A's own resolver; semantics could not confirm it (C-7) — trust it less"},
-	{"local-binding", "bound below the modelled vocabulary in its own file — a parameter, local, or nested def (C-9); seen and deliberately not modelled, the call stays inside that file"},
+	{"local-binding", "bound below the modelled vocabulary in its own file — a parameter, local, or nested def (C-9); seen and deliberately not modelled: the binding is in that file, but what it holds may be defined anywhere (a parameter's callback, a local alias of an imported class) — trace the value's origin yourself"},
 	{"nested-decl", "declared in another repo file below the modelled vocabulary (C-9)"},
 	{"external-origin", "every declaration lives outside the repo — a dependency or ambient lib; often an environment gap (C-23/C-27/C-30)"},
 	{"import-binding", "bound by a same-file import; where the call lands is unresolved — usually a missing environment (C-23/C-27/C-30)"},

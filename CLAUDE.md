@@ -278,7 +278,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-10-01) — Hobbes 0.2.83-beta
+## Status (2026-10-02) — Hobbes 0.2.84-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -318,12 +318,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   the decorator case, at 0.2.76-beta), 0 missed. It stays the way work is done.
   Shanks is Calvin's accepted lowest floor from the keyed rounds, and it
   treats a symptom; it is not Calvin's design.
-- **Latest — 0.2.83-beta, C-177 lifted** (ADR-159; the audit's last fix,
-  measured first). A TS/JS tagged template is a call site, its tag in
-  callee position (facts v8); where the index resolves the tag, the `uses`
-  edge it was becomes `calls semantic`. ajv 1,499 → 1,902 confirmed, recall
-  67.5% → 86.3%; zod 9,885, hono 835; 0 contradicted on every keyed cell,
-  nothing lost, test reach only grew.
+- **Latest — 0.2.84-beta, C-32 corrected** (precedent 1, found in the C-9
+  step 0): the `local-binding` gloss no longer says "the call stays inside
+  that file"; what a local binding holds may be defined anywhere (rich's
+  `_Segment = Segment`). Before it, 0.2.83-beta lifted C-177 (ADR-159: a
+  TS/JS tagged template is a call site; ajv recall 67.5% → 86.3%).
 - **The honesty audit** (0.2.80-beta, precedent 1): C-174 widened, and
   C-175 to C-177 registered and surfaced, after one fixture per language
   (`~/.hobbes/bench/honesty-audit/RESULTS.md`). All three fixes are in:
@@ -331,9 +330,13 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (0.2.82-beta, ADR-158), C-177 lifted (0.2.83-beta).
 - **Extraction** stays the standing default (Max, 2026-09-20: "we never
   sacrifice honesty for higher recall").
-  **Next — the local alias of a global** (`_Segment = Segment` …
-  `_Segment(…)`, C-9; rich 121, click 24, flask 12), measured first, with
-  rich graded beside click and flask; then `cls(…)` in a classmethod.
+  **Active — the local alias** (`_Segment = Segment` … `_Segment(…)`,
+  C-9). Step 0 read exactly: rich 155 sites, flask 0, click 0 (the cell
+  record's 121/12/24 was a loose regex); simulated on rich +135 confirmed,
+  18 suspects all the declared-target convention. Max's route 1: a new
+  held-out cell first (pyparsing 3.3.3, pre-registered), rich counted as
+  fitted; edges `syntactic` (Max: "syntatic over semantic when not clearly
+  semantic"). Then `cls(…)` in a classmethod.
 - **Calvin** (`docs/experiments/calvin/`): a model or tool that can
   program in one language, intentionally not general, and not
   necessarily an LLM (ADR-152). **Closed on its lattice** (Max,

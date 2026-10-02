@@ -1295,6 +1295,14 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 	if strings.Contains(out, "tagged template") {
 		t.Fatalf("the statement still names the tagged template as undetected:\n%s", out)
 	}
+	// C-32 corrected (0.2.84-beta): a local binding is in the file, what it
+	// holds is not — `_Segment = Segment` holds another module's class.
+	if strings.Contains(out, "stays inside that file") {
+		t.Fatalf("the local-binding gloss still says the call stays in its file:\n%s", out)
+	}
+	if !strings.Contains(out, "what it holds may be defined anywhere") {
+		t.Fatalf("the local-binding gloss does not say where its value may come from:\n%s", out)
+	}
 }
 
 func TestBlindSpotsScopeFiltersByPathPrefix(t *testing.T) {

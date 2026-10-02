@@ -538,7 +538,13 @@
   asymmetry itself — Python/Go/Rust tails are still poorer than TS's
   because their providers report fewer observations; the fix makes the
   boundary legible, it does not move it. Origin support from the other
-  syntax providers would narrow it further.
+  syntax providers would narrow it further. **Corrected 2026-10-02
+  (0.2.84-beta):** the `local-binding` gloss `list_blind_spots` served
+  said "the call stays inside that file". The binding is in the file;
+  what it holds need not be: rich's `_Segment = Segment` holds another
+  module's class (155 such sites on rich, read with `ast` in the C-9
+  step 0). The gloss, and `hobbes plan`'s manifest, now say that what a
+  local binding holds may be defined anywhere.
 - **Source:** ADR-045; surfacing ADR-053.
 
 ### C-170 — A Python name scip-python gives one moniker at several lines of a file has no lane B answer

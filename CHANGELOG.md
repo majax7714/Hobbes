@@ -11,9 +11,22 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.83-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.84-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.84-beta — 2026-10-02 (a local binding's gloss no longer says the call stays in its file; C-32 corrected)
+
+**Patch: what the layer says.** Found in the C-9 local-alias step 0 and fixed first (precedent 1).
+
+- **What was wrong.** `list_blind_spots` explained a `local-binding` site as "seen and deliberately not
+  modelled, the call stays inside that file". The binding is in the file; what it holds need not be. rich's
+  `_Segment = Segment` … `_Segment(…)` holds `rich.segment.Segment`, in another module, and rich has 155 such
+  sites whose target lane B resolves at the alias line.
+- **Said now.** The gloss reads "the binding is in that file, but what it holds may be defined anywhere (a
+  parameter's callback, a local alias of an imported class) — trace the value's origin yourself"; `hobbes
+  plan`'s manifest says the same. A Go test asserts the old clause is gone and the new one is printed.
+- **Register:** C-32's surfacing note corrected; the tally is unchanged (177 entries, 129 active, 31 lifted).
 
 ## 0.2.83-beta — 2026-10-01 (a TS/JS tagged template is a call site; ADR-159, C-177 lifted)
 
