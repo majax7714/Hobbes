@@ -33,6 +33,16 @@ we might be defeating the point of the [poison] check by conforming to our
 tested repos." **New rule tiering** (2026-10-02): "syntatic over semantic when
 not clearly semantic to preserve honesty".
 
+**The graph job is red, left for Max** (since 2026-09-26; it reviews from the last green run,
+`57e4be2`, ADR-114). 22 → 5 unguarded new modules on 2026-10-02 (`1d5a7c0`: the lattice fixture is a
+stated tree, the tracker's tests import it plainly). Left: `lattice` and `dedupe` (value-only, C-156; they
+stay red under the current rule), `draw`, `make_fixture`, `modal_e1` (untested bench scripts). Proposed:
+exempt a docstring-only module (an ADR-117 amendment, patch), cheap tests for the three scripts, and a call
+on `dedupe`, kept as E3's record as it ran. Two more found the same day, not yet done: I-4's roster lacks
+`csource`/`cppsource` (it fails, not as a regression, so CI never shows it), and a module loaded by
+`importlib` (`spec_from_file_location`, `import_module`) draws no import edge, so tests cannot be seen
+reaching it, and no `C-n` names that limit.
+
 **Next — `cls(…)` in a classmethod** (rich 57, pyparsing 17), measured first. **Pick the next held-out
 Python repo before measuring it**: pyparsing is held out now, and fitting the rule on it would spend it. On
 the new cell, also count `semantic` rows whose line does not hold the target's name (C-178's check), since a

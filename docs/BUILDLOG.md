@@ -15380,3 +15380,29 @@ when not clearly semantic to preserve honesty".
   the pyparsing cell record; CHANGELOG, README, workstreams, CLAUDE.md and AGENTS.md; the session review and
   tracker (98 of 40); the handoff (next: `cls(…)` after picking the next held-out repo), `bench-drivers.md`,
   `lessons.md`. Image rebuilt.
+
+## 2026-10-02 (thirty-third session) — the graph job's 22 unguarded new modules, 22 → 5
+
+**Task:** "review top level documentation. then inspect the ci graphing check failure of 22 ungaurded new
+modules"; then "good to go with route 1, leave the need my attention for after".
+
+- **Diagnosis.** The `graph` job has been red on every push since 2026-09-26 (19 → 21 → 21 → 22), all at
+  the review step. ADR-114 makes each push review from the last green run, `57e4be2` (2026-09-21), so the
+  count only accumulates. The 22: 16 sources in the sqlite-vector kernel fixture
+  (`bench/calvin/lattice/tests/fixtures/`), whose `pyproject.toml` stated `testpaths` but no
+  `norecursedirs`, so `runner_excluded_trees` saw no fixture tree; `shanks_tracker`, which its tests load
+  through `importlib.util.spec_from_file_location` (no import edge; new only by the rename from
+  `calvin_tracker`); `lattice` and `dedupe`, value-only (C-156); `draw`, `make_fixture`, `modal_e1`,
+  untested bench scripts.
+- **Route 1 (`1d5a7c0`):** `norecursedirs = ["fixtures"]` in the lattice `pyproject.toml` (the suite
+  collects the same 657, 625 pass and 32 skip on this host); `test_shanks_tracker.py` loads the tracker
+  through `sys.path` and a plain import, as `test_families` loads `count`/`measure`. An ingest of the
+  working tree showed `tests_guarding` naming all 16 tracker tests. `hobbes review 57e4be2..HEAD` at the commit:
+  the fixture named under C-154 (16 modules), 5 unguarded new modules left. No version bump: a bench
+  config and a test.
+- **Found, not done:** I-4 fails, not as a regression: its `except` roster lacks `csource` and
+  `cppsource`, so the review shows it and CI never fails on it. A module loaded by `importlib` draws no
+  import edge, and the register has no entry naming that. The five modules left and both findings are in
+  the handoff for Max.
+- **Docs:** CLAUDE.md (and AGENTS.md, its copy) said "last: 159" (it is 161) and carried a "Before it"
+  status entry its own rule forbids; both fixed, and the red graph job is in the status block.

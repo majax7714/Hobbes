@@ -224,7 +224,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 159;
+  architecture doesn't already make. Number sequentially (last: 161;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -326,12 +326,6 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   module) is refused and counted. pyparsing 2,919 refused, wrong `uses`
   rows to `CaselessLiteral` 1,671 → 10, no `calls` row moved; rich,
   flask, click identical.
-- **Before it, 0.2.85-beta, ADR-160, C-9 narrowed** (unit `3814`): a call
-  through a local alias (`_Segment = Segment` … `_Segment(…)`) is drawn
-  `syntactic` to what the index named at the right-hand side. rich 4,844 →
-  4,968 confirmed (90.20% → 92.51%), flask and click identical, pyparsing
-  +1; 0 contradicted. 0.2.84-beta before it corrected C-32's
-  `local-binding` gloss (precedent 1).
 - **The honesty audit** (0.2.80-beta, precedent 1): C-174 widened, and
   C-175 to C-177 registered and surfaced, after one fixture per language
   (`~/.hobbes/bench/honesty-audit/RESULTS.md`). All three fixes are in:
@@ -357,6 +351,12 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   the five JavaScript keys too (2026-09-26); repowise's converter@5
   fixed a `__module__` drop that had cost every repowise cell its
   top-level calls, and the 22 published cells were regraded.
+- **The graph job is red** since 2026-09-26 (it reviews from the last
+  green run, `57e4be2`, ADR-114): 22 → 5 unguarded new modules on
+  2026-10-02. Left for Max: `lattice` and `dedupe` (value-only, C-156)
+  and the untested bench scripts `draw`, `make_fixture`, `modal_e1`.
+  I-4 also fails, not as a regression: its roster lacks `csource` and
+  `cppsource`.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through dispatch (not
   traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
