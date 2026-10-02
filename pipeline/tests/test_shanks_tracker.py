@@ -1,15 +1,14 @@
 """Tests for `scripts/shanks_tracker.py` (Shanks's tracker, ADR-152): parsing the harness's session logs, the pinned rows from the real logs, totals over synthetic logs, and the render/check drift gate."""
-import importlib.util
 import re
 import sys
 from pathlib import Path
 
 import pytest
 
-spec = importlib.util.spec_from_file_location("shanks_tracker", Path(__file__).resolve().parents[1] / "scripts" / "shanks_tracker.py")
-ct = importlib.util.module_from_spec(spec)
-sys.modules["shanks_tracker"] = ct
-spec.loader.exec_module(ct)
+# A plain import from the scripts directory, not `importlib.util.spec_from_file_location`: the graph draws an
+# import edge for this form, so the review sees these tests guarding the tracker.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+import shanks_tracker as ct  # noqa: E402
 
 SESSIONS_DIR = Path(__file__).resolve().parents[2] / "docs" / "shanks" / "sessions"
 

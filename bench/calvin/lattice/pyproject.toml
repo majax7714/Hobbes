@@ -26,3 +26,4 @@ packages = ["src/lattice"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["fixtures"]
