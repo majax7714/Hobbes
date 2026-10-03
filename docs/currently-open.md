@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.101-beta).
+Last reviewed: 2026-10-03 (0.2.101-beta; extraction order approved).
 
 ## Decisions open for Max (no spend)
 
@@ -22,12 +22,10 @@ Last reviewed: 2026-10-03 (0.2.101-beta).
   `ministdlib` fixture pins it. Proposed: refuse lane A's fallback where
   the same name is also bound by a stdlib import (a patch), or leave it
   registered.
-- **ADR-126 §3:** whether to build the "may reach through dispatch (not
-  traced)" section in `tests_guarding` and `hobbes review` on
-  `oracle-grading.md` §10.12's numbers. It needs a syntax exclusion for
-  every non-dispatched call (Java `super.`/private/static/final, Python
-  `super()`, C++ class-qualified), and it would say that no key confirms
-  reach.
+- **Extending the Python trace oracle** to key operator, iteration and
+  truth-test dunders, which would unblock C-174's other Python shapes.
+  Max, 2026-10-03: decided once extraction Phase 1's repo-scale counts
+  (item 2 below) are taken back to him.
 - **ADR-158's amendment:** nested functions file under their top-level
   symbol. This was pre-registered, but it was not in the route Max named.
   C-176 keeps the floor (an object literal's method, an unnamed class, a
@@ -57,58 +55,73 @@ Last reviewed: 2026-10-03 (0.2.101-beta).
 - **Parked by Max:** C-150's remainder ("fine for now"). §3.8's paragraphs
   stay in the architecture ("dont split for now"). Constructions inside a
   template stay `uses`. repowise's cells stay on 0.49.0 (0.53.0 is out).
+  On 2026-10-03: ADR-126 §3's "may reach through dispatch" section stays
+  parked (no key confirms reach; click's 79 override misses stay C-58's);
+  C-178's residue (pyparsing's star re-exports, 1,377 held-out misses) is
+  held, since any rule would be fitted to pyparsing.
 
 ## Extraction, in order (no spend; each measured first)
 
-1. C-174's remainder, per language. Python's instance `__call__` is drawn
-   where the instance is constructed at the call or bound once (ADR-171);
-   an instance held in an attribute (rich's `self.highlighter(…)`) is not.
-   The other Python shapes need an oracle change first: the trace keys
-   no operator, iteration, truth test or builtin dunder.
+Max approved this order on 2026-10-03 ("approved, all recommendations are
+good"). Honesty audits come first (precedent 1), then the rules a key can
+grade. Each rule is measured on a held-out cell picked before it is
+measured.
 
-### Candidates, unranked
+**Phase 1, audits (an unnamed limit outranks recall):**
+1. **Terraform/HCL.** A shipped layer with no `C-n` at all; §3.8 says "this
+   repo only" and the honesty audit's fixtures skipped it. A fixture of HCL
+   shapes (`module` sources, `for_each`/`count`, `dynamic`, locals, data
+   sources, provider aliases), ingested in the image; a `C-n` per limit.
+2. **C-174's implicit shapes at repo scale, outside Python.** A counter
+   per language over the stored clones (Rust `?`/Drop/`for`/operators,
+   Java try-with-resources/for-each/concatenation, Go `init`/Stringer, C++
+   destructors/range-for, TS `for…of`/`await`/spread). Counts go into
+   C-174's "Bites at". **Take them back to Max** for the trace-oracle
+   decision below.
+3. **Go's and Java's caller roll-up on real repos.** Port
+   `~/.hobbes/bench/c176-ts-scope/probe.py` to the stored RTA and javac keys
+   (both carry `sites[].caller`); widen C-176, measured on TS/JS only.
+4. **C-164's remainder** reads "nothing tells you"
+   (`constraints/extraction-cpp.md`): surface it if it is unsurfaced.
 
-- **Not audited** (carried from the honesty audit): Terraform/HCL;
-  repo-scale counts of any implicit shape outside Python's `__exit__`;
-  Go's and Java's caller roll-up on real repos.
-- **C-178's residue:** such a call has no lane B answer. External
-  references to the stdlib's star re-exports keep their misnamed monikers
-  (no repo edge).
-- **Other languages' duplicate qualnames** (ADR-155 covers Python only;
-  measured 2026-10-02, `~/.hobbes/bench/dup-qualnames-2026-10-02/RESULTS.md`).
-  TS/JS and Java are clean. **Rust's impl-block collision is contained**
-  (C-180, ADR-163, 0.2.87-beta): a fact at a later def of an id two impl
-  headers share is refused and tailed `shared-qualname`. **Open, Max's
-  call: the prevention**, ids that tell the impl blocks apart (Java's
-  `~n`, or a self-type that keeps `*const`/`*mut` and the trait). It
-  changes symbol ids; built, each later def gets a node and C-180 lifts
-  (dagger would get back its 229 calls and memchr its 2). Go's second
-  `init` is mapped into the node (C-183, ADR-166, 0.2.92-beta).
-- **An `extends`-chain walk (TS/JS):** 104 rows at 0 contradicted (ajv 18,
-  hono 8, xmpp.js 2, zod about 76), 0 on Preact. It would be a new kind of
-  rule (a chain of lane B hops) for under a point per cell. Measured, not
-  decided.
-- **What click still misses** (806 on r3 before ADR-153): 460 closures
-  (C-58), 215 methods (79 subclass overrides, which is ADR-126 §3's
-  question; 90 duck-typed receivers and test doubles), 81 lambdas, 37
-  classes, 13 functions. No decorator-line shape with more than 10 rows is
-  left, and none has a syntactic rule ready.
-- **Preact's test-file misses** (closures in `it` bodies, calls through
-  `.d.ts` interface members, hook setters in locals): C-58's shapes.
-- **C++ recall's remainder** (Max's Route A; ADR-132 to ADR-136 are
-  built): C-162, C-145, C-164, and C-131 (parked). dagger's docs snippet
-  zones were not re-ingested after the `corepack` fix.
-- **Older, none started:** C-142's remainder (273 headers that nothing
-  includes; ADR-138's route b). C's residue (W1: C-134's remainder,
-  C-135's autotools, Meson and Bazel roots, C-133's unit 2 and its macro
-  half; C-133's unit 2 only if a graded cell shows the cost). C-139's
-  finer extent, also only if a graded cell shows the cost.
-  Optional: a `lane_b` end-to-end case for ADR-135.
-- **C-13:** a globals-style TS/JS test file (no framework import) reports
-  framework `unknown`; jest-globals detection is not built.
-- **C-171's Python residual:** `pysource`'s visitor overflows near 600
-  levels where CPython compiles 2,000. The overflow is surfaced per file,
-  and no repo has met it yet.
+**Phase 2, rules a key grades:**
+5. **Rust operators, `Deref`, `Index` (C-174),** ADR-131's shape: lane B
+   already draws `uses` at the token; rustc's MIR key holds these as Call
+   terminators. Probe first: that the `uses` target is the repo impl
+   method, and that MIR's `fn_span` line is the token's. No Rust cell is
+   held out; pick one.
+6. **Then Rust's impl-distinct ids** (C-180's prevention, Max 2026-10-03:
+   build it after item 5). Symbol ids change; C-180 lifts (dagger +229
+   calls, memchr +2). Java's `~n` or a self-type that keeps
+   `*const`/`*mut` and the trait.
+7. **C++: a functor's `operator()` (C-146) and implicit conversions
+   (C-162; args' 484 keyed misses),** with Route A's remainder (C-145,
+   C-164) and dagger's docs snippet zones, not re-ingested since the
+   `corepack` fix. No C++ cell is held out since §10.16; pick one.
+8. **Python `__call__` on an instance held in an attribute** (C-174;
+   rich's `self.highlighter(…)`; 35 misses on fitted cells, ADR-171).
+   Optional and small; held out on voluptuous, marshmallow, toolz or
+   tenacity.
+9. **C-13:** detect jest globals in a TS/JS test file with no framework
+   import. Small; only the `framework` field moves.
+
+The other languages' C-174 shapes (Java, TS/JS, Go, C) get counts and
+registration, not rules: their oracles key no implicit call, so a rule's
+rows could not be graded.
+
+### Registered and gated (closed as work until the trigger)
+
+- **C-171's Python residual** (`pysource` overflows near 600 levels):
+  until a repo meets it.
+- **C-133's unit 2 and its macro half; C-141's finer extent:** until a
+  graded cell shows the cost.
+- **C-142's remainder** (273 headers nothing includes, ScummVM only;
+  ADR-138's route b), **C-134's remainder, C-135's** autotools, Meson and
+  Bazel roots: no graded cell shows them. Optional: a `lane_b` end-to-end
+  case for ADR-135.
+- **Closures and duck-typed receivers** (click's and Preact's test-file
+  misses): C-58's shapes, with no rule ready. Click's bucket counts (806
+  on r3) predate ADR-153; re-measure before using them.
 - **W1's parked tail** (detail in `workstreams.md` W1; each opens when Max
   names it): the Java follow-ups (a Spring pack, Maven toolchains, a
   two-pass `java-build`, a bytecode RTA oracle, Kotlin lane A); C-67's

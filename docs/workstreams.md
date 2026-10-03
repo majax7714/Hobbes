@@ -97,7 +97,7 @@ item opens when Max names it. Sequencing context is
    oracle's grain); fmt reads 100% with a strict 99.62% beside it
    (ADR-124) at 0.2.48-beta.
    The C++ recall list and the review's remaining items, in order, are
-   in `session-handoff.md` under START HERE; W1 carries the extraction
+   in `currently-open.md` § Extraction; W1 carries the extraction
    ones.
 
 ---

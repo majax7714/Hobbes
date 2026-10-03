@@ -15928,3 +15928,17 @@ went to the Rust collision.
 - `scripts/ci-graph.sh 3fda729` on the host: `lanes` 17,837 sites, 0 unexplained (1 C-182 cfg twin); review
   "nothing needs attention"; `lane_b` 28 passed; "graph checks passed". Image rebuilt by the job
   (`9830f55090f9`).
+
+## 2026-10-03 (thirty-ninth session) — the extraction order approved; open-items reconciled
+
+- Two read-only subagents audited `currently-open.md`'s extraction queue against the register, the oracle
+  sources and the CHANGELOG; cited lines spot-checked. Findings: only Rust's (MIR Call terminators,
+  `bench/oracle/rust/src/main.rs:107`) and C++'s (clang `CXXOperatorCallExpr`/`CXXConstructExpr`) keys hold
+  any of C-174's implicit shapes; Java, TS/JS, Go and C key none. Terraform/HCL has no `C-n` at all. No Rust
+  or C++ cell is held out.
+- Max: "approved, all recommendations are good". Recorded: the order (Phase 1 audits, then graded rules);
+  Rust's impl-distinct ids built after the Rust operator rule; ADR-126 §3 stays parked; the `extends`-chain
+  walk declined (ADR-142's amendment); C-178's residue held; the Python trace-oracle extension decided once
+  Phase 1's counts go back to him.
+- Stale lines fixed: "C-139's finer extent" was C-141's (C-139 lifted 2026-09-13); click's 806 marked as
+  predating ADR-153; `workstreams.md` W1 pointed at the handoff for the C++ list, now `currently-open.md`.

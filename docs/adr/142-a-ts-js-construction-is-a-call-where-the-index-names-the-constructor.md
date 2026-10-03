@@ -197,3 +197,5 @@ index's reference at the token's own column, reads 104 rows at 0 contradicted
 names the merged `interface Component` (line 119) and not the class. **Not
 built:** a chain of hops is a new kind of rule for under a point a cell, and a
 merged-declaration reading is a name match. C-168 carries the numbers.
+**Declined 2026-10-03** (Max, approving the extraction order: "all
+recommendations are good"): the walk is not built; C-168 stays as registered.

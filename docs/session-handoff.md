@@ -30,13 +30,14 @@ session went belongs in the BUILDLOG.
 - 2026-10-03, on the open-items routes: "all those look good. good to
   proceed- approved".
 
-**Next:** the extraction queue in [`currently-open.md`](currently-open.md):
-C-174's remainder in the other languages (Python's instance `__call__` shipped
-at 0.2.100-beta, ADR-171: held-out structlog 69.7% → 77.8%; Python's other
-shapes need an oracle change first), then the unranked candidates. Pick a
-held-out cell before measuring any Python rule: structlog, icalendar and
-pyparsing are graded held out, rich, flask and click fitted; the 2026-10-03
-`ast` scan's unused candidates were voluptuous, marshmallow, toolz, tenacity.
+**Next:** the extraction order Max approved on 2026-10-03, in
+[`currently-open.md`](currently-open.md) § Extraction: Phase 1's audits
+first (Terraform/HCL, C-174's repo-scale counts outside Python, Go's and
+Java's caller roll-up, C-164's remainder), and the counts go back to Max
+for the trace-oracle decision. Then Phase 2's graded rules (Rust operators,
+then Rust's impl-distinct ids, then C++ functors and conversions), each on a
+held-out cell picked first. Python held out: structlog, icalendar,
+pyparsing; unused: voluptuous, marshmallow, toolz, tenacity.
 
 **Waiting on Max:** C-181's residual, ADR-126 §3 and the rest of "Decisions open for Max" in
 [`currently-open.md`](currently-open.md). Don't build any
