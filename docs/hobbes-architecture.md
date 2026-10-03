@@ -466,6 +466,15 @@ enclosing lookup, not the start one), so a lane B `uses` written inside a
 later `init` is filed under the node and not the module; one `go-inits`
 record per ingest names the files.
 
+A Python name one scope defines more than once is likewise one node at its
+first def, whichever runs: an `if`/`else` or `try`/`except` pair ADR-154's
+static reading does not settle, a later def that replaces the first, an
+`@overload` group (a property's accessors are one property). ADR-155 files
+the later defs' facts under the node; since 0.2.101-beta (ADR-172, C-186)
+one `python-repeats` record per ingest names each such name with every
+def's line, so an answer citing the node's lines is not read as the def
+that runs.
+
 **Lane A no longer *resolves* symbols; it still *detects* syntax (ADR-029).**
 An earlier wording said resolution "moves entirely to lane B", which assumed
 lane B could answer everything lane A could. It cannot answer *is this a
@@ -2308,7 +2317,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.100-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.100-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.101-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.101-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

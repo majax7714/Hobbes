@@ -268,6 +268,28 @@
 - **Source:** the flask `sansio/` re-ask's probe (2026-10-03); ADR-169;
   `~/.hobbes/bench/c185-unstated-bases/`.
 
+### C-186 — A Python name one scope defines more than once is one node at its first def, whichever def runs — *registered 2026-10-03 (0.2.101-beta, ADR-172)*
+- **Cannot tell you:** which def of such a name runs. The graph keeps one node for it, at the first
+  def: scip-python makes the defs one definition there (C-170's note), and lane A keeps one record.
+  An edge to the name is evidenced at its call, and right by qualname, but `who_calls`, the graph
+  view and every answer that cites the node's lines name the first def, which may not be the one
+  that runs: an `if`/`else` or `try`/`except` pair the static reading does not settle (structlog's
+  `dev._init_terminal`, `if _IS_WINDOWS:` on a variable: the node is the Windows def, Linux runs the
+  other), a later def that replaces the first at import, and an `@overload` group, whose stubs never
+  run. A property's accessors are one property and are not this entry.
+- **Because:** the symbol layer has one node per qualname. ADR-154 moves a twin's node to its live
+  def where Pyright reads the test statically (`sys.platform` written in the `if`), and nothing
+  reads the rest; Rust's cfg twin (C-182) and Go's `init` (C-183) are the same shape in theirs.
+- **Bites at:** measured 2026-10-03 with lane B: structlog 3 names (the trace saw the second def of
+  `_init_terminal` run, read as a suspect row on the held-out cell), click 6 and 16 `@overload`
+  groups (its ADR-154 twins `raw_terminal` and `getchar` are settled, not named).
+- **You find out:** surfaced — every ingest with such a name writes one `python-repeats`
+  degradation record (the count by kind, examples with every def's line, this entry), shown by
+  `list_blind_spots` and the ingest summary. Without lane B every repeated qualname is named; with
+  it, a def ADR-154's reading found dead, or a twin it settled, is not.
+- **Source:** the structlog held-out cell (`oracle/cells/structlog-py-2026-10-03.md`); ADR-155's
+  *What this leaves*; ADR-172.
+
 ### C-5 — Routes with computed paths are skipped
 - **Cannot tell you:** that an endpoint exists when its path is an
   f-string or a variable rather than a literal.

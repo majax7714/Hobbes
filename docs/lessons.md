@@ -102,6 +102,12 @@ writing a brief, a probe or a pre-registration. The resume point is
   target, and four lines held two calls. C5 missed by one row although the
   rule did exactly what the probe saw. Dedupe by `(path, line, target)`.
 
+- **§3.8's rows are pinned in code.** `verification.py` holds each row of
+  architecture §3.8 verbatim and `test_verification` compares them; adding a
+  held-out repo to the Python row at 0.2.100-beta left `main` red because the
+  full suite had run before the doc edit. Run pytest after the last edit,
+  docs included.
+
 - **A prediction from written sites must subtract the registered refusals.**
   ADR-171's P1 counted pyparsing's 310 `C(…)(…)` in source and predicted at
   least 100 rows; 196 of them are `pp.X(…)(…)`, which C-178's containment

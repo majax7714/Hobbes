@@ -457,6 +457,78 @@ def _later_defs(
     return out
 
 
+#: The decorators that make a repeated name one property, not two defs
+#: (C-186 leaves the group out: its node is the property).
+_ACCESSORS = frozenset({"property", "setter", "getter", "deleter"})
+
+
+def _python_repeats(
+    graph: dict, modules, parsed, later_defs: dict[str, list[tuple[int, int]]] | None
+) -> dict[str, tuple[str, list[int]]]:
+    """Each Python name one scope defines two or more times, by symbol id:
+    ``(kind, every def's line)`` (ADR-172, C-186).
+
+    The node is one, at the first def (the index makes the defs one
+    definition there; lane A keeps one record), whichever def runs. Where
+    lane B ran, *later_defs* is ADR-155's reading: a def ADR-154's static
+    reading found dead is out, and a twin whose record moved to its live
+    def is settled, so it is not named. Without lane B every repeated
+    qualname is named. A property's accessors are one property and are
+    left out. *kind* is ``overload`` where a def is an ``@overload`` stub,
+    else ``repeated``.
+    """
+    records = {s["id"]: s for s in graph["symbols"]}
+    out: dict[str, tuple[str, list[int]]] = {}
+    for module in sorted(modules, key=lambda m: m.path):
+        facts = parsed.get(module.id)
+        if facts is None:
+            continue
+        by_qualname: dict[str, list] = {}
+        for symbol in facts.symbols:
+            by_qualname.setdefault(symbol.qualname, []).append(symbol)
+        for qualname, defs in by_qualname.items():
+            symbol_id = f"{module.id}.{qualname}"
+            record = records.get(symbol_id)
+            if len(defs) < 2 or record is None:
+                continue
+            if later_defs is not None and symbol_id not in later_defs:
+                continue
+            names = {(d.dotted or "").rpartition(".")[2] for symbol in defs for d in symbol.decorators}
+            if names & _ACCESSORS:
+                continue
+            lines = [record["line"]] + (
+                [line for line, _ in later_defs[symbol_id]]
+                if later_defs is not None
+                else sorted(symbol.line for symbol in defs if symbol.line != record["line"])
+            )
+            out[symbol_id] = ("overload" if "overload" in names else "repeated", lines)
+    return out
+
+
+def _python_repeats_record(repeats: dict[str, tuple[str, list[int]]]) -> dict:
+    """The one degradation record ADR-172 writes per ingest where a Python
+    scope defines a name two or more times (C-186)."""
+    overloads = sum(1 for kind, _ in repeats.values() if kind == "overload")
+    shown = sorted(repeats.items(), key=lambda item: (item[1][0] == "overload", item[0]))
+    examples = "; ".join(
+        f"{symbol_id} ({kind}, defs at line {', '.join(str(line) for line in lines)})"
+        for symbol_id, (kind, lines) in shown[:5]
+    )
+    return {
+        "path": ".",
+        "stage": "python-repeats",
+        "message": (
+            f"{len(repeats)} Python name(s) are defined two or more times in one scope: "
+            f"{len(repeats) - overloads} written again (an `if`/`else` or `try`/`except` pair "
+            "the static reading does not settle, or a later def that replaces the first) and "
+            f"{overloads} `@overload` stub group(s). Each is one node at its first def, "
+            "whichever def runs: an edge to it is evidenced at its call, but the node's lines "
+            "name the first def, which may not be the one that runs (ADR-172, C-186). "
+            f"{examples}{' …' if len(repeats) > 5 else ''}"
+        ),
+    }
+
+
 def _shared_later_defs(
     symbols: list[dict], shared: dict[str, list[tuple[int, int]]]
 ) -> dict[str, list[tuple[int, int]]]:
@@ -801,6 +873,11 @@ def _build_symbol_layer(
     if python_reading is not None and modules:
         static_reading = _read_static_tests(graph, modules, parsed, fallback, python_reading)
         later_defs = _later_defs(graph, modules, parsed, python_reading)
+    # ADR-172 (C-186), read before Go's inits join the later defs: each
+    # Python name a scope defines more than once is one node at its first
+    # def, whichever runs, and one record names them.
+    python_repeats = _python_repeats(graph, modules, parsed, later_defs) if modules else {}
+    if python_reading is not None and modules:
         # ADR-161, before the join: a Python reference lane B named with
         # another symbol's name through a module the file imports is
         # scip-python's reading of a `from … import *` re-export (C-178).
@@ -1289,6 +1366,8 @@ def _build_symbol_layer(
         degraded.append(_rust_repeat_record(rust["same_header_repeats"]))
     if go_inits:
         degraded.append(_go_init_record(go_inits))
+    if python_repeats:
+        degraded.append(_python_repeats_record(python_repeats))
     graph["resolution_coverage"] = [
         {
             "file": row.file,

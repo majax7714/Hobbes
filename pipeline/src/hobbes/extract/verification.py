@@ -39,7 +39,7 @@ VERIFICATION_BASE: dict[str, dict] = {
         "repos": 12,
         # This repo's zone is trace-graded since the oracle lane's phase 2
         # (ADR-089, O6, 2026-08-25): recall-against-executed, never precision.
-        "on": 'this repo (dogfood, continuous — trace-graded, twice); pallets/click, pallets/flask (trace-graded); Textualize/rich (trace-graded; held out until ADR-160 was fitted on it); pyparsing/pyparsing (trace-graded, held out); collective/icalendar (trace-graded, held out); + six SWE-bench repos at span/declaration grain (astropy, django, scikit-learn, sphinx, sympy, xarray)',
+        "on": 'this repo (dogfood, continuous — trace-graded, twice); pallets/click, pallets/flask (trace-graded); Textualize/rich (trace-graded; held out until ADR-160 was fitted on it); pyparsing/pyparsing (trace-graded, held out); collective/icalendar (trace-graded, held out); hynek/structlog (trace-graded, held out); + six SWE-bench repos at span/declaration grain (astropy, django, scikit-learn, sphinx, sympy, xarray)',
         "depth": "multi-repo",
     },
     "typescript": {

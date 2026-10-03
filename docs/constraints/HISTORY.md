@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-186 registered, 2026-10-03 (0.2.101-beta; ADR-172, Max: "register the decision for python"):
+- **C-186 registered, surfaced.** A Python name one scope defines more than once is one node at its first
+  def, whichever runs; found on the held-out structlog cell (`dev._init_terminal`). A `python-repeats`
+  record names each one (structlog 3, click 6 and 16 `@overload` groups); nothing is drawn differently.
+- Tally: 186 entries, 138 active (106 surfaced, 28 partial, 3 unsurfaced, 1 n/a), 31 lifted,
+  11 superseded, 6 folded.
+
 C-185 registered, 2026-10-03 (0.2.98-beta; ADR-169, Max: route 1 of the flask `sansio/` re-ask):
 - **C-185 registered, surfaced.** scip-python writes no SymbolInformation for some classes, so no class
   `implements` edge is drawn to a base lane B itself resolved in the header (flask 14 of 80, click 9 of 97,

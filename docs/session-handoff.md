@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (thirty-eighth session, close); Hobbes 0.2.100-beta on `main`.**
+**Reviewed 2026-10-03 (thirty-eighth session, close); Hobbes 0.2.101-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image (`79151a10546c`) and the
-proxy are at 0.2.100-beta; this repo was ingested at HEAD by the host run of
+proxy are at 0.2.101-beta; this repo was ingested at HEAD by the host run of
 `scripts/ci-graph.sh 3fda729`, which passed. The old knowledge server's
 container was stopped for a `/mcp` reconnect. If `main` has moved, ingest at
 HEAD again. A new session's knowledge server is a new container from the
@@ -38,9 +38,7 @@ held-out cell before measuring any Python rule: structlog, icalendar and
 pyparsing are graded held out, rich, flask and click fitted; the 2026-10-03
 `ast` scan's unused candidates were voluptuous, marshmallow, toolz, tenacity.
 
-**Waiting on Max:** the Python `if`/`else` twin found on structlog (unregistered,
-precedent 1; proposed: register it and name the pairs), C-181's residual,
-ADR-126 §3 and the rest of "Decisions open for Max" in
+**Waiting on Max:** C-181's residual, ADR-126 §3 and the rest of "Decisions open for Max" in
 [`currently-open.md`](currently-open.md). Don't build any
 of them until Max answers.
 
@@ -68,9 +66,13 @@ move a cell:
   **0.2.100, ADR-171:** a constructed instance's `__call__`, `syntactic`
   (structlog +130, all confirmed; pyparsing +23; rich +6). P1 missed:
   pyparsing's `pp.X(…)(…)` abstain under C-178, which the source-count
-  prediction ignored (lesson added).
+  prediction ignored (lesson added). **0.2.101, ADR-172, C-186:** the Python
+  twin structlog showed (`dev._init_terminal`, one node at the def that does
+  not run) registered and named per ingest (`python-repeats`).
 - Slips, each fixed and in the BUILDLOG: I-2's guard renamed with its test;
-  `test_verification` red from `21d019e` to `62a654e`; the "last ADR" copy.
+  `test_verification` red from `21d019e` to `62a654e`, and again from
+  `9a5545a` to 0.2.101 (§3.8's row edited without its pinned copy); the
+  "last ADR" copy.
 
 ## Where things stand
 
@@ -86,7 +88,7 @@ move a cell:
   (ADR-160); pyparsing, icalendar and structlog are graded held out
   (icalendar 70.2%, its 6 wrong rows contained by ADR-168; structlog 77.8%
   at 0.2.100-beta).
-- **Register:** 185 entries: 137 active (105 surfaced, 28 partial, 3
+- **Register:** 186 entries: 138 active (106 surfaced, 28 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 31 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open.** H-37 is the latest, fixed at

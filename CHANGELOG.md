@@ -11,9 +11,24 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.100-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.101-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.101-beta — 2026-10-03 (a Python name defined more than once in one scope is named; ADR-172, C-186)
+
+**Patch: what the layer says**, Python. The held-out structlog cell showed a call to `dev._init_terminal`
+drawn to the node at the Windows def while Linux runs the other (`if _IS_WINDOWS: … else:` on a variable);
+the graph keeps one node per qualname, at the first def, and nothing said so for Python. Max: "register the
+decision for python".
+
+- **C-186 registered, surfaced:** one `python-repeats` record per ingest names each name a scope defines more
+  than once (an unsettled `if`/`else` or `try`/`except` pair, a redefinition, an `@overload` group; a
+  property's accessors excluded), with every def's line. Nothing is drawn differently.
+- Measured with lane B: structlog 3 names, click 6 and 16 `@overload` groups; edges and symbols
+  byte-identical.
+- The §3.8 Python row's pinned copy (`verification.py`) gains structlog; 0.2.100-beta's commit changed the
+  architecture's row without it, and `test_verification` was red there.
 
 ## 0.2.100-beta — 2026-10-03 (a call of a constructed instance calls its class's `__call__`, drawn `syntactic`; ADR-171, C-174 narrowed)
 

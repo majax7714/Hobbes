@@ -15908,3 +15908,17 @@ went to the Rust collision.
 - `scripts/ci-graph.sh 3fda729` on the host: `lanes` 17,813 sites, 0 unexplained (1 C-182 cfg twin);
   invariants run; review "nothing needs attention"; `lane_b` 28 passed; "graph checks passed". The image was
   rebuilt by the job (`79151a10546c`). Handoff rewritten.
+
+## 2026-10-03 (thirty-eighth session, cont.) — C-186 registered (0.2.101-beta, ADR-172)
+
+- Max: "register the decision for python" (the structlog twin, route: register and name). Measured first with
+  `ast` on six cells: property accessor groups everywhere (one property, left out), `@overload` groups
+  (icalendar 3, rich 7, flask 9, click 16), unsettled branch or `try` pairs and redefinitions (structlog 3,
+  pyparsing 3, rich 4, flask 2, click 11, before ADR-154's settled twins are taken out).
+- **Built:** `_python_repeats` (ADR-155's later live defs where lane B ran, every repeated qualname
+  without it; accessors out) and one `python-repeats` record per ingest; `test_python_repeats.py` 5. With
+  lane B: structlog 3, click 6 + 16 `@overload`; edges and symbols byte-identical to 0.2.100-beta.
+- **Slip:** 0.2.100-beta's commit (`9a5545a`) added structlog to architecture §3.8's Python row without its
+  pinned copy in `verification.py`, so `test_verification` was red from `9a5545a`; the full suite had run
+  before that doc edit and not after. Fixed here. Run the suite after the last edit, docs included.
+- Host: pytest 2,822, `lane_b` 28 of 28.
