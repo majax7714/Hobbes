@@ -11,9 +11,23 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.99-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.100-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.100-beta — 2026-10-03 (a call of a constructed instance calls its class's `__call__`, drawn `syntactic`; ADR-171, C-174 narrowed)
+
+**Patch: what the layer draws**, Python. Calling an instance runs its class's `__call__`, and no token names it
+(C-174), so nothing was drawn. Max: route 1 of the C-174 scoping, "go for diversity" on the held-out cell.
+
+- Where the callee is a construction the index draws `semantic` to a repo class, written in place
+  (`C(…)(…)`) or as a local bound exactly once by `N = C(…)` under ADR-160's refusals, the class's `__call__`
+  (its own or up single named bases) is drawn `calls`, `syntactic`, `via: "__call__"`; a module-level
+  `C(…)(…)` from the module. An annotated factory's result and a class writing `def __new__` on its chain
+  abstain; `graph["instance_calls"]` counts sites and abstentions.
+- **Regraded:** the new held-out structlog cell 1,110 → 1,240 confirmed (69.7% → 77.8%), every added row
+  confirmed; held-out pyparsing +23 (its `pp.X(…)(…)` sites abstain under C-178); rich +6; icalendar, flask
+  and click unchanged. 0 contradicted, poison PASS everywhere.
 
 ## 0.2.99-beta — 2026-10-03 (`cls(…)` in a classmethod calls its class, drawn `syntactic`; ADR-170)
 

@@ -721,7 +721,17 @@
   `parse`, naming C-171), which `list_blind_spots` reports as a degraded extraction.
 - **Source:** `pipeline/tests/test_deep_files.py`; the E3 draw's record.
 
-### C-174 — A call the language makes with no call token is not a site — *narrowed 2026-10-01 (ADR-156, 0.2.79-beta): a sync `with` item whose own call is drawn `semantic` to a class, or to a def whose return annotation the index resolves to one, has its `__enter__`/`__exit__` drawn*
+### C-174 — A call the language makes with no call token is not a site — *narrowed 2026-10-01 (ADR-156, 0.2.79-beta): a sync `with` item whose own call is drawn `semantic` to a class, or to a def whose return annotation the index resolves to one, has its `__enter__`/`__exit__` drawn; narrowed 2026-10-03 (ADR-171, 0.2.100-beta): a call of an instance constructed at the call (`C(…)(…)`) or bound once from a construction (`x = C(…)`; `x(…)`) has its class's `__call__` drawn*
+- **Narrowed 2026-10-03 (ADR-171, 0.2.100-beta).** Where the callee of a call is a construction the index
+  draws `semantic` to a repo class, either written in place (`C(…)(…)`) or as a local the function binds
+  exactly once by `N = C(…)` (ADR-160's refusals), that class's `__call__` (its own, or up a chain of single
+  named bases) is drawn as a `syntactic` `calls` edge at the call's line, `via: "__call__"`. The held-out
+  structlog cell gained 130 confirmed rows, none wrong; the held-out pyparsing cell 23, its `pp.X(…)(…)`
+  sites abstaining under C-178. **Still not drawn:** an instance held in an attribute or a parameter
+  (`self.highlighter(…)`, most of the fitted cells' `__call__` misses), a factory's result, a name bound
+  more than once or at module level, a class writing `def __new__` on its in-repo chain, and a metaclass
+  or out-of-repo base whose `__new__` or `__call__` returns another type (the rule cannot see it). The
+  ingest counts each abstention in `graph.json`'s `instance_calls` block.
 - **Narrowed 2026-10-01 (ADR-156, 0.2.79-beta).** Where a sync `with` item is a call drawn `semantic` to a
   repo class, or to a repo def whose return annotation the index resolves to a repo class, that class's
   `__enter__` and `__exit__` (its own or up a single named base chain) are drawn as `syntactic` `calls` at
@@ -750,7 +760,8 @@
     - iteration (`__iter__`/`__next__` in a `for`, a comprehension or an unpacking; `async for`);
     - truth testing (`__bool__`);
     - an f-string or `str()`/`hash()`/`len()` reaching `__str__`/`__hash__`/`__len__`;
-    - a call of an instance (`__call__`);
+    - a call of an instance (`__call__`) held anywhere but the call's own callee or a once-bound local
+      constructed from a repo class (ADR-171 draws those);
     - a property's getter and setter (*uses* to the property at a read; where the property's value is
       called, `obj.prop(…)`, the getter is drawn *calls*, since it does run there, and the value's own
       `__call__` is not drawn: pyparsing's `ppu.Japanese.identifier(…)`, corrected 2026-10-02);
@@ -824,6 +835,7 @@
   - Rust's and Java's hooks (`drop`, `close`, `next`) are ordinary names, so no note can single
     them out.
 - **Source:** the rich, flask and click cells' misses (`~/.hobbes/bench/heldout-rich/`); the
+  structlog and pyparsing held-out cells (`~/.hobbes/bench/heldout-structlog/`, ADR-171); the
   2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); `go/internal/knowledge` and
   `derive/manifests.py`, with their tests.
 

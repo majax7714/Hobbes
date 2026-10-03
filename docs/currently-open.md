@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.99-beta).
+Last reviewed: 2026-10-03 (0.2.100-beta).
 
 ## Decisions open for Max (no spend)
 
@@ -54,13 +54,25 @@ Last reviewed: 2026-10-03 (0.2.99-beta).
   one-sided masks pass. The fix is `inf_b`/`nan_b`/mixed specials, then a
   zero-spend regrade of the stored rows. Also G-hsr's macro-arity misfile
   and the ISA-split golds.
+- **A Python `if`/`else` twin is one node at its first def** (found on the
+  held-out structlog cell, `cells/structlog-py-2026-10-03.md`): where both
+  branches are read live (`if _IS_WINDOWS:` on a variable, which ADR-154 does
+  not read), the index makes the two defs one definition at the first, and the
+  node names the Windows def while Linux runs the other. Rust registers the
+  shape (C-182) and Go (C-183); Python's is called "display" in ADR-155 and
+  is unregistered, a precedent-1 item. Proposed: register it and name the
+  pairs in a degradation record, as C-182's `rust-cfg-twins` (a patch).
 - **Parked by Max:** C-150's remainder ("fine for now"). §3.8's paragraphs
   stay in the architecture ("dont split for now"). Constructions inside a
   template stay `uses`. repowise's cells stay on 0.49.0 (0.53.0 is out).
 
 ## Extraction, in order (no spend; each measured first)
 
-1. C-174's remainder, per language.
+1. C-174's remainder, per language. Python's instance `__call__` is drawn
+   where the instance is constructed at the call or bound once (ADR-171);
+   an instance held in an attribute (rich's `self.highlighter(…)`) is not.
+   The other Python shapes need an oracle change first: the trace keys
+   no operator, iteration, truth test or builtin dunder.
 
 ### Candidates, unranked
 

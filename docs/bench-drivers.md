@@ -42,6 +42,11 @@ named below was removed unless it says otherwise.
 - The `cls(…)` unit: `cls-classmethod/step0.py <repo> <key> <graph>` (each `cls(…)` site in a classmethod
   against the key's observed targets and the graph's edges; `<repo>-rows.json`).
 - The held-out icalendar cell: `heldout-icalendar/` (`PREREG.md`, `run.log`) and `oracle/icalendar-py/`.
+- ADR-171, an instance's `__call__`: `instance-call/step0.py <repo> <key> <graph>` (each `C(…)(…)` and once-bound
+  `x = C(…); x(…)` through the build's own class and method helpers, against the key; `<repo>-rows.json`);
+  `instance-call/run.sh` (ROOT=…; the after arm, six cells); `instance-call/compare.py cell=<before dir> …`
+  (totals, recall, the rule's added rows by bucket, any non-rule row change).
+- The held-out structlog cell: `heldout-structlog/` (`PREREG.md`, `run.log`) and `oracle/structlog-py/`.
 
 ## 2026-10-03 — C-182 registered (0.2.89-beta)
 

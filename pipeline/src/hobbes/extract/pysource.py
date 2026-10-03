@@ -539,6 +539,24 @@ class WithItem:
 
 
 @dataclass(frozen=True)
+class InstanceCall:
+    """A call whose callee is itself a call on a name or an attribute chain,
+    ``C(…)(…)`` (ADR-171 step 1, the direct form): the outer call runs the
+    instance's ``__call__``, and the source writes no name for it.
+
+    ``scope`` is as :attr:`Call.scope`; ``line`` and ``name`` are the inner
+    callee's terminal identifier's line and text — where the index answers
+    for ``C`` — and ``site`` is the outer call's line, where the edge is
+    evidenced (lane A records the outer call there as an ``<expr>`` site).
+    """
+
+    scope: str | None
+    line: int
+    name: str
+    site: int
+
+
+@dataclass(frozen=True)
 class EnvRead:
     """A statically visible environment-variable read."""
 
@@ -748,6 +766,21 @@ class ParsedFile:
     #: so :mod:`hobbes.extract.withstmt` reads the class off the settled
     #: graph at the item's own call.
     with_items: list[WithItem] = field(default_factory=list)
+    #: Every ``C(…)(…)`` whose inner callee is a name or an attribute
+    #: chain, in source order (ADR-171 step 1, direct).
+    #: :mod:`hobbes.extract.instcalls` reads the class off the settled
+    #: graph at the inner call.
+    instance_calls: list[InstanceCall] = field(default_factory=list)
+    #: ``{qualname: ((first line, last line, instances), …)}``, shaped as
+    #: :attr:`local_aliases` and kept the same way (ADR-171 step 1, bound):
+    #: each instance is ``(N, the line of R's callee's terminal identifier,
+    #: that identifier)`` for a name the definition's scope binds exactly
+    #: once, by a plain ``N = R`` whose right-hand side is a call on a name
+    #: or an attribute chain (:func:`_instance_binder`), and only where a
+    #: bare call ``N(…)`` in that scope uses it.
+    local_instances: dict[
+        str, tuple[tuple[int, int, tuple[tuple[str, int, str], ...]], ...]
+    ] = field(default_factory=dict)
 
 
 def parse_source(source: bytes) -> ParsedFile:
@@ -762,6 +795,7 @@ def parse_source(source: bytes) -> ParsedFile:
     _walk(root, [], parsed, ())
     parsed.local_defs = _unshared_local_defs(parsed)
     parsed.local_aliases = _called_local_aliases(parsed)
+    parsed.local_instances = _called_local_aliases(parsed, parsed.local_instances)
     parsed.local_bindings = _collect_local_bindings(root)
     parsed.local_imports = _collect_local_imports(root)
     parsed.static_tests = _collect_static_tests(root)
@@ -2426,7 +2460,42 @@ def _alias_binder(current: Node) -> tuple[str, str, str] | None:
     return _text(left), root, dotted.rpartition(".")[2]
 
 
-def _local_aliases(node: Node) -> tuple[tuple[str, int, str], ...]:
+def _instance_binder(current: Node) -> tuple[str, str, str, int] | None:
+    """``(N, R's callee's root, its last name, its terminal identifier's
+    line)`` where *current* is ADR-171's binder, else None.
+
+    :func:`_alias_binder`'s plain ``N = R``, but R is a call whose callee is
+    an identifier or an attribute chain of identifiers (``x = C(…)``,
+    ``x = mod.C(…)``). The line is where the index answers for the callee,
+    which is not always the assignment's.
+    """
+    if current.type != "assignment" or current.child_by_field_name("type") is not None:
+        return None
+    if current.parent is not None and current.parent.type == "assignment":
+        return None
+    left = current.child_by_field_name("left")
+    right = current.child_by_field_name("right")
+    # `x = (\n    C(…)\n)` — the parentheses only wrap the line.
+    while right is not None and right.type == "parenthesized_expression":
+        right = right.named_children[0] if len(right.named_children) == 1 else None
+    if left is None or left.type != "identifier" or right is None or right.type != "call":
+        return None
+    function = right.child_by_field_name("function")
+    dotted = _dotted(function) if function is not None else None
+    terminal = _terminal(function)
+    if dotted is None or terminal is None:
+        return None
+    return _text(left), dotted.partition(".")[0], _text(terminal), _line(terminal)
+
+
+def _alias_site(current: Node) -> tuple[str, str, str, int] | None:
+    """:func:`_alias_binder` with the assignment's line, the shape
+    :func:`_local_aliases` reads."""
+    binder = _alias_binder(current)
+    return None if binder is None else (*binder, _line(current))
+
+
+def _local_aliases(node: Node, binder=None) -> tuple[tuple[str, int, str], ...]:
     """``(N, the assignment's line, R's last name)`` for each name a
     function's own scope binds **exactly once, by a plain** ``N = R``
     (ADR-160 step 1), sorted.
@@ -2444,15 +2513,19 @@ def _local_aliases(node: Node) -> tuple[tuple[str, int, str], ...]:
     body holding a ``match`` or a ``type`` alias statement is refused
     whole. Order is not guarded (ADR-160 step 6): with one binding, a call
     the binding has not reached raises rather than reaching anything else.
+
+    *binder* is :func:`_alias_site` by default; ADR-171 passes
+    :func:`_instance_binder`, read under the same refusals.
     """
+    binder_of = binder or _alias_site
     own = list(_own_body(node))
     candidates: list[tuple[str, int, str]] = []
     for current in own:
         if current.type in ("match_statement", "type_alias_statement"):
             return ()
-        binder = _alias_binder(current)
-        if binder is not None and binder[1] != binder[0]:
-            candidates.append((binder[0], _line(current), binder[2]))
+        found = binder_of(current)
+        if found is not None and found[1] != found[0]:
+            candidates.append((found[0], found[3], found[2]))
     if not candidates:
         return ()
     counts: Counter = Counter()
@@ -2474,7 +2547,7 @@ def _local_aliases(node: Node) -> tuple[tuple[str, int, str], ...]:
     )
 
 
-def _called_local_aliases(parsed: ParsedFile) -> dict:
+def _called_local_aliases(parsed: ParsedFile, recorded: dict | None = None) -> dict:
     """:attr:`ParsedFile.local_aliases` as the walk collected it, less every
     alias no call uses (ADR-160 step 2).
 
@@ -2484,15 +2557,20 @@ def _called_local_aliases(parsed: ParsedFile) -> dict:
     scope and keeps nothing here; one in a lambda or a comprehension is
     the definition's own, as lane A records its scope. Definitions left
     with no alias, and qualnames left with no definition, go.
+
+    *recorded* is :attr:`ParsedFile.local_aliases` by default; ADR-171
+    passes :attr:`ParsedFile.local_instances`, kept by the same test.
     """
-    if not parsed.local_aliases:
+    if recorded is None:
+        recorded = parsed.local_aliases
+    if not recorded:
         return {}
     sites: dict[tuple[str, str], list[int]] = defaultdict(list)
     for call in parsed.calls:
         if call.scope is not None and "." not in call.callee:
             sites[(call.scope, call.callee)].append(call.line)
     out: dict = {}
-    for qualname, definitions in parsed.local_aliases.items():
+    for qualname, definitions in recorded.items():
         kept = []
         for start, end, aliases in definitions:
             aliases = tuple(
@@ -3359,6 +3437,13 @@ def _walk(
                     *parsed.local_aliases.get(qualname, ()),
                     (_line(node), node.end_point.row + 1, aliases),
                 )
+            # ADR-171 step 1 (bound), under ADR-160's refusals.
+            instances = _local_aliases(node, _instance_binder)
+            if instances:
+                parsed.local_instances[qualname] = (
+                    *parsed.local_instances.get(qualname, ()),
+                    (_line(node), node.end_point.row + 1, instances),
+                )
         body = node.child_by_field_name("body")
         if body is not None:
             child_stack = [*stack, (name, "class" if kind == "class_definition" else "function")]
@@ -3397,6 +3482,20 @@ def _walk(
                     function.start_point.column,
                 )
             )
+            # ADR-171 step 1 (direct): `C(…)(…)` runs the instance's
+            # `__call__`; the class is read at the inner callee.
+            if function.type == "call":
+                inner = function.child_by_field_name("function")
+                terminal = _terminal(inner)
+                if terminal is not None and _dotted(inner) is not None:
+                    parsed.instance_calls.append(
+                        InstanceCall(
+                            _scope_qualname(stack),
+                            _line(terminal),
+                            _text(terminal),
+                            function.start_point.row + 1,
+                        )
+                    )
         if dotted is not None:
             line = _line(node)
             if dotted in _ENV_CALLS:

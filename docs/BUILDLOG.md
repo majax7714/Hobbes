@@ -15883,3 +15883,22 @@ went to the Rust collision.
 - **Pre-registered** before the ingest and the key: `~/.hobbes/bench/heldout-structlog/PREREG.md` (sha256
   `d65d5f69005d0fefabfbc8b61b305c6c44e8b9e221a0e8fcf293bd611341471f`), the rule as worded and S1–S4, P1–P2,
   F1–F2. The baseline cell launched at 0.2.99-beta.
+
+## 2026-10-03 (thirty-eighth session, cont.) — an instance's `__call__` (0.2.100-beta, ADR-171, C-174 narrowed)
+
+- Built as `PREREG.md` froze it: `pysource` records `C(…)(…)` (`instance_calls`) and once-bound `x = C(…)`
+  called bare (`local_instances`, ADR-160's refusals through `_local_aliases(…, _instance_binder)`; a
+  parenthesised right-hand side unwrapped, found by the unit test); `instcalls.instance_calls` reads the
+  class off the settled graph (a class only; `def __new__` on the chain abstains) and `__call__` by
+  `_class_method`; drawn by `_add_with_call_edges(…, via="__call__")`. `miniinst` fixture (rich's
+  `Highlighter` chain); `test_instcalls.py` 25, `test_instcalls_lane_b.py` 2.
+- **Held-out structlog baseline at 0.2.99-beta** (`cells/structlog-py-2026-10-03.md`): 1,110 confirmed, 11
+  suspect, 69.7%, poison PASS; 926 passed and 2 failed per traced run (928 untraced). Suspects read row by
+  row: 10 C-60 declared targets; 1 Python `if`/`else` twin whose node is the def that does not run
+  (`dev._init_terminal`), unregistered for Python — taken to Max in `currently-open.md`, not built.
+- **Regrade** (`instance-call/run.sh`, `compare.py`): structlog 1,240 (77.8%), every one of 130 added rows
+  confirmed; pyparsing +23 confirmed, +32 unobserved (read in source, correct); rich +6; icalendar, flask,
+  click unchanged; no non-rule row moved; 0 contradicted, poison PASS. S1–S4, P2, F1, F2 met; **P1 missed**
+  (55 rows against ≥ 100): 196 of pyparsing's direct sites are `pp.X(…)(…)`, refused by C-178's
+  containment, which the source-count prediction ignored (lesson added).
+- Host: pytest 2,817, `lane_b` 28 of 28, Go `./...` green; proxy and image rebuilt (`a4672d3cedc3`).

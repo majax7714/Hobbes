@@ -102,6 +102,12 @@ writing a brief, a probe or a pre-registration. The resume point is
   target, and four lines held two calls. C5 missed by one row although the
   rule did exactly what the probe saw. Dedupe by `(path, line, target)`.
 
+- **A prediction from written sites must subtract the registered refusals.**
+  ADR-171's P1 counted pyparsing's 310 `C(…)(…)` in source and predicted at
+  least 100 rows; 196 of them are `pp.X(…)(…)`, which C-178's containment
+  refuses before the join, and 55 were drawn. Before a source-count
+  prediction, run it past the refusals the cell is known to trigger.
+
 ## Grading
 
 - **Read every suspect of a new key, row by row.** A trace key never

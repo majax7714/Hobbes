@@ -36,6 +36,7 @@ from hobbes.extract import (
     fixtures,
     indexcache,
     ingestlock,
+    instcalls,
     laneacache,
     minted,
     pybases,
@@ -1129,6 +1130,19 @@ def _build_symbol_layer(
         if cls_counts:
             # Additive, and absent where no file records a classmethod.
             graph["cls_calls"] = cls_counts
+    # ADR-171, after the `cls` step and for the same reason: calling an
+    # instance runs its class's `__call__`, and the site names a local or
+    # an expression, so the join has nothing to draw. The class is the
+    # index's own edge at the construction. `syntactic`; a module-level
+    # `C(…)(…)` is drawn from the module, as a module-level `with` is.
+    with timings.step("instance calls"):
+        instance_rows, instance_counts = instcalls.instance_calls(
+            modules, parsed, graph["symbols"], graph["symbol_edges"]
+        )
+        _add_with_call_edges(graph, instance_rows, via=instcalls.CALL)
+        if instance_counts:
+            # Additive, and absent where no file records a site.
+            graph["instance_calls"] = instance_counts
     if injections is not None:
         injections.extend(drawn)
     # C-153's surfacing (ADR-125 §4), read off the edges the projection has
@@ -1393,7 +1407,7 @@ def _add_value_call_edges(graph: dict, drawn: list[dict]) -> None:
     )
 
 
-def _add_with_call_edges(graph: dict, drawn: list[dict]) -> None:
+def _add_with_call_edges(graph: dict, drawn: list[dict], via: str = withstmt.WITH) -> None:
     """Draw each ``__enter__`` / ``__exit__`` a ``with`` item's known class
     runs as one ``calls`` edge (ADR-156), evidence at every item that made
     it.
@@ -1405,7 +1419,8 @@ def _add_with_call_edges(graph: dict, drawn: list[dict]) -> None:
     **module** — a module-level ``with`` runs at import, and the projection
     draws a module-body call from the module node (ADR-007). The tier is
     ``syntactic``: the index answered at the item's call, not at the
-    methods, where it answered nothing.
+    methods, where it answered nothing. ADR-171 draws an instance's
+    ``__call__`` through it with its own *via*, for the same reasons.
     """
     ids = {symbol["id"] for symbol in graph["symbols"]}
     callers = ids | {node["id"] for node in graph["nodes"]}
@@ -1423,7 +1438,7 @@ def _add_with_call_edges(graph: dict, drawn: list[dict]) -> None:
                 target,
                 "calls",
                 [
-                    {"path": path, "line": line, "via": withstmt.WITH}
+                    {"path": path, "line": line, "via": via}
                     for path, line in sorted(evidence)
                 ],
                 tier=SYNTACTIC,

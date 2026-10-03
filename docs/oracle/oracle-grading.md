@@ -2772,6 +2772,38 @@ gone, 12 key-agreeing union rows withdrawn), recall 68.7%; rich, flask, click an
 declared-target subclass sites); C5 missed by one row (+51 against +55 ± 3): step 0 counted call sites, the
 grader one row per line, and by line step 0 read +51 exactly. flask +1, click 0, pyparsing +12.
 
+### 10.47 A held-out Python cell, structlog, and an instance's `__call__` — `PREREG.md` written 2026-10-03 before the ingest and the key; graded at 0.2.99-beta, then once after ADR-171 (C-174 narrowed)
+
+**Why.** Of C-174's Python shapes only an instance's `__call__` is keyed by the trace beyond `with`. Step 0 read
+the fitted cells only (rich 7 rows, 6 confirmed, 1 not executed; flask and click 0). structlog 26.1.0 was
+picked by an `ast` scan of ten candidates for diversity and graded first at the frozen version (cell
+`cells/structlog-py-2026-10-03.md`); pyparsing is the second held-out cell, partially seen (its `__call__`
+miss count was read in scoping, no row).
+
+**The held-out grade at 0.2.99-beta:** 1,110 confirmed, 0 contradicted, 11 suspect (1.0%), recall 69.7%,
+poison PASS, `hobbes lanes` 0 disagreements. 10 suspects are C-60's declared target (Protocol receivers,
+`get_logger()`'s declared return); 1 is a Python `if`/`else` twin whose node is the def that does not run
+(`dev._init_terminal`, line 72 drawn, line 103 run), the shape C-182 and C-183 register for Rust and Go and
+nothing registers for Python (taken to Max).
+
+**ADR-171 at 0.2.100-beta, scored against the pre-registration** (`~/.hobbes/bench/instance-call/`):
+
+| cell | confirmed | suspect | unobserved | recall | sites / drawn |
+|---|---|---|---|---|---:|
+| structlog (held out) | 1,110 → **1,240** | 11 → 11 | 140 → 140 | 69.7% → **77.8%** | 160 / 134 |
+| pyparsing (held out) | 3,529 → 3,552 | 68 → 68 | 1,975 → 2,007 | 50.8% → 51.1% | 357 / 56 |
+| rich | 5,019 → 5,025 | 44 → 44 | 1,134 → 1,135 | 93.5% → 93.6% | 15 / 7 |
+| icalendar, flask, click | unchanged | unchanged | unchanged | unchanged | 21, 26, 42 / 0 |
+
+No row outside the rule's changed on any cell; 0 contradicted and poison PASS everywhere. S1–S4 met
+(structlog: 130 rows, all confirmed). **P1 missed** (pyparsing ≥ 100 rows drawn): 55 rows from 56 sites.
+275 sites abstain `no-call-edge`, and 196 of the direct ones are `pp.X(…)(…)` — read through pyparsing's star
+re-export, which ADR-161 refuses before the join (C-178), so there is no construction edge to read. The
+prediction counted written sites and did not subtract a registered refusal. P2 met (0 new suspects; the 32
+new unobserved rows are `examples/` and `dest/` code no test loads, read in source: `Word(nums)("count")`,
+`Group(…)("rules")` reach `ParserElement.__call__`). F1 met (rich +6, +0 suspect, the 1 unobserved row
+`path_highlighter(text)` read correct in source); F2 met.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
