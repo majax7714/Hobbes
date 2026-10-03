@@ -41,7 +41,7 @@ then Rust's impl-distinct ids, then C++ functors and conversions), each on a
 held-out cell picked first. Python held out: structlog, icalendar,
 pyparsing; unused: voluptuous, marshmallow, toolz, tenacity.
 
-**Waiting on Max:** C-187's prevention (ADR-173), C-181's residual, ADR-126 §3 and the rest of "Decisions open for Max" in
+**Waiting on Max:** C-181's residual, ADR-126 §3 and the rest of "Decisions open for Max" in
 [`currently-open.md`](currently-open.md). Don't build any
 of them until Max answers.
 

@@ -15994,3 +15994,9 @@ went to the Rust collision.
 - **Slip:** 0.2.103-beta's bump pinned the architecture's §8 header by line number after an insertion had
   moved it, so it read 0.2.102-beta at `cef7b4f`; fixed here, by content. Grep the version, never a line.
 - Host: pytest 2,831, Go `./...` 405; proxy and image rebuilt (`5f4de28d881e`).
+
+## 2026-10-03 (thirty-ninth session, cont.) — Max decides the Phase 1 routes
+
+- Max: "good with recommended". The Python trace oracle: a measuring run first (a patched tracer copy, bench
+  only, in the image, on rich, flask, click and structlog). C-187: ids scoped by directory (ADR-173 route 1).
+  Item 5 (Rust operators) deferred until a graded crate writes operator impls; items 6 and 7 next.

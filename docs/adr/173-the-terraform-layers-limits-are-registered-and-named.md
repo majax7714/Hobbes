@@ -69,6 +69,9 @@ Two shapes drew **wrong**:
   that declares a shared address. terraform-aws-eks would lose most of 170 reference sites.
 - **Route 3, leave it named** (this ADR's state).
 
+**Decided 2026-10-03** (Max: "good with recommended"): route 1, ids scoped by directory. Built in its own
+amendment.
+
 ## Built (0.2.102-beta)
 
 `extract/terraform.py`: `_layer_record`, `hcl-parse` records, the directory check in `extract_terraform`,

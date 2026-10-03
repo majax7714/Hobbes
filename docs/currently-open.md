@@ -22,16 +22,7 @@ Last reviewed: 2026-10-03 (0.2.104-beta).
   `ministdlib` fixture pins it. Proposed: refuse lane A's fallback where
   the same name is also bound by a stdlib import (a patch), or leave it
   registered.
-- **C-187's prevention** (ADR-173 § Not decided here): one Terraform
-  address in two directories is one node (terraform-aws-eks: 170 of 288
-  reference sites touch a merged node). Route 1, ids scoped by directory
-  (`tf:<dir>:<address>`, C-187 lifts, every multi-directory `tf:` id
-  changes); route 2, C-180's refusal of later directories' facts; route 3,
-  leave it named.
-- **Extending the Python trace oracle** to key operator, iteration and
-  truth-test dunders, which would unblock C-174's other Python shapes.
-  Max, 2026-10-03: decided once extraction Phase 1's repo-scale counts
-  (item 2 below) are taken back to him.
+
 - **ADR-158's amendment:** nested functions file under their top-level
   symbol. This was pre-registered, but it was not in the route Max named.
   C-176 keeps the floor (an object literal's method, an unnamed class, a
@@ -75,7 +66,7 @@ measured.
 
 **Phase 1, audits (an unnamed limit outranks recall):**
 1. ~~Terraform/HCL~~ done at 0.2.102-beta (ADR-173, C-187 to C-193); its
-   prevention is in "Decisions open for Max".
+   prevention was decided below.
 2. ~~C-174's repo-scale counts~~ recorded at 0.2.104-beta (C-174's "Bites at";
    `~/.hobbes/bench/c174-counts-2026-10-03/`). Taken to Max for the
    trace-oracle decision.
@@ -84,6 +75,16 @@ measured.
    both (`~/.hobbes/bench/c176-go-java-2026-10-03/`).
 4. ~~C-164's remainder~~ named at 0.2.103-beta (ADR-135's amendment);
    swallowing extents without an index stay unnamed (C-164, partial).
+
+**Max, 2026-10-03, on the Phase 1 routes ("good with recommended"):**
+- **The Python trace oracle: measure first.** A patched copy of the tracer,
+  bench tooling only, run in the image on rich, flask, click and structlog
+  for observed implicit-dunder counts; the standing keys stay as they are.
+  The extension itself is decided on those counts.
+- **C-187's prevention: ids scoped by directory** (`tf:<dir>:<address>`,
+  ADR-173's route 1). C-187 lifts.
+- **Item 5 deferred** until a graded Rust crate writes operator impls;
+  items 6 and 7 go next.
 
 **Phase 2, rules a key grades:**
 5. **Rust operators, `Deref`, `Index` (C-174),** ADR-131's shape: lane B
