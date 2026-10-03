@@ -226,6 +226,10 @@ stays Max's call.
 
 *The stable subsystem. Self-contained items with measured targets —
 the best on-ramp for a new contributor who should learn the codebase.*
+The ordered extraction queue and its unranked candidates live in
+[`currently-open.md`](currently-open.md) § Extraction. This section keeps
+each item's history and the parked tail, which `currently-open.md` points
+back to.
 
 - ~~**JavaScript's evidence (ADR-140, named by Max 2026-09-19).**~~ —
   **done 2026-09-19 (0.2.53–0.2.55-beta):** three JS cells graded at
@@ -244,7 +248,7 @@ the best on-ramp for a new contributor who should learn the codebase.*
   call (`group()` → `command`), 82.3% (§10.34). Open from it: click's 806
   remaining misses (460 closures — callbacks reached through attributes and
   parameters — 215 methods, 81 lambdas), each measured first
-  (`session-handoff.md`); then ADR-145 amended (0.2.69-beta, 2026-09-22), the
+  (`currently-open.md`); then ADR-145 amended (0.2.69-beta, 2026-09-22), the
   fixture value through a local and a base's method: flask, keyed for it,
   41.5% → 56.4% (§10.35); then ADR-150 (0.2.70-beta, 2026-09-24): flask's 3
   Hobbes-wrong nested-def edges, and click's one, were scip-python's shared
@@ -262,9 +266,12 @@ the best on-ramp for a new contributor who should learn the codebase.*
   measured first: ~~a qualname defined twice outside a static test (one node at the first def)~~
   — **measured and fixed 2026-10-01 (ADR-155, 0.2.75-beta):** its references were never lost
   (scip-python names the first def), but lane B's `uses` facts inside a later def were filed under
-  the class or module (click 28 wrong edges, flask 13), and they now sit at the qualname; an
-  aliased function-local import that draws nothing (flask 2), scip-python's silence on flask's
-  `urlsplit`.
+  the class or module (click 28 wrong edges, flask 13), and they now sit at the qualname;
+  ~~an aliased function-local import that draws nothing (flask 2)~~ — **closed 2026-10-02:**
+  the premise (an alias) was wrong, and flask's local `cls` is a correct refusal under C-9's
+  "a name bound twice"; ~~scip-python's silence on flask's `urlsplit`~~ — **registered
+  2026-10-03 as C-181** (ADR-164, 0.2.88-beta): a dotted stdlib module's names get
+  document-local symbols.
 - ~~**One file's depth ends an ingest (found by the Calvin E3 draw, D-8).**~~
   — **done 2026-09-26 (0.2.71-beta):** moonlab's 537-call bindgen chain
   overflowed Rust's recursive walk and ended the whole ingest. The Rust, Go,
@@ -302,9 +309,12 @@ the best on-ramp for a new contributor who should learn the codebase.*
   namespace members, the constructor grain settled before `new`):** a class property whose initializer is a function literal
   as a `method` symbol (zod: 1,029 collapsed pairs, 6.2% of the cell);
   exported members of a `namespace` block as symbols qualified by the
-  namespace (zod: 230 rows); `new X(..)` as a lane A call site (cheerio
+  namespace (zod: 230 rows); ~~`new X(..)` as a lane A call site (cheerio
   5, zod ~230 — with the grader-grain question first: the key names the
-  class whose constructor answers, the base class for an inherited one).
+  class whose constructor answers, the base class for an inherited one)~~
+  — **settled 2026-09-19 (ADR-142; C-168 narrowed 2026-09-20):** a construction is a call
+  where the index names the constructor. The class-property functions
+  are to be re-asked, not started (`currently-open.md` § Decisions).
 - **Cross-language module-id namespacing** — the live parked gap
   (`future_additions.md`, C-15): a colliding `widget.py`/`widget.ts`
   drops a file by pipeline-order accident. Deserves its own ADR;
@@ -388,7 +398,8 @@ the best on-ramp for a new contributor who should learn the codebase.*
       the harness (`S-20260913T145700Z-a323`). All 27 Go cells with a
       stored key were regraded with nothing moved.
     - C-131's macro gap: parked (`future_additions.md`);
-    - C-135's surfacing gap (bpftop): a candidate once named.
+    - ~~C-135's surfacing gap (bpftop)~~ **closed 2026-09-14** (0.2.16-beta,
+      ADR-109 amended; see the residue below).
   - **Then the residue:**
     - ~~C-134, the test registrations (Unity's `RUN_TEST`, CMocka,
       Check)~~ **Narrowed 2026-09-13** (0.2.13-beta, ADR-108 amended).
@@ -403,7 +414,9 @@ the best on-ramp for a new contributor who should learn the codebase.*
       (ADR-138: nothing on a graded cell, 116 includes on ScummVM); the
       header claim beside it was (C-142, 0.2.50-beta).
   - ~~C++ has not been named.~~ **C++ is supported since 0.2.23-beta
-    (ADR-113);** its recall work is item 10 above.
+    (ADR-113);** its recall history is item 10 of "Where the project
+    stands" at the top of this file, and its open remainder is in
+    `currently-open.md` § Extraction.
 
 *Profile: one owner for the Python/tree-sitter side, optionally one for
 tsextract/Go ports. Every item has a numeric before/after.*

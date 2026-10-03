@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.96-beta).
+Last reviewed: 2026-10-03 (0.2.99-beta).
 
 ## Decisions open for Max (no spend)
 
@@ -99,13 +99,24 @@ Last reviewed: 2026-10-03 (0.2.96-beta).
   C-135's autotools, Meson and Bazel roots, C-133's unit 2 and its macro
   half; C-133's unit 2 only if a graded cell shows the cost). C-139's
   finer extent, also only if a graded cell shows the cost.
-  C-140's remainder (ADR-112's route 2). Optional: a `lane_b` end-to-end
-  case for ADR-135.
+  Optional: a `lane_b` end-to-end case for ADR-135.
+- **C-13:** a globals-style TS/JS test file (no framework import) reports
+  framework `unknown`; jest-globals detection is not built.
+- **C-171's Python residual:** `pysource`'s visitor overflows near 600
+  levels where CPython compiles 2,000. The overflow is surfaced per file,
+  and no repo has met it yet.
+- **W1's parked tail** (detail in `workstreams.md` W1; each opens when Max
+  names it): the Java follow-ups (a Spring pack, Maven toolchains, a
+  two-pass `java-build`, a bytecode RTA oracle, Kotlin lane A); C-67's
+  Gradle leftovers (a late `compilerArgs`, Kotlin under the plugin,
+  external symbol names); a `bench-rust` pack; `hobbes cache` hygiene.
 
 ## Other no-spend work
 
 - **W1/W3:** the decorated-declaration line convention, the C-15
   namespacing ADR, and `fetch-java` on the egress proxy.
+- **W5:** C-140's remainder (ADR-112's route 2; a forged edit line in a
+  doer's flight log, detail at C-140 in `constraints/dispatch-harness.md`).
 - **Comparative queue**, if Max names it: the two SQLite tools in
   `comparative/field.md` (converters first), and syft's keys on a bigger
   box.

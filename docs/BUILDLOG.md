@@ -15854,3 +15854,17 @@ went to the Rust collision.
 - `scripts/ci-graph.sh 3fda729` on the host: `lanes` 17,715 sites, 0 unexplained; invariants run; review
   "nothing needs attention"; `lane_b` 27 passed; "graph checks passed". The image was rebuilt by the job; the
   knowledge server's old container stopped for `/mcp`.
+
+## 2026-10-03 (thirty-eighth session) — the open-work docs reconciled (no version)
+
+- Max asked for a review of the top-level docs for open extraction work, then "fix the drift first". A
+  subagent cross-read `workstreams.md` W1 against `currently-open.md`; each cited line was re-read before
+  editing.
+- **W1, stale lines corrected:** click's misses point at `currently-open.md`, not the handoff; ADR-154's two
+  leftovers struck (flask's aliased local `cls` closed 2026-10-02 as a correct C-9 refusal; `urlsplit`
+  registered as C-181); `new X(..)` struck as settled by ADR-142; C-135's bpftop gap struck as closed
+  2026-09-14; "item 10 above" named. W1 now says the ordered queue lives in `currently-open.md`.
+- **`currently-open.md`:** stamp to 0.2.99-beta; C-140's remainder moved from Extraction to a W5 line (it
+  is the dispatch-harness flight log); C-13, C-171's Python residual and W1's parked tail (Java follow-ups,
+  C-67's Gradle leftovers, `bench-rust`, cache hygiene) added, as they had no entry there.
+- `test_agent_docs.py` 4 passed. Next: C-174's remainder, Python first.
