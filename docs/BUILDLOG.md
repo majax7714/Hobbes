@@ -15769,3 +15769,19 @@ went to the Rust collision.
   `0bf6103e53c17e96…`), frozen at 0.2.96-beta `a5b4f41`, image `58f823a5a3d1`. icalendar v7.3.0 cloned at `138c8453` (the
   scout's clone was gone), venv `uv sync --group test`, CPython 3.12.13.
 - Proxy rebuilt static (`hobbes-proxy 0.2.96-beta`) and the image rebuilt.
+
+## 2026-10-03 (thirty-seventh session, cont.) — the held-out icalendar grade; C-184 registered
+
+- **Graded once at 0.2.96-beta** (`a5b4f41`, image `58f823a5a3d1`), contained, 2 traced runs (18,166 passed
+  each), 1,933 s: 3,489 confirmed, 0 contradicted, 22 suspect, recall 68.9%, poison PASS, `lanes` exit 3
+  (`docs/oracle/cells/icalendar-py-2026-10-03.md`, `oracle-grading.md` §10.46).
+- **Every suspect read.** 16 are C-60's (10 declared targets, 6 a monkeypatched `_utc_now`). **6 are
+  Hobbes-wrong, all `semantic`:** scip-python answers a method call on a union-typed receiver with the first
+  member's method (`VPROPERTY`'s head `vAdr`; a strategy union). Registered as **C-184** (unsurfaced), the
+  Python face of TS's C-97, which ADR-104 contains for TS only. H1 missed; H2–H8 met.
+- C-178's check: 32 `uses` rows without the target's name, all instance attributes under their class.
+- **Not done, by precedent 1:** the `cls(…)` rule waits behind C-184's containment, which is Max's call
+  (routes in `currently-open.md`). Its step 0 on icalendar was read only after the grade; the rule's
+  wording stays as `PREREG.md` froze it.
+- Python's verification base (`verification.py`) does not yet name icalendar; adding it moves the number
+  and is left for the C-184 unit.

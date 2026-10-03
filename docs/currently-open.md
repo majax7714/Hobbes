@@ -11,10 +11,20 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.89-beta).
+Last reviewed: 2026-10-03 (0.2.96-beta).
 
 ## Decisions open for Max (no spend)
 
+- **C-184 containment (precedent 1: it outranks the `cls(…)` rule).** The
+  held-out icalendar grade found scip-python drawing a method call on a
+  union-typed receiver to the first member's method at `semantic` (6
+  Hobbes-wrong rows; `oracle-grading.md` §10.46). Routes: (1) lane A reads
+  a receiver's declared annotation where it is written (a parameter, an
+  attribute, a `TypeAlias` of `A | B`/`Union[…]`) and, where two or more
+  in-repo members declare the member, the join vetoes lane B and the tail
+  says `union-member`, as ADR-104 does for TS (measured first on the
+  cells); (2) surface only: a record counting lane B answers at a member
+  of a union-named alias; (3) leave it registered.
 - **C-181's residual** (ADR-164): a name that a stdlib import binds, and
   that an `except ImportError:` branch rebinds to a repo function, keeps
   lane A's `syntactic` edge to the repo function. Lane B's local answer
@@ -41,11 +51,19 @@ Last reviewed: 2026-10-03 (0.2.89-beta).
   ADR-145's `syntactic` fixture-value edges (40 of flask's items, `with
   app.app_context():`). Allowing it would stack one `syntactic` rule on
   another.
-- **flask's `src/flask/sansio/`** has no `__init__.py` (PEP 420). Lane A
-  names its modules `app` and `scaffold`. The `implements` join places
-  `App → Scaffold` but not `Flask → App` (`graph["implements"]["outside"]`
-  79). Nobody has read why. Whether to register it as a constraint is
-  Max's call.
+- **flask's `src/flask/sansio/` and the missing `Flask → App`** (re-ask,
+  2026-10-03: the probe overturned the premise Max approved). Lane A names
+  the PEP 420 modules `app`, `scaffold`, `blueprints`; scip-python's own
+  monikers say the same (`app/App#`), so references join (`flask.app →
+  app` is drawn). The missing class pair is scip-python 0.6.6's: it writes
+  no SymbolInformation for `Flask#` at all (its method pair
+  `create_jinja_environment` is stated; `Blueprint#`, `App# → Scaffold#`
+  are too), so the pair is not even counted `outside`; why is unread.
+  Routes for Max: register the provider omission, surfaced by counting
+  lane A's in-repo bases with no `implements` row; register the PEP 420
+  naming (ids are not the import path); draw the pair from lane A's bases
+  (`syntactic`, a recall rule, measured first). Evidence: the cached facts
+  `~/.hobbes/cache/index/f38d9da296f86d6eefa21375.facts.ndjson`.
 - **`npm ci` refused three of four lockfile-bearing JS repos** (counted
   under C-23 in C-165). Open: whether "pinned or declined" falls back to
   anything. Nothing is proposed.
@@ -60,15 +78,12 @@ Last reviewed: 2026-10-03 (0.2.89-beta).
 
 ## Extraction, in order (no spend; each measured first)
 
-1. **`cls(…)` in a classmethod** (rich 57, pyparsing 17). **The held-out
-   cell is collective/icalendar v7.3.0** (`138c8453`; Max, 2026-10-02): 81
-   `cls(…)` sites by an `ast` scan, 18,166 tests offline, nothing ingested
-   or keyed yet (`~/.hobbes/bench/heldout-scout-2026-10-02/RESULTS.md`;
-   dnspython v2.8.0 is the spare). Pre-register it before the ingest and
-   the key; its tests live in the package (`src/icalendar/tests`). pyparsing
-   stays held out. On the new cell, also count the
-   `semantic` rows whose line does not hold the target's name (C-178's
-   check), because a trace key grades calls only.
+1. **`cls(…)` in a classmethod** (rich 55 confirmable, flask 1, click 0 by
+   step 0; `~/.hobbes/bench/cls-classmethod/`). The held-out icalendar cell is
+   graded at 0.2.96-beta (`oracle-grading.md` §10.46) and its rule rows
+   C1–C5 are pre-registered (`~/.hobbes/bench/heldout-icalendar/PREREG.md`).
+   Next: the ADR (tier `syntactic`; a subclass-only site is C-60's declared
+   target), then the build and the C-rows. Waits behind C-184's containment.
 2. C-174's remainder, per language.
 
 ### Candidates, unranked

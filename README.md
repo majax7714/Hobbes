@@ -392,8 +392,8 @@ drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings: C-71 fixed and
 surfaced the same day (ADR-098), the other nine lifted the next day
 ([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and eighty-three entries (one
-hundred and thirty-five active, thirty-one lifted, eleven superseded, six
+The constraint register holds one hundred and eighty-four entries (one
+hundred and thirty-six active, thirty-one lifted, eleven superseded, six
 folded), each naming where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image

@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-184 registered, 2026-10-03 (the held-out icalendar grade at 0.2.96-beta):
+- **C-184 registered, unsurfaced.** scip-python draws a method call on a union-typed receiver to the first
+  member's method, at `semantic`: 6 Hobbes-wrong rows on icalendar (`VPROPERTY`'s head `vAdr`, a strategy
+  union). TypeScript's face is contained (C-97); Python's is not. Containment is Max's call.
+- Tally: 184 entries, 136 active (104 surfaced, 27 partial, 4 unsurfaced, 1 n/a), 31 lifted,
+  11 superseded, 6 folded.
+
 C-179 partial, 2026-10-03 (0.2.96-beta; ADR-167, Max: route 1, name the load at the point of use):
 - **C-179 unsurfaced → partial.** Lane A records each `import_module`/`__import__`/`spec_from_file_location`
   call with what it names as written and places it on an in-repo module only exactly; `tests_guarding`

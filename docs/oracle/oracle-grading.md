@@ -2748,6 +2748,21 @@ Signed direction of fix: pyparsing's `uses` rows to `CaselessLiteral` 1,671 → 
 Q1–Q4, Q6 met; Q5 missed as worded (this repo's 3 are the unit's own fixture). The trace key cannot grade
 `uses` rows, so the cell's figures do not move; the record is the row counts above.
 
+### 10.46 A held-out Python cell, icalendar, for the `cls(…)` unit — `PREREG.md` written 2026-10-03 before the ingest and the key; graded at 0.2.96-beta (C-184 registered)
+
+**Why.** The `cls(…)`-in-a-classmethod step 0 read the fitted cells only (rich 58 sites: 55 the key confirms at
+the own class, 2 seen only at a subclass, 1 not executed; flask 2; click 0). icalendar v7.3.0, Max's pick, was
+graded first at the frozen version (cell `cells/icalendar-py-2026-10-03.md`).
+
+**The held-out grade:** 3,489 confirmed, 0 contradicted, 22 suspect (0.6%), recall 68.9%, poison PASS, `hobbes
+lanes` exit 3. H2–H8 met. **H1 missed: 6 of the 22 suspects are Hobbes-wrong**, every one `semantic` and one
+cause: scip-python resolves a member access on a union-typed receiver (`VPROPERTY = vAdr | vBoolean | …`; a
+three-strategy union) to the **first** member's declaration, so `component['TZOFFSETFROM'].to_ical()` draws
+`vAdr.to_ical`. It is TypeScript's `static→union-member` (ADR-104, C-97) in Python, uncontained there;
+registered as **C-184** (unsurfaced). The other 16 are C-60's declared targets (10) and a monkeypatch (6).
+C-178's check: 32 `uses` rows lack the target's name, all instance attributes filed under their class; no
+`calls` row. Drivers: `~/.hobbes/bench/heldout-icalendar/`, `~/.hobbes/bench/cls-classmethod/`.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

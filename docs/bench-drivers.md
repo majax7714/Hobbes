@@ -31,6 +31,18 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-03 — the open-items batch (0.2.91–0.2.96-beta) and the icalendar cell
+
+- ADR-166: `c183-go-inits/` (`before/dagger-graph.json`, `after-dagger-graph.json`, `compare.py <before>
+  <after>`: Go-file evidence rows moved, by path, line, lane, type and target).
+- ADR-154's amendment: `c173-platform-raise/run.sh` with `ROOT=`: rich re-ingested and graded; before is
+  `c181-stdlib-import/after/rich`.
+- ADR-165's amendment: `c182-residual/` (`regrade3.sh after cells.tsv`, memchr; the graph is copied to
+  `after/memchr-rust/graph.after.json` by hand: the driver does not keep it).
+- The `cls(…)` unit: `cls-classmethod/step0.py <repo> <key> <graph>` (each `cls(…)` site in a classmethod
+  against the key's observed targets and the graph's edges; `<repo>-rows.json`).
+- The held-out icalendar cell: `heldout-icalendar/` (`PREREG.md`, `run.log`) and `oracle/icalendar-py/`.
+
 ## 2026-10-03 — C-182 registered (0.2.89-beta)
 
 - ADR-165: `c182-rust-cfg-twins/`. It holds:

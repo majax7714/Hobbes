@@ -198,6 +198,36 @@
   2026-10-02 (the thirty-third session); the probe is in the session's
   BUILDLOG entry.
 
+### C-184 — A Python method call on a union-typed receiver is drawn to the first member's method — *registered 2026-10-03 (held-out icalendar); unsurfaced*
+- **Cannot tell you:** which member of a union a call reaches. Where a
+  receiver's declared type is a union of classes (`VPROPERTY: TypeAlias =
+  vAdr | vBoolean | …`, an attribute annotated `A | B | C`), scip-python
+  answers `x.m()` with the **first** member's `m`, and Hobbes draws that
+  edge at `semantic` certainty: `component['TZOFFSETFROM'].to_ical()`
+  draws `vAdr.to_ical`, which the call never reaches (the trace saw
+  `vUTCOffset.to_ical`; `vAdr` is no base of it). The edge is wrong as
+  stated, not merely broad.
+- **Because:** scip-python 0.6.6 writes one symbol per reference, and for a
+  union-typed receiver it picks the first member that declares the
+  member. Lane A types no Python receiver, so nothing vetoes it.
+  TypeScript's face of the same pick is contained (ADR-104, C-97: lane A
+  abstains on a union receiver, the join vetoes lane B, the tail says
+  `union-member`); Python has no such abstention.
+- **Bites at:** `who_calls` on the first member's method (callers that
+  reach other members), its `tests_guarding` (tests that never reach it),
+  and `graph_neighborhood`. Measured on the held-out icalendar cell
+  (2026-10-03): 6 of 22 suspects, every one `semantic`, 5 at `vAdr` (the
+  head of `VPROPERTY`) and 1 at `LazySubcomponentsStrategy.is_lazy`. Edges
+  the suite did not execute are not counted; the scale beyond the key is
+  unmeasured. Not seen in the other Python cells' suspects (rich, flask,
+  click, pyparsing: 0 Hobbes-wrong).
+- **You find out:** **unsurfaced.** Nothing marks such an edge; it reads
+  as any other `semantic` edge.
+- **Provider (P9):** scip-python **0.6.6** (its bundled Pyright's member
+  lookup on a union type).
+- **Source:** `oracle-grading.md` §10.46; `cells/icalendar-py-2026-10-03.md`.
+  Containment is Max's call ([`currently-open.md`](../currently-open.md)).
+
 ### C-5 — Routes with computed paths are skipped
 - **Cannot tell you:** that an endpoint exists when its path is an
   f-string or a variable rather than a literal.

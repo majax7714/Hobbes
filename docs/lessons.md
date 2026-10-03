@@ -97,6 +97,11 @@ writing a brief, a probe or a pre-registration. The resume point is
 - **Read every suspect of a new key, row by row.** A trace key never
   contradicts, so a wrong edge sits in the suspect queue: three of
   flask's 18 were Hobbes-wrong, and "suspect rate 1.6%" said nothing.
+- **A provider pick contained in one language: look for its twin in the
+  others.** ADR-104 contained scip-typescript's first-member pick on a
+  union receiver in 2026-09; scip-python makes the same pick, and the
+  first Python cell with union type aliases (icalendar, C-184) drew six
+  wrong `semantic` edges no earlier key had shown.
 - **Grade the nodes a rule adds, not only its edges** (ADR-129).
 - **A fixture key is collected with `-v` alone.** Without it pytest
   prints no fixture whose name starts with `_`; `-v -q` cancel (missy
