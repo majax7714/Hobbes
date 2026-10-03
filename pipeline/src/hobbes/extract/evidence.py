@@ -850,6 +850,7 @@ def agreement(
 #: The shapes a registered limit gives a site disagreement (ADR-123 §1),
 #: in the order :func:`disagreement_shapes` tries them.
 SAME_LINE_PAIR = "same-line-pair"
+CFG_TWIN = "cfg-twin"
 CPP_WITHHELD = "cpp-withheld"
 
 
@@ -859,6 +860,7 @@ def disagreement_shapes(
     fallback: dict[tuple[str, int, str], tuple[str, int]],
     disagreements: list[Disagreement],
     withhold: frozenset[str] = frozenset(),
+    twins: Mapping[str, Mapping[str, list[tuple[int, int]]]] | None = None,
 ) -> list[str | None]:
     """The shape of each *disagreement*, or None where no rule explains it.
 
@@ -875,6 +877,12 @@ def disagreement_shapes(
       line whose guess matches no sibling's answer stays unexplained —
       shaping it by "two sites on the line" would excuse a genuine
       disagreement without evidence (ADR-123's third rejected alternative).
+    - ``cfg-twin`` (C-182, ADR-165) — lane A's guess is the start of one
+      def of a Rust cfg twin and lane B's answer lies inside *another* def
+      of the same twin, in the same file (*twins*, from
+      :func:`~hobbes.extract.rustsource.cfg_twins`). Both answers are one
+      node, and lane A reads no ``cfg``. A guess and an answer inside one
+      def, or in two different twins, stay unexplained.
     - ``cpp-withheld`` (C-152) — the site sits in a C++ file lane B
       compiled, where the join draws nothing from lane A's guess anyway
       (ADR-113 §2).
@@ -912,10 +920,29 @@ def disagreement_shapes(
                 if hit is not None and (hit.def_file, hit.def_line) == guess:
                     shape = SAME_LINE_PAIR
                     break
+        if shape is None and _cfg_twin(row, twins or {}):
+            shape = CFG_TWIN
         if shape is None and row.file in withhold:
             shape = CPP_WITHHELD
         out.append(shape)
     return out
+
+
+def _cfg_twin(
+    row: Disagreement, twins: Mapping[str, Mapping[str, list[tuple[int, int]]]]
+) -> bool:
+    """Whether *row*'s two answers are two different defs of one cfg twin:
+    the guess at a def's first line, the answer inside another's span."""
+    if row.syntactic_file != row.semantic_file:
+        return False
+    for spans in twins.get(row.syntactic_file, {}).values():
+        guessed = [i for i, (line, _) in enumerate(spans) if line == row.syntactic_line]
+        answered = [
+            i for i, (line, end) in enumerate(spans) if line <= row.semantic_line <= end
+        ]
+        if guessed and answered and guessed != answered:
+            return True
+    return False
 
 
 @dataclass(frozen=True)

@@ -1264,8 +1264,9 @@ class TestLaneAgreement:
 
 
 class TestDisagreementShapes:
-    """ADR-123 §1: the two registered limits that produce a disagreement by
-    construction name themselves, by a rule the report can check."""
+    """ADR-123 §1: the registered limits that produce a disagreement by
+    construction name themselves, by a rule the report can check (ADR-165
+    adds the third)."""
 
     def test_the_c_70_swap_is_a_same_line_pair(self):
         # One line, two `run` calls; lane A holds one guess for both keys
@@ -1314,6 +1315,55 @@ class TestDisagreementShapes:
         semantic = [resolution("fmt.cc", 10, "close", "real.h", 3)]
         fallback = {("fmt.cc", 10, "close"): ("guess.h", 7)}
         _, bad = ev.agreement(sites, semantic, fallback)
+        assert ev.disagreement_shapes(sites, semantic, fallback, bad) == [None]
+
+    # ADR-165, C-182: `cow.rs` writes `width` under two `cfg` arms, lines
+    # 12-14 and 17-19; both are one node, at the first.
+    TWINS = {"cow.rs": {"cow.width": [(12, 14), (17, 19)]}}
+
+    def _twin_row(self, guess, answer, answer_file="cow.rs"):
+        sites = [call("lib.rs", 24, "width")]
+        semantic = [resolution("lib.rs", 24, "width", answer_file, answer)]
+        fallback = {("lib.rs", 24, "width"): ("cow.rs", guess)}
+        _, bad = ev.agreement(sites, semantic, fallback)
+        return sites, semantic, fallback, bad
+
+    def test_two_arms_of_one_cfg_twin_are_a_cfg_twin(self):
+        sites, semantic, fallback, bad = self._twin_row(12, 17)
+        assert ev.disagreement_shapes(
+            sites, semantic, fallback, bad, twins=self.TWINS
+        ) == ["cfg-twin"]
+        # An answer inside the arm's span, not at its start, is the arm.
+        sites, semantic, fallback, bad = self._twin_row(12, 18)
+        assert ev.disagreement_shapes(
+            sites, semantic, fallback, bad, twins=self.TWINS
+        ) == ["cfg-twin"]
+
+    def test_a_guess_and_answer_inside_one_arm_stay_unexplained(self):
+        sites, semantic, fallback, bad = self._twin_row(12, 13)
+        assert ev.disagreement_shapes(
+            sites, semantic, fallback, bad, twins=self.TWINS
+        ) == [None]
+
+    def test_two_different_twins_stay_unexplained(self):
+        twins = {"cow.rs": {"cow.width": [(12, 14), (30, 32)], "cow.height": [(17, 19), (40, 42)]}}
+        sites, semantic, fallback, bad = self._twin_row(12, 17)
+        assert ev.disagreement_shapes(sites, semantic, fallback, bad, twins=twins) == [None]
+
+    def test_a_guess_not_at_an_arms_start_stays_unexplained(self):
+        sites, semantic, fallback, bad = self._twin_row(13, 17)
+        assert ev.disagreement_shapes(
+            sites, semantic, fallback, bad, twins=self.TWINS
+        ) == [None]
+
+    def test_an_answer_in_another_file_stays_unexplained(self):
+        sites, semantic, fallback, bad = self._twin_row(12, 17, answer_file="other.rs")
+        assert ev.disagreement_shapes(
+            sites, semantic, fallback, bad, twins=self.TWINS
+        ) == [None]
+
+    def test_without_twins_the_row_has_no_shape(self):
+        sites, semantic, fallback, bad = self._twin_row(12, 17)
         assert ev.disagreement_shapes(sites, semantic, fallback, bad) == [None]
 
     def test_a_row_both_rules_explain_is_the_same_line_pair(self):

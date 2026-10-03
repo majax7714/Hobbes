@@ -685,6 +685,12 @@ class _SymbolIndex:
     defs other than the node's own. Those are other functions, so neither
     lookup reads them as the node's: :meth:`shared_def` names the id a
     line sits inside or starts, and the projection refuses the fact.
+
+    *twins* (ADR-165) maps a Rust cfg twin's id — one item written under
+    two or more ``#[cfg]`` arms, every header alike — to the spans of its
+    arms other than the node's. Those *are* the node's code, and lane B
+    names the arm the build compiled, so both lookups read them as the
+    node's: a fact written inside one, or resolved onto one, names it.
     """
 
     def __init__(
@@ -693,6 +699,7 @@ class _SymbolIndex:
         symbols: list[dict],
         later_defs: dict[str, list[tuple[int, int]]] | None = None,
         shared: dict[str, list[tuple[int, int]]] | None = None,
+        twins: dict[str, list[tuple[int, int]]] | None = None,
     ):
         self._kinds = {s["id"]: s.get("kind") for s in symbols}
         # Only the symbols that carry a count (ADR-130): the C++ layer's
@@ -713,18 +720,25 @@ class _SymbolIndex:
         # The defs alone, for `starting_at`: the node, lane B's definition
         # and the fallback all name a qualname's first def (ADR-155).
         self._defined = {module: list(rows) for module, rows in self._by_module.items()}
-        if later_defs:
+        if later_defs or twins:
             by_id = {s["id"]: s for s in symbols}
-            for symbol_id, spans in later_defs.items():
-                symbol = by_id.get(symbol_id)
-                if symbol is None:
-                    continue
-                self._by_module[symbol["module"]].extend(
-                    {"id": symbol_id, "line": line, "end_line": end_line}
-                    for line, end_line in spans
-                )
-            for rows in self._by_module.values():
-                rows.sort(key=lambda s: (s["line"], -(s.get("end_line") or s["line"])))
+            # ADR-155's later defs join the enclosing lookup alone; ADR-165's
+            # twin arms join both, because lane B's answer is the arm it built.
+            for table, starts in ((later_defs or {}, False), (twins or {}, True)):
+                for symbol_id, spans in table.items():
+                    symbol = by_id.get(symbol_id)
+                    if symbol is None:
+                        continue
+                    rows = [
+                        {"id": symbol_id, "line": line, "end_line": end_line}
+                        for line, end_line in spans
+                    ]
+                    self._by_module[symbol["module"]].extend(rows)
+                    if starts:
+                        self._defined[symbol["module"]].extend(rows)
+            for by in (self._by_module, self._defined):
+                for rows in by.values():
+                    rows.sort(key=lambda s: (s["line"], -(s.get("end_line") or s["line"])))
         self._starts = {
             module: [s["line"] for s in rows]
             for module, rows in self._by_module.items()
@@ -964,6 +978,7 @@ def project(
     full_specializations: frozenset[str] = frozenset(),
     later_defs: dict[str, list[tuple[int, int]]] | None = None,
     shared: dict[str, list[tuple[int, int]]] | None = None,
+    twins: dict[str, list[tuple[int, int]]] | None = None,
 ) -> dict:
     """Project semantic-IR facts onto lane A's module and symbol ids.
 
@@ -999,8 +1014,13 @@ def project(
     is refused — no edge, no row under the node or the module — and
     returned in ``shared_qualname`` for the tail and the record to count.
     The module edge it raises is kept: the files do reference each other.
+
+    *twins* is the Rust case between them (ADR-165, C-182): a cfg twin's
+    arms other than the node's, by symbol id. They are the node's own
+    code under another configuration, so a fact written inside one is
+    filed under the node and one resolved onto one draws to it.
     """
-    index = _SymbolIndex(nodes, symbols, later_defs, shared)
+    index = _SymbolIndex(nodes, symbols, later_defs, shared, twins)
     # Facts ADR-163 refuses: written inside, or resolved onto, a later def
     # of a Rust id two impl headers share. One row each, so the tail can
     # name the call sites `shared-qualname` and the record can count the

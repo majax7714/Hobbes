@@ -448,7 +448,8 @@ def _shared_later_defs(
 ) -> dict[str, list[tuple[int, int]]]:
     """ADR-163: each Rust id two differently written impl headers mint
     alike, with the spans of its defs other than the one its node sits
-    at. An id the symbol layer does not carry is absent."""
+    at. An id the symbol layer does not carry is absent. ADR-165 reads a
+    cfg twin's other arms through it the same way."""
     lines = {s["id"]: s["line"] for s in symbols}
     out: dict[str, list[tuple[int, int]]] = {}
     for symbol_id, spans in sorted(shared.items()):
@@ -480,6 +481,30 @@ def _shared_qualname_record(
             f"inside or resolved onto one is refused: {calls} call(s), counted in the "
             f"tail as `shared-qualname`, and {len(refused) - calls} other reference(s) "
             f"(ADR-163, C-180). Later defs: {examples}"
+        ),
+    }
+
+
+def _cfg_twin_record(twins: dict[str, dict[str, list[tuple[int, int]]]]) -> dict:
+    """The one degradation record ADR-165 writes per ingest with a Rust
+    cfg twin (C-182): how many, and examples with their def lines."""
+    ids = sorted(
+        (symbol_id, spans) for by_id in twins.values() for symbol_id, spans in by_id.items()
+    )
+    examples = "; ".join(
+        f"{symbol_id} (defs at line {', '.join(str(line) for line, _ in spans)})"
+        for symbol_id, spans in ids[:3]
+    )
+    return {
+        "path": ".",
+        "stage": "rust-cfg-twins",
+        "message": (
+            f"{len(ids)} Rust symbol id(s) are cfg twins: one item written two or more "
+            "times in one file, each def under a `#[cfg(…)]` with the same header and "
+            "kind; each is one node at its first def, whichever arm the build compiles, "
+            "lane A files every arm's calls under it, lane B indexes only the compiled "
+            f"arm, and a call lane B resolves onto any arm draws to the node (ADR-165, "
+            f"C-182). Twins: {examples}"
         ),
     }
 
@@ -824,6 +849,20 @@ def _build_symbol_layer(
         if rust
         else {}
     )
+    # ADR-165 (C-182): a cfg twin's other arms, read off the settled
+    # symbols the same way; they are the node's own code.
+    twin_arms = (
+        _shared_later_defs(
+            graph["symbols"],
+            {
+                symbol_id: spans
+                for by_id in (rust.get("cfg_twins") or {}).values()
+                for symbol_id, spans in by_id.items()
+            },
+        )
+        if rust
+        else {}
+    )
     with timings.step("project"):
         projected = scipsource.project(
             resolved,
@@ -839,6 +878,8 @@ def _build_symbol_layer(
             # ADR-163: a Rust id two differently written impl headers
             # share; a fact at one of its later defs is refused.
             shared=shared_later,
+            # ADR-165: a Rust cfg twin's other arms are the node's.
+            twins=twin_arms,
         )
     # What the override set could not draw (ADR-120), so the summary says
     # how far the `implements` edges reach: pairs to a declaration outside
@@ -876,6 +917,7 @@ def _build_symbol_layer(
         external=external,
         withhold=withhold,
         cpp_site_files=cpp_site_files,
+        twins=rust.get("cfg_twins") if rust else None,
     )
     degraded += _cpp_fallback_records(graph["lane_agreement"])
     graph["symbol_edges"] = projected["symbol_edges"]
@@ -1105,6 +1147,8 @@ def _build_symbol_layer(
         counts[tail.SHARED_QUALNAME] += 1
     if shared_later:
         degraded.append(_shared_qualname_record(shared_later, projected["shared_qualname"]))
+    if rust and rust.get("cfg_twins"):
+        degraded.append(_cfg_twin_record(rust["cfg_twins"]))
     graph["resolution_coverage"] = [
         {
             "file": row.file,
@@ -1489,6 +1533,7 @@ def _lane_agreement(
     external: list[dict] | None = None,
     withhold: frozenset[str] = frozenset(),
     cpp_site_files: set[str] | None = None,
+    twins: dict[str, dict[str, list[tuple[int, int]]]] | None = None,
 ) -> dict:
     """The §3.4 self-test: where both lanes can answer, they must agree.
 
@@ -1535,6 +1580,9 @@ def _lane_agreement(
     that *are* drawn — the ones in the C++ files lane B did not index
     (``cpp_guess_drawn``, C-135's C++ face). Neither moves
     ``sites_compared``, the rows, or their order.
+
+    *twins* is lane A's Rust cfg twins (ADR-165), read only to shape a
+    row whose two answers are two arms of one node (``cfg-twin``, C-182).
     """
 
     def by_site(pair):
@@ -1545,7 +1593,7 @@ def _lane_agreement(
     # order, so a registered limit's disagreement is named rather than
     # triaged away.
     shapes = ev.disagreement_shapes(
-        syntax, resolutions, fallback, disagreements, withhold
+        syntax, resolutions, fallback, disagreements, withhold, twins
     )
     cpp_compared, cpp_guess_drawn = _cpp_site_counts(
         syntax, resolutions, fallback, withhold, cpp_site_files or set(), external

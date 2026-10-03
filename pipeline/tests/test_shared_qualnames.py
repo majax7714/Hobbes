@@ -49,6 +49,9 @@ TRAIT_DESCRIBE = _line_of("client.rs", "fn describe(&self) -> String {", 1)
 LABEL_CALL = _line_of("client.rs", "label(&self.name)")
 NORMALISE_IN_FROM_STRING = _line_of("client.rs", "Id(normalise(&value))")
 COUNT_CALL = _line_of("cow.rs", "count(bytes)")
+WIDTH_ALLOC = _line_of("cow.rs", "pub fn width(bytes: &[u8]) -> usize {")
+WIDTH_NO_ALLOC = _line_of("cow.rs", "pub fn width(bytes: &[u8]) -> usize {", 1)
+WIDTH_CALL = _line_of("lib.rs", "cow::width(bytes)")
 
 EXT = "src/ext"
 CLIENT = "src/client"
@@ -100,6 +103,46 @@ class TestTheCollisionSet:
         assert "src/cow.Imp" not in shared
         assert "src/cow.width" not in shared
 
+    def test_cfg_twins_are_listed_by_file_with_every_def(self):
+        # ADR-165, C-182: the complement, read by `hobbes lanes`' shape.
+        files = [
+            rustsource._parse_file(f"src/{name}", (SRC / name).read_bytes())
+            for name in ("ext.rs", "client.rs", "cow.rs", "lib.rs")
+        ]
+        twins = rustsource.cfg_twins(files)
+        assert set(twins) == {"src/cow.rs"}
+        assert set(twins["src/cow.rs"]) == {"src/cow.Imp", "src/cow.width"}
+        assert [line for line, _ in twins["src/cow.rs"]["src/cow.width"]] == [
+            WIDTH_ALLOC,
+            WIDTH_NO_ALLOC,
+        ]
+
+    @pytest.mark.parametrize(
+        "source, twins",
+        [
+            # The gate on an enclosing `mod` gates what it holds.
+            (
+                "#[cfg(unix)]\nmod imp { pub fn f() {} }\n"
+                "#[cfg(not(unix))]\nmod imp { pub fn f() {} }\n",
+                {"x.imp.f"},
+            ),
+            # Rust's type and value namespaces: two items, not one.
+            ("struct B;\nconst B: usize = 6;\n", set()),
+            ("#[cfg(a)]\nstruct B;\n#[cfg(a)]\nconst B: usize = 6;\n", set()),
+            # No gate: a file no crate compiles repeats names freely.
+            ("fn f() {}\nfn f() {}\n", set()),
+            # One arm gated is not two arms.
+            ("#[cfg(a)]\nfn f() {}\nfn f() {}\n", set()),
+            # `cfg_attr` gates an attribute, never the item.
+            ("#[cfg_attr(a, inline)]\nfn f() {}\n#[cfg_attr(b, inline)]\nfn f() {}\n", set()),
+        ],
+    )
+    def test_a_twin_is_gated_and_of_one_kind(self, source, twins):
+        parsed = rustsource._parse_file("x.rs", source.encode())
+        assert set(rustsource.cfg_twins([parsed]).get("x.rs", {})) == twins
+        # The gate rides beside the symbols, never in them.
+        assert all("cfg" not in symbol for symbol in parsed.symbols)
+
     def test_the_header_is_the_text_up_to_the_body(self):
         parsed = rustsource._parse_file("src/ext.rs", (SRC / "ext.rs").read_bytes())
         headers = [header for _, _, header in parsed.defs["T.distance"]]
@@ -146,6 +189,12 @@ class TestLaneAAlone:
         assert record["message"].startswith("4 Rust symbol id(s)")
         assert "C-180" in record["message"] and "ADR-163" in record["message"]
         assert "3 call(s)" in record["message"]
+
+    def test_one_record_names_the_cfg_twins_and_the_register_entry(self, graph):
+        [record] = [e for e in graph["extraction_errors"] if e["stage"] == "rust-cfg-twins"]
+        assert record["message"].startswith("2 Rust symbol id(s) are cfg twins")
+        assert "C-182" in record["message"] and "ADR-165" in record["message"]
+        assert f"src/cow.width (defs at line {WIDTH_ALLOC}, {WIDTH_NO_ALLOC})" in record["message"]
 
     def test_the_class_is_available_to_rust(self, graph):
         assert tail.SHARED_QUALNAME in graph["tail_classes_available"]["rust"]
@@ -206,6 +255,22 @@ class TestMemchrsResolutionByHand:
         assert row["tail"].get(tail.SHARED_QUALNAME) == 1
         assert tail.BELOW_FLOOR not in row["tail"]
 
+    def test_lane_b_naming_the_compiled_twin_is_a_cfg_twin_row(self, monkeypatch):
+        # ADR-165, C-182: CI's row. Lane A's guess is the node's def, the
+        # `alloc` arm; rust-analyzer, `alloc` off, names the other arm.
+        graph = self._graph(
+            monkeypatch,
+            [self._resolution("src/lib.rs", WIDTH_CALL, "width", "src/cow.rs", WIDTH_NO_ALLOC)],
+        )
+        [row] = [
+            r for r in graph["lane_agreement"]["site_disagreements"] if r["name"] == "width"
+        ]
+        assert row["syntactic"] == f"src/cow.rs:{WIDTH_ALLOC}"
+        assert row["semantic"] == f"src/cow.rs:{WIDTH_NO_ALLOC}"
+        assert row["shape"] == "cfg-twin"
+        # One node either way: the edge is the one lane A would draw.
+        assert calls(graph)[("src/lib.measure", "src/cow.width")]["tier"] == SEMANTIC
+
     def test_a_resolution_onto_the_first_def_still_draws(self, monkeypatch):
         offset = _line_of("lib.rs", "unsafe { end.distance(start) }", 1)
         graph = self._graph(
@@ -256,6 +321,23 @@ class TestTheProjection:
         assert [(e["from"], e["to"]) for e in without["symbol_edges"]] == [("a.T.f", "b.g")]
         assert with_map["shared_qualname"] == []
 
+    def test_a_cfg_twins_other_arm_is_the_nodes_both_ways(self):
+        # ADR-165: `a.T.f`'s second arm is lines 6-8. Onto it draws to the
+        # node; inside it is filed under the node. Without the map, the
+        # first falls below the floor, which is what CI's row hid.
+        onto = self._fact(2, "a.rs", 6, source="b.rs")
+        inside = self._fact(7, "b.rs", 1)
+        out = scipsource.project(
+            [onto, inside], self.NODES, self.SYMBOLS, twins={"a.T.f": [(6, 8)]}
+        )
+        assert sorted((e["from"], e["to"]) for e in out["symbol_edges"]) == [
+            ("a.T.f", "b.g"),
+            ("b.g", "a.T.f"),
+        ]
+        assert out["shared_qualname"] == []
+        without = scipsource.project([onto], self.NODES, self.SYMBOLS)
+        assert without["symbol_edges"] == []
+
 
 @pytest.mark.lane_b
 def test_with_the_index_no_later_def_is_the_nodes():
@@ -284,3 +366,7 @@ def test_with_the_index_no_later_def_is_the_nodes():
     assert lib["tail"][tail.SHARED_QUALNAME] == 2, lib  # `span`'s and the trait call
     [record] = [e for e in graph["extraction_errors"] if e["stage"] == "rust-qualnames"]
     assert "C-180" in record["message"]
+    # ADR-165: CI's `hobbes lanes` row, every disagreement shaped.
+    rows = graph["lane_agreement"]["site_disagreements"]
+    assert [r["shape"] for r in rows if r["name"] == "width"] == ["cfg-twin"], rows
+    assert all(r["shape"] for r in rows), rows

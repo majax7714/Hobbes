@@ -76,6 +76,10 @@ class RustFile:
     #: to the body and whitespace-collapsed (``""`` outside any impl).
     #: Read by :func:`shared_qualnames` alone (ADR-163, C-180).
     defs: dict[str, list[tuple[int, int, str]]] = field(default_factory=dict)
+    #: The ``(qualname, line)`` of each def a ``#[cfg(…)]`` gates, on the
+    #: item itself or on an enclosing ``mod`` or ``impl``. Read by
+    #: :func:`cfg_twins` alone (ADR-165, C-182).
+    cfg_gated: set[tuple[str, int]] = field(default_factory=set)
 
 
 def has_rust_files(repo_root: Path) -> bool:
@@ -210,6 +214,8 @@ def _parse_file(rel: str, source: bytes) -> RustFile:
         parsed.defs.setdefault(symbol["qualname"], []).append(
             (symbol["line"], symbol["end_line"], symbol.pop("impl", ""))
         )
+        if symbol.pop("cfg", False):
+            parsed.cfg_gated.add((symbol["qualname"], symbol["line"]))
         if symbol.pop("is_test", False):
             parsed.tests.append(
                 {
@@ -226,7 +232,12 @@ def _parse_file(rel: str, source: bytes) -> RustFile:
 
 
 def _walk_items(
-    container: Node, parsed: RustFile, prefix: str, in_impl: bool = False, header: str = ""
+    container: Node,
+    parsed: RustFile,
+    prefix: str,
+    in_impl: bool = False,
+    header: str = "",
+    gated: bool = False,
 ):
     """Collect declarations, recursing into mod and impl bodies only.
 
@@ -236,7 +247,9 @@ def _walk_items(
     top level would make both invisible. *prefix* carries the dotted
     qualname path (``tests.test_add``, ``Counter.incr``). *header* is the
     enclosing ``impl`` block's header text, kept on each symbol for
-    :func:`shared_qualnames` (ADR-163).
+    :func:`shared_qualnames` (ADR-163). *gated* says an enclosing ``mod``
+    or ``impl`` carries a ``#[cfg(…)]``, kept for :func:`cfg_twins`
+    (ADR-165).
     """
     pending_attrs: list[Node] = []
     for node in container.children:
@@ -244,6 +257,8 @@ def _walk_items(
             pending_attrs.append(node)
             continue
         attrs, pending_attrs = pending_attrs, []
+        own = gated or _is_cfg_attr(attrs)
+        start = len(parsed.symbols)
 
         if node.type == "use_declaration":
             parsed.imports.extend(_use_entries(node))
@@ -261,7 +276,7 @@ def _walk_items(
                     }
                 )
             else:
-                _walk_items(body, parsed, _dotted(prefix, name))
+                _walk_items(body, parsed, _dotted(prefix, name), gated=own)
         elif node.type == "impl_item":
             type_name = _impl_type(node)
             body = _child_of_type(node, "declaration_list")
@@ -272,6 +287,7 @@ def _walk_items(
                     _dotted(prefix, type_name) if type_name else prefix,
                     in_impl=True,
                     header=_impl_header(node, body),
+                    gated=own,
                 )
         elif node.type == "function_item":
             name = _child_text(node, "identifier")
@@ -308,6 +324,9 @@ def _walk_items(
                 parsed.symbols.append(
                     _symbol(name, _dotted(prefix, name), "macro", node) | {"impl": header}
                 )
+        # A nested walk set its own symbols' gate; these are this item's.
+        for symbol in parsed.symbols[start:]:
+            symbol.setdefault("cfg", own)
 
 
 def _impl_header(node: Node, body: Node) -> str:
@@ -397,6 +416,21 @@ def _is_test_attr(attrs: list[Node]) -> bool:
                 break
         if path is not None and _TEST_ATTR.match(path):
             return True
+    return False
+
+
+def _is_cfg_attr(attrs: list[Node]) -> bool:
+    """Whether one of *attrs* is ``#[cfg(…)]`` — the path ``cfg`` itself,
+    not ``cfg_attr``, which gates an attribute, not the item."""
+    for item in attrs:
+        attribute = _child_of_type(item, "attribute")
+        if attribute is None:
+            continue
+        for child in attribute.children:
+            if child.type in ("identifier", "scoped_identifier"):
+                if _text(child) == "cfg":
+                    return True
+                break
     return False
 
 
@@ -696,6 +730,7 @@ def _join(files: list[RustFile], crates: dict[str, str]) -> dict:
         "call_sites": _call_sites(files),
         "call_fallback": _call_fallback(files, crates, mod_map),
         "shared_qualnames": shared_qualnames(files),
+        "cfg_twins": cfg_twins(files),
         "files": files,
         "tests": sorted(
             (test for parsed in files for test in parsed.tests),
@@ -726,6 +761,40 @@ def shared_qualnames(files: list[RustFile]) -> dict[str, list[tuple[int, int]]]:
         for qualname, defs in parsed.defs.items():
             if len(defs) > 1 and len({header for _, _, header in defs}) > 1:
                 out[f"{mid}.{qualname}"] = sorted((line, end) for line, end, _ in defs)
+    return out
+
+
+def cfg_twins(files: list[RustFile]) -> dict[str, dict[str, list[tuple[int, int]]]]:
+    """Every cfg twin, by file: ``{path: {symbol id: [(line, end_line), …]}}``
+    (ADR-165, C-182).
+
+    One item written under two or more ``#[cfg]`` arms: an id with two or
+    more defs in one file whose headers are all the same, whose kinds are
+    all the same, and each of which a ``#[cfg(…)]`` gates (on the item or
+    an enclosing ``mod``/``impl``). They are one node, at the first def;
+    lane A reads no features, so it cannot say which arm the build
+    compiles, and lane B names the one it did.
+
+    The gate is required because a same-header repeat is not always one
+    item: Rust keeps types and values in separate namespaces (``struct
+    B`` beside ``const B``), and a file no crate compiles — memchr's
+    ``benchmarks/haystacks`` copy of the standard library — repeats names
+    freely. Neither is listed; each stays what it was.
+    """
+    out: dict[str, dict[str, list[tuple[int, int]]]] = {}
+    for parsed in files:
+        mid = module_id(parsed.path)
+        kinds = {(s["qualname"], s["line"]): s["kind"] for s in parsed.symbols}
+        for qualname, defs in parsed.defs.items():
+            if (
+                len(defs) > 1
+                and len({header for _, _, header in defs}) == 1
+                and len({kinds.get((qualname, line)) for line, _, _ in defs}) == 1
+                and all((qualname, line) in parsed.cfg_gated for line, _, _ in defs)
+            ):
+                out.setdefault(parsed.path, {})[f"{mid}.{qualname}"] = sorted(
+                    (line, end) for line, end, _ in defs
+                )
     return out
 
 

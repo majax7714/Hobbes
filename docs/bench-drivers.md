@@ -31,6 +31,15 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-03 — C-182 registered (0.2.89-beta)
+
+- ADR-165: `c182-rust-cfg-twins/`. It holds:
+  - `measure_twins.py <graph.json> <repo>`: lane disagreements whose two answers are two defs of one
+    same-header repeat. It is the step 0 probe, by header alone; the gated rule is `rustsource.cfg_twins`;
+  - `regrade3.sh` (ADR-163's) and `cells.tsv` (memchr; before is ADR-163's after report);
+  - `after/` (`summary.tsv`, `memchr-rust/graph.after.json` and the graded report). Compare it with
+    `c180-rust-impl-qualnames/after/memchr-rust/graph.after.json` for the byte-identity check.
+
 ## 2026-10-03 — C-181 registered (0.2.88-beta)
 
 - ADR-164: `c181-stdlib-import/`. This directory was first written as `c180-stdlib-local/` and renamed,

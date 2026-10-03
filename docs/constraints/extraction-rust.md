@@ -137,8 +137,9 @@
   a later def draws none either, and a test that reaches code only
   through one reaches nothing there. The node's id does not say which
   impl block it is; its line does. Defs whose headers are written alike
-  — cfg twins, one item under two configurations — are not affected:
-  they stay the node's, as before.
+  are not refused: a cfg twin (one item under two `#[cfg]` arms) is the
+  node's, both ways, since 0.2.89-beta (C-182); any other same-header
+  repeat is C-182's residual.
 - **Because:** the id is built from the impl's type name, not its full
   self-type or trait, and the first def of an id wins the node. Before
   ADR-163 the later def's facts were filed under the node: memchr's
@@ -163,6 +164,48 @@
 - **Source:** ADR-163; the measurement
   `~/.hobbes/bench/dup-qualnames-2026-10-02/` and
   `~/.hobbes/bench/c180-rust-impl-qualnames/`.
+
+### C-182 — A cfg twin is one node at its first arm, whichever arm the build compiles — *registered 2026-10-03 (0.2.89-beta, ADR-165); partial — a same-header repeat that is not a twin is not named*
+- **Cannot tell you:** which arm of a Rust item written under two or more
+  `#[cfg(…)]` arms the build compiles. A cfg twin is a qualname with two
+  or more defs in one file, each gated by a `cfg` (on the item or an
+  enclosing `mod`/`impl`), all of one kind and one impl header. Every arm
+  mints the same id; the node sits at the **first** arm's line even where
+  the default build compiles another (`cow.rs`'s `width`: the node is the
+  `alloc` arm, rust-analyzer builds the `not(alloc)` one). Lane A reads no
+  features, so it files **every** arm's calls under the node (syntactic);
+  lane B indexes only the compiled arm, so a callee only an inactive arm
+  calls is drawn at `syntactic` alone. A call lane B resolves onto any arm
+  draws to the node (since 0.2.89-beta; before, onto a later arm it drew
+  nothing and was tailed `below-floor`, the wrong cause). Where lane A's
+  guess names one arm and lane B's answer another, `hobbes lanes` lists
+  the row as `cfg-twin` and does not fail on it (exit 3, ADR-123).
+- **Residual (partial):** a qualname repeated in one file with one header
+  that is **not** a twin by that rule — no `cfg` on some arm, or two
+  kinds (Rust's type and value namespaces allow `struct B` beside `const
+  B`), or a file no crate compiles (memchr's `benchmarks/haystacks` std
+  copy: 152 such ids) — is neither refused (C-180) nor mapped. Its node
+  is the first def, a fact written inside a later def is filed as before
+  ADR-163, and a call lane B resolves onto a later def is `below-floor`.
+  No record names these ids ([`currently-open.md`](../currently-open.md)).
+- **Because:** the id is built from the item's path, which `cfg` does not
+  change, and lane A does not read the build's feature set. Telling the
+  arms apart (reading `cargo metadata`'s features) is the prevention, and
+  it changes symbol ids.
+- **Bites at:** the twin's line in `who_calls`, `graph_neighborhood` and
+  `get_module_doc` (it is the first arm's); its callees (every arm's, at
+  syntactic tier where lane B did not compile the arm); `hobbes lanes`.
+  Measured 2026-10-03: memchr 9 twins (4 in `haystacks`; std's own
+  `cfg(test)` pairs), none of whose later arms is a lane B answer, so its
+  graph is byte-identical; dagger `sdk/rust` and rust_proj 0; this repo 2
+  (`minirustimpl`).
+- **You find out:** partial — every ingest with a twin writes one
+  `rust-cfg-twins` degradation record (the count, examples with their def
+  lines, this entry), shown by `list_blind_spots` and the ingest summary;
+  `hobbes lanes` cites this entry beside the `cfg-twin` count. The
+  residual's ids are named nowhere.
+- **Source:** ADR-165; CI run 37127474375; the measurement and regrade
+  `~/.hobbes/bench/c182-rust-cfg-twins/`.
 
 ## Lifted constraints in this segment
 

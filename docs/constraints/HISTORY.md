@@ -6,6 +6,15 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-182 registered, 2026-10-03 (0.2.89-beta; ADR-165, Max: route 1, then "map to the node"):
+- **C-182 registered, partial.** CI's `hobbes lanes` failed on the `minirustimpl` fixture's cfg twin:
+  lane A guessed the first `width` arm, lane B named the compiled one. A probe showed the graph drew no
+  edge there (the answer fell `below-floor`, the wrong cause). A cfg twin's arms are now the node's both
+  ways, the lane row is the shape `cfg-twin`, and a `rust-cfg-twins` record names the twins. Partial: a
+  same-header repeat that is not a twin (memchr's `haystacks`: 152 ids) is named nowhere.
+- Tally: 182 entries, 134 active (102 surfaced, 27 partial, 4 unsurfaced, 1 n/a), 31 lifted,
+  11 superseded, 6 folded.
+
 C-181 registered, 2026-10-03 (0.2.88-beta; ADR-164, Max: route R1):
 - **C-181 registered, partial.** scip-python 0.6.6 names what several stdlib modules define with a
   document-local symbol (`urllib.parse`, `email.utils`, `importlib.metadata`, `sys.exit` …) and writes no

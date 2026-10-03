@@ -11,9 +11,35 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.88-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.89-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.89-beta — 2026-10-03 (a Rust cfg twin is one node for both lanes; its lane row is the shape `cfg-twin`; ADR-165, C-182)
+
+**Patch: what the layer draws and says**, Rust. CI's `graph` job failed on `hobbes lanes`: one row no shape
+explained, on the `minirustimpl` fixture ADR-163 added. Max chose route 1 of three, then "map to the node"
+when the probe overturned its premise.
+
+- **The row.** `src/cow.rs` writes `width` under `#[cfg(feature = "alloc")]` and under its negation. Both arms
+  mint `src/cow.width`; the node is the first. At `lib.rs:24` lane A guessed the first arm, and rust-analyzer
+  (default features) named the second, the one it compiled.
+- **The edge it hid.** The second arm's line started no symbol the projection knew, so lane B's answer fell
+  `below-floor` (C-58, the wrong cause) and lane A's fallback was not drawn either: **no**
+  `measure → cow.width` edge. Now a cfg twin's other arms are the node's both ways: a fact written inside one
+  is filed under the node, and a call resolved onto one draws to it at the tier its lane gives it.
+- **What a twin is.** Two or more defs of one qualname in one file, every one gated by a `#[cfg(…)]` (on the
+  item or an enclosing `mod`/`impl`; `cfg_attr` does not count), of one kind and one impl header. A header
+  match alone is not enough: Rust's type and value namespaces allow `struct B` beside `const B`, and memchr's
+  `benchmarks/haystacks` std copy repeats names freely (152 of its 161 same-header repeats are not twins).
+  Those are unchanged and are C-182's residual.
+- **Said.** `hobbes lanes` names the row `cfg-twin` (C-182): lane A's guess starts one arm and lane B's answer
+  lies in another arm of the same twin. It is listed and exits 3, not 1. One `rust-cfg-twins` degradation
+  record per ingest names the twins; `list_blind_spots` and the ingest summary show it.
+- **Measured** (before is ADR-163's after arm): memchr 919 → 919 confirmed, 0 contradicted, strict 100%,
+  recall 80.5%, poison check passed; edges, symbols, module edges and coverage byte-identical (9 twins, none
+  whose later arm is a lane B answer). dagger `sdk/rust` and rust_proj have no twins. The fixture gains
+  `measure → cow.width` at `semantic` and loses its `below-floor` site.
 
 ## 0.2.88-beta — 2026-10-03 (a Python call rooted at a stdlib import that no provider placed is tailed `stdlib-import`; ADR-164, C-181)
 

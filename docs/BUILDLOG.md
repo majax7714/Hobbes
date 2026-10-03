@@ -15606,3 +15606,41 @@ went to the Rust collision.
 - **Docs:** ADR-164; C-181 in `extraction-call-graph.md` (partial) and HISTORY; the register (181 entries,
   133 active, 26 partial); architecture §3.4 and the §8 header; CHANGELOG; README; `currently-open.md`
   (the `urlsplit` row deleted, two items added); `bench-drivers.md`; the handoff.
+
+## 2026-10-03 (thirty-sixth session) — CI's `hobbes lanes` failure; C-182 registered (0.2.89-beta, ADR-165)
+
+- **The CI failure.** Run 37127474375 (`3f95d67`) failed in the `graph` job at `hobbes lanes`: 1 of 17,418
+  compared sites was unexplained. The 21 "lane A guessed in the repo where lane B resolved outside it" sites
+  printed at the end of the log are informational (ADR-111 vetoes them) and do not move the exit status.
+  The row was `minirustimpl/src/lib.rs:24` `width()`: lane A `cow.rs:12`, lane B `cow.rs:17`. These are two
+  `#[cfg]` arms of one item, which `2a973cb` (ADR-163) added to the fixture on purpose. That session ran
+  pytest with `lane_b` and both Rust cells, but not `scripts/ci-graph.sh`, and no cell regrade runs `lanes`
+  on this repo. The earlier red runs failed later, at review (the unguarded modules).
+- **Proposed three routes; Max took route 1** (a registered `cfg-twin` shape plus its own C-n).
+- **The probe overturned route 1's premise.** I had claimed the edge was the same under both answers. In
+  fact the graph drew no `measure → cow.width` edge at all: line 17 starts no symbol the projection knew,
+  lane B's answer fell `below-floor` (C-58, the wrong cause), and lane A's fallback was not drawn because lane
+  B had answered. ADR-163's "the cfg twin still draws" test covered calls out of the later arm, never calls
+  onto it. Stopped and re-asked; Max chose "map to the node".
+- **Second finding while building:** ADR-163's exclusion (same header) covers 161 memchr ids, but 152 are not
+  one item. The `haystacks` std copy is compiled by no crate (`struct B` at 12972, `const B` at 37963), and
+  Rust's type and value namespaces allow the same pair. A twin now needs a `#[cfg(…)]` on every def (its own
+  or an enclosing `mod`/`impl`'s; `cfg_attr` does not count) and one kind. memchr: 161 → 9.
+- **Built.** `rustsource` (`_is_cfg_attr`, the `gated` walk, `cfg_gated`, `cfg_twins`, the bundle key);
+  `scipsource.project(…, twins=)` (later arms join both `_SymbolIndex` lookups); `evidence.CFG_TWIN`
+  (`disagreement_shapes(…, twins=)`, after `same-line-pair`); `_cfg_twin_record` (`rust-cfg-twins`); `cli`
+  cites C-182.
+- **Regraded memchr** (before is ADR-163's after arm): 919 → 919 confirmed, 0 contradicted, strict 100%,
+  recall 80.5%, poison passed. Edges, symbols, module edges and coverage are byte-identical. dagger `sdk/rust`
+  and rust_proj have 0 twins. The fixture gains `measure → cow.width` at `semantic`.
+- **Checks:** pytest 2,729 passed, 25 of them `lane_b`, run on the host (the first run failed
+  `test_version` because `pyproject.toml` spells the version `0.2.88b0` and my bump missed it; fixed, re-run).
+  Go `./...` 402 pass. The proxy and `hobbes-session:local` were rebuilt; the image's proxy matches the
+  build and carries `0.2.89-beta`. `scripts/ci-graph.sh 57e4be2` on the host: `lanes` 1 disagree,
+  0 unexplained, 1 `cfg-twin` (C-182), exit 3. Review then failed on the 5 unguarded modules (open for Max),
+  so the script's `lane_b` step did not run there; those cases passed in the full suite.
+- **Docs:** ADR-165; C-182 (partial: the non-twin same-header residual) in `extraction-rust.md`, C-180's
+  twin sentence, HISTORY; the register (182 entries, 134 active, 27 partial); architecture §3.4, the Rust
+  paragraph and the §8 header; CHANGELOG; README; CLAUDE.md/AGENTS.md (last ADR 165); `currently-open.md`
+  (the graph-job item, C-182's residual); `lessons.md` (three lines); `bench-drivers.md`; `build-and-test.md`;
+  `workstreams.md`; the handoff. The knowledge server was not restarted.

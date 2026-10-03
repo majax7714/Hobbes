@@ -1,11 +1,11 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (thirty-second session); Hobbes 0.2.88-beta on `main`.**
+**Reviewed 2026-10-03 (thirty-sixth session); Hobbes 0.2.89-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
-0.2.88-beta (rebuilt by the C-181 unit; the knowledge server running then was
+0.2.89-beta (rebuilt by the C-182 unit; the knowledge server running then was
 not restarted, so restart it), and this repo was last ingested by that unit's
-regrade, before its version bump. If `main` has
+`scripts/ci-graph.sh` run, on the uncommitted tree. If `main` has
 moved, ingest at HEAD again. A new session's knowledge server is a new
 container from the current image, so it starts fresh.
 
@@ -34,13 +34,18 @@ pyparsing is held out now, and fitting the rule on it would spend it. The
 full ordered queue is under "Extraction, in order" in
 [`currently-open.md`](currently-open.md).
 
-**Waiting on Max:** the red graph job (5 unguarded modules), how to surface
-C-179, C-181's residual, ADR-126 §3, and the rest of the "Decisions open for Max" section in
+**Waiting on Max:** the red graph job (5 unguarded modules; `lanes` is
+fixed), how to surface C-179, C-181's and C-182's residuals, ADR-126 §3, and the rest of the "Decisions open for Max" section in
 [`currently-open.md`](currently-open.md). Don't build any of them until Max
 answers.
 
 ## Where the last day left things (2026-10-02/03; the CHANGELOG has each one)
 
+- **0.2.89-beta, ADR-165, C-182 registered (partial)** (Max: route 1, then
+  "map to the node"): CI's `hobbes lanes` failed on ADR-163's fixture cfg
+  twin; the probe found the edge itself dropped (`below-floor`). A Rust cfg
+  twin's arms are now the node's both ways, the lane row is `cfg-twin`, and
+  a `rust-cfg-twins` record names twins. memchr byte-identical (919/919).
 - **0.2.88-beta, ADR-164, C-181 registered (partial)** (Max: route R1): a
   Python call rooted at a same-file stdlib import that scip-python left
   unplaced is tailed `stdlib-import`, not `import-binding`/`attr-call`.
@@ -53,8 +58,6 @@ answers.
   `T.distance` self-call gone), dagger-rust 3,592 → 3,363 (wrong-caller
   rows), 0 contradicted, strict 100%. The prevention (distinct ids) is open.
 
-- **0.2.84-beta:** C-32's `local-binding` gloss no longer says "the call
-  stays inside that file" (precedent 1).
 - **0.2.85-beta, ADR-160 (unit `3814`):** a call through a local alias is
   drawn `syntactic`. rich went from 4,844 to 4,968 (90.20% → 92.51%); flask
   and click are identical; pyparsing +1. rich counts as fitted from here on.
@@ -83,7 +86,7 @@ answers.
   its strict companion (ADR-124); fmt is 100%, strict 99.62%. Trace-graded
   Python cells measure recall, never precision (C-60). rich is fitted
   (ADR-160), and pyparsing is held out.
-- **Register:** 181 entries: 133 active (102 surfaced, 26 partial, 4
+- **Register:** 182 entries: 134 active (102 surfaced, 27 partial, 4
   unsurfaced — C-19, C-20, C-112, C-179 — 1 n/a), 31 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open.** H-37 is the latest, fixed at

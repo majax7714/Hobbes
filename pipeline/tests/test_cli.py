@@ -765,6 +765,7 @@ class TestLanes:
             git_fixture,
             [
                 self._disagreement("normalize", "same-line-pair"),
+                self._disagreement("width", "cfg-twin"),
                 self._disagreement("close", "cpp-withheld"),
             ],
         )
@@ -773,8 +774,8 @@ class TestLanes:
         assert cli.main(["lanes", "--repo", str(git_fixture)]) == 3
         out = capsys.readouterr().out
         assert (
-            "2 disagree — 0 unexplained, 1 same-line-pair (C-70), "
-            "1 cpp-withheld (C-152)"
+            "3 disagree — 0 unexplained, 1 same-line-pair (C-70), "
+            "1 cfg-twin (C-182), 1 cpp-withheld (C-152)"
         ) in out
         assert "src/miniapp/core.py:16 normalize() [same-line-pair]" in out
         assert "every disagreement is a registered shape (exit 3, ADR-123)" in out

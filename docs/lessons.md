@@ -9,6 +9,19 @@ writing a brief, a probe or a pre-registration. The resume point is
 
 ## Probes and pre-registration
 
+- **A new fixture joins this repo's own graph, so run `scripts/ci-graph.sh`
+  on the host before committing one.** ADR-163's fixture passed pytest
+  with `lane_b` and both cells, and turned CI's `hobbes lanes` red: no cell
+  regrade runs `lanes` on this repo (ADR-165).
+- **Before naming a lane row "explained", read what the graph draws at
+  the site.** ADR-165's first route shaped a row as "both answers are one
+  node"; the probe found no edge drawn and the site tailed `below-floor`.
+  Also check that a test named "still draws" covers both ends: calls
+  *onto* the arm, not only calls out of it.
+- **A same-header repeat is not one item.** ADR-163 excluded 161 memchr ids
+  as cfg twins; 152 were different items (a std copy no crate compiles,
+  and `struct B` beside `const B`). Gate a "same item" rule on the
+  evidence that makes it one: here, a `#[cfg]` on every arm and one kind.
 - **Read the file before classing a shape from the graph's silence.**
   ADR-159's step 0 called Preact's `html` a local without reading it; it
   was a module-level `const html = htm.bind(h)`. Lane B not indexing a

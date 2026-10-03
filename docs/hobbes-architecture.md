@@ -442,7 +442,12 @@ share each method name both declare. The node is the first def. Since
 0.2.87-beta (ADR-163, C-180) the projection refuses every fact, from
 either lane, written inside or resolved onto a **later** def of such an
 id — lane A keeps each def's impl header, and an id is listed only when
-the headers differ, so a cfg twin written alike stays the node's. A
+the headers differ. A cfg twin — every def gated by a `#[cfg(…)]`, of
+one kind and one header — is the node's **both ways** since 0.2.89-beta
+(ADR-165, C-182): a fact written inside a later arm is filed under the
+node, a call lane B resolves onto one draws to it (lane B names the arm
+the build compiled), and one `rust-cfg-twins` record per ingest names the
+twins; a same-header repeat that is not a twin is neither. A
 refused call is tailed `shared-qualname` (a site only lane A answered
 moves there from `fallback-resolved`), and one `rust-qualnames` record
 per ingest counts the ids and the refusals. The node and its first
@@ -724,7 +729,9 @@ command built for CI (`hobbes lanes`, exit 1 on disagreement; since
 ADR-095 it runs on every push in `scripts/ci-graph.sh`), which makes it
 a free extractor-bug detector rather than a report nobody opens. Since
 ADR-123 each disagreement carries a **shape** when a registered limit
-explains it by a rule the report checks — `same-line-pair` (C-70) or
+explains it by a rule the report checks — `same-line-pair` (C-70),
+`cfg-twin` (C-182, ADR-165: lane A's guess and lane B's answer are two
+arms of one Rust cfg twin, which both draw to its one node) or
 `cpp-withheld` (C-152) — and the command exits **3** when every row is
 shaped: listed and counted, not failed on. A row no rule explains still
 exits 1. Consumers
@@ -2259,7 +2266,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.88-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.88-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.89-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.89-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

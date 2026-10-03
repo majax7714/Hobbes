@@ -779,7 +779,11 @@ def _cmd_diff(args: argparse.Namespace) -> int:
 
 #: The registered limit behind each disagreement shape (ADR-123 §1), in
 #: the order the summary prints them.
-_SHAPE_CONSTRAINTS = {"same-line-pair": "C-70", "cpp-withheld": "C-152"}
+_SHAPE_CONSTRAINTS = {
+    "same-line-pair": "C-70",
+    "cfg-twin": "C-182",
+    "cpp-withheld": "C-152",
+}
 
 
 def _cmd_lanes(args: argparse.Namespace) -> int:
