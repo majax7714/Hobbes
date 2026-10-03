@@ -15644,3 +15644,23 @@ went to the Rust collision.
   paragraph and the §8 header; CHANGELOG; README; CLAUDE.md/AGENTS.md (last ADR 165); `currently-open.md`
   (the graph-job item, C-182's residual); `lessons.md` (three lines); `bench-drivers.md`; `build-and-test.md`;
   `workstreams.md`; the handoff. The knowledge server was not restarted.
+
+## 2026-10-03 (thirty-sixth session, cont.) — ADR-117 amended: a module that holds no code is not asked for a guard (0.2.90-beta)
+
+- **Max approved the graph job's proposal**: exempt a docstring-only module, add tests for the three
+  scripts, and route 1 for `dedupe` (wrap it in functions; asked separately, since the proposal left it
+  open). This entry is the first part.
+- **First draft was wrong.** "No symbol and no edge leaves it" was read off the graph and picked 21 modules
+  in this repo, among them `hobbes/__init__.py` (its `__version__`, the case ADR-117 names), a 129-line Go
+  file and a 323-line TS types file whose declarations lane A records as no symbol. So the rule reads the
+  source: `pysource._holds_no_code` (comments aside, empty or one bare string, no parse error) sets
+  `ParsedFile.no_code`; `graph.build_graph` writes `"no_code": true` on the node; a too-deep file (C-171)
+  is never marked. Measured: 16 of 357 Python modules, 12 in fixture trees, plus `hobbes.agent`,
+  `hobbes.ttt`, `pipeline:tests` and `lattice`.
+- **Review:** such a module leaves `new_unguarded` and `lost_guards` for `coverage.no_code`, printed as
+  `holds no code, not asked for a guard (ADR-117)`.
+- **Checks:** pytest 2,740 passed (25 `lane_b`) on the host; Go `./...` ok; proxy and image rebuilt, and the
+  image's proxy matches the build and carries `0.2.90-beta`. Not re-ingested; the knowledge server not
+  restarted.
+- **Docs:** ADR-117's amendment; architecture's review flow and §8 header; CHANGELOG; README; handoff;
+  `build-and-test.md`; `workstreams.md`.

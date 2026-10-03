@@ -11,9 +11,26 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.89-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.90-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.90-beta — 2026-10-03 (a Python module that holds no code is not asked for a guard; ADR-117's amendment)
+
+**Patch: what the review says.** Max approved the graph job's proposal (2026-10-03). `hobbes review` had
+counted `bench/calvin/lattice/src/lattice/__init__.py`, a docstring and nothing else, as unguarded new code,
+which kept the job red on a guard that cannot exist.
+
+- **The mark.** Lane A records `"no_code": true` on a Python module's node when its source holds no statement
+  except at most one bare string (comments aside). A failed or too-deep parse (C-171) is never marked.
+- **The review** leaves such a module out of "new code no test reaches" and "lost every guarding test", and
+  names it on its own line (`holds no code, not asked for a guard (ADR-117)`) and in `--json` under
+  `coverage.no_code`.
+- **Why the source, not the graph.** "No symbol and no edge" picked 21 modules here, including
+  `hobbes/__init__.py`'s `__version__` and Go and TS files whose declarations lane A records as no symbol.
+  The source rule marks 16 of 357 Python modules, 12 of them in fixture trees and the other four
+  docstring-only `__init__.py` files.
+- A value-only module is still listed with its reason (C-156). No edge or symbol moves.
 
 ## 0.2.89-beta — 2026-10-03 (a Rust cfg twin is one node for both lanes; its lane row is the shape `cfg-twin`; ADR-165, C-182)
 

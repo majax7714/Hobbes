@@ -609,6 +609,10 @@ class ParsedFile:
     #: The module docstring's literal, exactly as written, or None.
     #: This module extracts, it does not interpret.
     docstring: str | None = None
+    #: The file holds no statement but, at most, one bare string — its
+    #: docstring — comments aside, and parsed cleanly. Such a module is not
+    #: own code to guard (ADR-117's amendment); never set on a failed parse.
+    no_code: bool = False
     #: Every ``usefixtures`` call a module-level ``pytestmark`` holds, in
     #: written order (ADR-139's amendment). The mark applies to every test
     #: in the file and the lookup follows its string arguments, so the walk
@@ -692,6 +696,7 @@ def parse_source(source: bytes) -> ParsedFile:
     root = _PARSER.parse(source).root_node
     parsed.shadows_callable = _binds_callable(root, source)
     parsed.docstring = _module_docstring(root)
+    parsed.no_code = _holds_no_code(root)
     parsed.pytestmark = _pytestmark(root)
     parsed.pytestmark_usefixtures = sum(1 for m in parsed.pytestmark if not m.args)
     _walk(root, [], parsed, ())
@@ -1155,6 +1160,20 @@ def _module_docstring(root: Node) -> str | None:
             return None
         return (inner.text or b"").decode("utf-8", "replace")
     return None
+
+
+def _holds_no_code(root: Node) -> bool:
+    """Whether the file is, comments aside, empty or one bare string
+    (ADR-117's amendment). A parse with an error says nothing."""
+    if root.has_error:
+        return False
+    statements = [child for child in root.named_children if child.type != "comment"]
+    if not statements:
+        return True
+    if len(statements) > 1 or statements[0].type != "expression_statement":
+        return False
+    inner = statements[0].named_children
+    return len(inner) == 1 and inner[0].type == "string"
 
 
 def _text(node: Node) -> str:

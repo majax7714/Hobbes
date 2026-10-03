@@ -3,6 +3,8 @@
 import re
 from pathlib import Path
 
+import pytest
+
 from hobbes.extract.pysource import (
     UNKNOWN,
     Assign,
@@ -2536,3 +2538,29 @@ class TestLocalImports:
         )
         assert with_import.local_bindings == without.local_bindings
         assert {b.name for b in with_import.local_bindings} == {"g"}
+
+
+class TestNoCode:
+    """ADR-117's amendment: a file that is, comments aside, empty or one
+    bare string holds no code; anything else, or a failed parse, does."""
+
+    @pytest.mark.parametrize(
+        "source",
+        [b"", b'"""Docs."""\n', b"# only a comment\n", b'# header\n"""Docs."""\n# trailer\n'],
+    )
+    def test_empty_or_a_docstring_holds_no_code(self, source):
+        assert parse_source(source).no_code
+
+    @pytest.mark.parametrize(
+        "source",
+        [
+            b'"""Docs."""\nLIMIT = 3\n',
+            b'__version__ = "1"\n',
+            b'"""Docs."""\nimport os\n',
+            b'"""One."""\n"""Two."""\n',
+            b"f'{x}'\n" b"def f(:\n",  # a parse error says nothing
+            b"3\n",
+        ],
+    )
+    def test_anything_else_holds_code(self, source):
+        assert not parse_source(source).no_code

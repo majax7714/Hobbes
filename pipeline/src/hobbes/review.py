@@ -70,6 +70,10 @@ class CoverageDelta:
     #: reach, so no test can be seen guarding them (C-156). Still listed:
     #: the review says why, it does not exempt them.
     value_only: list[str] = field(default_factory=list)
+    #: The modules that would be listed (new and unguarded, or lost) but
+    #: hold no code — a Python file that is at most its docstring
+    #: (ADR-117's amendment). Not asked for a guard, and said.
+    no_code: list[str] = field(default_factory=list)
     #: New modules whose every guarding test reaches them only by way of a
     #: pytest fixture (ADR-137, C-4). Guarded, so not listed as unguarded and
     #: not a reason for attention — said, because a fixture that sets code
@@ -282,6 +286,12 @@ def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str]) 
         for module in head_modules
         if module in base_modules and module in base_guarded and module not in head_guarded
     )
+    # ADR-117's amendment: a module that holds no code is not asked for a
+    # guard; it moves out of both lists into its own, so the review says it.
+    empty = {n["id"] for n in head.graph.get("nodes", []) if n.get("no_code")}
+    no_code = sorted(empty & {*new_unguarded, *lost_guards})
+    new_unguarded = [m for m in new_unguarded if m not in empty]
+    lost_guards = [m for m in lost_guards if m not in empty]
     broken = {
         record.id: missing
         for record in records
@@ -296,6 +306,7 @@ def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str]) 
         head_tests=len(head.tests.get("tests", [])),
         fixture_trees=_fixture_counts(head.graph, head.fixture_trees),
         value_only=sorted(value_only_modules(head.graph) & {*new_unguarded, *lost_guards}),
+        no_code=no_code,
         fixture_only=sorted(
             module
             for module in _fixture_only_modules(head.tests)
@@ -523,6 +534,11 @@ def format_review(review: Review) -> str:
             f"   fixture tree, not asked for a guard (C-154): {tree['path']}"
             f" — {tree['by']} ({tree['modules']} modules)"
         )
+    if coverage.no_code:
+        add(
+            "   holds no code, not asked for a guard (ADR-117): "
+            + ", ".join(coverage.no_code)
+        )
     if coverage.new_unguarded:
         add(f"   new code no test reaches ({len(coverage.new_unguarded)}):")
         for module in coverage.new_unguarded:
@@ -610,6 +626,7 @@ def review_to_dict(review: Review) -> dict:
             "broken_guards": review.coverage.broken_guards,
             "fixture_trees": review.coverage.fixture_trees,
             "value_only": review.coverage.value_only,
+            "no_code": review.coverage.no_code,
             "fixture_only": review.coverage.fixture_only,
             "autouse_only": review.coverage.autouse_only,
         },

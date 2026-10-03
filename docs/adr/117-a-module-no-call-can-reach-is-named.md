@@ -61,3 +61,27 @@ citing C-156.
   function.
 - **Version:** 0.2.29-beta, because this changes what the layer says
   (ADR-103).
+
+## Amendment 2026-10-03 — a Python module that holds no code is not asked for a guard (0.2.90-beta)
+
+**Source:** Max, 2026-10-03 ("good with the proposal"), on the red `graph` job: `lattice`'s
+`__init__.py` is a docstring and nothing else, and the review counted it as unguarded new code.
+
+**Decision.** A Python module whose source holds no statement except, at most, one bare string (its
+docstring; comments aside) is not own code to guard, for the same reason ADR-114 gives for a fixture:
+asking for its guard asks for what cannot exist. There is no value in it to get wrong, which is what
+separated a value-only module from a fixture above. Lane A records it on the module's node
+(`"no_code": true`); a file whose parse failed or was too deep to walk (C-171) is never marked. The review
+leaves such a module out of "new code no test reaches" and "lost every guarding test", and says so on its
+own line (`holds no code, not asked for a guard`) and in `--json` under `coverage.no_code`, so the
+exemption is visible rather than silent.
+
+**Measured.** The rule as first drafted read it off the graph ("declares no symbol and no edge leaves it").
+On this repo that picked 21 modules, among them `pipeline/src/hobbes/__init__.py` (its `__version__`, the
+case this ADR names as behaviour), a 129-line Go file and a 323-line TS types file whose declarations lane A
+records as no symbol. A graph silence is not an empty file, so the rule reads the source. Of this repo's
+Python modules it marks four outside fixture trees, all docstring-only `__init__.py` files: `hobbes.agent`,
+`hobbes.ttt`, `pipeline:tests` and `lattice`.
+
+**Not changed.** A value-only module is still listed with its reason (C-156). Other languages have no such
+mark, so their empty files are still asked for a guard; that asks for more, never less.

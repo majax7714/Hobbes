@@ -251,6 +251,28 @@ class TestCoverageDelta:
         assert "      app.billing\n" in text
         assert review_to_dict(review)["coverage"]["value_only"] == ["app.settings"]
 
+    def test_a_module_that_holds_no_code_is_not_asked_for_a_guard(self, repo):
+        # ADR-117's amendment: a docstring and nothing else has nothing to
+        # guard. It leaves the list and is said; a constant beside it stays.
+        write(repo, "src/app/plugins/__init__.py", '"""Plugins live here."""\n# a comment\n')
+        write(repo, "src/app/limits.py", '"""Limits."""\nLIMIT = 3\n')
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "a docstring-only package and a constant")
+        review = build_review(repo, "HEAD~1", "HEAD")
+        assert review.coverage.new_unguarded == ["app.limits"]
+        assert review.coverage.no_code == ["app.plugins"]
+        text = format_review(review)
+        assert "holds no code, not asked for a guard (ADR-117): app.plugins" in text
+        assert review_to_dict(review)["coverage"]["no_code"] == ["app.plugins"]
+
+        write(repo, "src/app/limits.py", '"""Limits."""\n')
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "the constant goes")
+        review = build_review(repo, "HEAD~2", "HEAD")
+        assert review.coverage.new_unguarded == []
+        assert review.coverage.no_code == ["app.limits", "app.plugins"]
+        assert not review.needs_attention
+
     def test_new_code_reached_only_through_a_fixture_is_guarded_and_said(self, repo):
         # ADR-137: pytest calls the fixture on the test's behalf, so the
         # module it sets up is guarded — and the review says which kind of

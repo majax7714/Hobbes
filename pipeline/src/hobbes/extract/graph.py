@@ -40,6 +40,11 @@ def build_graph(modules: list[ModuleInfo], parsed: dict[str, ParsedFile]) -> dic
     """
     index = _Index(modules)
     nodes = {m.id: {"id": m.id, "kind": m.kind, "path": m.path} for m in modules}
+    # ADR-117's amendment: a module that holds no code is not asked for a
+    # guard. Written only where true, so every other node is unchanged.
+    for m in modules:
+        if parsed[m.id].no_code:
+            nodes[m.id]["no_code"] = True
     symbols = _symbol_records(modules, parsed)
     module_edges: dict[tuple, list] = defaultdict(list)
 

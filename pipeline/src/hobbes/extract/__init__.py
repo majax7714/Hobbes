@@ -136,6 +136,8 @@ def extract_repo(
             except RecursionError:
                 # C-171: the module stays a node and is read as empty.
                 parsed[m.id] = parse_source(b"")
+                # Read as empty, never as holding no code (ADR-117's amendment).
+                parsed[m.id].no_code = False
                 too_deep_python.append(too_deep(m.path, "Python"))
     with timings.step("graph [python]"):
         graph = build_graph(modules, parsed)
