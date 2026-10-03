@@ -2767,6 +2767,11 @@ C-178's check: 32 `uses` rows lack the target's name, all instance attributes fi
 the join draws nothing at such a site. icalendar 3,489 → 3,477 confirmed, 22 → 16 suspect (the 6 wrong rows
 gone, 12 key-agreeing union rows withdrawn), recall 68.7%; rich, flask, click and pyparsing byte-identical.
 
+**The `cls(…)` rule at 0.2.99-beta (ADR-170), scored against the pre-registration:** icalendar 3,477 →
+3,553 confirmed, recall 70.2%, no new suspect; C1–C4 met. rich 4,968 → 5,019 (93.5%), +2 suspects (the
+declared-target subclass sites); C5 missed by one row (+51 against +55 ± 3): step 0 counted call sites, the
+grader one row per line, and by line step 0 read +51 exactly. flask +1, click 0, pyparsing +12.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

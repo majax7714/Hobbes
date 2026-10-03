@@ -60,13 +60,7 @@ Last reviewed: 2026-10-03 (0.2.96-beta).
 
 ## Extraction, in order (no spend; each measured first)
 
-1. **`cls(…)` in a classmethod** (rich 55 confirmable, flask 1, click 0 by
-   step 0; `~/.hobbes/bench/cls-classmethod/`). The held-out icalendar cell is
-   graded at 0.2.96-beta (`oracle-grading.md` §10.46) and its rule rows
-   C1–C5 are pre-registered (`~/.hobbes/bench/heldout-icalendar/PREREG.md`).
-   Next: the ADR (tier `syntactic`; a subclass-only site is C-60's declared
-   target), then the build and the C-rows. C-184 is contained (ADR-168).
-2. C-174's remainder, per language.
+1. C-174's remainder, per language.
 
 ### Candidates, unranked
 

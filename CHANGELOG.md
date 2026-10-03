@@ -11,9 +11,23 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.98-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.99-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.99-beta — 2026-10-03 (`cls(…)` in a classmethod calls its class, drawn `syntactic`; ADR-170)
+
+**Patch: what the layer draws**, Python. A classmethod that constructs its own class writes `cls(…)`; the index
+names the parameter there, below the symbol floor (C-9), so nothing was drawn. Max: "good to write the adr and
+continue".
+
+- A bare `cls(…)` in the own body of a `@classmethod` written directly in a class body draws `calls` to that
+  class, `syntactic`, `via: "cls"`, after the join (as ADR-160's aliases). A classmethod that rebinds `cls`, a
+  closure inside one, and a staticmethod's `cls` parameter draw nothing.
+- Called through a subclass, the method constructs the subclass; the edge names the class written, the
+  declared target (C-60). `graph["cls_calls"]` counts classmethods, sites, edges and abstentions.
+- **Regraded:** the held-out icalendar 3,477 → 3,553 confirmed (68.7% → 70.2%), no new suspect; rich
+  4,968 → 5,019 (93.5%), +2 declared-target suspects; flask +1, click 0, pyparsing +12. Poison PASS everywhere.
 
 ## 0.2.98-beta — 2026-10-03 (a Python class base the index states no relationship for is named; ADR-169, C-185)
 

@@ -661,6 +661,11 @@ class ParsedFile:
     dynamic_loads: tuple[DynamicLoad, ...] = ()
     #: What the file writes about types (C-184, ADR-168).
     type_facts: TypeFacts = field(default_factory=TypeFacts)
+    #: Per classmethod written directly in a class body, ``(qualname, first
+    #: line, last line, class qualname)`` (ADR-170): a bare ``cls(…)`` in its
+    #: own body constructs that class. One whose body rebinds ``cls`` is left
+    #: out.
+    classmethods: tuple[tuple[str, int, int, str], ...] = ()
     #: The module docstring's literal, exactly as written, or None.
     #: This module extracts, it does not interpret.
     docstring: str | None = None
@@ -762,6 +767,7 @@ def parse_source(source: bytes) -> ParsedFile:
     parsed.static_tests = _collect_static_tests(root)
     parsed.dynamic_loads = _dynamic_loads(root)
     parsed.type_facts = _type_facts(root)
+    parsed.classmethods = _classmethods(root)
     parsed.sys_aliases, parsed.typing_aliases = _module_aliases(root)
     return parsed
 
@@ -1388,6 +1394,60 @@ def _type_facts(root: Node) -> TypeFacts:
         tuple(aliases), tuple(classes), tuple(attributes), tuple(returns), tuple(getitems), tuple(receivers),
         tuple(heads),
     )
+
+
+def _classmethods(root: Node) -> tuple[tuple[str, int, int, str], ...]:
+    """Every ``@classmethod`` written directly in a class body (ADR-170)."""
+    out: list[tuple[str, int, int, str]] = []
+
+    def visit(node: Node, stack: list[str]) -> None:
+        for child in node.named_children:
+            definition = child.child_by_field_name("definition") if child.type == "decorated_definition" else child
+            if definition is None or definition.type not in ("class_definition", "function_definition"):
+                if child.type not in ("function_definition", "class_definition", "decorated_definition"):
+                    visit(child, stack)
+                continue
+            name = _text(definition.child_by_field_name("name"))
+            body = definition.child_by_field_name("body")
+            if definition.type == "class_definition":
+                if body is not None:
+                    for member in body.named_children:
+                        inner = member.child_by_field_name("definition") if member.type == "decorated_definition" else None
+                        if (
+                            inner is not None
+                            and inner.type == "function_definition"
+                            and any(
+                                _text(d.named_children[0]) == "classmethod"
+                                for d in member.named_children
+                                if d.type == "decorator" and d.named_children
+                                and d.named_children[0].type == "identifier"
+                            )
+                            and not _rebinds_cls(inner)
+                        ):
+                            qualname = ".".join([*stack, name, _text(inner.child_by_field_name("name"))])
+                            out.append((qualname, _line(member), _last_line(inner), ".".join([*stack, name])))
+            if body is not None:
+                visit(body, [*stack, name])
+
+    visit(root, [])
+    return tuple(out)
+
+
+def _rebinds_cls(function: Node) -> bool:
+    """Whether *function*'s own body binds the name ``cls`` again."""
+    body = function.child_by_field_name("body")
+    for node in _own_nodes(body) if body is not None else ():
+        if node.type in ("assignment", "augmented_assignment", "for_statement", "for_in_clause"):
+            target = node.child_by_field_name("left")
+            if target is not None and any(
+                n.type == "identifier" and _text(n) == "cls" for n in _walk_all(target)
+            ):
+                return True
+        if node.type in ("as_pattern_target", "named_expression"):
+            name = node.child_by_field_name("name") if node.type == "named_expression" else node
+            if name is not None and any(n.type == "identifier" and _text(n) == "cls" for n in _walk_all(name)):
+                return True
+    return False
 
 
 def _walk_all(root: Node):

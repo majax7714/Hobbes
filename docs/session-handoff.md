@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (thirty-seventh session, close); Hobbes 0.2.98-beta on `main`.**
+**Reviewed 2026-10-03 (thirty-seventh session, close); Hobbes 0.2.99-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image (`9f04edf1d047`) and the
 proxy are at 0.2.98-beta; this repo was ingested at HEAD by the host run of
@@ -30,11 +30,11 @@ session went belongs in the BUILDLOG.
 - 2026-10-03, on the open-items routes: "all those look good. good to
   proceed- approved".
 
-**Next: the `cls(…)` rule** (rich 55 confirmable, flask 1, click 0 by step 0,
-`~/.hobbes/bench/cls-classmethod/`). icalendar is graded held out and the
-rule's rows C1–C5 are pre-registered (`~/.hobbes/bench/heldout-icalendar/PREREG.md`,
-wording frozen). Write the ADR (tier `syntactic`; a subclass-only site is
-C-60's declared target), take it to Max, then build and score C1–C5.
+**Next:** the extraction queue in [`currently-open.md`](currently-open.md):
+C-174's remainder per language, then the unranked candidates. Pick a held-out
+cell before measuring any Python rule (icalendar and pyparsing are now
+graded; rich, flask and click are fitted). The `cls(…)` rule shipped at
+0.2.99-beta (ADR-170): icalendar 70.2%, rich 93.5%.
 
 **Waiting on Max:** C-181's residual, ADR-126 §3 and the rest of "Decisions
 open for Max" in [`currently-open.md`](currently-open.md). Don't build any
@@ -56,6 +56,8 @@ move a cell:
   cells byte-identical.
 - **0.2.98, ADR-169, C-185:** a class base scip-python states no relationship
   for is named (`python-bases`; flask's `Flask → App` among 85 pairs).
+- **0.2.99, ADR-170:** `cls(…)` in a classmethod calls its class, `syntactic`
+  (icalendar +76, rich +51; C5 missed by one row, the probe's grain).
 - Slips, each fixed and in the BUILDLOG: I-2's guard renamed with its test;
   `test_verification` red from `21d019e` to `62a654e`; the "last ADR" copy.
 
@@ -70,9 +72,8 @@ move a cell:
   quic-go (99.6%; all 15 rows are the oracle's grain). Each figure carries
   its strict companion (ADR-124); fmt is 100%, strict 99.62%. Trace-graded
   Python cells measure recall, never precision (C-60). rich is fitted
-  (ADR-160); pyparsing is held out; icalendar is graded held out at
-  0.2.96-beta (68.9%, **6 Hobbes-wrong**, C-184) and is the `cls(…)` rule's
-  held-out cell.
+  (ADR-160); pyparsing and icalendar are graded held out (icalendar 70.2%
+  at 0.2.99-beta, its 6 wrong rows contained by ADR-168).
 - **Register:** 185 entries: 137 active (105 surfaced, 28 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 31 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.

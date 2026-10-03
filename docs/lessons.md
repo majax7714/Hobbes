@@ -97,6 +97,11 @@ writing a brief, a probe or a pre-registration. The resume point is
   compile` reads them; pytest stays green. ADR-012's amendment renamed
   I-2's guard and the host run of `scripts/ci-graph.sh` caught it.
 
+- **Count a probe's rows at the grader's grain.** ADR-170's step 0 counted
+  `cls(…)` call sites (rich 55); the grader keeps one row per line and
+  target, and four lines held two calls. C5 missed by one row although the
+  rule did exactly what the probe saw. Dedupe by `(path, line, target)`.
+
 ## Grading
 
 - **Read every suspect of a new key, row by row.** A trace key never

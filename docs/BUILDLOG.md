@@ -15838,3 +15838,13 @@ went to the Rust collision.
 - `scripts/ci-graph.sh 3fda729` on the host: ingest contained; `lanes` 17,695 sites, 0 unexplained; invariants
   run; review "nothing needs attention"; `lane_b` 27 passed; "graph checks passed". The image was rebuilt by
   the job. pytest 2,787 on the host. The knowledge server's old container was stopped for `/mcp`.
+
+## 2026-10-03 (thirty-seventh session, cont.) — `cls(…)` in a classmethod (0.2.99-beta, ADR-170)
+
+- Max: "good to write the adr and continue". ADR-170 written first; the rule's wording kept as `PREREG.md`
+  froze it, plus a rebound-`cls` exclusion and the own body only.
+- **Built:** `ParsedFile.classmethods`, `clscalls.cls_calls`, wired after the aliases with `via: "cls"`;
+  `minicls` fixture from rich's `rich/control.py`; `test_clscalls.py` 4.
+- **Regrade** (`~/.hobbes/bench/cls-classmethod/after/`): icalendar +76 confirmed, C1–C4 met; rich +51, C5
+  missed by one row — step 0 counted call sites, the grader lines (by line step 0 read +51 exactly; lesson
+  added); flask +1, click 0, pyparsing +12; poison PASS everywhere.

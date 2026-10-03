@@ -30,6 +30,7 @@ from pathlib import Path, PurePosixPath
 from hobbes.extract import evidence as ev
 from hobbes.extract import (
     aliases,
+    clscalls,
     containment,
     decorators,
     fixtures,
@@ -1117,6 +1118,17 @@ def _build_symbol_layer(
         if alias_counts:
             # Additive, and absent where no file records an alias.
             graph["aliases"] = alias_counts
+    # ADR-170, after the aliases and for the same reason: `cls(…)` in a
+    # classmethod names the parameter at the site, below the symbol floor
+    # (C-9); the class is where the `def` is written. `syntactic`.
+    with timings.step("cls calls"):
+        cls_rows, cls_counts = clscalls.cls_calls(
+            modules, parsed, graph["symbols"], graph["symbol_edges"]
+        )
+        _add_alias_call_edges(graph, cls_rows, via=clscalls.CLS)
+        if cls_counts:
+            # Additive, and absent where no file records a classmethod.
+            graph["cls_calls"] = cls_counts
     if injections is not None:
         injections.extend(drawn)
     # C-153's surfacing (ADR-125 §4), read off the edges the projection has
@@ -1423,7 +1435,7 @@ def _add_with_call_edges(graph: dict, drawn: list[dict]) -> None:
     )
 
 
-def _add_alias_call_edges(graph: dict, drawn: list[dict]) -> None:
+def _add_alias_call_edges(graph: dict, drawn: list[dict], via: str = aliases.ALIAS) -> None:
     """Draw each call through a local alias as one ``calls`` edge
     (ADR-160), evidence at every site that made it.
 
@@ -1450,7 +1462,7 @@ def _add_alias_call_edges(graph: dict, drawn: list[dict]) -> None:
                 target,
                 "calls",
                 [
-                    {"path": path, "line": line, "via": aliases.ALIAS}
+                    {"path": path, "line": line, "via": via}
                     for path, line in sorted(evidence)
                 ],
                 tier=SYNTACTIC,

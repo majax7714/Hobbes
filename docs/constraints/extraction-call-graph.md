@@ -347,7 +347,7 @@
 - **Source:** architecture §3.2/P6, ADR-029. Registered at V2.M3, when
   demoting lane A's resolver made the floor explicit rather than incidental.
 
-### C-9 — Only five descriptor kinds become graph symbols — *narrowed 2026-10-02 (ADR-160, 0.2.85-beta): a call through a local alias whose right-hand side the index names is drawn, `syntactic`*
+### C-9 — Only five descriptor kinds become graph symbols — *narrowed 2026-10-02 (ADR-160, 0.2.85-beta): a call through a local alias whose right-hand side the index names is drawn, `syntactic`; and 2026-10-03 (ADR-170, 0.2.99-beta): `cls(…)` in a classmethod*
 - **Cannot tell you:** about parameters, locals, or meta symbols; roughly
   **86%** of what a Python or TS indexer defines is dropped (**72%** for
   Go — 27.9% of `scip-go`'s definitions are graph-worthy, ADR-037).
@@ -362,7 +362,12 @@
   binds a local exactly once by `N = R` (R a name or an attribute chain)
   and calls `N(…)` draws `calls` to what the index named at R, at the
   `syntactic` tier, `via: "alias"` (rich +124 confirmed, 90.20% →
-  92.51%; flask and click have none). Every other local binding still
+  92.51%; flask and click have none). **`cls(…)` in a classmethod,
+  narrowed 2026-10-03 (ADR-170, 0.2.99-beta):** a bare `cls(…)` in the own
+  body of a `@classmethod` written directly in a class body (and not
+  rebinding `cls`) draws `calls` to that class, `syntactic`, `via: "cls"`;
+  called through a subclass it constructs the subclass, and the edge names
+  the declared one (C-60). Every other local binding still
   draws nothing: a parameter holding a callable, a value a call returned,
   a name bound twice, a module-level or class-level alias, and a call from
   a nested def.

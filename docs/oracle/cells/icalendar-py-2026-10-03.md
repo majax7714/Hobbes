@@ -80,3 +80,9 @@ is frozen in `PREREG.md`; any narrowing must rest on the fitted cells, not on th
 
 Regraded against this key: 3,477 confirmed, 16 suspect, 54 unobserved, recall 68.7%, poison PASS. The 6
 Hobbes-wrong rows are gone; the 16 left are the C-60 rows above. `~/.hobbes/bench/c184-union-receiver/after/icalendar/`.
+
+## The `cls(…)` rule (ADR-170, 0.2.99-beta), C1–C5
+
+3,553 confirmed, 16 suspect, 58 unobserved, recall 70.2%, poison PASS. C1 met (81 sites), C2 met (76 of 77
+executed lines confirmed), C3 met (0 Hobbes-wrong), C4 met (0 subclass-only). C5 (rich) missed by one row; see
+ADR-170.
