@@ -20,6 +20,12 @@
 # tree_sitter import, and this roster amendment is the conscious act
 # the checker exists to force (rule block only — the statement is
 # ownership and needs no edit).
+#
+# C and C++ (csource, cppsource; ADR-108/109) landed without that act:
+# the review reported I-4 FAIL on their tree_sitter imports, marked
+# "still failing", which is never a regression, so the graph job never
+# failed on it. Amended 2026-10-02: both owners join the exceptions, and
+# their grammars join the forbidden imports, which had not named them.
 id: I-4
 statement: >-
   Each language has exactly one owning parser, and only owning parsers
@@ -43,6 +49,8 @@ rule:
     - hobbes.extract.gosource
     - hobbes.extract.rustsource
     - hobbes.extract.javasource
+    - hobbes.extract.csource
+    - hobbes.extract.cppsource
     - hobbes.extract.terraform
   imported:
     - ext:tree_sitter
@@ -51,6 +59,8 @@ rule:
     - ext:tree_sitter_python
     - ext:tree_sitter_rust
     - ext:tree_sitter_java
+    - ext:tree_sitter_c
+    - ext:tree_sitter_cpp
 guarded_by:
   - pipeline/tests/test_emit.py::TestLayerOwnership::test_no_parser_sees_another_languages_files
   - pipeline/tests/test_emit.py::TestLayerOwnership::test_a_cross_layer_id_collision_is_reported
