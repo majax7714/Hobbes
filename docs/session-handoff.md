@@ -1,13 +1,13 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (thirty-seventh session); Hobbes 0.2.98-beta on `main`.**
+**Reviewed 2026-10-03 (thirty-seventh session, close); Hobbes 0.2.98-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
-by the commits since then; they are unpushed. The image (`4a556e979473`, rebuilt by the graph job) and
-the proxy are at 0.2.96-beta; this repo was ingested at `6d2274f` by the host
-run of `scripts/ci-graph.sh 3fda729`, which passed. The old knowledge
-server's container was stopped for a `/mcp` reconnect. If `main` has moved,
-ingest at HEAD again. A new session's knowledge server is a new container
-from the current image, so it starts fresh.
+by the commits since then; they are unpushed. The image (`9f04edf1d047`) and the
+proxy are at 0.2.98-beta; this repo was ingested at HEAD by the host run of
+`scripts/ci-graph.sh 3fda729`, which passed. The old knowledge server's
+container was stopped for a `/mcp` reconnect. If `main` has moved, ingest at
+HEAD again. A new session's knowledge server is a new container from the
+current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
 file; don't append to it. Anything open but not done goes in
@@ -30,39 +30,34 @@ session went belongs in the BUILDLOG.
 - 2026-10-03, on the open-items routes: "all those look good. good to
   proceed- approved".
 
-**Next: C-184's containment, Max's call first** (precedent 1). The held-out
-icalendar grade found scip-python drawing a method call on a union-typed
-receiver to the union's first member at `semantic` (6 Hobbes-wrong rows,
-`oracle-grading.md` §10.46). TypeScript's face is contained (ADR-104); the
-routes are at the top of [`currently-open.md`](currently-open.md). **Then
-the `cls(…)` rule**: step 0 and icalendar's pre-registration are done; the
-ADR, the build and the C-rows are next (its wording is frozen in
-`~/.hobbes/bench/heldout-icalendar/PREREG.md`).
+**Next: the `cls(…)` rule** (rich 55 confirmable, flask 1, click 0 by step 0,
+`~/.hobbes/bench/cls-classmethod/`). icalendar is graded held out and the
+rule's rows C1–C5 are pre-registered (`~/.hobbes/bench/heldout-icalendar/PREREG.md`,
+wording frozen). Write the ADR (tier `syntactic`; a subclass-only site is
+C-60's declared target), take it to Max, then build and score C1–C5.
 
-**Waiting on Max:** C-184's route; flask's `sansio/` (re-ask: the probe
-showed the missing `Flask → App` is scip-python omitting `Flask#`'s
-relationships, not PEP 420 naming); C-181's residual, ADR-126 §3 and the
-rest of "Decisions open for Max". Don't build any of them until Max answers.
+**Waiting on Max:** C-181's residual, ADR-126 §3 and the rest of "Decisions
+open for Max" in [`currently-open.md`](currently-open.md). Don't build any
+of them until Max answers.
 
 ## Where the last day left things (2026-10-03; the CHANGELOG has each one)
 
-Max approved eight routes; seven are built, each its own commit, regraded
-where it could move a cell:
-- **0.2.91-beta, ADR-100 amended:** verify's `E2E` (an error on both trees
-  is a fault, not a failure; harness v3).
-- **0.2.92-beta, ADR-166, C-183:** a Go file's later `init` is the node's
-  (dagger: 89 `uses` moved from the module, nothing else).
-- **0.2.93-beta, ADR-012 amended:** the ignore line goes in
-  `.git/info/exclude`; the ingest no longer edits the tracked tree.
-  I-2's guard was renamed with its test (`6d2274f`, caught by the graph job).
-- **0.2.94-beta, ADR-154 amended:** C-173's record names the code after a
-  platform-guarded `raise` (rich: 16–661; graph byte-identical).
-- **0.2.95-beta, ADR-165 amended:** C-182's two-kinds repeat is refused,
-  the rest named in `rust-repeats` (memchr 919/919; C-182 surfaced).
-- **0.2.96-beta, ADR-167:** C-179 named where `tests_guarding` and the
-  review say "unguarded" (this repo: 5 loads placed; C-179 partial).
-- **Not built:** flask's `sansio/` (re-ask, above); `cls(…)` (behind
-  C-184).
+Max approved eight routes, then the two follow-ups ("proceed with the
+recommended decisions"); each is its own commit, regraded where it could
+move a cell:
+- **0.2.91** verify's `E2E` (ADR-100); **0.2.92** Go's later `init` is the
+  node's (ADR-166, C-183); **0.2.93** the ignore line in `.git/info/exclude`
+  (ADR-012); **0.2.94** C-173 names code after a guarded `raise` (ADR-154);
+  **0.2.95** C-182's residual refused or named (ADR-165); **0.2.96** C-179
+  named where it reads "unguarded" (ADR-167).
+- **icalendar, held out, graded at 0.2.96** (§10.46): 6 Hobbes-wrong rows,
+  scip-python's first-member pick on a union receiver. **0.2.97, ADR-168,
+  C-184 contained** where the union is written: the 6 gone, the other
+  cells byte-identical.
+- **0.2.98, ADR-169, C-185:** a class base scip-python states no relationship
+  for is named (`python-bases`; flask's `Flask → App` among 85 pairs).
+- Slips, each fixed and in the BUILDLOG: I-2's guard renamed with its test;
+  `test_verification` red from `21d019e` to `62a654e`; the "last ADR" copy.
 
 ## Where things stand
 

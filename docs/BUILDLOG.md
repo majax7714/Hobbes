@@ -15832,3 +15832,9 @@ went to the Rust collision.
 - **Built:** `TypeFacts.heads`, `pybases.unstated_bases`, the `python-bases` record; `test_pybases.py` 5.
 - **Regrade:** the record's counts equal the measurement on all five cells; edges byte-identical.
 - flask's PEP 420 naming stays in `currently-open.md` (route 2, not taken).
+
+## 2026-10-03 (thirty-seventh session, close) — the graph job passes at 0.2.98-beta
+
+- `scripts/ci-graph.sh 3fda729` on the host: ingest contained; `lanes` 17,695 sites, 0 unexplained; invariants
+  run; review "nothing needs attention"; `lane_b` 27 passed; "graph checks passed". The image was rebuilt by
+  the job. pytest 2,787 on the host. The knowledge server's old container was stopped for `/mcp`.
