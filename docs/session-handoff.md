@@ -2,8 +2,8 @@
 
 **Reviewed 2026-10-03 (thirty-seventh session, close); Hobbes 0.2.99-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
-by the commits since then; they are unpushed. The image (`9f04edf1d047`) and the
-proxy are at 0.2.98-beta; this repo was ingested at HEAD by the host run of
+by the commits since then; they are unpushed. The image (`dcbe621304cd`) and the
+proxy are at 0.2.99-beta; this repo was ingested at HEAD by the host run of
 `scripts/ci-graph.sh 3fda729`, which passed. The old knowledge server's
 container was stopped for a `/mcp` reconnect. If `main` has moved, ingest at
 HEAD again. A new session's knowledge server is a new container from the

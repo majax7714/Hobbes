@@ -15848,3 +15848,9 @@ went to the Rust collision.
 - **Regrade** (`~/.hobbes/bench/cls-classmethod/after/`): icalendar +76 confirmed, C1–C4 met; rich +51, C5
   missed by one row — step 0 counted call sites, the grader lines (by line step 0 read +51 exactly; lesson
   added); flask +1, click 0, pyparsing +12; poison PASS everywhere.
+
+## 2026-10-03 (thirty-seventh session, close) — the graph job passes at 0.2.99-beta
+
+- `scripts/ci-graph.sh 3fda729` on the host: `lanes` 17,715 sites, 0 unexplained; invariants run; review
+  "nothing needs attention"; `lane_b` 27 passed; "graph checks passed". The image was rebuilt by the job; the
+  knowledge server's old container stopped for `/mcp`.
