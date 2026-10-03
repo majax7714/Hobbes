@@ -679,6 +679,12 @@ class _SymbolIndex:
     end_line)`` spans of its later live defs; each is one further row the
     enclosing lookup reads as that symbol's, and the start lookup never
     sees. A span for an id not among *symbols* is ignored.
+
+    *shared* (ADR-163) maps a Rust symbol id that differently written
+    ``impl`` blocks mint alike to the ``(line, end_line)`` spans of its
+    defs other than the node's own. Those are other functions, so neither
+    lookup reads them as the node's: :meth:`shared_def` names the id a
+    line sits inside or starts, and the projection refuses the fact.
     """
 
     def __init__(
@@ -686,6 +692,7 @@ class _SymbolIndex:
         nodes: list[dict],
         symbols: list[dict],
         later_defs: dict[str, list[tuple[int, int]]] | None = None,
+        shared: dict[str, list[tuple[int, int]]] | None = None,
     ):
         self._kinds = {s["id"]: s.get("kind") for s in symbols}
         # Only the symbols that carry a count (ADR-130): the C++ layer's
@@ -722,6 +729,16 @@ class _SymbolIndex:
             module: [s["line"] for s in rows]
             for module, rows in self._by_module.items()
         }
+        self._shared: dict[str, list[tuple[int, int, str]]] = {}
+        if shared:
+            modules = {s["id"]: s["module"] for s in symbols}
+            for symbol_id, spans in shared.items():
+                module = modules.get(symbol_id)
+                if module is None:
+                    continue
+                self._shared.setdefault(module, []).extend(
+                    (line, end_line, symbol_id) for line, end_line in spans
+                )
 
     def kind(self, symbol_id: str) -> str | None:
         """The declared kind of a symbol id, or None for a module id."""
@@ -751,6 +768,14 @@ class _SymbolIndex:
                 # Later starts are more deeply nested, so the last match wins.
                 best = symbol["id"]
         return best
+
+    def shared_def(self, module: str, line: int, *, start: bool = False) -> str | None:
+        """The id whose later, differently headed def (ADR-163) contains
+        *line* — or, with *start*, begins at it — or None."""
+        for first, last, symbol_id in self._shared.get(module, ()):
+            if (line == first) if start else (first <= line <= last):
+                return symbol_id
+        return None
 
     def starting_at(self, module: str, line: int) -> str | None:
         """The symbol defined at *line*, innermost first."""
@@ -938,6 +963,7 @@ def project(
     symbols: list[dict],
     full_specializations: frozenset[str] = frozenset(),
     later_defs: dict[str, list[tuple[int, int]]] | None = None,
+    shared: dict[str, list[tuple[int, int]]] | None = None,
 ) -> dict:
     """Project semantic-IR facts onto lane A's module and symbol ids.
 
@@ -965,8 +991,21 @@ def project(
     (ADR-155), read by the caller lookup alone: a ``uses`` fact at a later
     def's own name token then names its own callee and drops below, and
     one written inside a later def is filed under the qualname.
+
+    *shared* is the opposite case, in Rust (ADR-163, C-180): a symbol id
+    that two differently written ``impl`` blocks mint alike, with the
+    spans of its defs other than the node's. A later def there is another
+    function, so a fact written inside one, or resolved onto one's line,
+    is refused — no edge, no row under the node or the module — and
+    returned in ``shared_qualname`` for the tail and the record to count.
+    The module edge it raises is kept: the files do reference each other.
     """
-    index = _SymbolIndex(nodes, symbols, later_defs)
+    index = _SymbolIndex(nodes, symbols, later_defs, shared)
+    # Facts ADR-163 refuses: written inside, or resolved onto, a later def
+    # of a Rust id two impl headers share. One row each, so the tail can
+    # name the call sites `shared-qualname` and the record can count the
+    # references beside them.
+    shared_qualname: list[dict] = []
     module_evidence: dict[tuple, list] = {}
     symbol_evidence: dict[tuple, list] = {}
     # Call sites the semantic lane resolved to a declaration lane A keeps
@@ -1014,6 +1053,20 @@ def project(
                 continue
             key = (caller, callee, "implements", fact.tier, lane)
             symbol_evidence.setdefault(key, []).append(site)
+            continue
+        shared_id = index.shared_def(source_module, fact.line) or index.shared_def(
+            target_module, fact.def_line, start=True
+        )
+        if shared_id is not None:
+            shared_qualname.append(
+                {
+                    "path": fact.source_file,
+                    "line": fact.line,
+                    "kind": fact.kind,
+                    "id": shared_id,
+                    "lane_b": SCIP_LANE in fact.lanes,
+                }
+            )
             continue
         caller = fact.scope or index.enclosing(source_module, fact.line) or source_module
         callee = index.starting_at(target_module, fact.def_line)
@@ -1091,6 +1144,7 @@ def project(
         "qualifier_mismatch": qualifier_mismatch,
         "arity_mismatch": arity_mismatch,
         "implements_below_floor": implements_below_floor,
+        "shared_qualname": shared_qualname,
     }
 
 

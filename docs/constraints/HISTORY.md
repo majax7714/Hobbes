@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-180 registered and contained, 2026-10-03 (0.2.87-beta; ADR-163, Max: the narrow route):
+- **C-180 registered, surfaced.** Two differently written `impl` blocks in one Rust file mint one symbol id
+  (`impl Pointer for *const T` and `for *mut T` are both `T`). A fact written inside, or resolved onto, a
+  later def is now refused, counted as the tail class `shared-qualname` and in one `rust-qualnames` record;
+  the node and its first def's edges are unchanged. memchr's false `T.distance calls T.distance` is gone.
+- 180 entries, 132 active (102 surfaced, 25 partial, 4 unsurfaced, 1 n/a), 31 lifted.
+
 C-179 registered, 2026-10-02 (no version move; Max: "add a constraint for the found limit"):
 - **C-179 registered, unsurfaced.** A module a Python file loads at run time (`spec_from_file_location`,
   `importlib.import_module`, `__import__`) draws no `imports` edge, and a call through its value reaches

@@ -25,7 +25,7 @@ recall 98.1% (3593/3662 in-repo oracle pairs) over every resolved site in the ce
 
 **Contradictions (12, before ADR-090), all syntactic, all hobbes-wrong, one cause.** `gql_client.rs` defines a `fn format(...)` at line 81; twelve `format!(...)` **macro invocations** in the same file were bound by lane A's fallback to that function. The compiler's calls on those lines are `core::fmt` and `GraphQLError::with_text`. The semantic tier is **3,574/3,574**. Syntactic tier overall: 18 confirmed, 12 contradicted, 6 not-loaded — the C-7 floor priced at 60% wrong on this crate.
 
-**Misses (69).** `static→method` 30 = 17 + 7 + 4 + 1 + 1: calls of **extension-trait methods implemented on foreign types** (`impl InputValuesExt for Vec<&InputValue>` → `has_optionals` ×3; `OptionExt::pipe` on `Option` ×14), methods **`derive_builder` generated** (`ConfigBuilder::logger` ×3, `execute_timeout_ms` ×2, `fallible_build`, `HostDirectoryOptsBuilder::exclude` — the identifier the derive copies from the field keeps a source span, so they class as methods, not generated), 4 calls of the raw-identifier method `Query::r#ref`, 1 `LazyResolve as Deref`, and 1 inherent method (`CommonFunctions::format_output_type`) called inside `quote!` tokens — the proc-macro class below. `static→generated` 25: `x.clone()` on `#[derive(Clone)]` types — the target is the derived impl, which has no source identifier. `static→function` 14 (+1 method above, 15): calls written **inside a proc-macro's tokens** (`quote! { … $(format_name(..)) … }` in the codegen templates), where Hobbes has no site at all. No closure miss remains: every in-repo closure call the compiler resolves is either an async body behind `.await` (folded, H-16) or drawn.
+**Misses (69).** `static→method` 30 = 17 + 7 + 4 + 1 + 1: calls of **extension-trait methods implemented on foreign types** (`impl InputValuesExt for Vec<&InputValue>` → `has_optionals` ×3; `OptionExt::pipe` on `Option` ×14) *[corrected 2026-10-03: the three `has_optionals` calls (`functions.rs` 469/501/533) resolve to the **second** impl, `for Vec<InputValue>` at line 354, which shares the id `Vec.has_optionals` with the first and had no node — C-180, ADR-163, not C-58/C-9; see the regrade at the end]*, methods **`derive_builder` generated** (`ConfigBuilder::logger` ×3, `execute_timeout_ms` ×2, `fallible_build`, `HostDirectoryOptsBuilder::exclude` — the identifier the derive copies from the field keeps a source span, so they class as methods, not generated), 4 calls of the raw-identifier method `Query::r#ref`, 1 `LazyResolve as Deref`, and 1 inherent method (`CommonFunctions::format_output_type`) called inside `quote!` tokens — the proc-macro class below. `static→generated` 25: `x.clone()` on `#[derive(Clone)]` types — the target is the derived impl, which has no source identifier. `static→function` 14 (+1 method above, 15): calls written **inside a proc-macro's tokens** (`quote! { … $(format_name(..)) … }` in the codegen templates), where Hobbes has no site at all. No closure miss remains: every in-repo closure call the compiler resolves is either an async body behind `.await` (folded, H-16) or drawn.
 
 **Silent (6).** `not-loaded`: syntactic edges in files the workspace build does not compile.
 
@@ -88,4 +88,26 @@ recall-collapsed 98.1% (3592/3661 pairs at site-line × target-file × target-na
   tier syntactic  confirmed 18  contradicted 0  abstract 0  silent 6
   line-grain tolerance used on 1215 edge(s) (several oracle sites on one line)
 poison check: PASS — 3598 seeded wrong edges: 3592 refused, 6 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+
+## Regrade 2026-10-03 (Hobbes 0.2.87-beta, ADR-163, C-180 — same clone, the 2026-08-25 MIR key, contained)
+
+Re-ingested on 0.2.87-beta and graded against the standing key (`~/.hobbes/bench/c180-rust-impl-qualnames/after/dagger-sdk_rust/`; the 0.2.86-beta "before", `before/`, reproduced the standing grade to the digit). The generated `gen.rs` writes an inherent `impl X { fn id }` beside `impl Node for X { fn id }` (and `Exportable`, `Syncer`, `From<&str>`/`From<String>` …) for 102 ids; lane A names each pair alike, and before ADR-163 the trait impls' calls were filed under the inherent methods' nodes — 229 rows the key graded confirmed because it judges the site and the target, never the caller — with 217 lane B `uses` filed under the module. `functions.rs` 469/501/533 call the second `Vec.has_optionals` (`impl InputValuesExt for Vec<InputValue>`, line 354), which had no node, and were counted `below-floor`; the misses table above blamed them on C-58/C-9.
+
+**Direction of fix (ADR-163, signed):** confirmed 3,592 → 3,363 (−229, every one a call written in a later def, filed under the wrong caller); contradicted 0 → 0; precision 100% → 100%, strict 3,363/3,363 (100%; no `line-unresolved` row either side); recall 3,593/3,662 → 3,364/3,662 (98.1% → 91.9%: the 229 pairs are now honest misses, `static→method` 30 → 258, `static→function` 14 → 15); hobbes edges 3,598 → 3,369. Graph (all of dagger): 69,058 symbols before and after, identical; 446 evidence rows removed (229 `calls`, 217 `uses`), every one inside a later def, 0 added; `below-floor` 6,177 → 6,174 and 232 call sites tailed `shared-qualname` (the 229 and the 3).
+
+```
+cell sdk/rust  oracle rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution)  sha f3cc3eb3
+hobbes edges 3369: confirmed 3363  contradicted 0  abstract 0  silent 6 map[not-loaded:6]
+precision-against-oracle 100.0% (3363/3363)
+recall 91.9% (3364/3662 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 6191; misses map[static→function:15 static→generated:25 static→method:258]
+recall-collapsed 91.9% (3363/3661 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[static→function   ]  94.1% (238/253)  misses 15 = 5.0% of all misses
+  recall[static→generated  ]   0.0% (0/25)  misses 25 = 8.4% of all misses
+  recall[static→method     ]  92.4% (3126/3384)  misses 258 = 86.6% of all misses
+  tier semantic   confirmed 3345  contradicted 0  abstract 0  silent 0
+  tier syntactic  confirmed 18  contradicted 0  abstract 0  silent 6
+  line-grain tolerance used on 1209 edge(s) (several oracle sites on one line)
+poison check: PASS — 3369 seeded wrong edges: 3031 refused, 338 unjudged (oracle silent there), 0 falsely confirmed
 ```

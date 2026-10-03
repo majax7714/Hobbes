@@ -760,13 +760,13 @@ repowise graded by the same key as the Hobbes memchr cell (ADR-101); host-run (C
 <text x="163.4" y="532.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr ·rw</text>
 <g>
 <title>memchr — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-27
-precision-against-oracle 921/921 = 100.0%
-recall 925/1,146 = 80.7% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 63, macro→function 57, static→function 53, macro→method 42, static→generated 5, static→closure 1
+precision-against-oracle 919/919 = 100.0%
+recall 923/1,146 = 80.5% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 65, macro→function 57, static→function 53, macro→method 42, static→generated 5, static→closure 1
 misses are macro bodies (unsafe_ifunc!, define_*_quickcheck!)</title>
-<circle cx="302.1" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="301.5" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="310.1" y="494.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr</text>
+<text x="309.5" y="504.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr</text>
 <g>
 <title>rust_proj — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-28
 precision-against-oracle 17/17 = 100.0%
@@ -775,16 +775,16 @@ misses by class: macro→function 4
 tiny crate; misses are criterion_group! bodies</title>
 <circle cx="303.0" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="311.0" y="514.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >rust_proj</text>
+<text x="311.0" y="524.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >rust_proj</text>
 <g>
 <title>dagger sdk/rust — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-25
-precision-against-oracle 3,592/3,592 = 100.0%
-recall 3,593/3,662 = 98.1% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 30, static→generated 25, static→function 14
+precision-against-oracle 3,363/3,363 = 100.0%
+recall 3,364/3,662 = 91.9% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 258, static→generated 25, static→function 15
 misses are code macros and derives wrote; contained from the 2026-09-10 regrade</title>
-<circle cx="354.3" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="335.7" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="346.3" y="534.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >dagger sdk/rust</text>
+<text x="327.7" y="544.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >dagger sdk/rust</text>
 <text x="400" y="470" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Java — javac (compiler-graded)</text>
 <rect x="400" y="480" width="300" height="300" fill="none" stroke="#d9d8d2"/>
 <line x1="400.0" y1="480" x2="400.0" y2="780" stroke="#d9d8d2" stroke-dasharray="2 3"/>

@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-02 (0.2.86-beta).
+Last reviewed: 2026-10-03 (0.2.87-beta).
 
 ## Decisions open for Max (no spend)
 
@@ -93,10 +93,15 @@ Last reviewed: 2026-10-02 (0.2.86-beta).
   (no repo edge).
 - **Other languages' duplicate qualnames** (ADR-155 covers Python only;
   measured 2026-10-02, `~/.hobbes/bench/dup-qualnames-2026-10-02/RESULTS.md`).
-  TS/JS and Java are clean. Rust's impl-block collision is being
-  registered and contained. **Go's second `init`** files its lane B `uses`
-  under the module (dagger, 89 rows in 22 files): unregistered, not yet
-  contained.
+  TS/JS and Java are clean. **Rust's impl-block collision is contained**
+  (C-180, ADR-163, 0.2.87-beta): a fact at a later def of an id two impl
+  headers share is refused and tailed `shared-qualname`. **Open, Max's
+  call: the prevention**, ids that tell the impl blocks apart (Java's
+  `~n`, or a self-type that keeps `*const`/`*mut` and the trait). It
+  changes symbol ids; built, each later def gets a node and C-180 lifts
+  (dagger would get back its 229 calls and memchr its 2). **Go's second
+  `init`** files its lane B `uses` under the module (dagger, 89 rows in 22
+  files): unregistered, not yet contained.
 - **An `extends`-chain walk (TS/JS):** 104 rows at 0 contradicted (ajv 18,
   hono 8, xmpp.js 2, zod about 76), 0 on Preact. It would be a new kind of
   rule (a chain of lane B hops) for under a point per cell. Measured, not

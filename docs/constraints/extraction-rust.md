@@ -124,6 +124,46 @@
 - **Source:** ADR-120, the relationships measurement of 2026-09-16
   (`~/.hobbes/bench/relationships-probe/measure-this-repo.txt`).
 
+### C-180 — Two impl blocks that name one type share one symbol id: a later def has no node, and its calls are refused
+- **Cannot tell you:** anything written inside, or resolved onto, the
+  second and later defs of a Rust symbol id that two differently written
+  `impl` blocks in one file both mint. Lane A names an impl block's
+  methods after its first type identifier, so `impl Pointer for *const
+  T` and `impl Pointer for *mut T` both give `T.distance`; `impl From<&str>
+  for Id` and `impl From<String> for Id` both give `Id.from`; and a trait
+  impl and the inherent impl of one type share every method name they
+  both declare (`Client.describe`). The node is the first def. A call
+  written in a later def draws no edge (ADR-163 refuses it), a call *to*
+  a later def draws none either, and a test that reaches code only
+  through one reaches nothing there. The node's id does not say which
+  impl block it is; its line does. Defs whose headers are written alike
+  — cfg twins, one item under two configurations — are not affected:
+  they stay the node's, as before.
+- **Because:** the id is built from the impl's type name, not its full
+  self-type or trait, and the first def of an id wins the node. Before
+  ADR-163 the later def's facts were filed under the node: memchr's
+  `ext.rs:33` drew `T.distance calls T.distance`, a recursion that does
+  not exist, at `semantic` (the compiler key graded it confirmed — it
+  cannot judge a caller); dagger's `gen.rs` merged 229 calls into the
+  inherent methods' nodes and filed 217 `uses` under the module; and
+  calls onto a later def were counted `below-floor`. The prevention —
+  ids that tell the impl blocks apart — changes symbol ids, and is open
+  ([`currently-open.md`](../currently-open.md)).
+- **Bites at:** `who_calls` and `graph_neighborhood` on such a method
+  (a later def's callers and callees are absent), `tests_guarding` and
+  test reach through one, `hobbes plan`'s impact. Measured 2026-10-02:
+  memchr 169 such ids (167 in `benchmarks/haystacks`, a copy of the
+  standard library's source kept as search input; 2 in `src/ext.rs`),
+  dagger's `sdk/rust` 104 (102 in the generated `gen.rs`).
+- **You find out:** **surfaced** — a refused call site is counted in
+  the file's tail as `shared-qualname`, whose meaning names this entry
+  in the ingest summary and `list_blind_spots`; and every ingest with
+  such an id writes one `rust-qualnames` degradation record naming the
+  count of ids, the refused calls and references, and examples.
+- **Source:** ADR-163; the measurement
+  `~/.hobbes/bench/dup-qualnames-2026-10-02/` and
+  `~/.hobbes/bench/c180-rust-impl-qualnames/`.
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

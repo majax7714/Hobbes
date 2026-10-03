@@ -71,6 +71,11 @@ class RustFile:
     #: refuse ``Trait::method(..)`` — dispatch, lane B's — and nothing
     #: else needs to tell a trait from a struct (C-72).
     traits: list[str] = field(default_factory=list)
+    #: Each symbol's ``(line, end_line, header)`` by qualname, where
+    #: *header* is the text of the ``impl`` block it was declared in, up
+    #: to the body and whitespace-collapsed (``""`` outside any impl).
+    #: Read by :func:`shared_qualnames` alone (ADR-163, C-180).
+    defs: dict[str, list[tuple[int, int, str]]] = field(default_factory=dict)
 
 
 def has_rust_files(repo_root: Path) -> bool:
@@ -202,6 +207,9 @@ def _parse_file(rel: str, source: bytes) -> RustFile:
     _walk_items(root, parsed, prefix="")
 
     for symbol in parsed.symbols:
+        parsed.defs.setdefault(symbol["qualname"], []).append(
+            (symbol["line"], symbol["end_line"], symbol.pop("impl", ""))
+        )
         if symbol.pop("is_test", False):
             parsed.tests.append(
                 {
@@ -217,14 +225,18 @@ def _parse_file(rel: str, source: bytes) -> RustFile:
     return parsed
 
 
-def _walk_items(container: Node, parsed: RustFile, prefix: str, in_impl: bool = False):
+def _walk_items(
+    container: Node, parsed: RustFile, prefix: str, in_impl: bool = False, header: str = ""
+):
     """Collect declarations, recursing into mod and impl bodies only.
 
     Nested *functions* are not architecture (the gosource rule), but a
     ``#[cfg(test)] mod tests`` block is where Rust keeps its unit tests,
     and an ``impl`` block is where it keeps its methods — stopping at the
     top level would make both invisible. *prefix* carries the dotted
-    qualname path (``tests.test_add``, ``Counter.incr``).
+    qualname path (``tests.test_add``, ``Counter.incr``). *header* is the
+    enclosing ``impl`` block's header text, kept on each symbol for
+    :func:`shared_qualnames` (ADR-163).
     """
     pending_attrs: list[Node] = []
     for node in container.children:
@@ -259,6 +271,7 @@ def _walk_items(container: Node, parsed: RustFile, prefix: str, in_impl: bool = 
                     parsed,
                     _dotted(prefix, type_name) if type_name else prefix,
                     in_impl=True,
+                    header=_impl_header(node, body),
                 )
         elif node.type == "function_item":
             name = _child_text(node, "identifier")
@@ -267,26 +280,43 @@ def _walk_items(container: Node, parsed: RustFile, prefix: str, in_impl: bool = 
             kind = "method" if in_impl else "function"
             parsed.symbols.append(
                 _symbol(name, _dotted(prefix, name), kind, node)
-                | {"is_test": _is_test_attr(attrs)}
+                | {"is_test": _is_test_attr(attrs), "impl": header}
             )
         elif node.type in ("struct_item", "enum_item", "trait_item", "union_item"):
             name = _child_text(node, "type_identifier")
             if name:
-                parsed.symbols.append(_symbol(name, _dotted(prefix, name), "type", node))
+                parsed.symbols.append(
+                    _symbol(name, _dotted(prefix, name), "type", node) | {"impl": header}
+                )
                 if node.type == "trait_item":
                     parsed.traits.append(name)
         elif node.type == "type_item":
             name = _child_text(node, "type_identifier")
             if name:
-                parsed.symbols.append(_symbol(name, _dotted(prefix, name), "type", node))
+                parsed.symbols.append(
+                    _symbol(name, _dotted(prefix, name), "type", node) | {"impl": header}
+                )
         elif node.type in ("const_item", "static_item"):
             name = _child_text(node, "identifier")
             if name:
-                parsed.symbols.append(_symbol(name, _dotted(prefix, name), "const", node))
+                parsed.symbols.append(
+                    _symbol(name, _dotted(prefix, name), "const", node) | {"impl": header}
+                )
         elif node.type == "macro_definition":
             name = _child_text(node, "identifier")
             if name:
-                parsed.symbols.append(_symbol(name, _dotted(prefix, name), "macro", node))
+                parsed.symbols.append(
+                    _symbol(name, _dotted(prefix, name), "macro", node) | {"impl": header}
+                )
+
+
+def _impl_header(node: Node, body: Node) -> str:
+    """``impl<T> Pointer for *const T { … }`` → ``impl<T> Pointer for
+    *const T``: the block's text up to its body, whitespace collapsed.
+    Two blocks that :func:`_impl_type` names alike differ here unless
+    they are written alike — a cfg twin (ADR-163)."""
+    text = (node.text or b"")[: body.start_byte - node.start_byte]
+    return " ".join(text.decode("utf-8", "replace").split())
 
 
 def _dotted(prefix: str, name: str) -> str:
@@ -665,6 +695,7 @@ def _join(files: list[RustFile], crates: dict[str, str]) -> dict:
         "symbols": sorted(symbols, key=lambda s: s["id"]),
         "call_sites": _call_sites(files),
         "call_fallback": _call_fallback(files, crates, mod_map),
+        "shared_qualnames": shared_qualnames(files),
         "files": files,
         "tests": sorted(
             (test for parsed in files for test in parsed.tests),
@@ -673,6 +704,29 @@ def _join(files: list[RustFile], crates: dict[str, str]) -> dict:
         "languages": ["rust"],
         "errors": [],
     }
+
+
+def shared_qualnames(files: list[RustFile]) -> dict[str, list[tuple[int, int]]]:
+    """Every symbol id two differently written ``impl`` headers mint in one
+    file, with the ``(line, end_line)`` of each of its defs (ADR-163, C-180).
+
+    :func:`_impl_type` names an impl block after its first type
+    identifier, so ``impl Pointer for *const T`` and ``impl Pointer for
+    *mut T`` both hang their ``distance`` off ``T``, and a trait impl and
+    the inherent impl of one type share every method name they both
+    declare. The node sits at the first def; the others are different
+    functions with no node of their own. A qualname whose defs all carry
+    the same header text — a cfg twin, the same item compiled under
+    another configuration — is not listed: there the later def is the
+    node's own code, as before.
+    """
+    out: dict[str, list[tuple[int, int]]] = {}
+    for parsed in files:
+        mid = module_id(parsed.path)
+        for qualname, defs in parsed.defs.items():
+            if len(defs) > 1 and len({header for _, _, header in defs}) > 1:
+                out[f"{mid}.{qualname}"] = sorted((line, end) for line, end, _ in defs)
+    return out
 
 
 def _mod_tree(files: list[RustFile], known_files: set[str]) -> dict[tuple[str, str], str]:

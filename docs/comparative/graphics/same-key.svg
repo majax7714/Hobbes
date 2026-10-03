@@ -349,21 +349,21 @@
 <rect x="432.8" y="453" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>memchr — hobbes: precision-against-oracle 921/921 = 100.0%</title>
+<title>memchr — hobbes: precision-against-oracle 919/919 = 100.0%</title>
 <circle cx="550.0" cy="458" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>memchr — repowise: precision-against-oracle 362/387 = 93.5% · strict 362/391 (92.6%)</title>
 <polygon points="530.5,451.5 537.0,458 530.5,464.5 524.0,458" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="682.3" y1="458" x2="852.1" y2="458" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="682.3" y1="458" x2="851.5" y2="458" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>memchr — codegraphcontext: recall 276/1,146 = 24.1% over every resolved site (resolution oracle: no roots)</title>
 <rect x="677.3" y="453" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>memchr — hobbes: recall 925/1,146 = 80.7% over every resolved site (resolution oracle: no roots)</title>
-<circle cx="852.1" cy="458" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>memchr — hobbes: recall 923/1,146 = 80.5% over every resolved site (resolution oracle: no roots)</title>
+<circle cx="851.5" cy="458" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>memchr — repowise: recall 365/1,146 = 31.8% over every resolved site (resolution oracle: no roots)</title>

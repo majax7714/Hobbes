@@ -1276,10 +1276,11 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		"unclassified — no observation applies",
 		// C-32: what the lane could not have said, beside what it did say:
 		// `qualifier-mismatch` (ADR-125) and `arity-mismatch` (ADR-130)
-		// close both lists: C++ alone can report either, so every other
-		// lane names both as absent.
-		"classes this lane cannot report: nested-decl, external-origin, union-member, path-call, overload-set, inherited-member, build-tag-set, qualifier-mismatch, arity-mismatch (C-32)",
-		"classes this lane cannot report: import-binding, builtin-name, path-call, overload-set, inherited-member, build-tag-set, qualifier-mismatch, arity-mismatch (C-32)",
+		// come next: C++ alone can report either, so every other lane
+		// names both as absent; `shared-qualname` (ADR-163) closes both
+		// lists, Rust's alone.
+		"classes this lane cannot report: nested-decl, external-origin, union-member, path-call, overload-set, inherited-member, build-tag-set, qualifier-mismatch, arity-mismatch, shared-qualname (C-32)",
+		"classes this lane cannot report: import-binding, builtin-name, path-call, overload-set, inherited-member, build-tag-set, qualifier-mismatch, arity-mismatch, shared-qualname (C-32)",
 		// C-31: the verification base, stated before any percentage:
 		"verification base — a sample, not the language (C-31",
 		"go: verified on 1 repo: one repo — this one",

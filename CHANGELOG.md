@@ -11,9 +11,33 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.86-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.87-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.87-beta — 2026-10-03 (a fact at a later def of a Rust id two impl blocks share is refused; ADR-163, C-180)
+
+**Patch: what the layer draws and says**, Rust. Precedent 1: an unregistered limit that drew a false edge. Max
+chose the narrow route over the wide one first recommended.
+
+- **The cause.** Lane A names an `impl` block's methods after its first type identifier, so `impl Pointer for
+  *const T` and `impl Pointer for *mut T` both give `T.distance`, and a trait impl and the inherent impl of one
+  type share each method name. The first def is the node. Before this, a later def's calls were filed under it:
+  memchr's `ext.rs:33` drew `T.distance calls T.distance`, a recursion that does not exist, at `semantic`.
+- **Refused now.** Lane A keeps each symbol's impl header. A fact from either lane that is written inside, or
+  resolved onto, a later def of an id whose headers differ draws nothing, and files nothing under the node or
+  the module. A cfg twin written alike stays the node's. Nodes and the first defs' edges do not change.
+- **Said where a user meets it.** The new tail class `shared-qualname` counts the refused call sites (a site
+  only lane A answered moves there from `fallback-resolved`). One `rust-qualnames` degradation record per
+  ingest counts the ids and refusals. `list_blind_spots` and the gate's map name the class and C-180.
+- **Measured** (stored keys, before → after):
+  - memchr: 921 → 919 confirmed, 0 contradicted, strict 100%, recall 80.7% → 80.5%.
+  - dagger `sdk/rust`: 3,592 → 3,363, 0 contradicted, strict 100%, recall 98.1% → 91.9%. The 229 rows were
+    calls from a trait impl's method filed under the inherent method's node; they are now honest misses.
+  - Both graphs keep every symbol, and every removed evidence row lies inside a later def (memchr 73, dagger
+    446). The three dagger misses `oracle-misses.md` blamed on C-58/C-9 are this limit.
+  - Not taken: refusing every edge at a colliding id would have dropped 86 and 330 true rows. Ids that tell the
+    impl blocks apart are open.
 
 ## 0.2.86-beta — 2026-10-02 (a Python reference lane B misnames through an imported module is refused; ADR-161, C-178 contained)
 

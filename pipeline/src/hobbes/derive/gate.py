@@ -227,6 +227,7 @@ _TAIL_REASON = {
     "nested-decl": ("oracle-miss:closure", "tail nested-decl: below the modelled vocabulary (C-9)"),
     "qualifier-mismatch": ("laneb-miss", "tail qualifier-mismatch: the written specialisation contradicts lane B's (ADR-125, C-153)"),
     "arity-mismatch": ("laneb-miss", "tail arity-mismatch: more arguments written than lane B's target takes (ADR-130, C-153)"),
+    "shared-qualname": ("laneb-miss", "tail shared-qualname: a later def of a Rust id two impl headers share, refused (ADR-163, C-180)"),
     "below-floor": ("oracle-miss:interface", "tail below-floor: resolved below the symbol floor — interface method, closure or nested function (C-58)"),
 }
 _TAIL_OMIT = frozenset({"builtin-name"})

@@ -459,11 +459,20 @@ class TestClassesAvailable:
         # lane A has either to offer.
         for cls in (tail.QUALIFIER_MISMATCH, tail.ARITY_MISMATCH):
             assert {l for l, c in tail.CLASSES_AVAILABLE.items() if cls in c} == {"cpp"}
-        # Beside below-floor at the end: none of the three is a `classify`
-        # verdict — the projection decides each one.
-        assert tail.ALL_CLASSES[-3:] == (
-            tail.QUALIFIER_MISMATCH, tail.ARITY_MISMATCH, tail.BELOW_FLOOR,
+        # Beside below-floor at the end, with ADR-163's Rust class between:
+        # none of the four is a `classify` verdict — the projection decides
+        # each one.
+        assert tail.ALL_CLASSES[-4:] == (
+            tail.QUALIFIER_MISMATCH, tail.ARITY_MISMATCH, tail.SHARED_QUALNAME,
+            tail.BELOW_FLOOR,
         )
+
+    def test_shared_qualname_is_available_to_rust_alone(self):
+        # ADR-163: only Rust's lane A names an impl's methods after a type
+        # identifier two impl blocks can share.
+        assert {
+            l for l, c in tail.CLASSES_AVAILABLE.items() if tail.SHARED_QUALNAME in c
+        } == {"rust"}
 
     def test_a_std_qualified_site_is_a_builtin_name(self, tmp_path):
         # C++'s standard library is a namespace, not a list: the site's
@@ -488,7 +497,8 @@ class TestClassesAvailable:
         rows = [{"file": "a/x.rs"}, {"file": "b/y.py"}, {"file": "c/z.tf"}]
         got = tail.classes_available(rows)
         assert list(got) == ["python", "rust"]
-        assert got["rust"] == [tail.FALLBACK, tail.ATTR, tail.PATH_CALL, tail.UNCLASSIFIED, tail.BELOW_FLOOR]
+        assert got["rust"] == [tail.FALLBACK, tail.ATTR, tail.PATH_CALL, tail.UNCLASSIFIED,
+                               tail.SHARED_QUALNAME, tail.BELOW_FLOOR]
 
 
 class TestCaptureLineNamesMissingClasses:
@@ -501,7 +511,8 @@ class TestCaptureLineNamesMissingClasses:
         out = capsys.readouterr().out
         assert ("classes this lane cannot report: nested-decl, external-origin, "
                 "import-binding, expr-callee, union-member, path-call, overload-set, "
-                "inherited-member, qualifier-mismatch, arity-mismatch (C-32)") in out
+                "inherited-member, qualifier-mismatch, arity-mismatch, shared-qualname "
+                "(C-32)") in out
 
     def test_an_older_artifact_without_the_field_prints_no_note(self, capsys):
         from hobbes import cli

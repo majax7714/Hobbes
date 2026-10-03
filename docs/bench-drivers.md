@@ -31,6 +31,15 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-03 — C-180 contained (0.2.87-beta)
+
+- ADR-163: `c180-rust-impl-qualnames/` (`measure.py <repo> <graph.json>` the colliding Rust ids by impl
+  header, written to `<repo>-collided.json`; `narrow.py <report.json> <collided.json> <graph.json>` the wide
+  and narrow routes over a graded report; `rows.py` a report's rows at colliding ids; `diff.py <cell>
+  <collided.json>` before/after figures, nodes and every removed evidence row; `regrade3.sh` over
+  `cells.tsv`, the memchr and dagger-rust cells, `before/` and `after/` with each graph copied beside its report).
+  The dagger ingest takes about 14 minutes.
+
 ## 2026-10-02 — C-178 contained (0.2.86-beta)
 
 - ADR-161: `c178-star-reexport/` (`RESULTS.md`, `PREREG.md`; `index.sh <clone> <name>` raw scip-python in

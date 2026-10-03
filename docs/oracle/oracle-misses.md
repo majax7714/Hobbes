@@ -36,6 +36,7 @@ commit as the cell.
 | `macro→function` (C) | a call the expansion of a C macro makes: a Unity `TEST_ASSERT_*` into `UnityFail` / `UnityAssert*`, `RUN_TEST` into `UnityDefaultTestRun` | **no edge**: Hobbes draws the invocation to the `macro` symbol (excluded before grading), never the function the expansion calls | C-131 |
 | `static→generated` | Rust: a call of a method a derive wrote (`x.clone()` on `#[derive(Clone)]`) | **no edge** — the target has no source identifier, so no symbol | C-9 |
 | `static→method` (Rust) | a call of an extension-trait method implemented on a foreign type (`impl Ext for Vec<T>`), a `derive_builder` setter, a raw-identifier method (`r#ref`) | no edge for these shapes; ordinary inherent and trait methods are drawn (3,354/3,384 on dagger's SDK) | C-58, C-9 |
+| `static→method` (Rust), a later impl def | a call of a method whose symbol id another, differently written impl block in the file mints too (`impl InputValuesExt for Vec<&InputValue>` and `… for Vec<InputValue>` are both `Vec.has_optionals`); the call resolves to the later def, which has no node | **no edge**, counted `shared-qualname` since 0.2.87-beta (was `below-floor`) | C-180 (ADR-163) — *was attributed to C-58/C-9 until 2026-10-03* |
 | `static→function` (Rust) | a call written inside a proc-macro's tokens (`quote! { $(f(x)) }`) | **no site** — rust-analyzer's index does not expand proc macros here | C-30 (registry) / unregistered |
 | `interface→method` (Java) | a virtual or interface call, graded against the **CHA override set** (O8: the declared method plus every override below its owner in the compiled program) | the edge to the **declared** method is drawn and confirmed; every override in the set is a miss — Java's dispatch hole, the majority case, sized per cell (jsoup 67.5%, spring-data-elasticsearch 55.8%, petclinic 98.7% recall on the class) | C-58 (Java face) |
 | `interface→anonymous-member` / `static→anonymous-member` (Java) | a call reaching a method declared in an anonymous class body — an override the CHA set holds (`new Evaluator() { matches(..) }`), or a direct call of a sibling helper inside the body (jsoup's `anythingElse(t, tb)` in enum-constant bodies) | **no edge** — anonymous members are below the symbol floor by decision (ADR-096); lane A records them as local bindings so the site reads `local-binding`, never unknown | C-9, C-32 |
@@ -237,10 +238,12 @@ pays it on every assertion (C-131).
 
 | class | misses | share | what it was |
 |---|---|---|---|
-| `static→method` | 30 | 43.5% | extension-trait methods on foreign types (17), `derive_builder` setters (7), raw-identifier `r#ref` (4), `Deref` (1), an inherent method inside `quote!` tokens (1) |
+| `static→method` | 30 | 43.5% | extension-trait methods on foreign types (14: `OptionExt::pipe`), a later impl def of a shared id (3: the second `Vec.has_optionals`, `functions.rs:354`, C-180 — counted with the 14 until 2026-10-03), `derive_builder` setters (7), raw-identifier `r#ref` (4), `Deref` (1), an inherent method inside `quote!` tokens (1) |
 | `static→generated` | 25 | 36.2% | `.clone()` on derived `Clone` |
 | `static→function` | 14 | 20.3% | calls inside `quote!` proc-macro tokens |
 | `static→closure` | 0 | — | after H-16 |
+
+*At 0.2.87-beta (ADR-163, C-180):* 298 misses (recall 91.9%). The 229 added are calls written in a trait impl's method that shares its symbol id with the inherent method (`gen.rs`); they had been drawn from the inherent method's node, the wrong caller, and are refused. The three `has_optionals` calls are the same limit from the callee side ([cell](cells/dagger-rust-2026-08-25.md), the last regrade).
 
 **What hurts most on Rust:** not dispatch and not closures — **code a macro or derive wrote** (generated targets 25, proc-macro tokens 15, builder setters 7): 47 of 69. P16's prediction (trait dispatch + closures ≥ 60%) missed; the register says so.
 

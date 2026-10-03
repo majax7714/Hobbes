@@ -15527,3 +15527,41 @@ No code changed and no version. Three subagents read and measured. Their records
 - **The held-out Python cell for `cls(…)`:** collective/icalendar v7.3.0 (`138c8453`), Max's pick. It has 81 sites by an
   `ast` scan, 9% of them in a subclassed class, and 18,166 tests pass offline. dnspython v2.8.0 is the spare.
   - Nothing is ingested or keyed.
+
+## 2026-10-03 (thirty-fifth session, cont.) — C-180 registered and contained (0.2.87-beta, ADR-163)
+
+Max's instruction (2026-10-02): register and contain the Rust impl-block collision, precedent 1. A subagent did
+the work, on `main`, zero spend. The run directory is `~/.hobbes/bench/c180-rust-impl-qualnames/`.
+- **Verified first.** A real-source fixture (`minirustimpl`: memchr's `ext.rs` verbatim, dagger's
+  `From<&str>`/`From<String>` and inherent-plus-trait shapes, memchr's cfg twins) reproduced all three
+  behaviours under a lane B ingest: the false self-call, a trait impl's call filed under the inherent node, and
+  a call onto a later def counted `below-floor`. The 0.2.86-beta "before" regrade reproduced the standing grades
+  (memchr 921/0, dagger-rust 3,592/0).
+- **The recommended containment was stopped before building.** Refusing every edge at a colliding id would
+  have dropped 88 of memchr's 921 confirmed rows and 559 of dagger's 3,592. Of those, 86 and 330 are true: edges
+  into, or written in, the def the node sits at. The narrow route refuses only facts written inside, or
+  resolved onto, a later def: 2 and 229 rows, every one with the wrong caller. Max chose narrow (2026-10-03).
+- **Built.**
+  - `rustsource` keeps each symbol's impl header and lists the ids whose headers differ.
+  - `scipsource.project` refuses those facts for either lane and keeps the module edge.
+  - The new tail class `shared-qualname` counts the refused calls; a lane-A-only site is relabelled from
+    `fallback-resolved`, so the sum holds.
+  - One `rust-qualnames` record per ingest.
+  - The class is also in `tailMeanings` and `_TAIL_REASON`.
+- **Regraded** (stored keys):
+  - memchr: 921 → 919, 0 contradicted, strict 100%, recall 80.7% → 80.5%.
+  - dagger-rust: 3,592 → 3,363, 0 contradicted, strict 100%, recall 98.1% → 91.9%.
+  - Both matched the step-0 prediction exactly.
+  - Nodes: every symbol is identical before and after (3,294 and 69,058).
+  - Evidence: rows removed 73 and 446, each inside a later def; 0 added.
+  - `below-floor` on dagger went from 6,177 to 6,174: the three `has_optionals` misses `oracle-misses.md` had
+    blamed on C-58/C-9. Both that file and the cell note were corrected.
+- **Checks:**
+  - pytest 2,701 passed, 24 of them `lane_b`, on the host.
+  - Go `./...` all ok; oracle `./report/` ok.
+  - `render.py check` green after re-rendering: two standing cells moved.
+- **Docs:** CHANGELOG, C-180 in `extraction-rust.md` (surfaced), the register (180 entries, 132 active, 102
+  surfaced), architecture §3 and the §3.8 Rust row, the §8 header, `currently-open.md` (the prevention is
+  Max's call), `bench-drivers.md`, the suite sizes and the handoff.
+- **Image:** the proxy and `hobbes-session:local` were rebuilt at 0.2.87-beta. The knowledge server was not
+  restarted.

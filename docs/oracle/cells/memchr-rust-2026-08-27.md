@@ -117,3 +117,29 @@ recall-collapsed 80.6% (921/1142 pairs at site-line × target-file × target-nam
   line-grain tolerance used on 414 edge(s) (several oracle sites on one line)
 poison check: PASS — 2356 seeded wrong edges: 921 refused, 1435 unjudged (oracle silent there), 0 falsely confirmed
 ```
+
+
+## Regrade 2026-10-03 (Hobbes 0.2.87-beta, ADR-163, C-180 — same clone, the 2026-08-28 MIR key, contained)
+
+Re-ingested on 0.2.87-beta and graded against the standing key (`~/.hobbes/bench/c180-rust-impl-qualnames/after/memchr-rust/`; the 0.2.86-beta "before" beside it, `before/`, reproduced the 0.1.10-beta grade to the digit). `src/ext.rs` writes `impl<T> Pointer for *const T` and `impl<T> Pointer for *mut T`, which lane A names alike (`T.distance`, `T.as_usize`); the two rows at `ext.rs:33/:37` were the `*mut T` bodies' calls of the `*const T` methods, filed under the shared node as a self-call — `T.distance calls T.distance`, a recursion that does not exist, graded confirmed because the key judges the site and the target, never the caller. ADR-163 refuses a fact written inside, or resolved onto, a later def of such an id.
+
+**Direction of fix (ADR-163, signed):** confirmed 921 → 919 (−2: the two self-calls); contradicted 0 → 0; precision 100% → 100%, strict 919/919 (100%; no `line-unresolved` row either side); recall 925/1,146 → 923/1,146 (80.7% → 80.5%, −2 `static→method`: the same two pairs, now honest misses); hobbes edges 2,356 → 2,285 (−71, the other 69 silent syntactic rows written in later defs of the 167 shared ids in `benchmarks/haystacks`). Graph: 3,294 symbols before and after, identical; 73 evidence rows removed, every one inside a later def, 0 added; 73 call sites tailed `shared-qualname` (71 from `fallback-resolved`).
+
+```
+cell   oracle rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution)  sha bd6068c3
+oracle ran contained (ADR-092)
+hobbes edges 2285: confirmed 919  contradicted 0  abstract 0  silent 1366 map[not-loaded:1312 unreachable:54]
+precision-against-oracle 100.0% (919/919)
+recall 80.5% (923/1146 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 1476; misses map[macro→function:57 macro→method:42 static→closure:1 static→function:53 static→generated:5 static→method:65]
+recall-collapsed 80.5% (919/1142 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[macro→function    ]   0.0% (0/57)  misses 57 = 25.6% of all misses
+  recall[macro→method      ]   0.0% (0/42)  misses 42 = 18.8% of all misses
+  recall[static→closure    ]   0.0% (0/1)  misses 1 = 0.4% of all misses
+  recall[static→function   ]  75.8% (166/219)  misses 53 = 23.8% of all misses
+  recall[static→generated  ]   0.0% (0/5)  misses 5 = 2.2% of all misses
+  recall[static→method     ]  92.1% (757/822)  misses 65 = 29.1% of all misses
+  tier semantic   confirmed 912  contradicted 0  abstract 0  silent 43
+  tier syntactic  confirmed 7  contradicted 0  abstract 0  silent 1323
+  line-grain tolerance used on 414 edge(s) (several oracle sites on one line)
+poison check: PASS — 2285 seeded wrong edges: 914 refused, 1371 unjudged (oracle silent there), 0 falsely confirmed
+```

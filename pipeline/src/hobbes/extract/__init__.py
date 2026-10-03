@@ -443,6 +443,47 @@ def _later_defs(
     return out
 
 
+def _shared_later_defs(
+    symbols: list[dict], shared: dict[str, list[tuple[int, int]]]
+) -> dict[str, list[tuple[int, int]]]:
+    """ADR-163: each Rust id two differently written impl headers mint
+    alike, with the spans of its defs other than the one its node sits
+    at. An id the symbol layer does not carry is absent."""
+    lines = {s["id"]: s["line"] for s in symbols}
+    out: dict[str, list[tuple[int, int]]] = {}
+    for symbol_id, spans in sorted(shared.items()):
+        line = lines.get(symbol_id)
+        later = [span for span in spans if span[0] != line] if line is not None else []
+        if later:
+            out[symbol_id] = later
+    return out
+
+
+def _shared_qualname_record(
+    shared_later: dict[str, list[tuple[int, int]]], refused: list[dict]
+) -> dict:
+    """The one degradation record ADR-163 writes per ingest with a Rust id
+    two impl headers share: how many, what was refused, examples."""
+    calls = sum(1 for row in refused if row["kind"] == "calls")
+    examples = "; ".join(
+        f"{symbol_id} (later def at line {', '.join(str(line) for line, _ in spans)})"
+        for symbol_id, spans in list(shared_later.items())[:3]
+    )
+    return {
+        "path": ".",
+        "stage": "rust-qualnames",
+        "message": (
+            f"{len(shared_later)} Rust symbol id(s) are minted by two or more "
+            "differently written impl blocks in one file (`impl Pointer for *const T` "
+            "and `impl Pointer for *mut T` both name `T.distance`); each node is the "
+            "first def, and a later def has no node of its own, so what is written "
+            f"inside or resolved onto one is refused: {calls} call(s), counted in the "
+            f"tail as `shared-qualname`, and {len(refused) - calls} other reference(s) "
+            f"(ADR-163, C-180). Later defs: {examples}"
+        ),
+    }
+
+
 def _static_reading_records(
     static_reading: dict[str, list], symbol_edges: list[dict], version
 ) -> list[dict]:
@@ -776,6 +817,13 @@ def _build_symbol_layer(
             resolved, graph["minted"]["extents"]["rehomed"] = minted.rehome(
                 resolved, minted_symbols, graph["symbols"], module_of_path
             )
+    # ADR-163 (C-180), read off the settled symbols so "later" means every
+    # def but the one the node sits at: lane A and lane B alike.
+    shared_later = (
+        _shared_later_defs(graph["symbols"], rust.get("shared_qualnames") or {})
+        if rust
+        else {}
+    )
     with timings.step("project"):
         projected = scipsource.project(
             resolved,
@@ -788,6 +836,9 @@ def _build_symbol_layer(
             # ADR-155: a Python qualname's later live defs; None without
             # lane B for Python, and the index is what it was.
             later_defs=later_defs,
+            # ADR-163: a Rust id two differently written impl headers
+            # share; a fact at one of its later defs is refused.
+            shared=shared_later,
         )
     # What the override set could not draw (ADR-120), so the summary says
     # how far the `implements` edges reach: pairs to a declaration outside
@@ -1027,6 +1078,22 @@ def _build_symbol_layer(
         file for file, _ in projected.get("arity_mismatch", [])
     ).items():
         tails.setdefault(file, Counter())[tail.ARITY_MISMATCH] += n
+    # ADR-163's refusal, beside them: a call written inside, or resolved
+    # onto, a later def of a Rust id two impl headers share. A site lane B
+    # resolved is added, as the two above are; a site only lane A had
+    # answered was counted `fallback-resolved`, whose edge it no longer
+    # has, so it moves to this class and the per-file sum is unchanged.
+    for row in projected.get("shared_qualname", []):
+        if row["kind"] != "calls":
+            continue
+        counts = tails.setdefault(row["path"], Counter())
+        if not row["lane_b"] and counts.get(tail.FALLBACK, 0) > 0:
+            counts[tail.FALLBACK] -= 1
+            if not counts[tail.FALLBACK]:
+                del counts[tail.FALLBACK]
+        counts[tail.SHARED_QUALNAME] += 1
+    if shared_later:
+        degraded.append(_shared_qualname_record(shared_later, projected["shared_qualname"]))
     graph["resolution_coverage"] = [
         {
             "file": row.file,

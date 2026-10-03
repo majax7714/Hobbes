@@ -90,6 +90,14 @@ checkable fact about the site:
   call land there, so no edge is drawn (ADR-130, C-153). Fewer arguments
   than parameters is never this class — a default argument lives on a
   declaration elsewhere. The projection decides it too.
+- ``shared-qualname`` — a Rust call written inside, or resolved onto, a
+  def whose symbol id another, differently written ``impl`` block in the
+  same file mints too (``impl Pointer for *const T`` and ``impl Pointer
+  for *mut T`` both name ``T.distance``). The node is the first def; a
+  later one is another function with no node, so no edge is drawn
+  (ADR-163, C-180). The projection decides it; a site only lane A had
+  answered is moved here from ``fallback-resolved``, whose edge it no
+  longer has.
 
 The classes roll up into the two statements the ingest summary prints
 (architecture §3.4): *seen and not modelled by design* (local-binding,
@@ -146,6 +154,11 @@ QUALIFIER_MISMATCH = "qualifier-mismatch"
 #: (ADR-130, C-153); the projection abstains and the site is counted
 #: here. Not a :func:`classify` verdict either, and R-qual's neighbour.
 ARITY_MISMATCH = "arity-mismatch"
+#: A Rust call written inside, or resolved onto, a later def of a symbol
+#: id two differently written impl headers share (ADR-163, C-180); the
+#: projection refuses it and the site is counted here. Not a
+#: :func:`classify` verdict either.
+SHARED_QUALNAME = "shared-qualname"
 #: The semantic lane resolved the site to a declaration lane A keeps no
 #: symbol for — an interface method, a closure, a nested function (C-9's
 #: floor) — so the site counts as resolved and draws no edge (C-58).
@@ -354,7 +367,10 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
                         EXPR_CALLEE, UNION_MEMBER, UNCLASSIFIED, BELOW_FLOOR}),
     "go": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, BUILD_TAG, UNCLASSIFIED,
                      BELOW_FLOOR}),
-    "rust": frozenset({FALLBACK, ATTR, PATH_CALL, UNCLASSIFIED, BELOW_FLOOR}),
+    # `shared-qualname` (ADR-163): only Rust names an impl's methods after
+    # a type identifier two impl blocks can share.
+    "rust": frozenset({FALLBACK, ATTR, PATH_CALL, UNCLASSIFIED, SHARED_QUALNAME,
+                       BELOW_FLOOR}),
     "java": frozenset({FALLBACK, LOCAL, IMPORT_BINDING, BUILTIN, ATTR, OVERLOAD,
                        INHERITED, UNCLASSIFIED, BELOW_FLOOR}),
     # Lane A's five, plus below-floor since C's lane B (ADR-109): scip-clang
@@ -380,16 +396,17 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
 }
 
 #: Every class, in decision order — the vocabulary the table draws from.
-#: The last three are not :func:`classify` verdicts: each is counted from
+#: The last four are not :func:`classify` verdicts: each is counted from
 #: the projection and added to the tail beside the unresolved classes —
 #: ``qualifier-mismatch`` a resolved site the written qualifier
 #: contradicted (ADR-125), ``arity-mismatch`` one the written argument
-#: count contradicted (ADR-130), ``below-floor``, last, a resolved site
-#: with no symbol to land on.
+#: count contradicted (ADR-130), ``shared-qualname`` one at a later def
+#: of a Rust id two impl headers share (ADR-163), ``below-floor``, last,
+#: a resolved site with no symbol to land on.
 ALL_CLASSES = (FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, IMPORT_BINDING,
                BUILTIN, ATTR, EXPR_CALLEE, UNION_MEMBER, PATH_CALL, OVERLOAD,
                INHERITED, BUILD_TAG, UNCLASSIFIED, QUALIFIER_MISMATCH,
-               ARITY_MISMATCH, BELOW_FLOOR)
+               ARITY_MISMATCH, SHARED_QUALNAME, BELOW_FLOOR)
 
 
 def classes_available(coverage_rows: list[dict]) -> dict[str, list[str]]:

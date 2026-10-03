@@ -2456,8 +2456,8 @@
    "draw": "picked",
    "label": "dagger sdk/rust",
    "note": "misses are code macros and derives wrote; contained from the 2026-09-10 regrade",
-   "edges": 3598,
-   "confirmed": 3592,
+   "edges": 3369,
+   "confirmed": 3363,
    "contradicted": 0,
    "abstract": 0,
    "silent": 6,
@@ -2468,26 +2468,26 @@
    },
    "precision": {
     "pct": 100.0,
-    "num": 3592,
-    "den": 3592
+    "num": 3363,
+    "den": 3363
    },
    "recall": {
-    "pct": 98.1,
-    "hits": 3593,
+    "pct": 91.9,
+    "hits": 3364,
     "pairs": 3662,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
-    "static→function": 14,
+    "static→function": 15,
     "static→generated": 25,
-    "static→method": 30
+    "static→method": 258
    },
    "poison": {
     "passed": true,
-    "seeded": 3598,
-    "refused": 3592,
-    "unjudged": 6,
+    "seeded": 3369,
+    "refused": 3031,
+    "unjudged": 338,
     "falsely": 0
    }
   },
@@ -3086,25 +3086,25 @@
    "draw": "picked",
    "label": "memchr",
    "note": "misses are macro bodies (unsafe_ifunc!, define_*_quickcheck!)",
-   "edges": 2356,
-   "confirmed": 921,
+   "edges": 2285,
+   "confirmed": 919,
    "contradicted": 0,
    "abstract": 0,
-   "silent": 1435,
+   "silent": 1366,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "not-loaded": 1381,
+    "not-loaded": 1312,
     "unreachable": 54
    },
    "precision": {
     "pct": 100.0,
-    "num": 921,
-    "den": 921
+    "num": 919,
+    "den": 919
    },
    "recall": {
-    "pct": 80.7,
-    "hits": 925,
+    "pct": 80.5,
+    "hits": 923,
     "pairs": 1146,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -3115,13 +3115,13 @@
     "static→closure": 1,
     "static→function": 53,
     "static→generated": 5,
-    "static→method": 63
+    "static→method": 65
    },
    "poison": {
     "passed": true,
-    "seeded": 2356,
-    "refused": 921,
-    "unjudged": 1435,
+    "seeded": 2285,
+    "refused": 914,
+    "unjudged": 1371,
     "falsely": 0
    }
   },
