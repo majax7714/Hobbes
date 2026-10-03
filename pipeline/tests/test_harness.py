@@ -274,6 +274,18 @@ def test_classify_table():
     assert H.score({"tests": [], "verdict": "empty-diff"})["verdict"] == "empty-diff"
 
 
+def test_a_row_that_errors_on_both_trees_is_a_fault_not_a_failure():
+    """Session 54cf: the target's own uncollectable test (`minifixval/tests/test_runner.py`) errored with the
+    diff and without it, and failed a verdict with 0 regressions. It is `E2E`, listed under faults like F2F."""
+    assert H.classify("error", "error") == "E2E" and H.classify("error", "pass") == "error" and H.classify("error", "fail") == "error"
+    rec = {"tests": [{"id": "tests/test_runner.py::test_runner", "candidate": "error", "baseline": "error", "origin": "guard"},
+                     {"id": "tests/test_a.py::test_a", "candidate": "pass", "baseline": "pass", "origin": "guard"}], "baseline": True}
+    assert H.score(rec)["verdict"] == "pass" and rec["faults"] == ["tests/test_runner.py::test_runner"] and rec["regressions"] == []
+    assert rec["summary"] == {"E2E": 1, "P2P": 1} and rec["harness_version"] == 3
+    rec["tests"][1]["candidate"] = "error"
+    assert H.score(rec)["verdict"] == "fail", "an error the baseline did not have is still the diff's"
+
+
 class FakePodman:
     """Answers `containment.run` from the argv: pytest writes a JUnit report (a test fails on the baseline tree, passes on the candidate's), go prints its JSON."""
 
@@ -590,7 +602,7 @@ def test_go_verify_regenerates_guards_and_builds(gorepo, monkeypatch):
     var = diff_for(root, {"calc/calc.go": GO_CALC.replace("Base = 1", "Base = 2")})
     rec = H.verify(root, sha, var, L, root)
     rows = {r["id"]: r for r in rec["tests"]}
-    assert rec["verdict"] == "pass" and rec["harness_version"] == 2 and rec["containment"]["all_contained"]
+    assert rec["verdict"] == "pass" and rec["harness_version"] == 3 and rec["containment"]["all_contained"]
     assert rows["calc/calc_test.go::TestAdd"]["class"] == "P2P" and rows["calc/calc_test.go::TestSub"]["class"] == "P2P"
     assert rows["calc/calc_test.go::TestGone"]["class"] == "uncollected" and "go test -list" in rows["calc/calc_test.go::TestGone"]["note"]
     gen = rows["cmd/gen/main.go::go:generate"]  # the generator's closure holds calc/: its run guards the edit

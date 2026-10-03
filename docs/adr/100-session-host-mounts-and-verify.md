@@ -134,3 +134,20 @@ session can regenerate the file itself. This widens nothing:
 `make config/gitleaks.toml` already reached the same code through
 `make*`, and the harness regenerates at verify either way. It removes
 a detour that parked the command and expired it to deny.
+
+## Amended 2026-10-03: a row that errors on both trees is a fault (harness v3)
+
+**Status:** accepted (Max, 2026-10-03, route 1 of two). Unit `54cf`'s verify read `fail` with 0
+regressions: the target's own `minifixval/tests/test_runner.py` is not collectable from `pipeline/`
+(`norecursedirs`) and errored with the diff and without it. `classify` returned `error` for any
+candidate `error`, and `FAILING` holds `error`, while the parallel case, a test failing on both trees
+(`F2F`), has been a fault since harness v1.
+
+- `classify("error", "error")` is **`E2E`**, its own class (not folded into `F2F`, so a record still
+  says the row errored rather than failed). It is not in `FAILING` or `BUILD_FAILING`, and it is listed
+  under `faults` with `F2F`.
+- An `error` against any other baseline (`pass`, `fail`, none) is unchanged: it is the diff's, and it
+  fails the verdict.
+- `HARNESS_VERSION` is 3. A stored record is rescored into a new file, never in place (`score`).
+
+Test: `test_harness.py::test_a_row_that_errors_on_both_trees_is_a_fault_not_a_failure`.

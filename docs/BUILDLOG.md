@@ -15688,3 +15688,14 @@ went to the Rust collision.
   invariants run; review "nothing needs attention", `lattice` named under "holds no code"; `lane_b`
   25 passed; "graph checks passed", exit 0. CI itself runs on Max's push. The open item is deleted from
   `currently-open.md`.
+
+## 2026-10-03 (thirty-seventh session) — Max's routes for the open items; verify's `E2E` (0.2.91-beta)
+
+- **The routes.** Four read-only readers checked the premises of eight open items (Go's second `init`,
+  flask's `sansio/`, the ingest's `.gitignore` edit, C-173's platform-guarded `raise`, C-182's residual,
+  C-179's surfacing, verify's `classify`, the `cls(…)` unit); the cited lines were spot-checked. Max
+  approved every recommended route in one reply ("all those look good. good to proceed- approved").
+- **Verify's `classify`** (Max: route 1): `classify("error", "error")` is `E2E`, a fault beside `F2F`, not in
+  `FAILING`; any other `error` still fails. Harness v3; ADR-100 amended. Session `54cf`'s row reads as a
+  fault now; a stored record is rescored into a new file, never in place.
+- **Checks:** `test_harness.py` 28 passed (one new test; the Go verify test's version pin moved to 3).

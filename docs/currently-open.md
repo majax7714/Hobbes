@@ -57,11 +57,6 @@ Last reviewed: 2026-10-03 (0.2.89-beta).
   `App → Scaffold` but not `Flask → App` (`graph["implements"]["outside"]`
   79). Nobody has read why. Whether to register it as a constraint is
   Max's call.
-- **Verify's `classify`** returns `error` for a row that errors on *both*
-  trees, and `FAILING` holds `error`. So a fixture repo's own
-  uncollectable test (`minifixval/tests/test_runner.py`) failed a verdict
-  with 0 regressions (session `54cf`). A route is proposed; nothing has
-  changed.
 - **`npm ci` refused three of four lockfile-bearing JS repos** (counted
   under C-23 in C-165). Open: whether "pinned or declined" falls back to
   anything. Nothing is proposed.

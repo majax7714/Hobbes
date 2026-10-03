@@ -80,7 +80,7 @@ from hobbes.derive import ground as G
 from hobbes.derive import template as T
 from hobbes.extract import containment, staging
 
-HARNESS_VERSION = 2  # 1: the `removed` class; the verdict reads only what the diff did (P2F, new-fail, error, not-run); F2F rows are faults. 2: Go (calvin-m0-go §2.3) — `-run` at symbol grain, package grain, `go test -list` → uncollected, the tree steps (generate, build, vet), `build-fail`
+HARNESS_VERSION = 3  # 1: the `removed` class; the verdict reads only what the diff did (P2F, new-fail, error, not-run); F2F rows are faults. 2: Go (calvin-m0-go §2.3) — `-run` at symbol grain, package grain, `go test -list` → uncollected, the tree steps (generate, build, vet), `build-fail`. 3: `E2E`, a row that errors on both trees, is a fault like F2F (session 54cf)
 LOOP_PATH = Path(__file__).resolve().parents[1] / "agent" / "loop.py"
 #: Prompt tokens an arm-O session may spend in all before the loop stops it with a reason (step 6: three of four sessions
 #: hit the 30-turn cap at 1.3–1.6M tokens; this endpoint fits no window, so the cap is the cost ceiling, stated per run).
@@ -852,7 +852,7 @@ def build_row(clone: Path, sha: str, diff: str, L: T.Ledger, source: Path, *, ti
         shutil.rmtree(scratch, ignore_errors=True)
 
 
-CLASSES = ("P2P", "F2P", "P2F", "F2F", "new-pass", "new-fail", "removed", "skip", "error", "not-run", "uncollected", "unsupported")
+CLASSES = ("P2P", "F2P", "P2F", "F2F", "E2E", "new-pass", "new-fail", "removed", "skip", "error", "not-run", "uncollected", "unsupported")
 #: The classes that fail a verdict: what the diff itself did. An `F2F` fails on both trees (an environment fault, C-92 — listed
 #: under `faults`); a `removed` test is one the diff renamed or deleted (the 2026-09-04 calibration: seven tests three commits
 #: renamed). D-p (calvin-m0-go-r2, WP-14, found by WP-13 on `d22371873bd8`): `not-run` is **not** here — `classify` returns it
@@ -862,6 +862,9 @@ CLASSES = ("P2P", "F2P", "P2F", "F2F", "new-pass", "new-fail", "removed", "skip"
 #: function the testmap names as a guard but that plain ``go test`` never runs is the case that found it: `not-run`/`not-run`
 #: on both trees, previously enough to fail the whole verdict before `vacuous`/`gold_tests` were ever read. It still never
 #: counts as *executed* (`EXECUTED`, unchanged) — a `not-run`/`not-run` row now decides nothing either way.
+#: `E2E` (HARNESS_VERSION 3, session 54cf) is not here either: a row that errors on *both* trees is F2F's case — an
+#: uncollectable test the target repo ships (`minifixval/tests/test_runner.py`) failed a verdict with 0 regressions.
+#: It is listed under `faults`; an `error` with any other baseline is still the diff's and still fails.
 FAILING = ("P2F", "new-fail", "error")
 #: The build-row classes that make the verdict `build-fail` (a tree the diff leaves that does not build or vet); `fail` is an unbaselined row's.
 BUILD_FAILING = ("P2F", "new-fail", "fail", "error")
@@ -871,6 +874,8 @@ def classify(candidate: str, baseline: str | None) -> str:
     """A test's class from its outcome with the diff and without it."""
     if candidate in ("not-run", "uncollected") and baseline not in (None, "not-run", "uncollected"):
         return "removed"  # the test existed without the diff and does not with it: renamed or deleted by the diff
+    if candidate == "error" and baseline == "error":
+        return "E2E"  # errors without the diff too: the environment's, not the diff's (a fault, like F2F)
     if candidate in ("error", "unsupported", "not-run", "uncollected"):
         return candidate
     if candidate == "skip":
@@ -1008,7 +1013,7 @@ def score(rec: dict, *, gold_tests: dict | None = None) -> dict:
     if builds:
         rec["build_failures"] = broken
     rec["regressions"] = [r["id"] for r in rows if r["class"] == "P2F"]
-    rec["faults"] = [r["id"] for r in rows + builds if r["class"] == "F2F"]
+    rec["faults"] = [r["id"] for r in rows + builds if r["class"] in ("F2F", "E2E")]
     return rec
 
 

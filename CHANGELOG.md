@@ -11,9 +11,22 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.90-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.91-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.91-beta — 2026-10-03 (verify: a test that errors on both trees is a fault, not a failure; ADR-100 amended, harness v3)
+
+**Patch: what `hobbes verify` says.** Max approved route 1 of two (2026-10-03). Unit `54cf`'s verify read
+`fail` with 0 regressions: the target's own `minifixval/tests/test_runner.py`, which is not collectable from
+`pipeline/`, errored with the diff and without it. A test that *fails* on both trees (`F2F`) has been a fault
+of the environment since harness v1; one that *errors* on both was still counted against the diff.
+
+- **`E2E`**, a new class: the candidate and the baseline both `error`. It does not fail the verdict and is
+  listed under `faults` beside `F2F`. It is its own class, not folded into `F2F`, so the record still says
+  the row errored.
+- An `error` against any other baseline is unchanged: it is the diff's, and it fails.
+- `HARNESS_VERSION` is 3.
 
 ## 0.2.90-beta — 2026-10-03 (a Python module that holds no code is not asked for a guard; ADR-117's amendment)
 
