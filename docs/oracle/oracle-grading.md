@@ -2804,6 +2804,29 @@ new unobserved rows are `examples/` and `dest/` code no test loads, read in sour
 `Group(…)("rules")` reach `ParserElement.__call__`). F1 met (rich +6, +0 suspect, the 1 unobserved row
 `path_highlighter(text)` read correct in source); F2 met.
 
+### 10.48 Two held-out C++ cells, chromaprint and filesystem, and C++'s tokenless calls — `PREREG-draw.md` and `PREREG-rules.md` written 2026-10-03 before the draw and before the rules ran on either cell; graded at 0.2.106/0.2.107-beta, the rules simulated, nothing built (ADR-175 proposed)
+
+**Why.** Item 7 (C-146's functor `operator()`, C-162's implicit conversions) needs a C++ cell no rule has
+been measured on; none was left after §10.16. The 2026-09-14 draw continued from position 8 under its own
+criteria plus two stated first (≤400 units; ≥20 keyed `operator()` or ≥20 `constructor` sites). Taken:
+**acoustid/chromaprint** (position 14, `aed8eba2`, 46 units); **gulrak/filesystem** (28, `3812f8a6`, 15 units)
+held out too, for its 64 keyed `operator()` sites. Positions 8–13 and 15–27 passed over (no root build file,
+offline configure failures, a fetch, no compiling unit, or the shape condition: ADVobfuscator 15 and 14),
+each recorded in `~/.hobbes/bench/cpp-item7-2026-10-03/draw-continued.json`. A slip, caught before any rule
+ran and amended into the pre-registration: the walk had skipped position 14.
+
+**The standing grades at 0.2.106-beta:** chromaprint 2,681 confirmed, 0 contradicted, strict 99.7%, recall
+47.8% (3,036/6,357); filesystem 3,048 confirmed, **1 contradicted**, strict 99.8%, recall 15.3%
+(3,509/22,901); poison PASS on both. The contradicted row was a defect (a `#define` read as a function),
+fixed at 0.2.107-beta (ADR-135's second amendment); the regrade moved nothing else on five C++ cells.
+
+**The rules, simulated after the predictions (ADR-175's table):** F (an `operator()` reference at the call's
+`(`, outside a template) and C (a constructor reference at an expression token in a body, outside a
+declarator, ERROR node and template). Held out: filesystem F +35 and C +143, chromaprint F +1 and C +6, every
+row confirmed, 0 contradicted, no silent row added, poison PASS; F and C together filesystem 3,048 → 3,226
+(recall 16.2%), chromaprint 2,681 → 2,688. **H2 missed on its count** (F on filesystem, 35 rows against 0–30;
+its 90% bar met). H1, H3–H5 met; H6 waits for a build.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

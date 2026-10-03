@@ -1,11 +1,11 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (thirty-ninth session, close); Hobbes 0.2.106-beta on `main`.**
+**Reviewed 2026-10-03 (fortieth session); Hobbes 0.2.107-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
-0.2.106-beta (image `4b517d39a845`); this repo was ingested at HEAD by the host run of
-`scripts/ci-graph.sh 3fda729` at the close, which passed. If
-`main` has moved, ingest at HEAD again. A new session's knowledge server is a
+0.2.107-beta (image `6feff0f0e032`); this repo was last ingested by the host run of
+`scripts/ci-graph.sh 3fda729` (0.2.106-beta), so ingest at HEAD before trusting the
+knowledge tools. A new session's knowledge server is a
 new container from the current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
@@ -28,14 +28,15 @@ session went belongs in the BUILDLOG.
 - 2026-10-03: the extraction order ("approved, all recommendations are
   good"), then the Phase 1 routes ("good with recommended").
 
-**Next:** [`currently-open.md`](currently-open.md) § Extraction. Phase 1 is
-done and items 5–6 are settled; **item 7** is next: C++ functors (C-146) and
-implicit conversions (C-162), with Route A's remainder. No C++ cell is held
-out since §10.16: pick and pre-register one before measuring. Then items 8
-(Python `__call__` held in an attribute, held out on voluptuous,
+**Next:** [`currently-open.md`](currently-open.md) § Extraction. **Item 7 is
+measured and waits on Max (ADR-175, three routes):** two held-out C++ cells were drawn
+(chromaprint, gulrak/filesystem; `oracle-grading.md` §10.48), and both rules add only
+confirmed rows (filesystem +178). Build the route he names; H6 is checked at the build. Until
+he answers: items 8 (Python `__call__` held in an attribute, held out on voluptuous,
 marshmallow, toolz or tenacity) and 9 (C-13, jest globals).
 
 **Waiting on Max:**
+- **ADR-175's route** (item 7: F and C `semantic`, C `syntactic`, or F only).
 - **The trace measuring run's click and rich cells:** the session's
   permission classifier denied the subagent's contained `oracle py-trace`
   command ("Security Weaken"); not retried or worked around. The command is in
@@ -47,6 +48,10 @@ marshmallow, toolz or tenacity) and 9 (C-13, jest globals).
 Don't build any of them until Max answers.
 
 ## Where the last day left things (2026-10-03; the CHANGELOG has each one)
+
+Fortieth session: item 7's held-out C++ draw; filesystem's one contradicted row was a
+`#define` read as a function, fixed at **0.2.107** (ADR-135's second amendment, C-164
+narrowed; five C++ cells regraded, nothing else moved); item 7 measured, ADR-175 proposed.
 
 Thirty-ninth session: Max approved the extraction order, then the Phase 1
 routes; each unit its own commit, regraded where it could move a cell:

@@ -16070,3 +16070,18 @@ went to the Rust collision.
 - Item 7's fitted measurement begun: on fmt, 42 `operator()` references, 38 inside gmock/test macros, 1 a
   functor call, at the `(` of its argument list; args none (its keyed misses sit in class templates).
 - Host: pytest 2,836, `lane_b` 28 of 28.
+
+## 2026-10-03 (fortieth session) — item 7 measured on the held-out cells; ADR-175 proposed
+
+- **Fitted first** (`functor/`, `conv/`): fmt has 42 `operator()` references, 1 at a call's `(` outside a
+  template and a macro (confirmed); the other 38 inside macros would add 10 contradicted. args has none. ADR-132's
+  `other` class, read by syntax: every row in a body expression is confirmed (fmt 18, args 14). The rows the
+  key cannot judge are constructors' own in-class declarations (fmt 22, args 2) and one ERROR row.
+- **Predictions written** (`PREREG-rules.md`, H1–H6) before either rule ran on a held-out cell; rule C
+  re-probed as worded on the fitted cells (18, 14).
+- **Held out:** filesystem F +35, C +143; chromaprint F +1, C +6. All confirmed, 0 contradicted, no silent
+  row added, poison PASS. Together: filesystem 3,048 → 3,226 (recall 15.3% → 16.2%), chromaprint 2,681 →
+  2,688. H2 missed on its count (35 against 0–30). Implicit conversion-operator calls have no index
+  reference (ADVobfuscator); args's 484 braced literals have none either.
+- ADR-175 written, proposed, with three routes; §10.48; currently-open item 7. Nothing built.
+- Proxy and image rebuilt at 0.2.107-beta (`6feff0f0e032`); Go suites pass.
