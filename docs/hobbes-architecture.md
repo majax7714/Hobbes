@@ -4,8 +4,8 @@
 now, not as of a version, and it carries no version number for that reason.
 When the design moves, this file moves with it *in the same commit* — the
 rule is in §9 and it is what keeps the file true. It is the source-of-truth
-context for build sessions: read it fully, alongside CLAUDE.md and the last
-two BUILDLOG entries, before writing code.
+reference for build sessions: read the section a task touches before
+writing code (ADR-162); CLAUDE.md and the handoff are what a session loads.
 
 `docs/adr/` is the dated account of every decision and `docs/BUILDLOG.md`
 the dated account of every session; the v1 design document and both build
@@ -2283,7 +2283,8 @@ exits stop for human review rather than rolling on.
 
 ## 9. Using this document in build sessions
 
-Session context = this file + CLAUDE.md + the last two BUILDLOG entries.
+Session context = CLAUDE.md + `session-handoff.md`, with this file read by
+section and the ledgers searched, not read (ADR-162).
 
 **This file is running, and staying that way is a rule, not an aspiration**
 (ADR-033). A change that moves the architecture patches this document *in
@@ -2298,8 +2299,8 @@ The rest of the standing discipline is unchanged: plan file-by-file before
 implementing; an ADR for every decision this document doesn't make; **a
 `C-n` entry in its segment file under `docs/constraints/` for every decision that concedes
 information (P8, ADR-030), naming the provider when the concession is
-inherited (P9, ADR-034)**; BUILDLOG entry and CLAUDE.md status update every
-session; tests with the code they test; conventional commits; never read
+inherited (P9, ADR-034)**; docs updated, a BUILDLOG entry and a commit at
+the close of every unit of work (CLAUDE.md §2); tests with the code they test; conventional commits; never read
 `.tfstate`, never commit `derived/`, never `git push`. Milestone exits stop
 and hand the wheel to the human — spot-checks and walkthroughs are theirs to
 run.

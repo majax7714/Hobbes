@@ -15446,3 +15446,23 @@ the knowledge tools cannot cover is done by subagents and summarized.
   five misstatements were fixed. Its last finding is left for Max: ADR-103's notes still say "a minor
   is for a structural change", against his 2026-09-13 word that a constraint fix is a patch even when
   structural. No version move: docs and a test.
+
+**Continued:** Max said: "amend to match minor even when structural". He judged reading a 2,000-line
+file whole to be "against hobbes design", and asked for "a smaller set of good rules", written by the
+model, with honesty given more weight and one close-out rule in place of per-task lists.
+
+- **ADR-103, fifth amendment:** a language addition or a constraint's fix is a patch even when
+  structural, and a minor is for a feature. This supersedes the 2026-09-12 note and §3's "a language"
+  under minor.
+- **CLAUDE.md rewritten as rules (217 lines), with no status block:**
+  - §1 is honesty and accuracy before recall, set out as six rules. The last of them holds an agent's
+    own reports to the same standard.
+  - §2 is how to work: the graph first, delegated reading, references read by section, decide before
+    building, verify before claiming, and one close-out (update the docs, append the BUILDLOG, commit).
+  - §5 is the one home for each kind of fact.
+- **ADR-162** records the policy and its sources. A subagent checked each quote against the live page.
+  Three sources differ from how they are usually cited: the best-practices URL now redirects, *Building
+  effective agents* supports only "start simple", and no source backs committing per unit (it is
+  recorded as our own convention).
+- **The architecture** no longer says to read it whole. Its opening and §9 now say it is read by
+  section, and that a session loads CLAUDE.md and the handoff.

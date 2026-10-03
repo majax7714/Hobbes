@@ -148,3 +148,16 @@ not 0.3.0." Patch numbers count on past nine (0.2.9-beta, 0.2.10-beta,
 to end off current session." The session's closing commit is tagged
 `v0.2.10-beta`, annotated like `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta
 stay untagged, and a tag remains his call each time.
+
+## Amendment 2026-10-02 (the fifth) — "structural" does not decide a minor
+
+Two earlier statements read the other way and are superseded: the 2026-09-12 note ("a minor is for a
+structural change") and §3's list, which puts "a language" under minor. Max's rule since 2026-09-13
+(C-140's sidecar), restated 2026-09-20 (the symbol floor) and confirmed 2026-10-02:
+
+- **patch:** a language addition, even when it reaches "supported", and a constraint's fix, **even
+  when structural**. This covers every change to what the layer draws, refuses or says.
+- **minor:** a feature added to Hobbes. The harness was one (0.2.0-beta); the dev environment would
+  be the next (0.3.0), and it is not being worked on. Ask Max before a minor.
+
+Tags stay his call each time. `v0.2.10-beta` is the latest tag; 0.2.11-beta onward is untagged.
