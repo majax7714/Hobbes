@@ -3,8 +3,9 @@
 The draw's recorded figures (33,902 union tasks, 24,222 unique) were read by those scripts, so the only
 useful test of this module is the scripts themselves: `count.py` and `measure.py` are imported by path
 and run beside `families` over two hand-written clones — an ISA family, a body-shape family, thin
-helpers, and one body that appears in both clones. `dedupe.py` is a driver that reads its inputs at
-import time, so its one rule is restated here as the assertion `families.body_hash` has to meet.
+helpers, and one body that appears in both clones. `dedupe.py` read its inputs at import time as it
+ran, so its one rule was restated here (`draw_unique`, and the key `families.body_hash` has to meet);
+since 2026-10-03 its loop is a function, and the script itself is run beside the restatement.
 """
 
 import hashlib
@@ -277,6 +278,19 @@ def test_the_port_deduplicates_as_the_draw_did(draw, clones):
     assert ported == draw_unique(draw, clones)
     # alpha keeps both copies of `kernels.c`'s bodies, beta keeps only its own two
     assert ported == {"alpha": 4, "beta": 2}
+
+
+def test_the_dedupe_script_counts_what_the_port_and_the_restatement_do(draw, clones, tmp_path, capsys):
+    """`dedupe.py` itself, wrapped in a function on 2026-10-03 (its lines as they ran), over the two clones."""
+    import dedupe
+
+    out = dedupe.dedupe([name for name, _ in clones], tmp_path)
+    assert {name: out[name]["unique"] for name, _ in clones} == draw_unique(draw, clones) == {"alpha": 4, "beta": 2}
+    for name, _ in clones:
+        assert out[name]["unique"] + out[name]["duplicate"] == out[name]["union"], name
+    assert out["_total"]["unique"] == 6
+    assert out["_total"]["union"] == sum(out[name]["union"] for name, _ in clones)
+    assert "alpha {'union'" in capsys.readouterr().out
 
 
 def test_body_hash_is_the_dedupe_scripts_own_key():

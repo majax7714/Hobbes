@@ -15664,3 +15664,19 @@ went to the Rust collision.
   restarted.
 - **Docs:** ADR-117's amendment; architecture's review flow and §8 header; CHANGELOG; README; handoff;
   `build-and-test.md`; `workstreams.md`.
+
+## 2026-10-03 (thirty-sixth session, cont.) — the graph job's four bench modules get a guard
+
+- **`dedupe`** (Max: route 1 of three, wrap in functions): the loop is `dedupe(taken, repos)` and the
+  file reads are `main()` under `__main__`; whitespace aside the loop's lines are unchanged except
+  `HERE / "repos"` → `repos`, and the docstring points to `4f23527` for the text as it ran.
+  `test_families` runs the script itself over its two clones beside the `draw_unique` restatement
+  (alpha 4, beta 2 unique).
+- **`draw`**: still runs at import, as it ran. `test_e3_draw.py` imports it with `subprocess.run` and
+  `time.sleep` stubbed in a scratch cwd (70 queries, the seeded order, a two-page query), then calls
+  `draw.query` for its rate-limit wait and its stop.
+- **`modal_e1`**: `test_e1` imports it by name with `modal` stubbed and calls `timeout_for`, `_params`
+  and `_answer`. Its other tests exec the source, which draws no call edge (reach follows calls).
+- **`make_fixture`**: `main(argv)` under `__main__` (it read `sys.argv` at import); `test_fixture` trims a
+  synthetic float16/bfloat16 file and reruns the script over the fixture, which must come back unchanged.
+- **Checks:** lattice 631 passed, 32 skipped (no clang on the host). Bench only: no version.

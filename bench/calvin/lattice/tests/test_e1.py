@@ -1085,6 +1085,32 @@ def test_the_calls_timeout_is_what_the_money_left_buys_on_that_card(monkeypatch)
     assert script.timeout_for(0.0, "A10G") < 0
 
 
+def test_the_scripts_helpers_by_name_shape_a_request_and_its_answer(monkeypatch):
+    """The script imported as `modal_e1` (modal still stubbed), so the calls below are to it by name: its
+    sampling settings are the plan's, never defaulted, and an answer keeps the text whole and both counts."""
+    import sys
+    import types
+
+    monkeypatch.setitem(sys.modules, "modal", _Whatever())
+    monkeypatch.syspath_prepend(str(MODAL.parent))
+    monkeypatch.delitem(sys.modules, "modal_e1", raising=False)
+    import modal_e1
+
+    assert modal_e1.timeout_for(None, "A10G") == modal_e1.MAX_TIMEOUT_SECONDS
+
+    request = {"id": "r1", "params": {"temperature": 0.2, "top_p": 0.95, "max_tokens": 512, "seed": 7}}
+    assert modal_e1._params(dict, request) == {"temperature": 0.2, "top_p": 0.95, "max_tokens": 512, "seed": 7}
+    with pytest.raises(KeyError):
+        modal_e1._params(dict, {"id": "r2", "params": {"temperature": 0.2}})
+
+    first = types.SimpleNamespace(text="  int x;\n", token_ids=[1, 2, 3], finish_reason="stop")
+    output = types.SimpleNamespace(outputs=[first], prompt_token_ids=[9] * 10)
+    assert modal_e1._answer(request, output) == {
+        "id": "r1", "text": "  int x;\n", "tokens_in": 10, "tokens_out": 3, "finish_reason": "stop"}
+    first.token_ids, output.prompt_token_ids = None, None
+    assert modal_e1._answer(request, output)["tokens_in"] == 0
+
+
 def test_the_script_refuses_a_budget_that_buys_nothing_and_calls_nothing(monkeypatch, tmp_path, capsys):
     script = modal_script(monkeypatch)
     requests = tmp_path / "requests.jsonl"

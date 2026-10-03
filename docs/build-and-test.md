@@ -68,7 +68,7 @@ Last checked 2026-10-03. pytest and Go were re-run on the host at
 | tsextract | 49 | |
 | scip node | 97 | |
 | atlas0 | 84 | |
-| lattice | 656 | 624 pass, 32 skip on a host without clang; they run in the image |
+| lattice | 663 | 631 pass, 32 skip on a host without clang; they run in the image (2026-10-03) |
 
 Keep them green. CI does not check these counts. Update this table when
 you re-run a suite.

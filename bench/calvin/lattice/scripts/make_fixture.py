@@ -35,7 +35,10 @@ def trim(text):
     out = [l for n, l in enumerate(lines) if n not in drop
            and not re.search(r'= *(float16|bfloat16|uint8)_distance_', l)]
     return '\n'.join(out)
-src, dst = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-for name in ['distance-cpu.c', 'distance-sse2.c', 'distance-avx2.c', 'distance-avx512.c', 'distance-neon.c',
-             'distance-rvv.c']:
-    (dst / name).write_text(trim((src / name).read_text()))
+def main(argv):
+    src, dst = pathlib.Path(argv[1]), pathlib.Path(argv[2])
+    for name in ['distance-cpu.c', 'distance-sse2.c', 'distance-avx2.c', 'distance-avx512.c', 'distance-neon.c',
+                 'distance-rvv.c']:
+        (dst / name).write_text(trim((src / name).read_text()))
+if __name__ == '__main__':
+    main(sys.argv)
