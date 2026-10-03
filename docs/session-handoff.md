@@ -2,7 +2,7 @@
 
 **Reviewed 2026-10-03 (thirty-eighth session, close); Hobbes 0.2.101-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
-by the commits since then; they are unpushed. The image (`79151a10546c`) and the
+by the commits since then; they are unpushed. The image (`9830f55090f9`) and the
 proxy are at 0.2.101-beta; this repo was ingested at HEAD by the host run of
 `scripts/ci-graph.sh 3fda729`, which passed. The old knowledge server's
 container was stopped for a `/mcp` reconnect. If `main` has moved, ingest at

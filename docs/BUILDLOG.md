@@ -15922,3 +15922,9 @@ went to the Rust collision.
   pinned copy in `verification.py`, so `test_verification` was red from `9a5545a`; the full suite had run
   before that doc edit and not after. Fixed here. Run the suite after the last edit, docs included.
 - Host: pytest 2,822, `lane_b` 28 of 28.
+
+## 2026-10-03 (thirty-eighth session, close) — the graph job passes at 0.2.101-beta
+
+- `scripts/ci-graph.sh 3fda729` on the host: `lanes` 17,837 sites, 0 unexplained (1 C-182 cfg twin); review
+  "nothing needs attention"; `lane_b` 28 passed; "graph checks passed". Image rebuilt by the job
+  (`9830f55090f9`).
