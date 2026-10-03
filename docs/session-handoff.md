@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (thirty-seventh session, close); Hobbes 0.2.99-beta on `main`.**
+**Reviewed 2026-10-03 (thirty-eighth session, close); Hobbes 0.2.100-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
-by the commits since then; they are unpushed. The image (`dcbe621304cd`) and the
-proxy are at 0.2.99-beta; this repo was ingested at HEAD by the host run of
+by the commits since then; they are unpushed. The image (`79151a10546c`) and the
+proxy are at 0.2.100-beta; this repo was ingested at HEAD by the host run of
 `scripts/ci-graph.sh 3fda729`, which passed. The old knowledge server's
 container was stopped for a `/mcp` reconnect. If `main` has moved, ingest at
 HEAD again. A new session's knowledge server is a new container from the
@@ -31,13 +31,17 @@ session went belongs in the BUILDLOG.
   proceed- approved".
 
 **Next:** the extraction queue in [`currently-open.md`](currently-open.md):
-C-174's remainder per language, then the unranked candidates. Pick a held-out
-cell before measuring any Python rule (icalendar and pyparsing are now
-graded; rich, flask and click are fitted). The `cls(…)` rule shipped at
-0.2.99-beta (ADR-170): icalendar 70.2%, rich 93.5%.
+C-174's remainder in the other languages (Python's instance `__call__` shipped
+at 0.2.100-beta, ADR-171: held-out structlog 69.7% → 77.8%; Python's other
+shapes need an oracle change first), then the unranked candidates. Pick a
+held-out cell before measuring any Python rule: structlog, icalendar and
+pyparsing are graded held out, rich, flask and click fitted; the 2026-10-03
+`ast` scan's unused candidates were voluptuous, marshmallow, toolz, tenacity.
 
-**Waiting on Max:** C-181's residual, ADR-126 §3 and the rest of "Decisions
-open for Max" in [`currently-open.md`](currently-open.md). Don't build any
+**Waiting on Max:** the Python `if`/`else` twin found on structlog (unregistered,
+precedent 1; proposed: register it and name the pairs), C-181's residual,
+ADR-126 §3 and the rest of "Decisions open for Max" in
+[`currently-open.md`](currently-open.md). Don't build any
 of them until Max answers.
 
 ## Where the last day left things (2026-10-03; the CHANGELOG has each one)
@@ -58,6 +62,13 @@ move a cell:
   for is named (`python-bases`; flask's `Flask → App` among 85 pairs).
 - **0.2.99, ADR-170:** `cls(…)` in a classmethod calls its class, `syntactic`
   (icalendar +76, rich +51; C5 missed by one row, the probe's grain).
+- **Thirty-eighth session:** the open-work docs reconciled (`37c9af7`: W1's
+  stale lines struck, its orphans re-homed in `currently-open.md`). Then C-174
+  in Python: structlog picked held out by an `ast` scan and pre-registered;
+  **0.2.100, ADR-171:** a constructed instance's `__call__`, `syntactic`
+  (structlog +130, all confirmed; pyparsing +23; rich +6). P1 missed:
+  pyparsing's `pp.X(…)(…)` abstain under C-178, which the source-count
+  prediction ignored (lesson added).
 - Slips, each fixed and in the BUILDLOG: I-2's guard renamed with its test;
   `test_verification` red from `21d019e` to `62a654e`; the "last ADR" copy.
 
@@ -72,8 +83,9 @@ move a cell:
   quic-go (99.6%; all 15 rows are the oracle's grain). Each figure carries
   its strict companion (ADR-124); fmt is 100%, strict 99.62%. Trace-graded
   Python cells measure recall, never precision (C-60). rich is fitted
-  (ADR-160); pyparsing and icalendar are graded held out (icalendar 70.2%
-  at 0.2.99-beta, its 6 wrong rows contained by ADR-168).
+  (ADR-160); pyparsing, icalendar and structlog are graded held out
+  (icalendar 70.2%, its 6 wrong rows contained by ADR-168; structlog 77.8%
+  at 0.2.100-beta).
 - **Register:** 185 entries: 137 active (105 surfaced, 28 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 31 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.

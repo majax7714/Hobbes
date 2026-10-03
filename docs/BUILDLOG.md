@@ -15902,3 +15902,9 @@ went to the Rust collision.
   (55 rows against ≥ 100): 196 of pyparsing's direct sites are `pp.X(…)(…)`, refused by C-178's
   containment, which the source-count prediction ignored (lesson added).
 - Host: pytest 2,817, `lane_b` 28 of 28, Go `./...` green; proxy and image rebuilt (`a4672d3cedc3`).
+
+## 2026-10-03 (thirty-eighth session, close) — the graph job passes at 0.2.100-beta
+
+- `scripts/ci-graph.sh 3fda729` on the host: `lanes` 17,813 sites, 0 unexplained (1 C-182 cfg twin);
+  invariants run; review "nothing needs attention"; `lane_b` 28 passed; "graph checks passed". The image was
+  rebuilt by the job (`79151a10546c`). Handoff rewritten.
