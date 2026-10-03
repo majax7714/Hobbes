@@ -595,6 +595,36 @@ class TestSymbols:
         assert "Out::field" not in kinds
         assert not [q for q in kinds if q.endswith("anon")]  # an unnamed type has no name to give
 
+    def test_a_macro_the_recovery_reads_as_a_function_stays_a_macro(self, tmp_path):
+        # C-164's fourth shape, from Catch2's single header (gulrak/filesystem's
+        # test/catch.hpp:7974-7984): the `extern "C"` line before pulls the next
+        # `#define` into an ERROR node, and the macro's own name and lambda body
+        # parse as a function definition. The token before the name is the
+        # `#define`, so it is the macro's name, and never a function.
+        _write(tmp_path, {"catch.hpp": (
+            "#elif defined(__MINGW32__)\n"
+            "    extern \"C\" __declspec(dllimport) void __stdcall DebugBreak();\n"
+            "    #define CATCH_TRAP() DebugBreak()\n"
+            "#endif\n"
+            "\n"
+            "#ifndef CATCH_BREAK_INTO_DEBUGGER\n"
+            "    #ifdef CATCH_TRAP\n"
+            "        #define CATCH_BREAK_INTO_DEBUGGER() []{ if( Catch::isDebuggerActive() ) { CATCH_TRAP(); } }()\n"
+            "    #else\n"
+            "        #define CATCH_BREAK_INTO_DEBUGGER() []{}()\n"
+            "    #endif\n"
+            "#endif\n"
+            "void after() { CATCH_BREAK_INTO_DEBUGGER(); }\n"
+        )})
+        symbols = [
+            s for s in extract_cpp(tmp_path)["symbols"]
+            if s["qualname"] == "CATCH_BREAK_INTO_DEBUGGER"
+        ]
+        assert [(s["kind"], s["line"]) for s in symbols] == [("macro", 8)]
+        assert "name_col" not in symbols[0]  # a macro is no caller and R1 never reads it
+        kinds = {s["qualname"]: s["kind"] for s in extract_cpp(tmp_path)["symbols"]}
+        assert kinds["after"] == "function"
+
     def test_a_namespace_and_a_lambda_are_not_symbols(self, layer):
         names = {s["qualname"] for s in layer["symbols"]}
         assert "shapes" not in names

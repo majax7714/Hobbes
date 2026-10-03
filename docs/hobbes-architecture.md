@@ -866,7 +866,10 @@ row moved, every graded number ±0; nothing fires on args, cJSON or
 sqlite-vector. Where neither read
 can fire, a C++ function named for a macro after its declarator or for a
 first member initialiser is counted in one `cpp-macro-names` record per
-ingest (ADR-135's amendment, 0.2.103-beta); nothing is removed.
+ingest (ADR-135's amendment, 0.2.103-beta); nothing is removed. A
+definition whose name follows a `#define` on its line is that macro, not
+a function, whatever the recovery built around it (ADR-135's second
+amendment, 0.2.107-beta).
 
 **A line R1 vacated is not a clean file's (ADR-136, 0.2.48-beta).** A
 function-like macro that *generates* a definition
@@ -2338,7 +2341,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.106-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.106-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.107-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.107-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

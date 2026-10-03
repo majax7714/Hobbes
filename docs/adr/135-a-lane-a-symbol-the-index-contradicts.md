@@ -279,3 +279,27 @@ initialiser (`byteCode`, `asCTypeInfo`, `dgVector`, `value`), function-defining 
 another's `{}` (`QMIX_DISTANCES`): the record says what to read, not that every one is wrong.
 **Still unnamed:** an extent that swallows later definitions where no index ran (the `TEST` at 201), a
 non-ASCII byte before the name, and recovery shapes these reads do not see.
+
+## Amendment — 2026-10-03: a macro's own name read as a function is a macro (0.2.107-beta)
+
+Found by the standing grade of gulrak/filesystem, drawn as item 7's held-out C++ cell: its one
+contradicted row. Catch2's `test/catch.hpp:7981` is `#define CATCH_BREAK_INTO_DEBUGGER() []{ … }()`; the
+`extern "C" … DebugBreak();` arm four lines above sends tree-sitter into a recovery that pulls the
+`#define` into an ERROR node and reads the name, the empty parameter list and the lambda's braces as a
+**function definition**. Lane B's reference at the invocation (`catch.hpp:8243`) names the live macro at
+that line, so the edge drawn was right in its target and wrong in its kind: a `calls` edge into a
+`function`, graded as one and contradicted, where C-131 says an edge to a macro targets a `macro`-kind
+symbol. Neither R1 nor the amendment above sees it: the index reads the token as a macro's
+*definition*, not a reference, and the name is not after a parameter list.
+
+**Rule (lane A, no index):** an unqualified definition whose name's preceding token is a `#define`
+directive on the same line is a `macro` symbol named as written, never a function
+(`_after_define` in `extract/cppsource.py`). That token decides it: the name after `#define` is the
+macro's by the language, whatever the recovery built around it. A macro is no caller, so what the parse
+read inside its body falls to the enclosing scope, as any macro body's does.
+
+**Counted key-free first** (`~/.hobbes/bench/cpp-item7-2026-10-03/macro-kind/probe.py`, lane A
+function symbols whose name token the index defines as a macro): filesystem 1, chromaprint 0,
+ADVobfuscator 0, fmt 0, args 0, ScummVM's 0.2.48-beta graph 0. **Regraded:** filesystem 1 contradicted
+→ 0, 3,048 confirmed unchanged, the edge now excluded as a macro's; chromaprint, ADVobfuscator, fmt and
+args unchanged.

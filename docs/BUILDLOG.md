@@ -16044,3 +16044,29 @@ went to the Rust collision.
   (`4b517d39a845`). Handoff rewritten.
 - Slip: my wait on the job used `pgrep -f 'ci-graph.sh 3fda729'`, which matched the waiting shell itself, so it
   never ended after the job passed (Max: "still going or stuck?"). Wait on the log's last line instead.
+
+## 2026-10-03 (fortieth session) — item 7's held-out C++ cells drawn; a macro read as a function fixed at 0.2.107-beta
+
+- **The draw, pre-registered** (`~/.hobbes/bench/cpp-item7-2026-10-03/PREREG-draw.md`, before any clone):
+  the 2026-09-14 draw continued from position 8 with its criteria, plus ≤400 units and a shape condition
+  (≥20 keyed `operator()` or ≥20 `constructor` sites). Passed over, with reasons in `draw-continued.json`:
+  positions 8–13 and 15–27 (no root build file; offline configure fails on curses, Z3, Qt5, OpenSSL, OpenGL,
+  ZLIB, CCD, a Binary Ninja install; FetchContent; stunserver's every unit needs boost; ADVobfuscator,
+  which derives and grades 210/210, keys 15 `operator()` and 14 constructor sites). **Taken: acoustid/chromaprint
+  (14, `aed8eba2`)**; gulrak/filesystem (28, `3812f8a6`) held out too, for its 64 `operator()` sites.
+- Slip, caught before any rule ran and written into the pre-registration as an amendment: the walk
+  skipped position 14 (chromaprint configured, then went unread while 15–28 were tried).
+- **Standing grades at 0.2.106-beta:** chromaprint 2,681 confirmed, 0 contradicted, strict 99.7%, recall
+  47.8%; filesystem 3,048 confirmed, **1 contradicted**, recall 15.3%; poison PASS on both.
+- **The contradicted row, read first (precedent 1):** Catch2's `#define CATCH_BREAK_INTO_DEBUGGER() []{…}()`
+  after an `extern "C"` arm; tree-sitter's recovery swallowed the `#define` and read a function. Lane B's
+  macro reference drew a `calls` into a `function`-kind node, so the export graded it, against C-131's
+  "an edge to a macro targets a `macro`-kind symbol". Counted key-free (`macro-kind/probe.py`): 1 symbol
+  across filesystem, chromaprint, ADVobfuscator, fmt, args and ScummVM's stored graph.
+- **Built (0.2.107-beta, ADR-135's second amendment, C-164 narrowed):** `_after_define` — a definition whose
+  name follows a `#define` on its line is a macro symbol. Test from the real lines. Regraded
+  (`macro-kind/`, PREREG M1/M2 met): filesystem 0 contradicted, 3,048 confirmed; chromaprint, ADVobfuscator,
+  fmt (7,026, strict 99.62%) and args (2,567) unchanged; poison PASS on all.
+- Item 7's fitted measurement begun: on fmt, 42 `operator()` references, 38 inside gmock/test macros, 1 a
+  functor call, at the `(` of its argument list; args none (its keyed misses sit in class templates).
+- Host: pytest 2,836, `lane_b` 28 of 28.

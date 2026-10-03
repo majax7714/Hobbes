@@ -11,9 +11,21 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.106-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.107-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.107-beta — 2026-10-03 (a macro's own name read as a function is a macro; C-164 narrowed, ADR-135's second amendment)
+
+**Patch: what the layer says**, C++. Found by the held-out cell gulrak/filesystem, drawn for item 7: its one
+contradicted row.
+
+- **A definition whose name follows a `#define` on its line is that macro.** An error recovery that pulled
+  the directive into an ERROR node had read Catch2's `#define CATCH_BREAK_INTO_DEBUGGER() []{ … }()` as a
+  function, so lane B's macro reference was drawn as a call into a function. The node is now `macro`-kind,
+  as C-131 says an edge to a macro targets.
+- **Regraded:** filesystem 1 contradicted → 0 (3,048 confirmed, poison PASS); chromaprint, ADVobfuscator,
+  fmt and args unchanged. Counted key-free first: 1 symbol in six C++ clones.
 
 ## 0.2.106-beta — 2026-10-03 (a Rust id two impl blocks share is told apart by an ordinal; ADR-174, C-180 lifted)
 

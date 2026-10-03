@@ -1275,6 +1275,12 @@ def _function_definition(
         name, qualifiers, terminal = _definition_name(ident)
         if terminal is None:
             return
+        if not qualifiers and _after_define(terminal):
+            # C-164's fourth shape: the recovery pulled a `#define` into an
+            # ERROR node and read the macro's name and body as a function.
+            # The name is the macro's, as C's walk names a parsed one.
+            parsed.symbols.append(_symbol(name, name, "macro", terminal, terminal))
+            return
     in_class = bool(scope) and scope[-1][1]
     kind = "method" if in_class else "function"
     qualname = _qualname(scope, *qualifiers, name)
@@ -1301,6 +1307,22 @@ def _function_definition(
     # handed the unwrapped declarator it reads a reference return's too.
     csource._collect_bindings(node, function_declarator, parsed)
     _collect_lambda_bindings(node, parsed)
+
+
+def _after_define(terminal: Node) -> bool:
+    """Whether the token just before *terminal* is a ``#define`` directive
+    on its line — which makes *terminal* a macro's name, whatever the parse
+    built around it (C-164's fourth shape: ``#define X() []{…}()`` read as
+    a function ``X`` after an error recovery swallowed the directive)."""
+    node = terminal
+    while node is not None and node.prev_sibling is None:
+        node = node.parent
+    if node is None:
+        return False
+    leaf = node.prev_sibling
+    while leaf.child_count:
+        leaf = leaf.children[-1]
+    return leaf.type == "#define" and leaf.start_point.row == terminal.start_point.row
 
 
 def _definition_name(ident: Node) -> tuple[str, tuple[str, ...], Node | None]:

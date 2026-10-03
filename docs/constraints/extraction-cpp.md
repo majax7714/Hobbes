@@ -532,6 +532,17 @@ headers parsed with tree-sitter ERROR nodes.
   after `) :` — with examples (fmt lane A alone 18, with lane B 1, args 0).
   Nothing names a swallowing extent where no index ran, or a name after a
   non-ASCII byte.
+- **A fourth shape, found and closed 2026-10-03 (ADR-135's second
+  amendment, 0.2.107-beta):** a recovery that pulls a `#define` into an
+  ERROR node reads the macro's own name and body as a **function**
+  (Catch2's `#define CATCH_BREAK_INTO_DEBUGGER() []{ … }()` after an
+  `extern "C"` arm; gulrak/filesystem's `test/catch.hpp:7981`). Lane B's
+  reference at the invocation landed on it, so a macro expansion was
+  drawn as a call into a function and the key contradicted it — the
+  cell's one wrong row. A definition whose name follows a `#define` on
+  its line is now that macro (lane A, no index). Counted first: 1 on
+  filesystem, 0 on chromaprint, ADVobfuscator, fmt, args and ScummVM's
+  stored graph.
 - **Provider (P9):** tree-sitter-cpp **0.23.4**.
 - **Counted key-free, 2026-09-18 (ADR-135 proposed; nothing built):**
   on the four cells with an index, **18 misnamed symbols, all on fmt** —

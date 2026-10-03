@@ -6,6 +6,12 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-164 narrowed, 2026-10-03 (0.2.107-beta; ADR-135's second amendment; found by item 7's held-out C++ draw):
+- **A fourth shape, closed the day it was found:** a recovery that swallows a `#define` read the macro's
+  own name as a function (Catch2's `CATCH_BREAK_INTO_DEBUGGER`), so a macro expansion was graded as a
+  call and contradicted: gulrak/filesystem's one wrong row. Lane A now reads the name after `#define` as
+  the macro's. No status moves: C-164 stays partial. Tally unchanged.
+
 C-187 lifted, 2026-10-03 (0.2.105-beta; ADR-173's amendment, Max: route 1, "good with recommended"):
 - **Terraform ids scoped by directory** (`tf:<dir>:<address>`): one address in two directories is two
   nodes. terraform-aws-eks 287 blocks, 287 nodes, all 288 reference sites kept. Residual: a cross-directory
