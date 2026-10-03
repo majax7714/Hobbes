@@ -30,14 +30,14 @@ const graph: Graph = {
     node('src/flow', 'module', 'src/flow.ts'),
     node('ext:pytest', 'external'),
     node('env:HOBBES_HOME', 'env'),
-    node('tf:aws_lambda_function.worker', 'resource', 'infra/main.tf'),
+    node('tf:infra:aws_lambda_function.worker', 'resource', 'infra/main.tf'),
   ],
   module_edges: [
     { from: 'hobbes.cli', to: 'hobbes.extract', type: 'imports', evidence: [{ path: 'p', line: 1 }] },
     { from: 'hobbes.extract', to: 'hobbes.extract.graph', type: 'imports' },
     { from: 'hobbes.extract.graph', to: 'ext:pytest', type: 'imports' },
     { from: 'hobbes.cli', to: 'env:HOBBES_HOME', type: 'env-read' },
-    { from: 'tf:aws_lambda_function.worker', to: 'env:HOBBES_HOME', type: 'env-set' },
+    { from: 'tf:infra:aws_lambda_function.worker', to: 'env:HOBBES_HOME', type: 'env-set' },
   ],
   symbols: [
     { id: 'hobbes.cli.main', module: 'hobbes.cli', kind: 'function', line: 40 },
@@ -76,7 +76,7 @@ describe('packageOf', () => {
     expect(packageOf(node('driver', 'module'))).toBe('driver')
     expect(packageOf(node('ext:pytest', 'external'))).toBe('ext')
     expect(packageOf(node('env:HOME', 'env'))).toBe('env')
-    expect(packageOf(node('tf:aws_iam_role.worker', 'resource'))).toBe('tf')
+    expect(packageOf(node('tf:infra:aws_iam_role.worker', 'resource'))).toBe('tf')
   })
 
   it('keeps a root-disambiguated id whole, as ADR-008 does', () => {
@@ -139,7 +139,7 @@ describe('labelOf', () => {
   it('drops the prefix the shape already conveys', () => {
     expect(labelOf(node('ext:express', 'external'))).toBe('express')
     expect(labelOf(node('env:API_URL', 'env'))).toBe('API_URL')
-    expect(labelOf(node('tf:aws_iam_role.worker', 'resource'))).toBe('aws_iam_role.worker')
+    expect(labelOf(node('tf:infra:aws_iam_role.worker', 'resource'))).toBe('infra:aws_iam_role.worker')
     expect(labelOf(node('hobbes.cli', 'module'))).toBe('hobbes.cli')
   })
 })

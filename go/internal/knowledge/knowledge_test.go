@@ -1392,7 +1392,7 @@ func TestBlindSpotsServesATerraformOnlyScope(t *testing.T) {
 	var g map[string]any
 	json.Unmarshal(raw, &g)
 	g["nodes"] = append(g["nodes"].([]any),
-		map[string]any{"id": "tf:aws_vpc.v", "kind": "resource", "path": "infra/main.tf"})
+		map[string]any{"id": "tf:infra:aws_vpc.v", "kind": "resource", "path": "infra/main.tf"})
 	vb, _ := g["verification_base"].(map[string]any)
 	if vb == nil {
 		vb = map[string]any{}

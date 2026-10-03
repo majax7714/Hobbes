@@ -1,5 +1,6 @@
 """Tests for hobbes.extract.terraform — HCL nodes, edges, joins, plan."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -27,10 +28,10 @@ def edge_set(infra, edge_type):
 class TestNodes:
     def test_declared_blocks_become_nodes(self, infra):
         by_id = {n["id"]: n for n in infra["nodes"]}
-        assert by_id["tf:aws_lambda_function.worker"]["kind"] == "resource"
-        assert by_id["tf:aws_iam_role.worker"]["kind"] == "resource"
-        assert by_id["tf:data.archive_file.worker"]["kind"] == "data"
-        assert by_id["tf:aws_lambda_function.worker"]["path"] == "infra/main.tf"
+        assert by_id["tf:infra:aws_lambda_function.worker"]["kind"] == "resource"
+        assert by_id["tf:infra:aws_iam_role.worker"]["kind"] == "resource"
+        assert by_id["tf:infra:data.archive_file.worker"]["kind"] == "data"
+        assert by_id["tf:infra:aws_lambda_function.worker"]["path"] == "infra/main.tf"
 
     def test_undeclared_references_create_nothing(self, infra):
         assert not any(
@@ -44,10 +45,10 @@ class TestNodes:
 class TestReferences:
     def test_declared_references_edge(self, infra):
         refs = edge_set(infra, "references")
-        assert ("tf:aws_lambda_function.worker", "tf:aws_iam_role.worker") in refs
+        assert ("tf:infra:aws_lambda_function.worker", "tf:infra:aws_iam_role.worker") in refs
         assert (
-            "tf:aws_lambda_function.worker",
-            "tf:data.archive_file.worker",
+            "tf:infra:aws_lambda_function.worker",
+            "tf:infra:data.archive_file.worker",
         ) in refs
 
     def test_undeclared_reference_dropped(self, infra):
@@ -59,8 +60,8 @@ class TestReferences:
         edge = next(
             e
             for e in infra["module_edges"]
-            if e["from"] == "tf:aws_lambda_function.worker"
-            and e["to"] == "tf:aws_iam_role.worker"
+            if e["from"] == "tf:infra:aws_lambda_function.worker"
+            and e["to"] == "tf:infra:aws_iam_role.worker"
         )
         # The infra layer goes through the same v4 edge constructor as the
         # app layer (ADR-028) — one vocabulary, not one per extractor.
@@ -73,8 +74,8 @@ class TestReferences:
 class TestEnvJoin:
     def test_env_set_edges_and_nodes(self, infra):
         env = edge_set(infra, "env-set")
-        assert ("tf:aws_lambda_function.worker", "env:MINIAPP_MODE") in env
-        assert ("tf:aws_lambda_function.worker", "env:MINIAPP_HOME") in env
+        assert ("tf:infra:aws_lambda_function.worker", "env:MINIAPP_MODE") in env
+        assert ("tf:infra:aws_lambda_function.worker", "env:MINIAPP_HOME") in env
         kinds = {n["id"]: n["kind"] for n in infra["nodes"]}
         assert kinds["env:MINIAPP_MODE"] == "env"
 
@@ -88,7 +89,7 @@ class TestEnvJoin:
             "}\n"
         )
         infra = extract_terraform(tmp_path, [])
-        assert ("tf:docker_container.app", "env:APP_TOKEN") in edge_set(
+        assert ("tf:.:docker_container.app", "env:APP_TOKEN") in edge_set(
             infra, "env-set"
         )
 
@@ -96,7 +97,7 @@ class TestEnvJoin:
 class TestPackagesJoin:
     def test_archive_source_resolves_to_module(self, infra):
         assert (
-            "tf:data.archive_file.worker",
+            "tf:infra:data.archive_file.worker",
             "miniapp.cli",
         ) in edge_set(infra, "packages")
 
@@ -109,11 +110,11 @@ class TestPlan:
     def test_plan_adds_nodes_and_resolved_references(self):
         infra = extract_terraform(FIXTURE, discover_modules(FIXTURE), tf_plan=PLAN)
         by_id = {n["id"]: n for n in infra["nodes"]}
-        assert by_id["tf:aws_cloudwatch_log_group.worker"]["kind"] == "resource"
+        assert by_id["tf:infra:aws_cloudwatch_log_group.worker"]["kind"] == "resource"
         refs = edge_set(infra, "references")
         assert (
-            "tf:aws_cloudwatch_log_group.worker",
-            "tf:aws_lambda_function.worker",
+            "tf:infra:aws_cloudwatch_log_group.worker",
+            "tf:infra:aws_lambda_function.worker",
         ) in refs
 
     def test_var_references_in_plan_dropped(self):
@@ -176,16 +177,57 @@ class TestDirectoryScope:
             "net/b.tf": 'resource "aws_subnet" "s" {\n  vpc_id = aws_vpc.v.id\n}\n',
         })
         infra = extract_terraform(tmp_path, [])
-        assert edge_set(infra, "references") == {("tf:aws_subnet.s", "tf:aws_vpc.v")}
+        assert edge_set(infra, "references") == {("tf:net:aws_subnet.s", "tf:net:aws_vpc.v")}
 
-    def test_shared_address_named_with_its_directories(self, tmp_path):
-        bucket = 'resource "aws_s3_bucket" "logs" {}\n'
-        _write(tmp_path, {"envs/dev/main.tf": bucket, "envs/prod/main.tf": bucket})
+    def test_one_address_in_two_directories_is_two_nodes(self, tmp_path):
+        """C-187 lifted (ADR-173's amendment): each directory's block is its own
+        node, and each directory's reference reaches its own."""
+        files = 'resource "aws_s3_bucket" "logs" {}\nresource "aws_s3_bucket_policy" "p" {\n  bucket = aws_s3_bucket.logs.id\n}\n'
+        _write(tmp_path, {"envs/dev/main.tf": files, "envs/prod/main.tf": files})
         infra = extract_terraform(tmp_path, [])
-        assert [n["id"] for n in infra["nodes"]] == ["tf:aws_s3_bucket.logs"]
-        message = infra["errors"][0]["message"]
-        assert "1 address(es) are declared in more than one directory" in message
-        assert "aws_s3_bucket.logs (2 dirs)" in message and "(C-187)" in message
+        assert {n["id"] for n in infra["nodes"]} == {
+            "tf:envs/dev:aws_s3_bucket.logs", "tf:envs/dev:aws_s3_bucket_policy.p",
+            "tf:envs/prod:aws_s3_bucket.logs", "tf:envs/prod:aws_s3_bucket_policy.p",
+        }
+        assert edge_set(infra, "references") == {
+            ("tf:envs/dev:aws_s3_bucket_policy.p", "tf:envs/dev:aws_s3_bucket.logs"),
+            ("tf:envs/prod:aws_s3_bucket_policy.p", "tf:envs/prod:aws_s3_bucket.logs"),
+        }
+        assert "C-187" not in infra["errors"][0]["message"]
+
+    def test_root_directory_is_dot(self, tmp_path):
+        _write(tmp_path, {"main.tf": 'resource "aws_vpc" "v" {}\n'})
+        assert [n["id"] for n in extract_terraform(tmp_path, [])["nodes"]] == ["tf:.:aws_vpc.v"]
+
+
+class TestPlanDirectory:
+    """A plan names no directory: its root module is inferred or refused."""
+
+    def _plan(self, tmp_path, addresses):
+        plan = tmp_path / "plan.json"
+        plan.write_text(json.dumps({"configuration": {"root_module": {"resources": [
+            {"address": a, "expressions": {}} for a in addresses
+        ]}}}))
+        return plan
+
+    def test_directory_declaring_every_shared_address(self, tmp_path):
+        _write(tmp_path, {
+            "a/main.tf": 'resource "aws_vpc" "v" {}\nresource "aws_subnet" "s" {}\n',
+            "b/main.tf": 'resource "aws_vpc" "v" {}\n',
+        })
+        plan = self._plan(tmp_path, ["aws_vpc.v", "aws_subnet.s", "aws_eip.only_planned"])
+        infra = extract_terraform(tmp_path, [], tf_plan=plan)
+        assert "tf:a:aws_eip.only_planned" in {n["id"] for n in infra["nodes"]}
+        assert not any(e["stage"] == "hcl-plan" for e in infra["errors"])
+
+    def test_ambiguous_plan_adds_nothing_and_says_so(self, tmp_path):
+        both = 'resource "aws_vpc" "v" {}\n'
+        _write(tmp_path, {"a/main.tf": both, "b/main.tf": both})
+        plan = self._plan(tmp_path, ["aws_vpc.v", "aws_eip.only_planned"])
+        infra = extract_terraform(tmp_path, [], tf_plan=plan)
+        assert not any("only_planned" in n["id"] for n in infra["nodes"])
+        (record,) = [e for e in infra["errors"] if e["stage"] == "hcl-plan"]
+        assert "plan adds nothing (ADR-173, C-193)" in record["message"]
 
 
 class TestLayerRecord:
@@ -221,7 +263,7 @@ class TestLayerRecord:
             'resource "aws_iam_role" "swallowed" {\n  name = "s"\n}\n'
         )})
         infra = extract_terraform(tmp_path, [])
-        assert "tf:aws_iam_role.swallowed" not in {n["id"] for n in infra["nodes"]}
+        assert "tf:.:aws_iam_role.swallowed" not in {n["id"] for n in infra["nodes"]}
         stages = [(e["stage"], e["path"]) for e in infra["errors"]]
         assert stages == [("hcl-layer", "."), ("hcl-parse", "main.tf")]
         assert "(C-192)" in infra["errors"][1]["message"]

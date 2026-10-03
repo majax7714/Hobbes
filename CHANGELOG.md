@@ -11,9 +11,20 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.104-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.105-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.105-beta — 2026-10-03 (Terraform ids scoped by directory; C-187 lifted, ADR-173's amendment)
+
+**Patch: what the layer draws**, Terraform/HCL. Max chose route 1 ("good with recommended").
+
+- **A Terraform node's id is `tf:<dir>:<address>`** (`.` at the repo root): one address declared in two
+  directories is two nodes, and each directory's references reach its own. terraform-aws-eks: 287 blocks,
+  287 nodes (was 203), all 288 reference sites kept, `aws_iam_role.this` seven nodes. Every `tf:` id changes.
+- **A plan's root module** is the one directory declaring every address it shares with the `.tf` files, or
+  the only Terraform directory; otherwise the plan adds nothing and an `hcl-plan` record says so (C-193).
+- C-187 lifted; its residual, a cross-directory reference, stays refused and counted.
 
 ## 0.2.104-beta — 2026-10-03 (C-176 measured on Go and Java; `who_calls` names a class or Go var caller)
 

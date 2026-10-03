@@ -14,10 +14,12 @@ and module-level edges in graph.json's shape:
   resolving to a repo file the Python extractor discovered: the
   infra-packages-app-code edge.
 
-A reference resolves in its own directory, as Terraform resolves it: an
-address declared only in another directory draws nothing (ADR-173). What
-the layer does not read is registered (C-187 to C-193) and named per
-ingest in one ``hcl-layer`` record, and per damaged file in ``hcl-parse``.
+A node's id is ``tf:<dir>:<address>``, the directory being the module's
+scope in Terraform's terms (``.`` for the repo root), and a reference
+resolves in its own directory: an address declared only in another
+directory draws nothing (ADR-173 and its amendment). What the layer does
+not read is registered (C-188 to C-193) and named per ingest in one
+``hcl-layer`` record, and per damaged file in ``hcl-parse``.
 
 Never reads ``.tfstate`` — state carries secrets (engineering rule; the
 policy engine's builtin floor, ADR-011, enforces the same for agents).
@@ -69,7 +71,6 @@ def extract_terraform(
     module_by_path = {m.path: m.id for m in modules}
 
     parsed: list[tuple[str, Node, str, str]] = []  # (file, block, addr, kind)
-    declared: dict[str, str] = {}  # address → node id
     declared_dirs: dict[str, set[str]] = {}  # address → directories declaring it
     indirect = dict.fromkeys(_INDIRECT_BLOCKS, 0)
     module_sources = {"local": 0, "remote": 0}
@@ -82,8 +83,7 @@ def extract_terraform(
             if block_type in indirect:
                 indirect[block_type] += 1
         for block, addr, kind in _top_blocks(root):
-            declared.setdefault(addr, f"tf:{addr}")
-            declared_dirs.setdefault(addr, set()).add(posixpath.dirname(rel))
+            declared_dirs.setdefault(addr, set()).add(_tf_dir(rel))
             parsed.append((rel, block, addr, kind))
             if kind == "tf-module":
                 module_sources[_module_source_kind(block)] += 1
@@ -92,17 +92,19 @@ def extract_terraform(
     edges: dict[tuple, list] = {}
     cross_directory = 0
     for rel, block, addr, kind in parsed:
-        source_id = f"tf:{addr}"
+        tf_dir = _tf_dir(rel)
+        source_id = _node_id(tf_dir, addr)
         nodes.setdefault(source_id, {"id": source_id, "kind": kind, "path": rel})
 
-        tf_dir = posixpath.dirname(rel)
         for chain, line in _traversals(block):
             target_addr = _addr_from_chain(chain)
-            if target_addr in declared and target_addr != addr:
+            if target_addr in declared_dirs and target_addr != addr:
                 if tf_dir not in declared_dirs[target_addr]:
                     cross_directory += 1  # Terraform never resolves it (ADR-173)
                     continue
-                _add_edge(edges, source_id, declared[target_addr], "references", rel, line)
+                _add_edge(
+                    edges, source_id, _node_id(tf_dir, target_addr), "references", rel, line
+                )
 
         for key, line in _env_keys(block):
             env_id = f"env:{key}"
@@ -110,18 +112,19 @@ def extract_terraform(
             _add_edge(edges, source_id, env_id, "env-set", rel, line)
 
         for literal, line in _string_values(block):
-            target_module = _resolve_repo_path(repo_root, tf_dir, literal, module_by_path)
+            target_module = _resolve_repo_path(
+                repo_root, posixpath.dirname(rel), literal, module_by_path
+            )
             if target_module is not None:
                 _add_edge(edges, source_id, target_module, "packages", rel, line)
 
     if tf_plan is not None:
-        _consume_plan(repo_root, tf_plan, declared, nodes, edges)
+        _consume_plan(repo_root, tf_plan, declared_dirs, nodes, edges, errors)
 
     if tf_files:
-        shared = {a: d for a, d in declared_dirs.items() if len(d) > 1}
         errors.insert(0, _layer_record(
             len(tf_files), indirect, module_sources,
-            _walk_files(repo_root, _UNREAD_SUFFIXES), shared, cross_directory,
+            _walk_files(repo_root, _UNREAD_SUFFIXES), cross_directory,
         ))
     return {
         "nodes": sorted(nodes.values(), key=lambda n: n["id"]),
@@ -162,6 +165,17 @@ def _walk_files(repo_root: Path, suffixes: tuple[str, ...]) -> list[str]:
     return sorted(found)
 
 
+def _tf_dir(rel: str) -> str:
+    """The directory a ``.tf`` file declares into: its module's scope."""
+    return posixpath.dirname(rel) or "."
+
+
+def _node_id(tf_dir: str, addr: str) -> str:
+    """``tf:<dir>:<address>`` — an address is unique only in its directory
+    (ADR-173's amendment; C-187 lifted)."""
+    return f"tf:{tf_dir}:{addr}"
+
+
 def _parse_record(rel: str) -> dict:
     """The ``hcl-parse`` record for a ``.tf`` file tree-sitter-hcl parsed
     with errors (C-192): its recovery can swallow every block after an
@@ -182,11 +196,10 @@ def _layer_record(
     indirect: dict[str, int],
     module_sources: dict[str, int],
     unread: list[str],
-    shared: dict[str, set[str]],
     cross_directory: int,
 ) -> dict:
     """The one ``hcl-layer`` record per ingest that names what the Terraform
-    layer does not read, with this repo's counts (ADR-173, C-187 to C-193)."""
+    layer does not read, with this repo's counts (ADR-173, C-188 to C-193)."""
     parts = [
         f"the Terraform layer read {tf_count} .tf file(s), syntactic. It draws `references` "
         "only where a block names another block in its own directory",
@@ -206,20 +219,10 @@ def _layer_record(
             f"{len(unread)} .tf.json or .tofu file(s) not read: "
             + ", ".join(unread[:3]) + (" …" if len(unread) > 3 else "") + " (C-192)"
         )
-    if shared:
-        examples = ", ".join(
-            f"{addr} ({len(dirs)} dirs)"
-            for addr, dirs in sorted(shared.items(), key=lambda item: (-len(item[1]), item[0]))[:3]
-        )
-        parts.append(
-            f"{len(shared)} address(es) are declared in more than one directory, and each is "
-            "one node whose path is the first directory's; an edge to it may belong to "
-            f"either: {examples}{' …' if len(shared) > 3 else ''} (C-187)"
-        )
     if cross_directory:
         parts.append(
             f"{cross_directory} reference(s) to an address declared only in another "
-            "directory refused, since Terraform never resolves one (C-187)"
+            "directory refused, since Terraform never resolves one (ADR-173, C-187's residual)"
         )
     return {"path": ".", "stage": "hcl-layer", "message": "; ".join(parts)}
 
@@ -448,13 +451,17 @@ def _add_edge(
 def _consume_plan(
     repo_root: Path,
     tf_plan: Path,
-    declared: dict[str, str],
+    declared_dirs: dict[str, set[str]],
     nodes: dict[str, dict],
     edges: dict,
+    errors: list[dict],
 ) -> None:
     """Enrich with a ``terraform show -json`` document (ADR-010): declared
     addresses and the resolved reference lists from ``configuration``.
-    Evidence is file-granular — plans carry no source lines."""
+    Evidence is file-granular — plans carry no source lines. A plan names no
+    directory, so its root module is the one directory that declares every
+    address it shares with the ``.tf`` files, or the repo's only Terraform
+    directory; otherwise it adds nothing and says so (ADR-173's amendment)."""
     tf_plan = Path(tf_plan)
     if "tfstate" in tf_plan.name.lower():
         raise PlanError(
@@ -471,28 +478,52 @@ def _consume_plan(
     except ValueError:
         plan_rel = tf_plan.name
 
-    resources = (
-        plan.get("configuration", {}).get("root_module", {}).get("resources", [])
-    )
-    for resource in resources:
-        addr = resource.get("address")
-        if not addr:
-            continue
+    resources = [
+        r
+        for r in plan.get("configuration", {}).get("root_module", {}).get("resources", [])
+        if r.get("address")
+    ]
+    tf_dir = _plan_directory([r["address"] for r in resources], declared_dirs)
+    if tf_dir is None:
+        if resources:
+            errors.append({
+                "path": plan_rel,
+                "stage": "hcl-plan",
+                "message": (
+                    f"{plan_rel} names no directory, and its {len(resources)} root-module "
+                    "resource(s) are not declared by exactly one Terraform directory, so the "
+                    "plan adds nothing (ADR-173, C-193)"
+                ),
+            })
+        return
+    in_plan = {r["address"] for r in resources}
+    for addr in in_plan:
         kind = "data" if addr.startswith("data.") else "resource"
-        declared.setdefault(addr, f"tf:{addr}")
-        nodes.setdefault(
-            f"tf:{addr}", {"id": f"tf:{addr}", "kind": kind, "path": plan_rel}
-        )
+        node_id = _node_id(tf_dir, addr)
+        nodes.setdefault(node_id, {"id": node_id, "kind": kind, "path": plan_rel})
     for resource in resources:
-        addr = resource.get("address")
-        if not addr:
-            continue
+        addr = resource["address"]
         for reference in _plan_references(resource.get("expressions", {})):
             target_addr = _addr_from_chain(reference.split("."))
-            if target_addr in declared and target_addr != addr:
+            if target_addr != addr and (
+                target_addr in in_plan or tf_dir in declared_dirs.get(target_addr, ())
+            ):
                 _add_edge(
-                    edges, f"tf:{addr}", declared[target_addr], "references", plan_rel, 1
+                    edges, _node_id(tf_dir, addr), _node_id(tf_dir, target_addr),
+                    "references", plan_rel, 1,
                 )
+
+
+def _plan_directory(addresses: list[str], declared_dirs: dict[str, set[str]]) -> str | None:
+    """The directory a plan's root module is: the one that declares every
+    address the plan shares with the ``.tf`` files, or, where it shares none,
+    the repo's only Terraform directory. None where neither settles it."""
+    shared = [declared_dirs[a] for a in addresses if a in declared_dirs]
+    if shared:
+        candidates = set.intersection(*shared)
+    else:
+        candidates = set().union(*declared_dirs.values()) if declared_dirs else set()
+    return next(iter(candidates)) if len(candidates) == 1 else None
 
 
 def _plan_references(value):

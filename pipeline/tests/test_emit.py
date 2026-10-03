@@ -197,7 +197,7 @@ class TestIngest:
             "miniapp.core",
             "ext:fastapi",
             "env:MINIAPP_MODE",
-            "tf:aws_lambda_function.worker",
+            "tf:infra:aws_lambda_function.worker",
         } <= node_ids
 
     def test_cross_layer_env_join_present(self, git_fixture):
@@ -208,10 +208,10 @@ class TestIngest:
         )
         edges = {(e["from"], e["to"], e["type"]) for e in doc["module_edges"]}
         env = "env:MINIAPP_MODE"
-        assert ("tf:aws_lambda_function.worker", env, "env-set") in edges
+        assert ("tf:infra:aws_lambda_function.worker", env, "env-set") in edges
         assert ("miniapp.core", env, "env-read") in edges
         # And the packages path join: the archive bundles miniapp.cli.
-        assert ("tf:data.archive_file.worker", "miniapp.cli", "packages") in edges
+        assert ("tf:infra:data.archive_file.worker", "miniapp.cli", "packages") in edges
 
 
 class TestLayerOwnership:

@@ -6,6 +6,11 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-187 lifted, 2026-10-03 (0.2.105-beta; ADR-173's amendment, Max: route 1, "good with recommended"):
+- **Terraform ids scoped by directory** (`tf:<dir>:<address>`): one address in two directories is two
+  nodes. terraform-aws-eks 287 blocks, 287 nodes, all 288 reference sites kept. Residual: a cross-directory
+  reference stays refused and counted. 144 active, 112 surfaced, 32 lifted.
+
 C-187 to C-193 registered, 2026-10-03 (0.2.102-beta; ADR-173, the extraction order's Phase 1 item 1):
 - **The Terraform/HCL layer's first entries, all surfaced.** The honesty audit had no HCL fixture; one was
   built and ingested. C-187: addresses merge across directories (terraform-aws-eks: 170 of 288 reference

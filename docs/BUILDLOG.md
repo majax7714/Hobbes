@@ -16000,3 +16000,14 @@ went to the Rust collision.
 - Max: "good with recommended". The Python trace oracle: a measuring run first (a patched tracer copy, bench
   only, in the image, on rich, flask, click and structlog). C-187: ids scoped by directory (ADR-173 route 1).
   Item 5 (Rust operators) deferred until a graded crate writes operator impls; items 6 and 7 next.
+
+## 2026-10-03 (thirty-ninth session, cont.) — Terraform ids scoped by directory; 0.2.105-beta (C-187 lifted)
+
+- ADR-173's amendment written first. No consumer reads a `tf:` id past its namespace (SPA `namespaceOf`,
+  the invariants' lane-A prefixes, `ListBlindSpots`), so only ids change. Plan directory: the intersection of
+  the declaring directories of the plan's shared addresses, else the only Terraform directory, else refused
+  with an `hcl-plan` record.
+- **Built:** `_tf_dir`, `_node_id`, `_plan_directory`; tests: `test_terraform.py` (directory and plan
+  cases; miniapp ids now `tf:infra:…`), `test_emit.py`, `test_cli.py`, the SPA's and Go's fixtures.
+- terraform-aws-eks re-ingested: 287 tf nodes (203 before), 230 reference edges over 288 sites.
+- Host: pytest 2,834, Go `./...` 405, vitest 52; proxy and image rebuilt (`2ac2a1a6b4fd`). `lane_b` not re-run: HCL has no lane B.

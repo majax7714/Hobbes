@@ -78,3 +78,17 @@ amendment.
 and `discover_tf` over a shared walk that also finds `.tf.json` and `.tofu`. The pack passes the records on.
 `go/internal/knowledge`: `ListBlindSpots` accepts a scope with `tf:` nodes. Tests: `test_terraform.py`
 gains `TestLayerRecord` and `TestDirectoryScope`; `knowledge_test.go` gains the infra-only scope.
+
+## Amendment — 2026-10-03: ids scoped by directory; C-187 lifts (0.2.105-beta)
+
+Max chose route 1. A Terraform node's id is **`tf:<dir>:<address>`**, `<dir>` the repo-relative directory of
+the file that declares the block (the module's scope in Terraform's terms), `.` for the repo root:
+`tf:envs/dev:aws_s3_bucket.logs`, `tf:.:aws_iam_role.r`. No consumer reads past the namespace (the SPA's
+`namespaceOf`, the invariants' lane-A prefixes and the knowledge server stop at the first colon), so only
+the ids themselves change. A reference resolves to the block its own directory declares; one to an address
+only another directory declares stays refused and counted, the one residual.
+
+**A plan names no directory.** Its root module is taken to be the one directory that declares every one of
+its addresses the `.tf` files also declare, or, where it shares none, the repo's only Terraform directory.
+Where neither settles it, the plan adds nothing and one `hcl-plan` record says why (C-193). A plan-only
+address becomes a node in that directory.

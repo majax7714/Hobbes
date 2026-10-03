@@ -81,8 +81,8 @@ measured.
   bench tooling only, run in the image on rich, flask, click and structlog
   for observed implicit-dunder counts; the standing keys stay as they are.
   The extension itself is decided on those counts.
-- **C-187's prevention: ids scoped by directory** (`tf:<dir>:<address>`,
-  ADR-173's route 1). C-187 lifts.
+- ~~C-187's prevention~~ built at 0.2.105-beta: ids scoped by directory,
+  C-187 lifted.
 - **Item 5 deferred** until a graded Rust crate writes operator impls;
   items 6 and 7 go next.
 

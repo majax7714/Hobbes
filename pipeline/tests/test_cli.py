@@ -129,7 +129,7 @@ class TestIngest:
             (git_fixture / ".hobbes" / "derived" / "graph.json").read_text()
         )
         assert any(
-            n["id"] == "tf:aws_cloudwatch_log_group.worker" for n in doc["nodes"]
+            n["id"] == "tf:infra:aws_cloudwatch_log_group.worker" for n in doc["nodes"]
         )
 
     def test_tfstate_plan_refused(self, git_fixture, tmp_path, capsys):
