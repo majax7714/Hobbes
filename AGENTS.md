@@ -305,7 +305,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   graded once with no rule changed (§10.40), then fitted by ADR-160; its
   place taken by **pyparsing** 3.3.3 (2026-10-02, §10.44): 3,516
   confirmed, 0 Hobbes-wrong calls, recall 50.6%.
-  **Register:** 178 entries; 130 active (101 surfaced, 25 partial, 3
+  **Register:** 179 entries; 131 active (101 surfaced, 25 partial, 4
   unsurfaced, 1 n/a), 31 lifted; the tally is
   held by `test_register_tally.py`, its dated notes are
   `docs/constraints/HISTORY.md`.
@@ -355,8 +355,8 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   green run, `57e4be2`, ADR-114): 22 → 5 unguarded new modules on
   2026-10-02. Left for Max: `lattice` and `dedupe` (value-only, C-156)
   and the untested bench scripts `draw`, `make_fixture`, `modal_e1`.
-  I-4 also fails, not as a regression: its roster lacks `csource` and
-  `cppsource`.
+  C-179 (a module loaded by `importlib` draws no import) registered,
+  unsurfaced.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through dispatch (not
   traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

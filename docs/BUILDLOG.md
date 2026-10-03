@@ -15406,3 +15406,17 @@ modules"; then "good to go with route 1, leave the need my attention for after".
   the handoff for Max.
 - **Docs:** CLAUDE.md (and AGENTS.md, its copy) said "last: 159" (it is 161) and carried a "Before it"
   status entry its own rule forbids; both fixed, and the red graph job is in the status block.
+
+**Continued:** "go ahead with the i-4 fix and add a constraint for the found limit".
+
+- **I-4 (`83555c9`):** `csource` and `cppsource` join the exceptions, `tree_sitter_c` and `tree_sitter_cpp`
+  the forbidden imports (neither was named). Judged against the graph at HEAD: pass. `test_invariants.py` 42
+  passed. No version move: a dogfood record.
+- **The probe:** a ten-line repo (`scripts/by_*.py`, `pkg/lit.py`, one test per form), ingested contained.
+  `import by_plain` after `sys.path.insert` drew `imports … semantic` and reach `by_plain.run`;
+  `spec_from_file_location` + `exec_module`, `importlib.import_module("by_name")`,
+  `importlib.import_module("pkg.lit")` and `__import__("by_dunder")` drew no edge to the module and empty
+  reach, each `mod.run()` counted `attr-call`.
+- **C-179 registered, unsurfaced** (extraction-call-graph.md, beside C-156): the index, HISTORY, and the
+  tally copies (179 entries, 131 active, 4 unsurfaced); `test_register_tally.py` passes. No version move,
+  as for C-156's registration. Surfacing it is Max's call.

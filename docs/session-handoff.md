@@ -38,10 +38,9 @@ not clearly semantic to preserve honesty".
 stated tree, the tracker's tests import it plainly). Left: `lattice` and `dedupe` (value-only, C-156; they
 stay red under the current rule), `draw`, `make_fixture`, `modal_e1` (untested bench scripts). Proposed:
 exempt a docstring-only module (an ADR-117 amendment, patch), cheap tests for the three scripts, and a call
-on `dedupe`, kept as E3's record as it ran. Two more found the same day, not yet done: I-4's roster lacks
-`csource`/`cppsource` (it fails, not as a regression, so CI never shows it), and a module loaded by
-`importlib` (`spec_from_file_location`, `import_module`) draws no import edge, so tests cannot be seen
-reaching it, and no `C-n` names that limit.
+on `dedupe`, kept as E3's record as it ran. The same day: I-4's roster now names `csource`/`cppsource` (`83555c9`, I-4 passes), and C-179 registers
+that a module loaded by `importlib` or `__import__` draws no import edge, **unsurfaced** (debt): the route
+to surface it, naming the load where `tests_guarding` says "unguarded", is Max's call.
 
 **Next — `cls(…)` in a classmethod** (rich 57, pyparsing 17), measured first. **Pick the next held-out
 Python repo before measuring it**: pyparsing is held out now, and fitting the rule on it would spend it. On
@@ -229,8 +228,8 @@ Each is his call; nothing is built until he answers.
   cells (22 same-key rows); `render.py check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps deployed
   and idle): held.
-- **Register:** 178 entries: 130 active (101 surfaced, 25 partial, 3
-  unsurfaced — C-19, C-20, C-112 — 1 n/a), 31 lifted, 11 superseded, 6
+- **Register:** 179 entries: 131 active (101 surfaced, 25 partial, 4
+  unsurfaced — C-19, C-20, C-112, C-179 — 1 n/a), 31 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open** (H-37 the latest, fixed 0.2.79-beta;
   `docs/oracle/oracle-defects.md`). RC-4 still carries its price: silencing is

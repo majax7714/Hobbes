@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-179 registered, 2026-10-02 (no version move; Max: "add a constraint for the found limit"):
+- **C-179 registered, unsurfaced.** A module a Python file loads at run time (`spec_from_file_location`,
+  `importlib.import_module`, `__import__`) draws no `imports` edge, and a call through its value reaches
+  nothing, so `tests_guarding` and `hobbes review` call it unguarded. Found in the graph job's red review
+  (`shanks_tracker`); a ten-line probe showed all three forms draw nothing from either lane.
+- 179 entries, 131 active (101 surfaced, 25 partial, 4 unsurfaced, 1 n/a), 31 lifted.
+
 C-178 contained and surfaced, 2026-10-02 (0.2.86-beta; ADR-161, Max: "good to proceed with recommended investigate and contain for c-178"):
 - **C-178 contained.** The first `<pkg>.<name>` scip-python resolves through a star re-export answers every
   later one (reproduced in ten lines). A Python reference whose token is not its name, through a chain rooted

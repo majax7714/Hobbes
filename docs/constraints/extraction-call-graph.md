@@ -158,6 +158,39 @@
 - **Source:** W0's "`go/internal/version` stays unguarded" item, traced
   2026-09-16 to the rule in ADR-007; surfaced by ADR-117.
 
+### C-179 — A module a Python file loads at run time draws no import, so nothing reaches it through that load
+- **Cannot tell you:** that a test, or any code, uses a module it loads
+  at run time instead of with an `import` statement:
+  `importlib.util.spec_from_file_location(…)` then `exec_module`,
+  `importlib.import_module("…")` (even with a literal naming an in-repo
+  module, `"pkg.lit"`), or `__import__("…")`. No `imports` edge is drawn
+  from the loading module, and a call through the loaded module's value
+  (`mod.run()`) reaches no symbol, so test reach stops at the load. The
+  same test written as `sys.path.insert(…)` then `import mod` is drawn
+  and reaches.
+- **Because:** Python lane A reads `import` and `from … import`
+  statements only; a load is a call whose argument names the module, and
+  no rule reads that argument. Lane B drew nothing either: in a
+  contained ingest of a ten-line probe (2026-10-02), each runtime form
+  gave no edge from either lane, and its `mod.run()` was counted
+  `attr-call`. Other languages' runtime loading (a JavaScript `import()`
+  expression, `require` with a computed specifier, Java reflection) is
+  not measured here.
+- **Bites at:** `tests_guarding` answers "unguarded", and `hobbes
+  review` lists the module under "new code no test reaches", for a
+  script its tests load by path (this repo's
+  `pipeline/scripts/shanks_tracker.py`, turned red in the graph job
+  until its test changed to a plain import, 2026-10-02); `who_calls`
+  shows no caller through the load; `graph_neighborhood` shows no edge
+  from the loader.
+- **You find out:** **unsurfaced.** The call through the loaded value is
+  counted in `list_blind_spots` as `attr-call`, whose gloss names an
+  untyped receiver, not the load; nothing names the load or this entry
+  where `tests_guarding` says "unguarded".
+- **Source:** the graph job's 22 unguarded new modules, traced
+  2026-10-02 (the thirty-third session); the probe is in the session's
+  BUILDLOG entry.
+
 ### C-5 — Routes with computed paths are skipped
 - **Cannot tell you:** that an endpoint exists when its path is an
   f-string or a variable rather than a literal.
