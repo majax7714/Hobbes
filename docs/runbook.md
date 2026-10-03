@@ -81,7 +81,10 @@ checks earlier sessions paid for are in [`lessons.md`](lessons.md).
   by name.
 - **After an image rebuild, restart the knowledge server** (C-65), inside
   the session that rebuilt it, as that session's last step. Don't hand it
-  on to the next session.
+  on to the next session. Re-ingest at HEAD first, then stop
+  its container (`podman ps`: the `hobbes-session:local` one `.mcp.json`'s
+  `sandbox/knowledge-serve` started; check its image id against the
+  rebuilt one) and reconnect `hobbes-knowledge` with `/mcp`.
 - **Worktrees for subagents:** `git worktree add` from `main`. A worktree
   lacks the gitignored build outputs.
 - **`pgrep -f` and `pkill -f` match your own waiting shell too.** Wait on

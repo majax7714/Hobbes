@@ -3,9 +3,8 @@
 **Reviewed 2026-10-03 (thirty-sixth session); Hobbes 0.2.90-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
-0.2.90-beta (rebuilt by the ADR-117 amendment's unit; the knowledge server
-running then was not restarted, so restart it), and this repo was last
-ingested by the C-182 unit's `scripts/ci-graph.sh` run, on its uncommitted tree. If `main` has
+0.2.90-beta; this repo was ingested at `474a099` and the old knowledge
+server's container stopped, for a `/mcp` reconnect. CI passed on Max's push. If `main` has
 moved, ingest at HEAD again. A new session's knowledge server is a new
 container from the current image, so it starts fresh.
 
@@ -40,10 +39,10 @@ answers.
 
 ## Where the last day left things (2026-10-02/03; the CHANGELOG has each one)
 
-- **The graph job should be green on the next push.** `scripts/ci-graph.sh
-  57e4be2` passes on the host at `c5ce88f`: `lanes` exit 3 (ADR-165), review
-  "nothing needs attention", `lane_b` 25 passed. The four bench modules got
-  tests (`dedupe` wrapped in functions, Max: route 1). CI confirms on push.
+- **The graph job is green** (CI on Max's push; red since 2026-09-26):
+  `lanes` exit 3 (ADR-165), review "nothing needs attention", `lane_b` 25
+  passed. The four bench modules got tests (`dedupe` wrapped in functions,
+  Max: route 1).
 - **0.2.90-beta, ADR-117 amended** (Max: the graph job's proposal): a
   Python module that is at most its docstring is not asked for a guard;
   the review names it on its own line. `lattice`'s `__init__` was one of
