@@ -74,7 +74,9 @@ class RustFile:
     #: Each symbol's ``(line, end_line, header)`` by qualname, where
     #: *header* is the text of the ``impl`` block it was declared in, up
     #: to the body and whitespace-collapsed (``""`` outside any impl).
-    #: Read by :func:`shared_qualnames` alone (ADR-163, C-180).
+    #: Read by :func:`shared_qualnames` alone (ADR-163, C-180); keyed by
+    #: the qualname after ADR-174's ordinal, so it lists nothing unless an
+    #: id scheme lets two blocks share an id again.
     defs: dict[str, list[tuple[int, int, str]]] = field(default_factory=dict)
     #: The ``(qualname, line)`` of each def a ``#[cfg(…)]`` gates, on the
     #: item itself or on an enclosing ``mod`` or ``impl``. Read by
@@ -209,6 +211,7 @@ def _parse_file(rel: str, source: bytes) -> RustFile:
     root = _PARSER.parse(source).root_node
     parsed = RustFile(path=rel)
     _walk_items(root, parsed, prefix="")
+    _ordinal_impl_repeats(parsed.symbols)
 
     for symbol in parsed.symbols:
         parsed.defs.setdefault(symbol["qualname"], []).append(
@@ -327,6 +330,30 @@ def _walk_items(
         # A nested walk set its own symbols' gate; these are this item's.
         for symbol in parsed.symbols[start:]:
             symbol.setdefault("cfg", own)
+
+
+def _ordinal_impl_repeats(symbols: list[dict]) -> None:
+    """Tell apart the items two differently written ``impl`` blocks (or two
+    kinds) name alike, in place (ADR-174, C-180 lifted).
+
+    The defs of one qualname fall into groups by ``(impl header, kind)`` in
+    source order: the first group keeps the qualname, the n-th becomes
+    ``qualname~n``, as Java's and C++'s overloads are suffixed. A cfg twin
+    or a same-header repeat shares its group and keeps the id (C-182)."""
+    groups: dict[str, list[tuple[str, str]]] = {}
+    for symbol in symbols:
+        seen = groups.setdefault(symbol["qualname"], [])
+        group = (symbol.get("impl", ""), symbol["kind"])
+        if group not in seen:
+            seen.append(group)
+        n = seen.index(group) + 1
+        if n > 1:
+            symbol["qualname"] = f"{symbol['qualname']}~{n}"
+
+
+def _base_qualname(qualname: str) -> str:
+    """The qualname before an ordinal ADR-174 gave it."""
+    return qualname.split("~", 1)[0]
 
 
 def _impl_header(node: Node, body: Node) -> str:
@@ -922,7 +949,9 @@ def _call_fallback(
                 (parsed.path, symbol["qualname"]), (parsed.path, symbol["line"])
             )
             kinds.setdefault((parsed.path, symbol["line"]), symbol["kind"])
-            key = (parsed.path, symbol["qualname"])
+            # By the qualname before its ordinal (ADR-174): `Type::name`
+            # declared in two impl blocks is still an overload set.
+            key = (parsed.path, _base_qualname(symbol["qualname"]))
             declared[key] = declared.get(key, 0) + 1
 
     def resolve_segments(start: str, segments: list[str], name: str) -> tuple[str, int] | None:

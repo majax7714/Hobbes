@@ -1,5 +1,6 @@
-"""A Rust id two differently written impl blocks share draws nothing at its
-later defs (ADR-163, C-180).
+"""A Rust id two differently written impl blocks would share is told apart by
+an ordinal, so each def is its own node (ADR-174, C-180 lifted); ADR-163's
+refusal stays as the guard, tested on `project` directly.
 
 ``rustsource._impl_type`` names an impl block after its first type
 identifier, so ``impl Pointer for *const T`` and ``impl Pointer for *mut
@@ -8,7 +9,9 @@ impl of one type share every method name they both declare. The node is
 the first def. Before ADR-163 a call written in a later def was filed
 under it — memchr's ``ext.rs:33`` drew ``T.distance calls T.distance``,
 a recursion that does not exist, at ``semantic`` — and a call resolved
-onto a later def's line fell ``below-floor``.
+onto a later def's line fell ``below-floor``. ADR-163 refused both; since
+ADR-174 the ``*mut T`` def is ``T.distance~2`` and its call of the
+``*const T`` one is drawn.
 
 The ``minirustimpl`` fixture is real source: ``src/ext.rs`` is memchr
 2.8.3's ``ext.rs`` (lines 1–39, verbatim); ``src/client.rs`` writes
@@ -81,8 +84,8 @@ def test_the_fixtures_lines_are_what_the_constants_say():
     assert INHERENT_DESCRIBE < TRAIT_DESCRIBE == LABEL_CALL - 1
 
 
-class TestTheCollisionSet:
-    """Lane A's own read: which ids two impl headers share."""
+class TestTheOrdinals:
+    """Lane A's own read: two impl headers, or two kinds, get two ids."""
 
     def _shared(self):
         files = [
@@ -91,23 +94,31 @@ class TestTheCollisionSet:
         ]
         return rustsource.shared_qualnames(files)
 
-    def test_each_differently_headed_pair_is_listed_with_every_def(self):
-        shared = self._shared()
-        assert set(shared) == {
-            f"{EXT}.T.distance",
-            f"{EXT}.T.as_usize",
-            f"{CLIENT}.Id.from",
-            f"{CLIENT}.Client.describe",
+    def test_each_differently_headed_def_gets_an_ordinal_and_none_is_shared(self):
+        assert self._shared() == {}
+        parsed = {
+            name: rustsource._parse_file(f"src/{name}", (SRC / name).read_bytes())
+            for name in ("ext.rs", "client.rs")
         }
-        assert [line for line, _ in shared[f"{EXT}.T.distance"]] == [DISTANCE_CONST, DISTANCE_MUT]
-        assert [line for line, _ in shared[f"{CLIENT}.Id.from"]] == [FROM_STR, FROM_STRING]
+        ids = {
+            (s["qualname"], s["line"]) for p in parsed.values() for s in p.symbols
+        }
+        assert {
+            ("T.distance", DISTANCE_CONST), ("T.distance~2", DISTANCE_MUT),
+            ("Id.from", FROM_STR), ("Id.from~2", FROM_STRING),
+            ("Client.describe", INHERENT_DESCRIBE), ("Client.describe~2", TRAIT_DESCRIBE),
+        } <= ids
+        assert "T.as_usize~2" in {s["qualname"] for s in parsed["ext.rs"].symbols}
 
-    def test_two_kinds_under_one_name_are_listed_and_a_bare_repeat_is_not(self):
-        # C-182's residual, memchr's `haystacks` shape: `struct B` and
-        # `const B` are two items; two ungated `fn render` share a header
-        # and a kind, and are named, not refused.
+    def test_two_kinds_get_an_ordinal_and_a_bare_repeat_does_not(self):
+        # memchr's `haystacks` shape: `struct B` and `const B` are two items,
+        # `B` and `B~2`; two ungated `fn render` share a header and a kind,
+        # keep one id, and are named, not refused (C-182's residual).
         parsed = [rustsource._parse_file("haystacks/std.rs", (FIXTURE / "haystacks" / "std.rs").read_bytes())]
-        assert set(rustsource.shared_qualnames(parsed)) == {"haystacks/std.B"}
+        assert rustsource.shared_qualnames(parsed) == {}
+        assert [(s["qualname"], s["kind"]) for s in parsed[0].symbols if s["name"] == "B"] == [
+            ("B", "type"), ("B~2", "const")
+        ]
         assert rustsource.same_header_repeats(parsed) == {
             "haystacks/std.rs": {"haystacks/std.render": [(HAYSTACK_RENDER[0], HAYSTACK_RENDER[0] + 2),
                                                           (HAYSTACK_RENDER[1], HAYSTACK_RENDER[1] + 2)]}
@@ -121,10 +132,11 @@ class TestTheCollisionSet:
         ]
         assert rustsource.same_header_repeats(files) == {}
 
-    def test_cfg_twins_share_a_header_and_are_not_listed(self):
-        shared = self._shared()
-        assert "src/cow.Imp" not in shared
-        assert "src/cow.width" not in shared
+    def test_cfg_twins_share_a_header_and_keep_one_id(self):
+        parsed = rustsource._parse_file("src/cow.rs", (SRC / "cow.rs").read_bytes())
+        assert [s["qualname"] for s in parsed.symbols if s["name"] in ("Imp", "width")] == [
+            "Imp", "Imp", "width", "width"
+        ]
 
     def test_cfg_twins_are_listed_by_file_with_every_def(self):
         # ADR-165, C-182: the complement, read by `hobbes lanes`' shape.
@@ -168,8 +180,8 @@ class TestTheCollisionSet:
 
     def test_the_header_is_the_text_up_to_the_body(self):
         parsed = rustsource._parse_file("src/ext.rs", (SRC / "ext.rs").read_bytes())
-        headers = [header for _, _, header in parsed.defs["T.distance"]]
-        assert headers == ["impl<T> Pointer for *const T", "impl<T> Pointer for *mut T"]
+        assert [header for _, _, header in parsed.defs["T.distance"]] == ["impl<T> Pointer for *const T"]
+        assert [header for _, _, header in parsed.defs["T.distance~2"]] == ["impl<T> Pointer for *mut T"]
         # The header rides beside the symbols, never in them.
         assert all("impl" not in symbol for symbol in parsed.symbols)
 
@@ -184,36 +196,37 @@ def graph():
 
 
 class TestLaneAAlone:
-    """The suite default (lane B off): the fallback's facts at a later def
-    are refused, and each such site moves from `fallback-resolved` to
-    `shared-qualname`, so the per-file sum still holds."""
+    """The suite default (lane B off): a later def is its own node, and the
+    fallback's facts written in it are filed under it."""
 
-    def test_nothing_written_in_a_later_def_is_drawn(self, graph):
-        drawn = lines_in(graph, "src/client.rs")
-        assert NORMALISE_IN_FROM_STRING not in drawn
-        assert LABEL_CALL not in drawn
-        edge = calls(graph)[(f"{CLIENT}.Id.from", f"{CLIENT}.normalise")]
-        assert [row["line"] for row in edge["evidence"]] == [FROM_STR + 1]
+    def test_what_a_later_def_writes_is_drawn_from_it(self, graph):
+        drawn = calls(graph)
+        assert [r["line"] for r in drawn[(f"{CLIENT}.Id.from~2", f"{CLIENT}.normalise")]["evidence"]] == [
+            NORMALISE_IN_FROM_STRING
+        ]
+        assert [r["line"] for r in drawn[(f"{CLIENT}.Client.describe~2", f"{CLIENT}.label")]["evidence"]] == [
+            LABEL_CALL
+        ]
+        assert [r["line"] for r in drawn[(f"{CLIENT}.Id.from", f"{CLIENT}.normalise")]["evidence"]] == [
+            FROM_STR + 1
+        ]
 
-    def test_the_refused_sites_are_relabelled_and_the_sum_holds(self, graph):
-        [row] = [r for r in graph["resolution_coverage"] if r["file"] == "src/client.rs"]
-        assert row["tail"][tail.SHARED_QUALNAME] == 3  # `Id(` and `normalise(` at one line, `label(`
-        assert sum(row["tail"].values()) == row["unresolved"] + row.get("floored", 0)
+    def test_nothing_is_relabelled_and_the_sum_holds(self, graph):
         for row in graph["resolution_coverage"]:
+            assert tail.SHARED_QUALNAME not in row.get("tail", {}), row
             expected = row["unresolved"] + row.get("floored", 0)
             assert sum(row.get("tail", {}).values()) == expected, row
+
+    def test_the_fallback_still_abstains_on_an_overload_set(self, graph):
+        # `Id::from(name)` in lib.rs: two impl blocks declare it (C-72).
+        assert not [e for e in graph["symbol_edges"] if e["from"] == "src/lib.make" and "Id.from" in e["to"]]
 
     def test_cfg_twins_still_draw(self, graph):
         edge = calls(graph)[("src/cow.width", "src/cow.count")]
         assert [row["line"] for row in edge["evidence"]] == [COUNT_CALL]
 
-    def test_one_record_names_the_ids_and_the_register_entry(self, graph):
-        [record] = [e for e in graph["extraction_errors"] if e["stage"] == "rust-qualnames"]
-        # The four impl-header ids and haystacks' two-kinds `B` (C-182's
-        # residual); the fourth call is `helper()` inside `const B`.
-        assert record["message"].startswith("5 Rust symbol id(s)")
-        assert "C-180" in record["message"] and "ADR-163" in record["message"]
-        assert "4 call(s)" in record["message"]
+    def test_no_shared_id_record_is_written(self, graph):
+        assert not [e for e in graph["extraction_errors"] if e["stage"] == "rust-qualnames"]
 
     def test_one_record_names_the_cfg_twins_and_the_register_entry(self, graph):
         [record] = [e for e in graph["extraction_errors"] if e["stage"] == "rust-cfg-twins"]
@@ -221,11 +234,10 @@ class TestLaneAAlone:
         assert "C-182" in record["message"] and "ADR-165" in record["message"]
         assert f"src/cow.width (defs at line {WIDTH_ALLOC}, {WIDTH_NO_ALLOC})" in record["message"]
 
-    def test_a_two_kinds_repeat_is_refused_at_its_later_def(self, graph):
+    def test_the_second_kind_is_its_own_node(self, graph):
         # `const B = helper();` at line 14, beside `struct B` at line 4.
-        assert not [e for e in graph["symbol_edges"] if e["from"] == "haystacks/std.B"]
-        [row] = [r for r in graph["resolution_coverage"] if r["file"] == "haystacks/std.rs"]
-        assert row["tail"][tail.SHARED_QUALNAME] == 1
+        edge = calls(graph)[("haystacks/std.B~2", "haystacks/std.helper")]
+        assert [row["line"] for row in edge["evidence"]] == [14]
 
     def test_an_ungated_same_header_repeat_is_named_and_filed_as_before(self, graph):
         # `fn render` twice, no `cfg`: one node, both bodies' calls under it.
@@ -236,14 +248,17 @@ class TestLaneAAlone:
         assert "C-182" in record["message"] and "haystacks/std.rs" in record["message"]
         assert f"haystacks/std.render (defs at line {HAYSTACK_RENDER[0]}, {HAYSTACK_RENDER[1]})" in record["message"]
 
-    def test_the_class_is_available_to_rust(self, graph):
+    def test_the_guards_class_is_still_available_to_rust(self, graph):
         assert tail.SHARED_QUALNAME in graph["tail_classes_available"]["rust"]
 
-    def test_the_nodes_are_unchanged(self, graph):
+    def test_first_defs_keep_their_ids_and_later_defs_have_their_own(self, graph):
         ids = {s["id"]: s["line"] for s in graph["symbols"]}
         assert ids[f"{EXT}.T.distance"] == DISTANCE_CONST
+        assert ids[f"{EXT}.T.distance~2"] == DISTANCE_MUT
         assert ids[f"{CLIENT}.Client.describe"] == INHERENT_DESCRIBE
+        assert ids[f"{CLIENT}.Client.describe~2"] == TRAIT_DESCRIBE
         assert ids[f"{CLIENT}.Id.from"] == FROM_STR
+        assert ids[f"{CLIENT}.Id.from~2"] == FROM_STRING
 
 
 def _site_col(file: str, line: int, name: str) -> int:
@@ -274,26 +289,27 @@ class TestMemchrsResolutionByHand:
             def_file=def_file, def_line=def_line,
         )
 
-    def test_the_self_loop_is_not_drawn_and_is_counted(self, monkeypatch):
+    def test_the_mut_impl_calls_the_const_one_and_no_self_loop(self, monkeypatch):
         graph = self._graph(
             monkeypatch,
             [self._resolution("src/ext.rs", CALL_IN_MUT, "distance", "src/ext.rs", DISTANCE_CONST)],
         )
-        assert (f"{EXT}.T.distance", f"{EXT}.T.distance") not in calls(graph)
+        drawn = calls(graph)
+        assert (f"{EXT}.T.distance", f"{EXT}.T.distance") not in drawn
+        assert drawn[(f"{EXT}.T.distance~2", f"{EXT}.T.distance")]["tier"] == SEMANTIC
         [row] = [r for r in graph["resolution_coverage"] if r["file"] == "src/ext.rs"]
-        assert row["tail"][tail.SHARED_QUALNAME] == 1
-        withheld = row["tail"][tail.SHARED_QUALNAME]
-        assert sum(row["tail"].values()) == row["unresolved"] + row.get("floored", 0) + withheld
+        assert tail.SHARED_QUALNAME not in row.get("tail", {})
 
-    def test_a_resolution_onto_a_later_def_is_counted_not_floored(self, monkeypatch):
+    def test_a_resolution_onto_a_later_def_draws_to_it(self, monkeypatch):
         span = _line_of("lib.rs", "unsafe { end.distance(start) }")
         graph = self._graph(
             monkeypatch,
             [self._resolution("src/lib.rs", span, "distance", "src/ext.rs", DISTANCE_MUT)],
         )
+        assert calls(graph)[("src/lib.span", f"{EXT}.T.distance~2")]["tier"] == SEMANTIC
         [row] = [r for r in graph["resolution_coverage"] if r["file"] == "src/lib.rs"]
-        assert row["tail"].get(tail.SHARED_QUALNAME) == 1
-        assert tail.BELOW_FLOOR not in row["tail"]
+        assert tail.SHARED_QUALNAME not in row.get("tail", {})
+        assert tail.BELOW_FLOOR not in row.get("tail", {})
 
     def test_lane_b_naming_the_compiled_twin_is_a_cfg_twin_row(self, monkeypatch):
         # ADR-165, C-182: CI's row. Lane A's guess is the node's def, the
@@ -380,7 +396,7 @@ class TestTheProjection:
 
 
 @pytest.mark.lane_b
-def test_with_the_index_no_later_def_is_the_nodes():
+def test_with_the_index_every_def_is_its_own_node():
     """The whole ingest with rust-analyzer (the developer's host)."""
     from hobbes.extract import containment
 
@@ -393,19 +409,23 @@ def test_with_the_index_no_later_def_is_the_nodes():
     assert (f"{EXT}.T.distance", f"{EXT}.T.distance") not in drawn, err
     assert (f"{EXT}.T.as_usize", f"{EXT}.T.as_usize") not in drawn, err
     assert (f"{CLIENT}.Client.describe", f"{CLIENT}.label") not in drawn, err
-    assert NORMALISE_IN_FROM_STRING not in lines_in(graph, "src/client.rs"), err
-    # What the first defs are owed is still drawn, at the index's tier.
+    # ADR-174: every def its own node, each drawn at the index's tier — the
+    # `*mut T` impl calling the `*const T` one, and the calls onto each.
     for pair in (
+        (f"{EXT}.T.distance~2", f"{EXT}.T.distance"),
+        (f"{EXT}.T.as_usize~2", f"{EXT}.T.as_usize"),
+        (f"{CLIENT}.Client.describe~2", f"{CLIENT}.label"),
+        (f"{CLIENT}.Id.from~2", f"{CLIENT}.normalise"),
+        ("src/lib.span", f"{EXT}.T.distance~2"),
         ("src/lib.offset", f"{EXT}.T.distance"),
         ("src/lib.make", f"{CLIENT}.Client.describe"),
         ("src/lib.make", f"{CLIENT}.Id.from"),
         ("src/cow.width", "src/cow.count"),
     ):
         assert drawn[pair]["tier"] == SEMANTIC, (pair, err)
-    [lib] = [r for r in graph["resolution_coverage"] if r["file"] == "src/lib.rs"]
-    assert lib["tail"][tail.SHARED_QUALNAME] == 2, lib  # `span`'s and the trait call
-    [record] = [e for e in graph["extraction_errors"] if e["stage"] == "rust-qualnames"]
-    assert "C-180" in record["message"]
+    for row in graph["resolution_coverage"]:
+        assert tail.SHARED_QUALNAME not in row.get("tail", {}), row
+    assert not [e for e in graph["extraction_errors"] if e["stage"] == "rust-qualnames"]
     # ADR-165: CI's `hobbes lanes` row, every disagreement shaped.
     rows = graph["lane_agreement"]["site_disagreements"]
     assert [r["shape"] for r in rows if r["name"] == "width"] == ["cfg-twin"], rows

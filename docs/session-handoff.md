@@ -91,8 +91,8 @@ move a cell:
   (ADR-160); pyparsing, icalendar and structlog are graded held out
   (icalendar 70.2%, its 6 wrong rows contained by ADR-168; structlog 77.8%
   at 0.2.100-beta).
-- **Register:** 193 entries: 144 active (112 surfaced, 28 partial, 3
-  unsurfaced — C-19, C-20, C-112 — 1 n/a), 32 lifted, 11 superseded,
+- **Register:** 193 entries: 143 active (111 surfaced, 28 partial, 3
+  unsurfaced — C-19, C-20, C-112 — 1 n/a), 33 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
 - **Oracle defect log: H-38 open** (2026-10-03): the trace oracle's
   `getattr` reads run a repo's `__getattr__`; not met on a standing cell. RC-4 still carries its price: its silencing is

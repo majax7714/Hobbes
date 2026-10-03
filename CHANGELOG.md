@@ -11,9 +11,21 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.105-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.106-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.106-beta — 2026-10-03 (a Rust id two impl blocks share is told apart by an ordinal; ADR-174, C-180 lifted)
+
+**Patch: what the layer draws**, Rust. Max: build C-180's prevention, the scheme "Ordinal ~n".
+
+- **Each def its own node:** per file, the defs of one qualname are grouped by impl header and kind; the
+  n-th group's id is `qualname~n` (`T.distance~2`, `Id.from~2`, `Client.describe~2`, `B~2`). Only ids that
+  collided change. cfg twins and same-header repeats keep one id (C-182).
+- **Regraded against the stored rustc keys:** memchr 919 → 921 confirmed, dagger `sdk/rust` 3,363 → 3,595
+  (3,592 before ADR-163), 0 contradicted, poison PASS on both. memchr's `*mut T` `distance` now calls the
+  `*const T` one.
+- The fallback still abstains on `Type::name` two blocks declare; ADR-163's refusal stays as a guard.
 
 ## 0.2.105-beta — 2026-10-03 (Terraform ids scoped by directory; C-187 lifted, ADR-173's amendment)
 

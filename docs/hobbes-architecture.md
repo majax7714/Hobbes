@@ -438,11 +438,12 @@ Rust names an `impl` block's methods after the block's first type
 identifier, so two differently written blocks in one file can mint one
 symbol id: `impl Pointer for *const T` and `impl Pointer for *mut T` both
 give `T.distance`, and a trait impl and the inherent impl of one type
-share each method name both declare. The node is the first def. Since
-0.2.87-beta (ADR-163, C-180) the projection refuses every fact, from
-either lane, written inside or resolved onto a **later** def of such an
-id — lane A keeps each def's impl header, and an id is listed only when
-the headers differ. A cfg twin — every def gated by a `#[cfg(…)]`, of
+share each method name both declare. From 0.2.87-beta (ADR-163) the
+projection refused every fact written inside or resolved onto a
+**later** def of such an id; since 0.2.106-beta (ADR-174, C-180 lifted)
+the defs of one qualname are grouped by impl header and kind, and the
+n-th group's id carries an ordinal (`T.distance~2`), so each is its own
+node. ADR-163's refusal stays as a guard that now finds nothing. A cfg twin — every def gated by a `#[cfg(…)]`, of
 one kind and one header — is the node's **both ways** since 0.2.89-beta
 (ADR-165, C-182): a fact written inside a later arm is filed under the
 node, a call lane B resolves onto one draws to it (lane B names the arm
@@ -1126,8 +1127,9 @@ parameter's, a return's, an attribute's, an alias, an in-repo
 `__getitem__`'s — ADR-168, C-184), joined since
 by `fallback-resolved`, `nested-decl` and `path-call`, Java's two
 abstentions (ADR-096), Go's `build-tag-set` (ADR-098), Rust's
-`shared-qualname` (ADR-163, C-180: a call at a later def of an id two
-impl blocks share, refused), and since ADR-090
+`shared-qualname` (ADR-163: a call at a later def of an id two impl
+blocks share, refused; a guard since ADR-174 gave such defs their own
+ids), and since ADR-090
 by **`below-floor`** — the one class that is not an unresolved site: the
 semantic lane resolved the call to a declaration lane A keeps no symbol
 for (an interface method, a closure), so it counts resolved and draws
@@ -2336,7 +2338,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.105-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.105-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.106-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.106-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

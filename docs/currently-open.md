@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.104-beta).
+Last reviewed: 2026-10-03 (0.2.106-beta).
 
 ## Decisions open for Max (no spend)
 
@@ -99,10 +99,8 @@ measured.
    rule would need a new crate that writes them. Probe first: that the `uses` target is the repo impl
    method, and that MIR's `fn_span` line is the token's. No Rust cell is
    held out; pick one.
-6. **Then Rust's impl-distinct ids** (C-180's prevention, Max 2026-10-03:
-   build it after item 5). Symbol ids change; C-180 lifts (dagger +229
-   calls, memchr +2). Java's `~n` or a self-type that keeps
-   `*const`/`*mut` and the trait.
+6. ~~Rust's impl-distinct ids~~ built at 0.2.106-beta (ADR-174, ordinal
+   `~n`); C-180 lifted.
 7. **C++: a functor's `operator()` (C-146) and implicit conversions
    (C-162; args' 484 keyed misses),** with Route A's remainder (C-145,
    C-164) and dagger's docs snippet zones, not re-ingested since the

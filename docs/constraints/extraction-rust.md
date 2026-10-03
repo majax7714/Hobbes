@@ -124,48 +124,6 @@
 - **Source:** ADR-120, the relationships measurement of 2026-09-16
   (`~/.hobbes/bench/relationships-probe/measure-this-repo.txt`).
 
-### C-180 — Two impl blocks that name one type share one symbol id: a later def has no node, and its calls are refused
-- **Cannot tell you:** anything written inside, or resolved onto, the
-  second and later defs of a Rust symbol id that two differently written
-  `impl` blocks in one file both mint. Lane A names an impl block's
-  methods after its first type identifier, so `impl Pointer for *const
-  T` and `impl Pointer for *mut T` both give `T.distance`; `impl From<&str>
-  for Id` and `impl From<String> for Id` both give `Id.from`; and a trait
-  impl and the inherent impl of one type share every method name they
-  both declare (`Client.describe`). The node is the first def. A call
-  written in a later def draws no edge (ADR-163 refuses it), a call *to*
-  a later def draws none either, and a test that reaches code only
-  through one reaches nothing there. The node's id does not say which
-  impl block it is; its line does. Defs whose headers are written alike
-  are not refused: a cfg twin (one item under two `#[cfg]` arms) is the
-  node's, both ways, since 0.2.89-beta (C-182). An id whose defs are of
-  two kinds (`struct B` beside `const B`) is listed and refused the same
-  way since 0.2.95-beta; any other same-header repeat is C-182's residual.
-- **Because:** the id is built from the impl's type name, not its full
-  self-type or trait, and the first def of an id wins the node. Before
-  ADR-163 the later def's facts were filed under the node: memchr's
-  `ext.rs:33` drew `T.distance calls T.distance`, a recursion that does
-  not exist, at `semantic` (the compiler key graded it confirmed — it
-  cannot judge a caller); dagger's `gen.rs` merged 229 calls into the
-  inherent methods' nodes and filed 217 `uses` under the module; and
-  calls onto a later def were counted `below-floor`. The prevention —
-  ids that tell the impl blocks apart — changes symbol ids, and is open
-  ([`currently-open.md`](../currently-open.md)).
-- **Bites at:** `who_calls` and `graph_neighborhood` on such a method
-  (a later def's callers and callees are absent), `tests_guarding` and
-  test reach through one, `hobbes plan`'s impact. Measured 2026-10-02:
-  memchr 169 such ids (167 in `benchmarks/haystacks`, a copy of the
-  standard library's source kept as search input; 2 in `src/ext.rs`),
-  dagger's `sdk/rust` 104 (102 in the generated `gen.rs`).
-- **You find out:** **surfaced** — a refused call site is counted in
-  the file's tail as `shared-qualname`, whose meaning names this entry
-  in the ingest summary and `list_blind_spots`; and every ingest with
-  such an id writes one `rust-qualnames` degradation record naming the
-  count of ids, the refused calls and references, and examples.
-- **Source:** ADR-163; the measurement
-  `~/.hobbes/bench/dup-qualnames-2026-10-02/` and
-  `~/.hobbes/bench/c180-rust-impl-qualnames/`.
-
 ### C-182 — A cfg twin is one node at its first arm, whichever arm the build compiles — *registered 2026-10-03 (0.2.89-beta, ADR-165); its residual refused or named since 0.2.95-beta*
 - **Cannot tell you:** which arm of a Rust item written under two or more
   `#[cfg(…)]` arms the build compiles. A cfg twin is a qualname with two
@@ -183,8 +141,9 @@
   the row as `cfg-twin` and does not fail on it (exit 3, ADR-123).
 - **Residual:** a qualname repeated in one file that is **not** a twin by
   that rule. Two kinds (Rust's type and value namespaces allow `struct B`
-  beside `const B`) are two items, and since 0.2.95-beta such an id is
-  refused at its later def as C-180's are. One header and one kind with
+  beside `const B`) are two items: refused at the later def from
+  0.2.95-beta, and since 0.2.106-beta (ADR-174) the later one is its own
+  node, `B~2`. One header and one kind with
   no `cfg` on some arm — which no crate that compiles can write; memchr's
   `benchmarks/haystacks` std copy writes it freely (147 ids) — is neither
   refused nor mapped: its node is the first def, a fact written inside a
@@ -220,6 +179,29 @@ cases**: inputs the technique does not classify, where the old concession
 quietly survives. When a residual case turns out to bite, it becomes a
 new active entry and the two cross-reference. Field key: `README.md`,
 "How to read a lifted entry".
+
+### C-180 — Two impl blocks that named one type shared one symbol id: a later def had no node — *registered 2026-10-02 (0.2.87-beta, ADR-163); lifted 2026-10-03 (0.2.106-beta, ADR-174)*
+- **Was:** lane A names an impl block's items after its first type identifier, so `impl Pointer for
+  *const T` and `impl Pointer for *mut T` both minted `T.distance`, `impl From<&str> for Id` and `impl
+  From<String> for Id` both `Id.from`, and a trait impl and the inherent impl of one type shared every name
+  both declared (`Client.describe`). The node was the first def. Before ADR-163 a later def's facts were
+  filed under it (memchr's `ext.rs:33` drew `T.distance calls T.distance`, a recursion that does not exist,
+  at `semantic`; dagger's `gen.rs` merged 229 calls into the inherent methods' nodes); from ADR-163 they
+  were refused and tailed `shared-qualname`, and a later def's callers and callees were absent. Measured
+  2026-10-02: memchr 169 such ids (167 in `benchmarks/haystacks`), dagger's `sdk/rust` 104 (102 in
+  `gen.rs`). Since 0.2.95-beta an id of two kinds (`struct B` beside `const B`) was refused the same way.
+- **Lifted by — the technique:** per file, the defs of one qualname are grouped by `(impl header, kind)` in
+  source order; the first group keeps the id and the n-th is `qualname~n` (Max: "Ordinal ~n", the scheme
+  Java's and C++'s overloads use). Lane B joins by line, so each def's facts are its own: memchr's `*mut T`
+  `distance` now calls the `*const T` one. The fallback still counts `Type::name` by the qualname before
+  its ordinal and abstains where two blocks declare it (C-72). ADR-163's refusal, the `shared-qualname` tail
+  class and the `rust-qualnames` record stay as a guard that finds nothing.
+- **Residual edge cases:** the id says the def's order, not its impl block; its line and the block's header
+  say which. A def added above another in the file renumbers what follows. Defs that share a header and a
+  kind are still one id: a cfg twin is the node's (C-182), and an ungated same-header repeat is filed under
+  the first and named (C-182's residual).
+- **Source:** ADR-163; ADR-174; `~/.hobbes/bench/dup-qualnames-2026-10-02/`,
+  `~/.hobbes/bench/c180-rust-impl-qualnames/`, `~/.hobbes/bench/c180-ordinal-2026-10-03/`.
 
 ### C-72 — Lane A's Rust fallback bound a path-qualified call by its last segment — *lifted 2026-09-03*
 - **Was:** the fallback resolved `Option::<T>::deserialize(d)` by the

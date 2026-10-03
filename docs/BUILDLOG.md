@@ -16023,3 +16023,16 @@ went to the Rust collision.
   not retried or worked around, taken to Max.
 - **H-38 logged open** (RC-12, new): the standing tracer's `getattr` reads (`trace_oracle.py:268`, `:283`,
   `:287`, read here) run a repo's `__getattr__`; the measuring fixture failed under trace only.
+
+## 2026-10-03 (thirty-ninth session, cont.) — Rust impl ids by ordinal; 0.2.106-beta (ADR-174, C-180 lifted)
+
+- Max chose "Ordinal ~n" over the self-type-and-trait id (asked with both previews). ADR-174 first.
+- **Built:** `rustsource._ordinal_impl_repeats` (groups by `(impl header, kind)` per qualname, the n-th
+  suffixed `~n`) before the defs are recorded; `_call_fallback` counts `declared` by `_base_qualname`, so
+  `Id::from(..)` still abstains. ADR-163's `shared_qualnames` now lists nothing and stays as the guard.
+  `test_shared_qualnames.py` turned over on `minirustimpl` (31 lane A, the `lane_b` case on the host: every
+  def its own node, `T.distance~2 → T.distance` semantic).
+- **Regraded** (`~/.hobbes/bench/c180-ordinal-2026-10-03/`, ADR-163's driver, before = ADR-163's after):
+  memchr 919 → 921, dagger `sdk/rust` 3,363 → 3,595 (ingest 744 s), 0 contradicted, poison PASS.
+- Host: pytest 2,835, `lane_b` 28 of 28.
+- Proxy and image rebuilt (`f5c8db4036d1`).
