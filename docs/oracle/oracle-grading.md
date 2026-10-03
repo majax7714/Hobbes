@@ -2827,6 +2827,14 @@ row confirmed, 0 contradicted, no silent row added, poison PASS; F and C togethe
 (recall 16.2%), chromaprint 2,681 → 2,688. **H2 missed on its count** (F on filesystem, 35 rows against 0–30;
 its 90% bar met). H1, H3–H5 met; H6 waits for a build.
 
+**Built at 0.2.108-beta (ADR-175, route 1, both `semantic`)** and regraded (`build2/`): filesystem 3,220,
+chromaprint 2,688, fmt 7,045, args 2,581, ADVobfuscator 213; 0 contradicted, poison PASS, silent rows and
+in-template counts unchanged; H6 met (this repo's graph unchanged on every file the commit did not edit).
+A first build closed every callee and refused 8 confirmed rows (a receiver's or a named cast's call
+result); corrected to the rule as worded. **B1 missed on filesystem by 6**: those rows sit on a move
+constructor's line carrying two monikers, which ADR-132's constructor set refuses. The simulator had read a
+looser set.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

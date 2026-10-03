@@ -11,9 +11,24 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.107-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.108-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.108-beta — 2026-10-03 (a C++ functor call and an implicit conversion drawn where the index names them; ADR-175, C-146 and C-162 narrowed)
+
+**Patch: what the layer draws**, C++. Max: route 1, "good to go with both semantic".
+
+- **A functor's `operator()`:** every call's `(` is now an operator token (`()`), and ADR-131's rule draws
+  a semantic `calls` edge where scip-clang names `operator()` there, outside a template.
+- **An implicit conversion:** lane A records body spans, and a constructor reference that no construction
+  token claims is drawn `calls` (semantic) where it sits in an expression in a function body. The body must
+  be outside a template and an unevaluated operand, the position under no declarator, ERROR node or callee
+  written as a name, and no macro named at that position. Counted as `constructions.implicit`.
+- **Measured on two held-out cells drawn for it** (`oracle-grading.md` §10.48): filesystem 3,048 → 3,220
+  (recall 15.3% → 16.1%), chromaprint 2,681 → 2,688. Also fmt 7,045 (strict 99.62%), args 2,581 (73.3%) and
+  ADVobfuscator 213. 0 contradicted, poison PASS, no row the key cannot judge added.
+- The C++ verification base adds chromaprint and gulrak/filesystem (four repos).
 
 ## 0.2.107-beta — 2026-10-03 (a macro's own name read as a function is a macro; C-164 narrowed, ADR-135's second amendment)
 

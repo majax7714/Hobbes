@@ -1,7 +1,7 @@
 # ADR-175 — A C++ functor call and an implicit conversion, drawn where the index names them in a body
 
-**Date:** 2026-10-03 · **Status:** proposed (measured on two held-out cells; nothing built). Routes for
-Max below.
+**Date:** 2026-10-03 · **Status:** accepted (Max, 2026-10-03: route 1, "good to go with both semantic") and
+built (0.2.108-beta).
 
 The extraction order's item 7 (`currently-open.md`): C++ functors (C-146) and implicit conversions (C-162).
 Both shapes have **no call token** in the source, so ADR-131 ruled out `operator()` ("never") and ADR-132's
@@ -90,3 +90,38 @@ reference position. Both draw `calls` with no scope change. Both are counted in 
   the large remainders (template bodies, gtest/Catch2 macros) are other entries' (C-153, C-131).
 - No new node and no new kind of edge. A rule that adds rows the key confirms on two cells it was not
   fitted on, and adds none it cannot judge.
+
+## Built (0.2.108-beta)
+
+- **F:** `"()"` is appended to `OPERATOR_SPELLINGS`; `_operator_of` reads a `call_expression`'s
+  argument-list `(`, except `noexcept(..)`'s (an operand, not arguments). The join is ADR-131's,
+  unchanged: `operator()` → spelling `()`.
+- **C:** `CppFile.bodies` (`_body_regions`, `body_expression` in `extract/cppsource.py`). Its spans are
+  every `compound_statement` (open outside a template and an unevaluated operand), and closed spans for a
+  `function_declarator`, an ERROR node, an unevaluated operand and a callee written as a name (identifier,
+  qualified identifier, template type). The join's `_implicit_construction` reads it beside ADR-132's
+  constructor set, after the construction token answers nothing, and skips a position where lane B names a
+  macro (`_macro_positions`, from `minted.macro_lines` and macro monikers in `external_refs`). Counted as
+  `constructions.implicit` and on the ingest summary's `constructions [c++]` line.
+- **The first build, corrected before the commit:** it closed every callee, so it refused 8 key-confirmed
+  rows the simulation drew. These are the conversion of a call's result, where the reference sits at a
+  receiver (`xml.scopedElement(…)` at `xml`) or a named cast. The rule as worded closes a callee written as a
+  name only. The corrected build equals the simulation everywhere but filesystem. There, **6 rows the
+  simulation drew are refused by ADR-132's several-monikers guard**: a move constructor's line carries two
+  constructor monikers, and the simulator had read its own, looser constructor set. The build keeps the
+  guard.
+
+**Regraded (`~/.hobbes/bench/cpp-item7-2026-10-03/build2/`), 0.2.107 → 0.2.108:**
+
+| Cell | Confirmed | Contradicted | Recall | Strict precision | F drawn | C drawn |
+|---|---|---|---|---|---|---|
+| filesystem (held out) | 3,048 → **3,220** | 0 | 15.3% → 16.1% | 99.8% | +35 | 161 |
+| chromaprint (held out) | 2,681 → **2,688** | 0 | 47.8% → 47.9% | 99.7% | +1 | 7 |
+| fmt | 7,026 → **7,045** | 0 | 30.4% | 99.62% (7,045/7,072) | +1 | 19 |
+| args | 2,567 → **2,581** | 0 | 72.9% → 73.3% | — | 0 | 14 |
+| ADVobfuscator | 210 → **213** | 0 | 68.7% → 69.2% | 99.5% | +3 | 0 |
+
+Poison PASS and silent rows unchanged on every cell. No `operators` in-template count moved, so no `uses`
+edge was withheld. This repo's own graph is unchanged on every file the commit did not edit (H6).
+Pre-registration (`PREREG-rules.md`): B2, B3 and H6 are met. B1 is met on chromaprint, fmt and args, and
+missed on filesystem by the 6 refused rows above.

@@ -11,13 +11,9 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.107-beta).
+Last reviewed: 2026-10-03 (0.2.108-beta).
 
 ## Decisions open for Max (no spend)
-
-- **ADR-175 (item 7):** build rule F (a functor's `operator()`) and rule C
-  (an implicit conversion) `semantic` (recommended), C `syntactic`, or F
-  only. Measured on two held-out C++ cells: every added row confirmed.
 
 - **C-181's residual** (ADR-164): a name that a stdlib import binds, and
   that an `except ImportError:` branch rebinds to a repo function, keeps
@@ -105,14 +101,10 @@ measured.
    held out; pick one.
 6. ~~Rust's impl-distinct ids~~ built at 0.2.106-beta (ADR-174, ordinal
    `~n`); C-180 lifted.
-7. **C++: a functor's `operator()` (C-146) and implicit conversions (C-162)** — **measured
-   2026-10-03, waiting on Max (ADR-175, proposed; routes there).** Held-out cells drawn and
-   pre-registered: chromaprint and gulrak/filesystem (`oracle-grading.md` §10.48). Rule F (`operator()`
-   at the call's `(`) and rule C (a constructor reference at an expression token in a body) add
-   filesystem +178, chromaprint +7, fmt +19, args +14, every row confirmed, 0 contradicted. Not
-   drawable: args's 484 braced `EitherFlag` rows and implicit conversion-operator calls (no index
-   reference). Still open beside it: Route A's remainder (C-145, C-164; no key reads a caller) and
-   dagger's docs snippet zones, not re-ingested since the `corepack` fix.
+7. ~~C++ functors and implicit conversions~~ built at 0.2.108-beta (ADR-175; C-146,
+   C-162 narrowed; held-out chromaprint and gulrak/filesystem, §10.48). **Still open beside
+   it:** Route A's remainder (C-145, C-164; no key reads a caller) and dagger's docs snippet
+   zones, not re-ingested since the `corepack` fix.
 8. **Python `__call__` on an instance held in an attribute** (C-174;
    rich's `self.highlighter(…)`; 35 misses on fitted cells, ADR-171).
    Optional and small; held out on voluptuous, marshmallow, toolz or

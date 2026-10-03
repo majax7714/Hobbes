@@ -216,6 +216,43 @@ def _veto_set(external: list[dict] | None) -> set[tuple[str, int, str]]:
     }
 
 
+def _macro_positions(
+    semantic: list[Site], external: list[dict] | None, macros: frozenset[tuple[str, int]]
+) -> set[tuple[str, int, int]]:
+    """Every ``(file, line, column)`` where lane B names a macro: an in-repo
+    reference onto a macro definition, or an external one whose moniker is
+    a macro's (``…!``). At such a position a construction the index reports
+    is the expansion's (ADR-175's measurement: every macro-name candidate
+    on four cells, none of the conversions)."""
+    out = {(s.file, s.line, s.col) for s in semantic if (s.def_file, s.def_line) in macros}
+    for row in external or ():
+        if (row.get("moniker") or "").endswith("!") and row.get("col") is not None:
+            out.add((row["file"], row["line"], row["col"]))
+    return out
+
+
+def _implicit_construction(
+    hit: Site,
+    bodies: Mapping,
+    constructors: frozenset[tuple[str, int]],
+    expansions: set[tuple[str, int, int]],
+) -> bool:
+    """Whether *hit* is an implicit conversion ADR-175's rule C draws: a
+    reference onto a constructor, with a column, at a position no macro is
+    named at, that an open body span holds. The caller has already found
+    no construction token there."""
+    if hit.col < 0 or (hit.def_file, hit.def_line) not in constructors:
+        return False
+    if (hit.file, hit.line, hit.col) in expansions:
+        return False
+    packed = bodies.get(hit.file)
+    if not packed:
+        return False
+    from hobbes.extract.cppsource import body_expression
+
+    return body_expression(packed, hit.line, hit.col)
+
+
 def _operator_call(hit: Site, operators: Mapping) -> bool | None:
     """Whether *hit* is a C++ operator the source applied **by symbol** at
     a token lane A recorded, and if so whether that token sits inside a
@@ -319,6 +356,8 @@ def join(
     ts_constructions: Mapping[str, frozenset[tuple[int, int]]] | None = None,
     ts_targets: Mapping[tuple[str, int], tuple[str, int] | None] | None = None,
     ts_construction_counts: dict | None = None,
+    bodies: Mapping[str, array] | None = None,
+    macros: frozenset[tuple[str, int]] | None = None,
 ) -> list[Resolved]:
     """Join syntax sites against semantic resolutions (ADR-029's table).
 
@@ -439,12 +478,27 @@ def join(
     class declares no constructor and the one that runs is a base's,
     which is the shape the keys contradict. *ts_construction_counts*
     takes ``drawn`` and ``named_class``.
+
+    *bodies* is lane A's body spans per C++ file (ADR-175,
+    :func:`~hobbes.extract.cppsource.body_expression`) and *macros* the
+    ``(file, line)`` of every macro definition lane B names. A resolution
+    onto a constructor that no construction token claims — an **implicit
+    conversion**, whose reference scip-clang puts on the converted
+    expression's first token — is a ``calls`` fact where an open body holds
+    its position and no macro is named at that same position: at a macro's
+    name the reference is the expansion's (gtest's ``Message`` at
+    ``EXPECT_EQ``), C-131's and not this rule's. Read only with
+    *constructions* and *constructors*; counted as *construction_counts*'
+    ``implicit``.
     """
     from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
     buckets = index_resolutions(semantic)
     fallback = fallback or {}
     vetoed = _veto_set(external)
+    expansions = (
+        _macro_positions(semantic, external, macros) if bodies and macros is not None else set()
+    )
     out: list[Resolved] = []
     claimed: set[tuple[str, int, str, int]] = set()
     #: The by-name claims of the sites lane A recorded no column for
@@ -623,6 +677,37 @@ def join(
                     construction_counts["in_template"] = (
                         construction_counts.get("in_template", 0) + 1
                     )
+            elif (
+                built is None
+                and bodies
+                and constructors
+                and _implicit_construction(hit, bodies, constructors, expansions)
+            ):
+                # ADR-175, rule C: an implicit conversion. No token to be
+                # exact about, so the body spans decide: an expression in a
+                # function body, outside a template, under no declarator,
+                # callee or ERROR node. The edge is the join's own and
+                # unscoped, as ADR-132's is.
+                if construction_counts is not None:
+                    construction_counts["implicit"] = (
+                        construction_counts.get("implicit", 0) + 1
+                    )
+                out.append(
+                    Resolved(
+                        kind="calls",
+                        source_file=file,
+                        line=line,
+                        scope="",
+                        def_file=hit.def_file,
+                        def_line=hit.def_line,
+                        tier=SEMANTIC,
+                        lanes=(TREE_SITTER, SCIP),
+                        evidence=[{"path": file, "line": line}],
+                        qualifier="",
+                        argc=None,
+                    )
+                )
+                continue
             made = (
                 _ts_construction_call(hit, ts_constructions, ts_targets)
                 if ts_constructions and ts_targets

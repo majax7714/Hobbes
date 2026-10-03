@@ -91,7 +91,9 @@ def test_the_carried_operand_answer_holds_at_depth(module, name, wrap):
     evaluated, _, _ = module._parse_file(name, f"void f() {{ int z = ({chain}); }}\n".encode())
     assert len(evaluated.calls) == LINEAR_N + 1
     if module is cppsource:
-        assert len(evaluated.operators) == LINEAR_N  # one `->` token each
+        spellings = [cppsource.unpack_operator(p)[2] for p in evaluated.operators]
+        assert spellings.count("->") == LINEAR_N  # one `->` token each
+        assert spellings.count("()") == LINEAR_N + 1  # and each call's `(` (ADR-175)
 
 
 def _overflow_on(module, monkeypatch, deep_name):

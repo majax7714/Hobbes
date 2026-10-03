@@ -16085,3 +16085,21 @@ went to the Rust collision.
   reference (ADVobfuscator); args's 484 braced literals have none either.
 - ADR-175 written, proposed, with three routes; §10.48; currently-open item 7. Nothing built.
 - Proxy and image rebuilt at 0.2.107-beta (`6feff0f0e032`); Go suites pass.
+
+## 2026-10-03 (fortieth session) — ADR-175 built at 0.2.108-beta (Max: "good to go with both semantic")
+
+- **F:** `()` appended to the operator spellings; every call's `(` is a token (not `noexcept(..)`'s). ADR-131's
+  join unchanged. **C:** `CppFile.bodies` (`_body_regions`, `body_expression`); the join's
+  `_implicit_construction` beside ADR-132's, with macro positions from lane B (`_macro_positions`,
+  `minted.macro_lines`); `constructions.implicit` counted and printed.
+- Probed before encoding: every macro-name candidate (fmt 5,725, chromaprint 1,216, filesystem 1,579) has a
+  lane B macro reference at the same position, and no `other` row does, so lane B's own reading excludes it.
+- **First build regraded (`build/`):** 8 confirmed rows short. It closed every callee; the rule as worded
+  closes a callee written as a name. Corrected. A cppsource edit made while that first regrade ran
+  (`noexcept`'s paren) was caught and the regrade restarted on the final code.
+- **Second build (`build2/`):** filesystem 3,220, chromaprint 2,688, fmt 7,045, args 2,581, ADVobfuscator
+  213; 0 contradicted, poison PASS, silent and in-template counts unchanged. **B1 missed on filesystem by 6:**
+  a move constructor's line carries two monikers, which ADR-132's set refuses; the simulator read a looser set.
+  H6 met: this repo's graph unchanged on every unedited file.
+- Verification base: C++ four repos (chromaprint, gulrak/filesystem added; §3.8 and `verification.py`).
+- Host: pytest 2,844, `lane_b` 28 of 28.

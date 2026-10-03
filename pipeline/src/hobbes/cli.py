@@ -242,7 +242,9 @@ def _print_constructions(counts: dict | None) -> None:
         print(
             f"    constructions [c++]: {counts.get('drawn', 0)} drawn as calls where the index "
             f"names a constructor at the token; {counts.get('in_template', 0)} inside a "
-            "template left as uses (ADR-132, C-162)"
+            "template left as uses (ADR-132, C-162); "
+            f"{counts.get('implicit', 0)} implicit conversions drawn where it names one "
+            "in a body expression (ADR-175)"
         )
     if "ts_drawn" in counts or "ts_named_class" in counts:
         # ADR-142's pair, printed apart from C++'s because they are

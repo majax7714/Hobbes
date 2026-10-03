@@ -113,11 +113,12 @@ overloaded one, and counting ScummVM's ~3.2 million tokens as detected
 sites would make every denominator false. Recorded for
 ``binary_expression``, ``unary_expression``, ``pointer_expression``,
 ``update_expression``, ``assignment_expression`` (compound ones too),
-``subscript_expression`` (its ``[``, spelled ``[]``) and a ``->``
-``field_expression`` — never a ``.``, never inside an unevaluated operand
-or under an ERROR node, and never for ``operator()`` on an object, a
-literal operator, a conversion operator, ``new``/``delete``, the comma or
-a named cast. An operator called by name (``ns::operator<<(a, b)``) is a
+``subscript_expression`` (its ``[``, spelled ``[]``), a ``->``
+``field_expression`` and, since ADR-175, a ``call_expression``'s ``(``
+(spelled ``()``: where the callee is an object, scip-clang names its
+``operator()`` there) — never a ``.``, never inside an unevaluated operand
+or under an ERROR node, and never for a literal operator, a conversion
+operator, ``new``/``delete``, the comma or a named cast. An operator called by name (``ns::operator<<(a, b)``) is a
 call site already and stays one.
 
 **Construction tokens** (ADR-132) are the same technique one shape over.
@@ -141,6 +142,18 @@ label and a constructor's own declaration as a local. Nothing inside an
 unevaluated operand, nothing under an ERROR node; a base-class
 initialiser (``Base<T>(1)``) and a default member initialiser in a class
 body are not recorded.
+
+**Body regions** (ADR-175, rule C) are what an implicit conversion leaves
+to read. ``return ' ';`` into a class type constructs it with no token at
+all, and scip-clang puts its constructor reference on the first token of
+the converted expression — any token. So the walk records, per file, the
+spans that decide whether a position is an expression in a function body
+(:func:`body_expression`): every ``compound_statement``, **open** unless it
+sits under a ``template_declaration`` or in an unevaluated operand, and
+**closed** spans inside it — a ``function_declarator`` (a constructor's own
+in-class declaration, which the index points at its definition), an ERROR
+node, an unevaluated operand, and a callee written as a name. The
+innermost span holding a position answers for it.
 
 **The fallback** (:func:`_call_fallback`, the syntactic floor) resolves a
 plain call by name in C's three ranks (``csource._resolve_fallback``
@@ -278,6 +291,9 @@ OPERATOR_SPELLINGS = (
     "++", "--",
     "=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "|=", "^=",
     "[]", "->",
+    # ADR-175, rule F: a call's `(` — where scip-clang names a functor's
+    # `operator()` when the callee is an object, never a function.
+    "()",
 )
 
 _SPELLING_INDEX = {spelling: i for i, spelling in enumerate(OPERATOR_SPELLINGS)}
@@ -348,6 +364,7 @@ _OPERATOR_NODES = frozenset({
     "assignment_expression",
     "subscript_expression",
     "field_expression",
+    "call_expression",
 })
 
 
@@ -425,6 +442,92 @@ def construction_token(packed: array, line: int, column: int) -> bool | None:
     return None
 
 
+# ------------------------------------------------------- body regions
+#
+# ADR-175, rule C. An implicit conversion writes no token, so there is no
+# position to be exact about; what lane A can say is whether a position is
+# an expression in a function body. Spans, not tokens, and in the token
+# arrays' packing: a span's start word is ``line << 32 | column << 12 |
+# open``, its end word ``line << 32 | column << 12`` (exclusive, as
+# tree-sitter's end point is), and the array holds the pairs in order.
+
+
+def _region_word(point, flag: int = 0) -> int:
+    return (point.row + 1) << 32 | point.column << 12 | flag
+
+
+def body_expression(packed: array, line: int, column: int) -> bool:
+    """Whether the innermost recorded span holding (*line*, *column*) is an
+    **open** body — a function body outside any template and any
+    unevaluated operand, with no declarator, ERROR node, unevaluated
+    operand or callee between it and the position (ADR-175).
+
+    Spans come from one parse tree, so two are nested or disjoint, and the
+    pairs are sorted by start, the wider first on a tie: walking back from
+    the last start at or before the position, the first span still open
+    past it is the innermost. ``False`` wherever no span holds it.
+    """
+    if not 0 <= column < COLUMN_LIMIT:
+        return False
+    at = line << 32 | column << 12
+    low, high = 0, len(packed) // 2
+    while low < high:
+        middle = (low + high) // 2
+        if packed[2 * middle] >> 12 <= at >> 12:
+            low = middle + 1
+        else:
+            high = middle
+    for index in range(low - 1, -1, -1):
+        if packed[2 * index + 1] > at:
+            return bool(packed[2 * index] & 1)
+    return False
+
+
+#: The callee shapes that close a span for :func:`_body_regions`: a call
+#: written to a name, plain, qualified or with template arguments.
+_NAMED_CALLEES = frozenset({"identifier", "qualified_identifier", "template_type"})
+
+
+def _body_regions(root: Node) -> array:
+    """The spans :func:`body_expression` reads, packed and sorted (ADR-175).
+
+    A position's answer is its innermost span's, so every closed span is
+    recorded wherever it sits — the walk does not prune — and only a
+    ``compound_statement`` can be open: outside any ``template_declaration``
+    (C-153's reason: inside one the index answers with a by-name candidate)
+    and outside any unevaluated operand.
+    """
+    spans: list[tuple[int, int, int]] = []
+    for node, context in _walk_in_context(root):
+        kind = node.type
+        if kind == "compound_statement":
+            open_ = not (context.in_template or context.unevaluated)
+        elif kind in ("function_declarator", "ERROR") or _opens_unevaluated(node):
+            open_ = False
+        elif kind == "call_expression":
+            # A callee written as a name — `T(…)`, `ns::T(…)`, `T<U>(…)` — is
+            # a written call lane A already records, never a conversion. A
+            # receiver (`xml.make(…)`) or a named cast is not a name: the
+            # index's reference at its first token is the conversion of the
+            # call's result, and ADR-175 measured those rows right.
+            node = node.child_by_field_name("function")
+            if node is None or node.type not in _NAMED_CALLEES:
+                continue
+            open_ = False
+        else:
+            continue
+        if node.start_point.column >= COLUMN_LIMIT or node.end_point.column >= COLUMN_LIMIT:
+            continue
+        start, end = _region_word(node.start_point, int(open_)), _region_word(node.end_point)
+        spans.append((start >> 12, -end, start))
+    spans.sort()
+    out = array("Q")
+    for _, negative_end, start in spans:
+        out.append(start)
+        out.append(-negative_end)
+    return out
+
+
 #: Where a ``decl-*`` token's ``declaration`` may sit: a block, a ``case``
 #: arm, a ``for`` header, a condition, or namespace and file scope —
 #: including a preprocessor block's, which is file scope with an ``#if``
@@ -493,6 +596,11 @@ class CppFile:
     #: sites either, and read by nothing but the join — which draws a call
     #: only where lane B names a constructor at one of these positions.
     constructions: array = field(default_factory=lambda: array("Q"))
+    #: The spans that say whether a position is an expression in a function
+    #: body, packed in start/end pairs by :func:`_body_regions` (ADR-175).
+    #: Read by nothing but the join, for a constructor reference at no
+    #: token: an implicit conversion.
+    bodies: array = field(default_factory=lambda: array("Q"))
     #: Count of ``TEST_CASE``/``SCENARIO`` bodies this file has: tests the
     #: walk names but can attach no symbol to, tallied for the file's
     #: ``cpp-tests`` degradation record.
@@ -825,6 +933,7 @@ def _parse_file(rel: str, source: bytes) -> tuple[CppFile, bool, list[str]]:
     parsed.calls = _calls(root, parsed.symbols)
     parsed.operators = _operator_tokens(root)
     parsed.constructions = _construction_tokens(root)
+    parsed.bodies = _body_regions(root)
     return parsed, root.has_error, duplicated
 
 
@@ -1627,7 +1736,9 @@ def _operator_tokens(root: Node) -> array:
             continue
         if context.parent is not None and context.parent.type == "ERROR":
             continue
-        if context.unevaluated:
+        if context.unevaluated or _opens_unevaluated(node):
+            # The second is `noexcept(..)`, which the grammar spells as a
+            # call: its `(` opens an operand, not an argument list.
             continue
         token, spelling = _operator_of(node)
         if token is None:
@@ -1657,6 +1768,15 @@ def _operator_of(node: Node) -> tuple[Node | None, str]:
         for child in (indices or node).children:
             if child.type == "[":
                 return child, "[]"
+        return None, ""
+    if node.type == "call_expression":
+        # The `(` opening the argument list, spelled `()` as a declaration
+        # spells it (ADR-175). Every call writes one; only a call on an
+        # object is one the index names `operator()` there.
+        arguments = node.child_by_field_name("arguments")
+        first = arguments.child(0) if arguments is not None else None
+        if first is not None and first.type == "(":
+            return first, "()"
         return None, ""
     token = node.child_by_field_name("operator")
     if token is None:
@@ -2108,6 +2228,11 @@ def _join(files: list[CppFile], claim: _HeaderClaim) -> dict:
         "constructions": {
             parsed.path: parsed.constructions for parsed in files if parsed.constructions
         },
+        #: The body spans each file holds (ADR-175), packed. Read by the
+        #: join alone, to draw a call where lane B names a constructor at a
+        #: position no token claims and an open body holds — an implicit
+        #: conversion; a file with no function body is absent.
+        "bodies": {parsed.path: parsed.bodies for parsed in files if parsed.bodies},
         "files": files,
         "tests": sorted(
             (test for parsed in files for test in parsed.tests), key=lambda t: t["id"]

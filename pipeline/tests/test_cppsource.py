@@ -9,6 +9,7 @@ idioms whose macros the parse reads very differently.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -1088,15 +1089,22 @@ class TestOperatorTokens:
             # declaration spells it.
             (12, self._at(12, "["), "[]"),
             (13, self._at(13, "->"), "->"),
+            # ADR-175: every call's `(`, spelled `()`. The index names an
+            # `operator()` there only where the callee is an object, and the
+            # join draws nothing at any other; a named cast parses as a call.
+            (15, self._at(15, "("), "()"),
+            (18, self._at(18, "(i)"), "()"),
         ]
 
     def test_what_is_never_a_token(self, tokens):
-        # A `.` is not an overloadable operator; a call is a site already;
-        # an unevaluated operand applies nothing (ADR-121's test, reused);
-        # a named cast and a literal operator are neither of the shapes
-        # this walk reads. None of them appears in the list above, and the
-        # lines they sit on hold nothing at all.
-        assert not [line for line, *_ in tokens if line >= 14]
+        # A `.` is not an overloadable operator; an unevaluated operand
+        # applies nothing (ADR-121's test, reused); a literal operator is
+        # none of the shapes this walk reads. Beside the two calls' `()`,
+        # the lines from 14 hold nothing at all.
+        assert [(line, spelling) for line, _, spelling, _ in tokens if line >= 14] == [
+            (15, "()"),
+            (18, "()"),
+        ]
 
     def test_a_c_file_records_none(self, tmp_path):
         # C has no operator functions, so the C layer never asks the
@@ -1111,7 +1119,7 @@ class TestOperatorTokens:
         assert set(extract_cpp(tmp_path)["operators"]) == {"b.cpp"}
 
     def test_a_file_that_applies_no_operator_is_absent_rather_than_empty(self, tmp_path):
-        _write(tmp_path, {"a.cpp": "int f();\nint g() { return f(); }\n"})
+        _write(tmp_path, {"a.cpp": "int f();\nint g() { return f; }\n"})
         assert extract_cpp(tmp_path)["operators"] == {}
 
 
@@ -1168,8 +1176,10 @@ class TestAnOperatorCalledByName:
             (3, "operator<<", "qualified"),
         ]
         # The definition's own `operator<<` is a symbol, not a token, and
-        # the call names it: nothing here was written as `a << 1`.
-        assert _operators(layer, "a.cpp") == []
+        # the call names it: nothing here was written as `a << 1`. The one
+        # token is the call's own `(` (ADR-175), which no `operator<<`
+        # reference can match.
+        assert [(l, s) for l, _, s, _ in _operators(layer, "a.cpp")] == [(3, "()")]
 
     def test_a_member_operator_call_records_no_token_either(self, tmp_path):
         # The pinned grammar does not parse `a.operator=(b)` — the callee
@@ -1182,7 +1192,7 @@ class TestAnOperatorCalledByName:
             "    a.operator=(b);\n"
             "}\n"
         )})
-        assert _operators(extract_cpp(tmp_path), "a.cpp") == []
+        assert "=" not in [s for _, _, s, _ in _operators(extract_cpp(tmp_path), "a.cpp")]
 
 
 class TestAnOperatorEdgeThroughTheIngest:
@@ -1559,7 +1569,7 @@ class TestAConstructionEdgeThroughTheIngest:
         # indexed at all, so this one's type is not dependent.
         assert ("src/use.tpl", "calls", "src/lib.h.A::A") not in edges
         assert ("src/use.tpl", "uses", "src/lib.h.A::A") in edges
-        assert graph["constructions"] == {"drawn": 1, "in_template": 1}
+        assert graph["constructions"] == {"drawn": 1, "in_template": 1, "implicit": 0}
 
     def test_with_no_lane_b_there_is_no_block_and_no_construction_edge(
         self, tmp_path, monkeypatch
@@ -1569,6 +1579,219 @@ class TestAConstructionEdgeThroughTheIngest:
         graph, edges = self._built(tmp_path, monkeypatch, lane_b=False)
         assert "constructions" not in graph
         assert not [edge for edge in edges if edge[2] == "src/lib.h.A::A"]
+
+
+class TestTheBodyRegions:
+    """ADR-175, rule C: an implicit conversion has no token, so lane A
+    records the spans that say whether a position is an expression in a
+    function body, and :func:`body_expression` answers from the innermost
+    one holding it."""
+
+    SOURCE = (
+        "struct S { S(int v); };\n"                         # 1
+        "int f(int);\n"                                     # 2
+        "S make(int i) {\n"                                 # 3
+        "    return i;\n"                                   # 4
+        "}\n"                                               # 5
+        "S call(int i) { return f(i); }\n"                  # 6
+        "void g(int i) {\n"                                 # 7
+        "    int k = sizeof(S(i));\n"                       # 8
+        "    S local(int);\n"                               # 9
+        "}\n"                                               # 10
+        "template <typename T> S tpl(T x) { return 1; }\n"  # 11
+        "int top = 2;\n"                                    # 12
+        "S recv(W w) { return w.make(); }\n"                # 13
+    )
+
+    @pytest.fixture
+    def answer(self, tmp_path):
+        from hobbes.extract.cppsource import body_expression
+
+        _write(tmp_path, {"a.cpp": self.SOURCE})
+        packed = extract_cpp(tmp_path)["bodies"]["a.cpp"]
+        lines = self.SOURCE.splitlines()
+        return lambda line, needle, nth=0: body_expression(
+            packed, line, lines[line - 1].index(needle, nth)
+        )
+
+    def test_an_expression_in_a_body_is_open(self, answer):
+        assert answer(4, "i;") is True       # the converted expression's first token
+        assert answer(6, "i);") is True      # an argument, inside the call's arguments
+        # A receiver is not a callee written as a name: the index's
+        # reference at `w` is the conversion of the call's result.
+        assert answer(13, "w.") is True
+
+    def test_a_callee_a_declarator_and_an_unevaluated_operand_are_closed(self, answer):
+        assert answer(6, "f(") is False      # the callee: a written call, not a conversion
+        assert answer(8, "S(i)") is False    # sizeof's operand is never evaluated
+        assert answer(9, "local") is False   # a declarator, even in a body
+        assert answer(3, "make") is False    # the function's own declarator
+
+    def test_a_template_body_and_file_scope_are_closed(self, answer):
+        assert answer(11, "1;") is False     # C-153's reason: the index's by-name answer
+        assert answer(12, "2;") is False     # no function body holds it
+
+    def test_the_spans_are_cached_with_the_parse(self, tmp_path):
+        # The lane A cache stores every CppFile field (ADR-128); a record
+        # read back must answer as the parse does.
+        from hobbes.extract import laneacache
+
+        _write(tmp_path, {"a.cpp": self.SOURCE})
+        parsed = [f for f in extract_cpp(tmp_path)["files"] if f.path == "a.cpp"][0]
+        record = laneacache.encode(parsed.bodies)
+        assert laneacache.decode(json.loads(json.dumps(record))) == parsed.bodies
+
+
+class TestAFunctorEdgeThroughTheIngest:
+    """ADR-175, rule F, end to end: ``f(3)`` on an object, with the index
+    naming its ``operator()`` at the call's ``(`` — in a plain function a
+    ``calls`` edge, in a template withheld as ADR-131's amendment withholds
+    every operator there."""
+
+    LIB = (
+        "struct F {\n"
+        "    int operator()(int v) const { return v; }\n"
+        "};\n"
+    )
+    USE = (
+        '#include "lib.h"\n'
+        "int plain(F f) {\n"
+        "    return f(3);\n"
+        "}\n"
+        "template <typename T> int tpl(F f, T t) {\n"
+        "    return f(4);\n"
+        "}\n"
+    )
+
+    def _built(self, tmp_path, monkeypatch, lane_b: bool):
+        from hobbes.extract import evidence as ev, extract_repo
+        import hobbes.extract as extract
+
+        _write(tmp_path, {"src/lib.h": self.LIB, "src/use.cpp": self.USE})
+        lines = self.USE.splitlines()
+        references = [
+            ev.Site(
+                provider=ev.SCIP, kind=ev.RESOLUTION,
+                file="src/use.cpp", line=number, col=lines[number - 1].index("("),
+                name="operator()", def_file="src/lib.h", def_line=2,
+            )
+            for number in (3, 6)
+        ]
+        facts = [{
+            "language": "cpp",
+            "definitions": [],
+            "references": references,
+            "external_refs": [],
+            "degraded": [],
+        }]
+        monkeypatch.setattr(
+            extract, "_lane_b_facts", lambda *a, **k: iter(facts if lane_b else [])
+        )
+        graph = extract_repo(tmp_path).graph
+        return graph, {
+            (edge["from"], edge["type"], edge["to"])
+            for edge in graph["symbol_edges"]
+            if any(site["path"] == "src/use.cpp" for site in edge["evidence"])
+        }
+
+    def test_the_plain_call_draws_the_operator_and_the_template_draws_nothing(
+        self, tmp_path, monkeypatch
+    ):
+        graph, edges = self._built(tmp_path, monkeypatch, lane_b=True)
+        assert ("src/use.plain", "calls", "src/lib.h.F::operator()") in edges
+        assert not [edge for edge in edges if edge[0] == "src/use.tpl"]
+        assert graph["operators"] == {"drawn": 1, "in_template": 1}
+
+    def test_with_no_lane_b_nothing_is_drawn(self, tmp_path, monkeypatch):
+        graph, edges = self._built(tmp_path, monkeypatch, lane_b=False)
+        assert "operators" not in graph
+        assert not [edge for edge in edges if edge[2] == "src/lib.h.F::operator()"]
+
+
+class TestAnImplicitConversionThroughTheIngest:
+    """ADR-175, rule C, end to end: ``return i;`` into a class type, with
+    the index naming the converting constructor at ``i``. Drawn in a plain
+    body; left the ``uses`` it was inside a template, and at a position the
+    index also names a macro at (the expansion's, C-131)."""
+
+    LIB = (
+        "#define SAME(x) x\n"
+        "struct A {\n"
+        "    A(int v) : v_(v) {}\n"
+        "    int v_;\n"
+        "};\n"
+    )
+    USE = (
+        '#include "lib.h"\n'
+        "A plain(int i) {\n"
+        "    return i;\n"
+        "}\n"
+        "template <typename T> A tpl(int i) {\n"
+        "    return i;\n"
+        "}\n"
+        "A expanded(int i) {\n"
+        "    return SAME(i);\n"
+        "}\n"
+    )
+
+    def _built(self, tmp_path, monkeypatch, lane_b: bool = True):
+        from hobbes.extract import evidence as ev, extract_repo
+        import hobbes.extract as extract
+
+        _write(tmp_path, {"src/lib.h": self.LIB, "src/use.cpp": self.USE})
+        lines = self.USE.splitlines()
+        references = [
+            ev.Site(
+                provider=ev.SCIP, kind=ev.RESOLUTION,
+                file="src/use.cpp", line=number, col=lines[number - 1].index(token),
+                name="A", def_file="src/lib.h", def_line=3,
+            )
+            for number, token in ((3, "i;"), (6, "i;"), (9, "SAME"))
+        ]
+        # The index's macro reference at the expansion, the same position.
+        references.append(ev.Site(
+            provider=ev.SCIP, kind=ev.RESOLUTION,
+            file="src/use.cpp", line=9, col=lines[8].index("SAME"),
+            name="SAME", def_file="src/lib.h", def_line=1,
+        ))
+        facts = [{
+            "language": "cpp",
+            "definitions": [
+                {"file": "src/lib.h", "line": 1, "end_line": 1,
+                 "kind": "macro", "moniker": "cxx . . $ `src/lib.h:1:9`!"},
+                {"file": "src/lib.h", "line": 2, "end_line": 5,
+                 "kind": "type", "moniker": "cxx . . $ A#"},
+                {"file": "src/lib.h", "line": 3, "end_line": 3,
+                 "kind": "method", "moniker": "cxx . . $ A#A(1a2b3c4d)."},
+            ],
+            "references": references,
+            "external_refs": [],
+            "degraded": [],
+        }]
+        monkeypatch.setattr(
+            extract, "_lane_b_facts", lambda *a, **k: iter(facts if lane_b else [])
+        )
+        graph = extract_repo(tmp_path).graph
+        return graph, {
+            (edge["from"], edge["type"], edge["to"])
+            for edge in graph["symbol_edges"]
+            if any(site["path"] == "src/use.cpp" for site in edge["evidence"])
+        }
+
+    def test_a_body_draws_the_constructor_and_a_template_or_an_expansion_does_not(
+        self, tmp_path, monkeypatch
+    ):
+        graph, edges = self._built(tmp_path, monkeypatch)
+        assert ("src/use.plain", "calls", "src/lib.h.A::A") in edges
+        assert ("src/use.tpl", "calls", "src/lib.h.A::A") not in edges
+        assert ("src/use.tpl", "uses", "src/lib.h.A::A") in edges
+        assert ("src/use.expanded", "calls", "src/lib.h.A::A") not in edges
+        assert graph["constructions"] == {"drawn": 0, "in_template": 0, "implicit": 1}
+
+    def test_with_no_lane_b_there_is_no_block(self, tmp_path, monkeypatch):
+        graph, edges = self._built(tmp_path, monkeypatch, lane_b=False)
+        assert "constructions" not in graph
+        assert not [edge for edge in edges if edge[1] == "calls" and edge[2].endswith("A::A")]
 
 
 class TestTheConstructionPacking:

@@ -6,6 +6,12 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-146 and C-162 narrowed, 2026-10-03 (0.2.108-beta; ADR-175, Max: "good to go with both semantic"):
+- **A functor's `operator()`** at a call's `(` (C-146) and **an implicit conversion** the index names in a
+  body expression (C-162) are drawn `semantic`, measured on two held-out C++ cells drawn for them
+  (chromaprint, gulrak/filesystem; filesystem 3,048 → 3,220, every added row confirmed). C-174's C++ list
+  corrected (a conversion operator is a symbol since C-175). No status moves; tally unchanged.
+
 C-164 narrowed, 2026-10-03 (0.2.107-beta; ADR-135's second amendment; found by item 7's held-out C++ draw):
 - **A fourth shape, closed the day it was found:** a recovery that swallows a `#define` read the macro's
   own name as a function (Catch2's `CATCH_BREAK_INTO_DEBUGGER`), so a macro expansion was graded as a

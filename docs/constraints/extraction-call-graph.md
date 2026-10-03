@@ -823,10 +823,12 @@
   - **C++:**
     - a destructor at scope end, at `delete`, or as a member's or a base's;
     - a range-for's `begin()`/`end()` and its iterator's `operator!=`/`operator*`/`operator++`;
-    - a conversion operator (and C-175: it is not a symbol);
-    - a functor's `operator()` (*uses*; C-146 names it);
-    - a copy constructor, and a converting constructor applied implicitly (*uses*; C-162 names
-      the conversion);
+    - a conversion operator applied implicitly (a symbol since C-175 was lifted; the index writes
+      no reference at the conversion, so nothing is drawn);
+    - a functor's `operator()` (drawn at the call's `(` outside a template since ADR-175; C-146
+      names the rest);
+    - a copy constructor, and a converting constructor applied implicitly (drawn where the index
+      names it in a body expression since ADR-175; C-162 names the rest);
     - a base constructor run by a derived one;
     - a static object's constructor (*uses*, from the module).
 

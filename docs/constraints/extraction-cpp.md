@@ -151,12 +151,13 @@ headers parsed with tree-sitter ERROR nodes.
 - **Source:** the fmt read, 2026-09-14; the below-floor diagnostic after
   `be34`'s merge, the same day.
 
-### C-146 — An operator applied by symbol is a call only outside a template, where the index names it at the token; a named cast is not a site
+### C-146 — An operator applied by symbol is a call only outside a template, where the index names it at the token; a named cast is not a site — *narrowed 2026-10-03 (ADR-175, 0.2.108-beta): a functor's `operator()` at a call's `(`*
 
 - **Cannot tell you:** that `a + b` calls `operator+` where the
   expression sits **inside a template**, inside a macro's expansion, or
   where scip-clang emits no reference at the operator token; that
-  `f(x)` on an object calls its `operator()`; that `"x"_a` calls a
+  `f(x)` on an object calls its `operator()` inside a template or a
+  macro's expansion (outside both it is drawn since ADR-175); that `"x"_a` calls a
   literal operator; or that `static_cast<T>(x)` is not a call (the four
   named casts parse as calls of a template function and are recorded as
   no site).
@@ -174,6 +175,16 @@ headers parsed with tree-sitter ERROR nodes.
   (`oracle-grading.md` §10.15): fmt +392 call edges, 391 confirmed, 0
   contradicted, no new row the key cannot judge, recall 29.1% → 30.1%;
   args, held out, +136, all confirmed, 58.6% → 62.5%; C untouched.
+- **Narrowed 2026-10-03 (ADR-175, 0.2.108-beta): a functor call.** Lane A
+  records every call's `(` as an operator token spelled `()`; where lane B
+  names `operator()` at exactly it, outside a template, ADR-131's rule
+  draws the `calls` edge, and inside one withholds it. Measured on fmt
+  (42 `operator()` references, 1 at a call's `(`; 38 inside gmock macros,
+  which a naive rule would draw as 10 contradicted rows) and then on two
+  held-out cells (`oracle-grading.md` §10.48): filesystem +35, chromaprint
+  +1, ADVobfuscator +3, all confirmed; no in-template count moved on any
+  cell. args's 248 keyed misses are `reader(…)` in a class template, where
+  the index is silent.
 - **Why not inside a template:** scip-clang answers a dependent operator
   with its single by-name candidate (C-153) — `wday == 0` onto
   `basic_fp`'s `operator==`, `it != c.end()` onto gtest's `faketype`
@@ -406,16 +417,20 @@ headers parsed with tree-sitter ERROR nodes.
   a hit is byte-identical to a parse (measured on ScummVM, 217 MB).
 - **Source:** ADR-128; the measurement of 2026-09-17.
 
-### C-162 — A construction is a call only where a call site names it, or the index names the constructor at a construction token outside a template
+### C-162 — A construction is a call only where a call site names it, or the index names the constructor at a construction token outside a template — *narrowed 2026-10-03 (ADR-175, 0.2.108-beta): an implicit conversion the index names in a body expression*
 
 - **Cannot tell you:** that a construction calls its constructor where
   it sits **inside a template**; inside a macro's expansion (gtest's
   `Message` and `AssertHelper` at `EXPECT_EQ`'s own name: 80% of fmt's
   missed constructions, C-131); where it has **no token** — an implicit
-  conversion (`return style_ & 0x3FFFFFF;` into a `color_type`,
-  `fmt::format(loc, …)` into a `locale_ref`); where scip-clang emits no
-  reference at all (a dependent type's construction; the literals inside
-  a braced list — 484 `EitherFlag` rows on args); at a base-class or
+  conversion — and the index's constructor reference sits outside an
+  expression in a function body, under a callee written as a name
+  (`return AssertionSuccess();`), on a constructor line carrying several
+  monikers, or at a macro's name (drawn elsewhere since ADR-175); where
+  scip-clang emits no reference at all (a dependent type's construction;
+  the literals inside a braced list — 484 `EitherFlag` rows on args; an
+  implicit conversion **operator** call, ADVobfuscator's `operator const
+  char *`); at a base-class or
   delegating initialiser (`Base<T>(args)`); at a default member
   initialiser in a class body; or at a declaration under a label.
 - **Because:** `T x(args);`, `T x{…};`, `T x;`, `m_(args)`, a braced
@@ -439,6 +454,22 @@ headers parsed with tree-sitter ERROR nodes.
   confirmed, 0 contradicted, the 24 the key could not judge read right by
   hand, recall 30.1% → 30.3%; args, held out, +369, all confirmed, 62.5%
   → 72.9%; C untouched.
+- **Narrowed 2026-10-03 (ADR-175, 0.2.108-beta): an implicit conversion.**
+  scip-clang puts the converting constructor's reference on the converted
+  expression's first token (`return ' ';` at the `'`, `return style_ &
+  0x3FFFFFF;` at `style_`). Lane A records body spans
+  (`cppsource.body_expression`), and the join draws a semantic `calls`
+  edge where a reference onto a constructor (this entry's set) that no
+  construction token claims sits in an open body — outside a template and
+  an unevaluated operand, under no declarator, ERROR node or callee
+  written as a name — and no macro is named at that position. Measured
+  first on fmt and args (every body-expression row confirmed; the rows
+  the key cannot judge were constructors' own in-class declarations),
+  then on the held-out cells (`oracle-grading.md` §10.48): built,
+  filesystem +137 of its +172, chromaprint +6, fmt +18, args +14, all
+  confirmed, 0 contradicted, no row the key cannot judge added. Six
+  filesystem rows the simulation drew are refused by this entry's
+  several-monikers guard (a move constructor's line carrying two).
 - **Why not inside a template:** every other in-template answer on this
   lane has needed a guard (C-153). Here the 45 in-template rows the rule
   would add (44 on fmt, 1 on args) read right — a dependent type's
@@ -472,7 +503,8 @@ headers parsed with tree-sitter ERROR nodes.
 - **You find out:** **surfaced** — the ingest summary's `constructions:`
   line and `graph.json`'s `constructions` block count the tokens drawn and
   the references inside a template left as `uses` (fmt: 120 and 44; args:
-  369 and 1); O10's `sites_constructor` coverage bucket; nothing at the
+  369 and 1), and since 0.2.108-beta the implicit conversions drawn
+  (`implicit`: fmt 19, args 14, filesystem 161); O10's `sites_constructor` coverage bucket; nothing at the
   site.
 - **Provider (P9):** scip-clang **0.4.0** (what it does and does not emit
   a reference for).

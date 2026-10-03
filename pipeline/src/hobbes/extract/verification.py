@@ -97,9 +97,10 @@ VERIFICATION_BASE: dict[str, dict] = {
         # Compiler-graded against clang's own front end (ADR-113, O10,
         # 2026-09-15): a header-heavy library chosen for the `.h` claim
         # and one repo drawn at random, both regraded after ADR-113 §2's
-        # third amendment (0.2.22-beta).
-        "repos": 2,
-        "on": "fmtlib/fmt (a header-heavy library with its bundled gtest and gmock); Taywee/args — drawn at random (2026-09-14)",
+        # third amendment (0.2.22-beta); two more drawn and graded held out
+        # for ADR-175 (2026-10-03, oracle-grading.md §10.48).
+        "repos": 4,
+        "on": "fmtlib/fmt (a header-heavy library with its bundled gtest and gmock); Taywee/args — drawn at random (2026-09-14); acoustid/chromaprint and gulrak/filesystem — drawn at random, held out (2026-10-03)",
         "depth": "multi-repo",
     },
     "hcl": {

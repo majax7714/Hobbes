@@ -987,9 +987,14 @@ def _build_symbol_layer(
     # and the constructor set are read together or not at all. The set is
     # read off the rows the mint already collected below — the C++ ones
     # among them; C has no constructors, so its rows name none.
-    construction_counts: dict[str, int] = {"drawn": 0, "in_template": 0}
+    construction_counts: dict[str, int] = {"drawn": 0, "in_template": 0, "implicit": 0}
     constructors = (
         minted.constructor_lines(lane_b_definitions) if cpp and lane_b_ran else None
+    )
+    # ADR-175, rule C: lane A's body spans and the macro definitions lane B
+    # names, read beside the pair above and on its condition.
+    macro_definitions = (
+        minted.macro_lines(lane_b_definitions) if cpp and lane_b_ran else None
     )
     # ADR-142: lane A's `new` tokens and lane B's reading of what each
     # definition would be constructed as — the TS/JS pair, read together
@@ -1017,13 +1022,19 @@ def _build_symbol_layer(
             ts_constructions=ts["constructions"] if ts_targets else None,
             ts_targets=ts_targets,
             ts_construction_counts=ts_construction_counts,
+            bodies=cpp["bodies"] if cpp and lane_b_ran else None,
+            macros=macro_definitions,
         )
     if operator_counts["drawn"] or operator_counts["in_template"]:
         # Additive, and absent on a repo with nothing to say — a C++
         # operator drawn as a call is a new thing in the graph, and the
         # one inside a template that was not is the cost beside it.
         graph["operators"] = dict(operator_counts)
-    if construction_counts["drawn"] or construction_counts["in_template"]:
+    if (
+        construction_counts["drawn"]
+        or construction_counts["in_template"]
+        or construction_counts["implicit"]
+    ):
         # Additive too, and absent where there is nothing to say: a
         # construction drawn as a call is a new edge, and the one inside a
         # template left as a `uses` is what the rule did not draw.

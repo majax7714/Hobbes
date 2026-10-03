@@ -879,6 +879,14 @@ def _extent(lines: Sequence[str], line: int) -> tuple[int | None, str]:
     return (None, "runs-off") if opened is not None else (None, "no-body")
 
 
+def macro_lines(definitions: Iterable[Mapping]) -> frozenset[tuple[str, int]]:
+    """The ``(file, line)`` of every definition row the index reads as a
+    macro — where a reference onto one says a macro was expanded at its
+    position, which ADR-175's rule C reads as the expansion's and not an
+    implicit conversion's."""
+    return frozenset((row["file"], row["line"]) for row in definitions if row.get("kind") == "macro")
+
+
 def constructor_lines(definitions: Iterable[Mapping]) -> frozenset[tuple[str, int]]:
     """The ``(file, line)`` of every definition row that is a constructor's
     — ADR-132's second half, and the whole of what tells a construction's
