@@ -16036,3 +16036,11 @@ went to the Rust collision.
   memchr 919 → 921, dagger `sdk/rust` 3,363 → 3,595 (ingest 744 s), 0 contradicted, poison PASS.
 - Host: pytest 2,835, `lane_b` 28 of 28.
 - Proxy and image rebuilt (`f5c8db4036d1`).
+
+## 2026-10-03 (thirty-ninth session, close) — the graph job passes at 0.2.106-beta
+
+- `scripts/ci-graph.sh 3fda729` on the host: `lanes` 17,890 sites, 0 unexplained (1 C-182 cfg twin); invariants
+  run; review "nothing needs attention"; `lane_b` 28 passed; "graph checks passed". Image rebuilt by the job
+  (`4b517d39a845`). Handoff rewritten.
+- Slip: my wait on the job used `pgrep -f 'ci-graph.sh 3fda729'`, which matched the waiting shell itself, so it
+  never ended after the job passed (Max: "still going or stuck?"). Wait on the log's last line instead.
