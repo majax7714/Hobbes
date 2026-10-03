@@ -95,3 +95,27 @@ before arm is ADR-163's after arm, since `3f95d67` moved only Python): memchr 91
 0 contradicted, strict 100%, poison clean; its edges, symbols, module edges and coverage are byte-identical
 (none of its twins' later arms is a lane B answer). dagger and rust_proj have no twins and cannot move.
 The fixture gains `measure → cow.width` at `semantic` and loses its `below-floor` site.
+
+## Amendment — 2026-10-03: the residual is refused or named (0.2.95-beta)
+
+**Status:** accepted (Max, 2026-10-03, the proposed route). C-182 was partial: a same-header repeat that is
+not a twin was neither refused nor mapped, and no record named it.
+
+**Measured** (lane A's own read, `rustsource`): memchr 5 two-kinds ids and 147 other repeats, every one in
+`benchmarks/haystacks`; dagger `sdk/rust` and this repo 0 of either.
+
+1. **Two kinds are two items.** `shared_qualnames` also lists an id whose defs are of more than one kind,
+   whatever its headers, so a fact written inside or resolved onto a later def is refused as C-180's are,
+   counted in the `rust-qualnames` record and tailed `shared-qualname`.
+2. **The rest is named.** `same_header_repeats` lists, by file, every other repeat that is not a twin; one
+   `rust-repeats` record per ingest names the count, the files and examples with their def lines, and this
+   ADR. Their behaviour is unchanged: the node is the first def and a later def's facts are filed under it.
+   No crate that compiles can write this shape, so lane B has nothing there to disagree with.
+3. C-182 is surfaced. The `minirustimpl` fixture gains `haystacks/std.rs`, a file no target includes, with
+   both shapes.
+
+**Regrade** (`~/.hobbes/bench/c182-residual/`: `regrade3.sh`, `cells.tsv`, `after/`; before is this ADR's
+own after arm): memchr 919 → 919 confirmed, 0 contradicted, syntactic-confirmed 7 → 7, poison clean; symbols
+identical; 2 evidence rows removed, both lane A calls in `haystacks/code/rust-library.rs` onto the later
+def of the two-kinds `vec` (lines 7640, 9828), none outside `haystacks`. The `rust-qualnames` record counts
+174 ids, the `rust-repeats` record 147 in one file.

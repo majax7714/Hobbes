@@ -11,9 +11,24 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.94-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.95-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.95-beta — 2026-10-03 (C-182's residual: a two-kinds Rust repeat is refused, the rest is named; ADR-165 amended)
+
+**Patch: what the layer refuses and says**, Rust. C-182 was partial: a qualname repeated in one file that is
+not a cfg twin was neither refused nor mapped, and nothing named it. Max approved the proposed route.
+
+- **Two kinds are two items.** An id whose defs are of more than one kind (`struct B` beside `const B`) is
+  listed with C-180's ids, so a fact written inside or resolved onto a later def is refused and tailed
+  `shared-qualname`.
+- **The rest is named.** A repeat with one header and one kind and no `cfg` on some def, which no crate that
+  compiles can write, keeps its behaviour (one node at the first def) and is named in one `rust-repeats`
+  record per ingest. C-182 is surfaced.
+- **Regraded** memchr, the only cell with either shape (all in `benchmarks/haystacks`): 919 → 919 confirmed,
+  0 contradicted, symbols identical; 2 lane A calls onto the later def of a two-kinds `vec` refused; 147 ids
+  named.
 
 ## 0.2.94-beta — 2026-10-03 (C-173's record names the code after a platform-guarded `raise`; ADR-154 amended)
 

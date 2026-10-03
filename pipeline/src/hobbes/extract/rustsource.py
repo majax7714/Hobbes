@@ -731,6 +731,7 @@ def _join(files: list[RustFile], crates: dict[str, str]) -> dict:
         "call_fallback": _call_fallback(files, crates, mod_map),
         "shared_qualnames": shared_qualnames(files),
         "cfg_twins": cfg_twins(files),
+        "same_header_repeats": same_header_repeats(files),
         "files": files,
         "tests": sorted(
             (test for parsed in files for test in parsed.tests),
@@ -753,14 +754,43 @@ def shared_qualnames(files: list[RustFile]) -> dict[str, list[tuple[int, int]]]:
     functions with no node of their own. A qualname whose defs all carry
     the same header text — a cfg twin, the same item compiled under
     another configuration — is not listed: there the later def is the
-    node's own code, as before.
+    node's own code, as before. One whose defs are of two kinds (Rust's
+    type and value namespaces allow ``struct B`` beside ``const B``) is
+    listed whatever its headers: they are two items (C-182's residual).
     """
     out: dict[str, list[tuple[int, int]]] = {}
     for parsed in files:
         mid = module_id(parsed.path)
+        kinds = {(s["qualname"], s["line"]): s["kind"] for s in parsed.symbols}
         for qualname, defs in parsed.defs.items():
-            if len(defs) > 1 and len({header for _, _, header in defs}) > 1:
+            if len(defs) > 1 and (
+                len({header for _, _, header in defs}) > 1
+                or len({kinds.get((qualname, line)) for line, _, _ in defs}) > 1
+            ):
                 out[f"{mid}.{qualname}"] = sorted((line, end) for line, end, _ in defs)
+    return out
+
+
+def same_header_repeats(files: list[RustFile]) -> dict[str, dict[str, list[tuple[int, int]]]]:
+    """By file, every id written two or more times with one header and one
+    kind that is not a cfg twin (C-182's residual): some def carries no
+    ``#[cfg]``, so lane A cannot say they are one item compiled two ways.
+    In a crate that compiles this cannot occur; a file no crate compiles
+    (memchr's ``benchmarks/haystacks``) writes it freely. Neither refused
+    nor mapped: the node is the first def and what a later def holds is
+    filed under it. Listed only so a record can name them.
+    """
+    shared = shared_qualnames(files)
+    twins = {symbol_id for by_id in cfg_twins(files).values() for symbol_id in by_id}
+    out: dict[str, dict[str, list[tuple[int, int]]]] = {}
+    for parsed in files:
+        mid = module_id(parsed.path)
+        for qualname, defs in parsed.defs.items():
+            symbol_id = f"{mid}.{qualname}"
+            if len(defs) > 1 and symbol_id not in shared and symbol_id not in twins:
+                out.setdefault(parsed.path, {})[symbol_id] = sorted(
+                    (line, end) for line, end, _ in defs
+                )
     return out
 
 

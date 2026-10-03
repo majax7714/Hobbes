@@ -15739,3 +15739,12 @@ went to the Rust collision.
   edges byte-identical, grade identical; the two records widened as measured (ADR-154's amendment).
 - **Checks:** `test_pystatic.py`, `test_pysource.py`, `test_later_defs.py` 332 passed; the suite on the
   commit in the clean worktree.
+
+## 2026-10-03 (thirty-seventh session, cont.) — C-182's residual refused or named (0.2.95-beta, ADR-165 amended)
+
+- **Measured first** (lane A's own read): memchr 5 two-kinds ids, 147 other same-header repeats, all in
+  `benchmarks/haystacks`; dagger `sdk/rust` and this repo 0.
+- **Built:** `shared_qualnames` also lists two kinds; `same_header_repeats` and the `rust-repeats` record;
+  the `rust-qualnames` record's wording names both shapes. `minirustimpl/haystacks/std.rs`, a file no target
+  includes, writes both shapes; `test_shared_qualnames.py` 30 passed, its `lane_b` case passed on the host.
+- **Regrade:** memchr ingested in 13 s; 919/0, 2 haystacks rows refused, nothing else moved (ADR-165).

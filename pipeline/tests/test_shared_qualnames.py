@@ -53,6 +53,10 @@ WIDTH_ALLOC = _line_of("cow.rs", "pub fn width(bytes: &[u8]) -> usize {")
 WIDTH_NO_ALLOC = _line_of("cow.rs", "pub fn width(bytes: &[u8]) -> usize {", 1)
 WIDTH_CALL = _line_of("lib.rs", "cow::width(bytes)")
 
+HAYSTACK = (FIXTURE / "haystacks" / "std.rs").read_text().splitlines()
+HAYSTACK_RENDER = [i + 1 for i, line in enumerate(HAYSTACK) if line.startswith("pub fn render")]
+HAYSTACK_RENDER_CALLS = [i + 1 for i, line in enumerate(HAYSTACK) if line.strip().startswith("helper()")]
+
 EXT = "src/ext"
 CLIENT = "src/client"
 
@@ -97,6 +101,25 @@ class TestTheCollisionSet:
         }
         assert [line for line, _ in shared[f"{EXT}.T.distance"]] == [DISTANCE_CONST, DISTANCE_MUT]
         assert [line for line, _ in shared[f"{CLIENT}.Id.from"]] == [FROM_STR, FROM_STRING]
+
+    def test_two_kinds_under_one_name_are_listed_and_a_bare_repeat_is_not(self):
+        # C-182's residual, memchr's `haystacks` shape: `struct B` and
+        # `const B` are two items; two ungated `fn render` share a header
+        # and a kind, and are named, not refused.
+        parsed = [rustsource._parse_file("haystacks/std.rs", (FIXTURE / "haystacks" / "std.rs").read_bytes())]
+        assert set(rustsource.shared_qualnames(parsed)) == {"haystacks/std.B"}
+        assert rustsource.same_header_repeats(parsed) == {
+            "haystacks/std.rs": {"haystacks/std.render": [(HAYSTACK_RENDER[0], HAYSTACK_RENDER[0] + 2),
+                                                          (HAYSTACK_RENDER[1], HAYSTACK_RENDER[1] + 2)]}
+        }
+        assert rustsource.cfg_twins(parsed) == {}
+
+    def test_cfg_twins_are_not_a_repeat(self):
+        files = [
+            rustsource._parse_file(f"src/{name}", (SRC / name).read_bytes())
+            for name in ("ext.rs", "client.rs", "cow.rs", "lib.rs")
+        ]
+        assert rustsource.same_header_repeats(files) == {}
 
     def test_cfg_twins_share_a_header_and_are_not_listed(self):
         shared = self._shared()
@@ -186,15 +209,32 @@ class TestLaneAAlone:
 
     def test_one_record_names_the_ids_and_the_register_entry(self, graph):
         [record] = [e for e in graph["extraction_errors"] if e["stage"] == "rust-qualnames"]
-        assert record["message"].startswith("4 Rust symbol id(s)")
+        # The four impl-header ids and haystacks' two-kinds `B` (C-182's
+        # residual); the fourth call is `helper()` inside `const B`.
+        assert record["message"].startswith("5 Rust symbol id(s)")
         assert "C-180" in record["message"] and "ADR-163" in record["message"]
-        assert "3 call(s)" in record["message"]
+        assert "4 call(s)" in record["message"]
 
     def test_one_record_names_the_cfg_twins_and_the_register_entry(self, graph):
         [record] = [e for e in graph["extraction_errors"] if e["stage"] == "rust-cfg-twins"]
         assert record["message"].startswith("2 Rust symbol id(s) are cfg twins")
         assert "C-182" in record["message"] and "ADR-165" in record["message"]
         assert f"src/cow.width (defs at line {WIDTH_ALLOC}, {WIDTH_NO_ALLOC})" in record["message"]
+
+    def test_a_two_kinds_repeat_is_refused_at_its_later_def(self, graph):
+        # `const B = helper();` at line 14, beside `struct B` at line 4.
+        assert not [e for e in graph["symbol_edges"] if e["from"] == "haystacks/std.B"]
+        [row] = [r for r in graph["resolution_coverage"] if r["file"] == "haystacks/std.rs"]
+        assert row["tail"][tail.SHARED_QUALNAME] == 1
+
+    def test_an_ungated_same_header_repeat_is_named_and_filed_as_before(self, graph):
+        # `fn render` twice, no `cfg`: one node, both bodies' calls under it.
+        edge = calls(graph)[("haystacks/std.render", "haystacks/std.helper")]
+        assert [row["line"] for row in edge["evidence"]] == [HAYSTACK_RENDER_CALLS[0], HAYSTACK_RENDER_CALLS[1]]
+        [record] = [e for e in graph["extraction_errors"] if e["stage"] == "rust-repeats"]
+        assert record["message"].startswith("1 Rust symbol id(s) in 1 file(s)")
+        assert "C-182" in record["message"] and "haystacks/std.rs" in record["message"]
+        assert f"haystacks/std.render (defs at line {HAYSTACK_RENDER[0]}, {HAYSTACK_RENDER[1]})" in record["message"]
 
     def test_the_class_is_available_to_rust(self, graph):
         assert tail.SHARED_QUALNAME in graph["tail_classes_available"]["rust"]

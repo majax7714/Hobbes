@@ -15,14 +15,6 @@ Last reviewed: 2026-10-03 (0.2.89-beta).
 
 ## Decisions open for Max (no spend)
 
-- **C-182's residual** (ADR-165): a Rust qualname repeated in one file
-  with one header that is not a cfg twin (an arm without `#[cfg]`, two
-  kinds such as `struct B` beside `const B`, or a file no crate compiles:
-  memchr's `haystacks`, 152 ids) is neither refused (C-180) nor mapped,
-  and no record names it. In a crate that compiles, only the two-kinds
-  shape can occur. Proposed: list a two-kinds repeat in
-  `shared_qualnames` (refused, a patch), and name the rest in the
-  `rust-cfg-twins` record; or leave it registered.
 - **C-181's residual** (ADR-164): a name that a stdlib import binds, and
   that an `except ImportError:` branch rebinds to a repo function, keeps
   lane A's `syntactic` edge to the repo function. Lane B's local answer

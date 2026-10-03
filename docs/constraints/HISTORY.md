@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-182 surfaced, 2026-10-03 (0.2.95-beta; ADR-165 amended, Max: the proposed route):
+- **C-182 partial → surfaced.** Its residual, same-header repeats that are not cfg twins, was named
+  nowhere. A two-kinds repeat (`struct B` beside `const B`) is now refused like C-180's ids; every other
+  repeat is named in a `rust-repeats` record. memchr: 5 refused, 147 named, all in `benchmarks/haystacks`.
+- Tally: 183 entries, 135 active (104 surfaced, 26 partial, 4 unsurfaced, 1 n/a), 31 lifted,
+  11 superseded, 6 folded.
+
 C-183 registered, 2026-10-03 (0.2.92-beta; ADR-166, Max: route 1, map each later `init` into the node):
 - **C-183 registered, surfaced.** A Go file may declare several `func init()`; lane A mints one
   `<module>.init` for them, and a lane B `uses` inside a later one was filed under the module (dagger: 89

@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (thirty-sixth session); Hobbes 0.2.94-beta on `main`.**
+**Reviewed 2026-10-03 (thirty-sixth session); Hobbes 0.2.95-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
 0.2.90-beta; this repo was ingested at `474a099` and the old knowledge
@@ -92,7 +92,7 @@ answers.
   its strict companion (ADR-124); fmt is 100%, strict 99.62%. Trace-graded
   Python cells measure recall, never precision (C-60). rich is fitted
   (ADR-160), and pyparsing is held out.
-- **Register:** 183 entries: 135 active (103 surfaced, 27 partial, 4
+- **Register:** 183 entries: 135 active (104 surfaced, 26 partial, 4
   unsurfaced — C-19, C-20, C-112, C-179 — 1 n/a), 31 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open.** H-37 is the latest, fixed at

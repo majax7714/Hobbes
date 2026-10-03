@@ -138,8 +138,9 @@
   through one reaches nothing there. The node's id does not say which
   impl block it is; its line does. Defs whose headers are written alike
   are not refused: a cfg twin (one item under two `#[cfg]` arms) is the
-  node's, both ways, since 0.2.89-beta (C-182); any other same-header
-  repeat is C-182's residual.
+  node's, both ways, since 0.2.89-beta (C-182). An id whose defs are of
+  two kinds (`struct B` beside `const B`) is listed and refused the same
+  way since 0.2.95-beta; any other same-header repeat is C-182's residual.
 - **Because:** the id is built from the impl's type name, not its full
   self-type or trait, and the first def of an id wins the node. Before
   ADR-163 the later def's facts were filed under the node: memchr's
@@ -165,7 +166,7 @@
   `~/.hobbes/bench/dup-qualnames-2026-10-02/` and
   `~/.hobbes/bench/c180-rust-impl-qualnames/`.
 
-### C-182 — A cfg twin is one node at its first arm, whichever arm the build compiles — *registered 2026-10-03 (0.2.89-beta, ADR-165); partial — a same-header repeat that is not a twin is not named*
+### C-182 — A cfg twin is one node at its first arm, whichever arm the build compiles — *registered 2026-10-03 (0.2.89-beta, ADR-165); its residual refused or named since 0.2.95-beta*
 - **Cannot tell you:** which arm of a Rust item written under two or more
   `#[cfg(…)]` arms the build compiles. A cfg twin is a qualname with two
   or more defs in one file, each gated by a `cfg` (on the item or an
@@ -180,14 +181,15 @@
   nothing and was tailed `below-floor`, the wrong cause). Where lane A's
   guess names one arm and lane B's answer another, `hobbes lanes` lists
   the row as `cfg-twin` and does not fail on it (exit 3, ADR-123).
-- **Residual (partial):** a qualname repeated in one file with one header
-  that is **not** a twin by that rule — no `cfg` on some arm, or two
-  kinds (Rust's type and value namespaces allow `struct B` beside `const
-  B`), or a file no crate compiles (memchr's `benchmarks/haystacks` std
-  copy: 152 such ids) — is neither refused (C-180) nor mapped. Its node
-  is the first def, a fact written inside a later def is filed as before
-  ADR-163, and a call lane B resolves onto a later def is `below-floor`.
-  No record names these ids ([`currently-open.md`](../currently-open.md)).
+- **Residual:** a qualname repeated in one file that is **not** a twin by
+  that rule. Two kinds (Rust's type and value namespaces allow `struct B`
+  beside `const B`) are two items, and since 0.2.95-beta such an id is
+  refused at its later def as C-180's are. One header and one kind with
+  no `cfg` on some arm — which no crate that compiles can write; memchr's
+  `benchmarks/haystacks` std copy writes it freely (147 ids) — is neither
+  refused nor mapped: its node is the first def, a fact written inside a
+  later def is filed under it, and a call lane B resolves onto a later def
+  is `below-floor`. A `rust-repeats` record names these ids.
 - **Because:** the id is built from the item's path, which `cfg` does not
   change, and lane A does not read the build's feature set. Telling the
   arms apart (reading `cargo metadata`'s features) is the prevention, and
@@ -199,11 +201,13 @@
   `cfg(test)` pairs), none of whose later arms is a lane B answer, so its
   graph is byte-identical; dagger `sdk/rust` and rust_proj 0; this repo 2
   (`minirustimpl`).
-- **You find out:** partial — every ingest with a twin writes one
+- **You find out:** surfaced — every ingest with a twin writes one
   `rust-cfg-twins` degradation record (the count, examples with their def
   lines, this entry), shown by `list_blind_spots` and the ingest summary;
-  `hobbes lanes` cites this entry beside the `cfg-twin` count. The
-  residual's ids are named nowhere.
+  `hobbes lanes` cites this entry beside the `cfg-twin` count. Since
+  0.2.95-beta a `rust-repeats` record names the residual's ids, their
+  files and def lines, and a refused two-kinds id is counted in the
+  `rust-qualnames` record and the tail's `shared-qualname`.
 - **Source:** ADR-165; CI run 37127474375; the measurement and regrade
   `~/.hobbes/bench/c182-rust-cfg-twins/`.
 

@@ -447,7 +447,10 @@ one kind and one header — is the node's **both ways** since 0.2.89-beta
 (ADR-165, C-182): a fact written inside a later arm is filed under the
 node, a call lane B resolves onto one draws to it (lane B names the arm
 the build compiled), and one `rust-cfg-twins` record per ingest names the
-twins; a same-header repeat that is not a twin is neither. A
+twins. Since 0.2.95-beta an id whose defs are of two kinds (`struct B`
+beside `const B`) is refused like a differently headed one, and any other
+same-header repeat that is not a twin is neither refused nor mapped and is
+named in one `rust-repeats` record (C-182's residual). A
 refused call is tailed `shared-qualname` (a site only lane A answered
 moves there from `fallback-resolved`), and one `rust-qualnames` record
 per ingest counts the ids and the refusals. The node and its first
@@ -2277,7 +2280,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.94-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.94-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.95-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.95-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

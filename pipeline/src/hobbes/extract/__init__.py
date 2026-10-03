@@ -478,11 +478,12 @@ def _shared_qualname_record(
         "message": (
             f"{len(shared_later)} Rust symbol id(s) are minted by two or more "
             "differently written impl blocks in one file (`impl Pointer for *const T` "
-            "and `impl Pointer for *mut T` both name `T.distance`); each node is the "
+            "and `impl Pointer for *mut T` both name `T.distance`), or by two kinds of "
+            "item (`struct B` beside `const B`); each node is the "
             "first def, and a later def has no node of its own, so what is written "
             f"inside or resolved onto one is refused: {calls} call(s), counted in the "
             f"tail as `shared-qualname`, and {len(refused) - calls} other reference(s) "
-            f"(ADR-163, C-180). Later defs: {examples}"
+            f"(ADR-163, C-180, C-182). Later defs: {examples}"
         ),
     }
 
@@ -502,6 +503,31 @@ def _go_init_record(inits: dict[str, list[tuple[int, int]]]) -> dict:
             "all and no code can name one, so each file's are one node, `<module>.init`, "
             "at the first def, and what is written inside a later one is filed under it "
             f"(ADR-166, C-183). Read an edge's evidence line to tell them apart. {examples}"
+        ),
+    }
+
+
+def _rust_repeat_record(repeats: dict[str, dict[str, list[tuple[int, int]]]]) -> dict:
+    """The one degradation record per ingest naming C-182's residual: ids
+    written two or more times with one header and one kind that are not a
+    cfg twin, neither refused nor mapped (ADR-165's amendment)."""
+    files = sorted(repeats)
+    ids = [symbol_id for path in files for symbol_id in repeats[path]]
+    examples = "; ".join(
+        f"{symbol_id} (defs at line {', '.join(str(line) for line, _ in repeats[path][symbol_id])})"
+        for path in files
+        for symbol_id in list(repeats[path])[:3]
+    )
+    return {
+        "path": ".",
+        "stage": "rust-repeats",
+        "message": (
+            f"{len(ids)} Rust symbol id(s) in {len(files)} file(s) are written two or more "
+            "times with one header and one kind, and some def carries no `#[cfg]`, so lane A "
+            "cannot say they are one item compiled two ways (a file no crate compiles writes "
+            "this freely); each is one node at its first def, a later def's facts are filed "
+            "under it and a call resolved onto one is `below-floor` (ADR-165, C-182). "
+            f"Files: {', '.join(files[:5])}{' …' if len(files) > 5 else ''}. {examples}"
         ),
     }
 
@@ -1176,6 +1202,8 @@ def _build_symbol_layer(
         degraded.append(_shared_qualname_record(shared_later, projected["shared_qualname"]))
     if rust and rust.get("cfg_twins"):
         degraded.append(_cfg_twin_record(rust["cfg_twins"]))
+    if rust and rust.get("same_header_repeats"):
+        degraded.append(_rust_repeat_record(rust["same_header_repeats"]))
     if go_inits:
         degraded.append(_go_init_record(go_inits))
     graph["resolution_coverage"] = [

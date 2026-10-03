@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; last refreshed 2026-10-03 (0.2.94-beta).** Each refresh is in its date's `BUILDLOG.md` entry, and each version's change in `CHANGELOG.md`. Hobbes is now a group project, and this file is
+**Written 2026-08-24; last refreshed 2026-10-03 (0.2.95-beta).** Each refresh is in its date's `BUILDLOG.md` entry, and each version's change in `CHANGELOG.md`. Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
