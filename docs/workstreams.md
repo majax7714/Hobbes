@@ -271,8 +271,11 @@ the best on-ramp for a new contributor who should learn the codebase.*
   Java and Terraform walks are iterative, and every lane A provider contains
   an overflow per file, naming it in `extraction_errors` (C-171; Python's
   visitor, about 600 levels, is the residual). C's unread-region record now
-  says its definitions are lost (C-172). Open from it: C and C++ lane A time
-  grows about 8× per doubling of a chain's depth — measure first.
+  says its definitions are lost (C-172). Open from it, and **done
+  2026-10-02 (no version):** C and C++ lane A time grew about 8× per
+  doubling of a chain's depth, from ancestor checks reading `Node.parent`
+  back to the root; the answers are carried down the walk now, linear, the
+  graph byte-identical.
 - ~~**Java resolve staging (review 2026-09-10, C-66):** `.mvn/`,
   `gradle/` and `buildSrc/` bypass the source-suffix filter.~~ — **done
   2026-09-10 (later), 0.1.9-beta:** one walk, one rule; the notice

@@ -76,9 +76,6 @@ Last reviewed: 2026-10-02 (0.2.86-beta).
    `semantic` rows whose line does not hold the target's name (C-178's
    check), because a trace key grades calls only.
 2. C-174's remainder, per language.
-3. **C and C++ lane A time** grows about 8× per doubling of chain depth
-   (6 s and 12 s at 800 calls). A measured-fix candidate; it changes no
-   graph.
 
 ### Candidates, unranked
 

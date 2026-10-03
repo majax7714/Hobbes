@@ -15466,3 +15466,40 @@ model, with honesty given more weight and one close-out rule in place of per-tas
   recorded as our own convention).
 - **The architecture** no longer says to read it whole. Its opening and §9 now say it is read by
   section, and that a session loads CLAUDE.md and the handoff.
+
+## 2026-10-02 (thirty-fifth session) — C and C++ lane A linear in chain depth (no version)
+
+**The open item** (`currently-open.md` extraction 3, first seen at 0.2.71-beta): C and C++ lane A time grew
+about 8× per doubling of a call chain's depth.
+- **Reproduced** on `void f() { x = a().b().b()…; }`, `_parse_file` alone, `HOBBES_SCIP=0`: C 0.015 / 0.105 /
+  0.776 / 6.09 s and C++ 0.039 / 0.215 / 1.58 / 15.2 s at N = 100 / 200 / 400 / 800. That is cubic.
+- **The cause, profiled with cProfile:** `csource._unevaluated`, and `cppsource._unevaluated` and `_in_template`,
+  read `node.parent` back to the root for every candidate node. In tree-sitter, `Node.parent` holds no pointer.
+  It descends from the root, so each read costs O(depth), each check costs O(depth²), and a chain costs N³. The
+  per-node `node.parent` reads in `_operator_tokens` and `_construction_tokens` (ERROR parent,
+  `_declares_in_place`, `_inside_a_body`) had the same cost.
+- **The fix** changes no answer. The answers are carried down the walk:
+  - C uses `csource._walk_with_operands`, which pairs each node with its unevaluated flag;
+  - C++ uses `cppsource._walk_in_context`, a `_Context` holding the parent, the grandparent, the unevaluated,
+    template and body flags. `_calls`, `_operator_tokens` and `_construction_tokens` all walk with it;
+  - `_constructions_of` takes the context, and `_declares_in_place` takes its holder.
+
+  Each flag is the parent's flag or the parent's own type. The root's flags are read the old way, once.
+- **After:** C 0.001 / 0.002 / 0.003 / 0.006 / 0.017 / 0.055 s and C++ 0.002 / 0.004 / 0.007 / 0.014 / 0.029 /
+  0.128 s at N = 100 … 800, 1,600, 5,000. On fmt, cJSON and args (176 files, best of 5) the bulk parse took
+  1.86 s against 1.88 s before. A first version cost +37% there from a context per leaf and a generator, and
+  was trimmed before landing.
+- **Graph identity:**
+  - **Per file:** `_parse_file` was dumped through both parsers for every C/C++ file under fmt, cJSON, args,
+    a synthetic deep fixture (sizeof, decltype, noexcept, template, `->` chains, constructions),
+    `pipeline/tests/fixtures` and `bench/oracle/testdata`: 628 parses, and `cmp` found them identical.
+  - **Per ingest:** a lane A ingest (`HOBBES_SCIP=0 HOBBES_LANEA_CACHE=0`) of the four repos was run before
+    and after. Each `graph.json` is identical except `built_by.dirty`, the uncommitted tree.
+  - The cells were copies in the scratchpad. The bench clones were not touched.
+- **Held by a test.** `tests/test_deep_files.py` now holds C and C++ to a 2,000-call chain in under 2 s, every
+  call read. On the old code the C case failed after 94 s. It also checks that sizeof, decltype and noexcept
+  still drop every call and `->` token at that depth.
+- **Checks:** the full pytest suite, 2,684 passed (lane_b not run; nothing here touches lane B).
+- **No version:** nothing drawn, refused or said changes (CLAUDE.md §7). The C++ lane A cache misses once,
+  because its fingerprint hashes the extraction code. The architecture's ADR-128 paragraph names the carried
+  walk. `workstreams.md` and `currently-open.md` were updated, and the item was removed from the latter.

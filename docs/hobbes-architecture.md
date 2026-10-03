@@ -1181,7 +1181,12 @@ tagged, never pickle — keyed on those and the grammar's installed
 version; `HOBBES_LANEA_CACHE=0` parses afresh, the summary prints hits
 and misses, the residue is C-160. Only C++: no other language's lane A
 has a cost to buy back. Built, on ScummVM: C++ lane A 144 s cold and
-21.7 s warm, lane A 261 s → 39.5 s, both byte-identical, 318 MB. **Both stores a later ingest reads as an answer
+21.7 s warm, lane A 261 s → 39.5 s, both byte-identical, 318 MB. C's
+and C++'s walks carry each node's ancestor answers down from its parent
+(inside an unevaluated operand, a template, a body; its parent and
+grandparent), because tree-sitter's `Node.parent` descends from the root
+and reading ancestors back made a chain of depth N cost N³ (2026-10-02;
+`csource._walk_with_operands`, `cppsource._walk_in_context`). **Both stores a later ingest reads as an answer
 — `<cache>/index` and `<cache>/lanea` — ride read-only in every contained
 step** (ADR-128 §1): before, repo code in a container could write lane
 B's index store. The tool caches and the stage stay writable by design,

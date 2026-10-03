@@ -149,6 +149,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from itertools import repeat
 from pathlib import Path, PurePosixPath
 
 import tree_sitter_c
@@ -669,18 +670,40 @@ def _unevaluated(node: Node) -> bool:
     return False
 
 
+def _walk_with_operands(root: Node):
+    """:func:`_walk`'s pre-order, each node paired with :func:`_unevaluated`'s
+    answer for it — carried down from the parent rather than read back up
+    to the root.
+
+    ``Node.parent`` holds no pointer: tree-sitter finds a parent by
+    descending from the root, so reading the ancestors back costs the
+    depth squared per node, and a call chain of depth N cost N³ (6 s at 800
+    calls in C, 15 s in C++). Carried down, the walk is linear and the
+    answer is the same, since a node's flag is its parent's flag or the
+    parent's own type. Only the root's is read back, once.
+    """
+    stack = [(root, _unevaluated(root))]
+    while stack:
+        current, unevaluated = stack.pop()
+        yield current, unevaluated
+        if not current.child_count:
+            continue
+        below = unevaluated or current.type in _UNEVALUATED_OPERANDS
+        stack.extend(zip(reversed(current.children), repeat(below)))
+
+
 def _calls(root: Node, symbols: list[dict]) -> list[dict]:
     """Every call site — decision 5's three callee shapes. Position is the
     terminal identifier's, so the (never-run, in this unit) semantic join
     would key on where the name is, same as every other language."""
     found: list[dict] = []
-    for node in _walk(root):
+    for node, unevaluated in _walk_with_operands(root):
         if node.type != "call_expression":
             continue
         # Inside an unevaluated operand there is no call to record, at
         # any depth and in any of the three shapes (ADR-121 §1's
         # amendment).
-        if _unevaluated(node):
+        if unevaluated:
             continue
         function = node.child_by_field_name("function")
         if function is None:

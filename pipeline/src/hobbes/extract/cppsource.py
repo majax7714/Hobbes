@@ -191,7 +191,9 @@ import bisect
 from array import array
 from collections import defaultdict
 from dataclasses import dataclass, field
+from itertools import repeat
 from pathlib import Path, PurePosixPath
+from typing import NamedTuple
 
 import tree_sitter_cpp
 from tree_sitter import Language, Node, Parser
@@ -1442,14 +1444,76 @@ def _unevaluated(node: Node) -> bool:
     """
     parent = node.parent
     while parent is not None:
-        if parent.type in _UNEVALUATED_OPERANDS:
+        if _opens_unevaluated(parent):
             return True
-        if parent.type == "call_expression":
-            function = parent.child_by_field_name("function")
-            if function is not None and function.type == "identifier" and _text(function) == "noexcept":
-                return True
         parent = parent.parent
     return False
+
+
+def _opens_unevaluated(node: Node) -> bool:
+    """Whether everything under *node* is an unevaluated operand — one of
+    :data:`_UNEVALUATED_OPERANDS`, or a ``noexcept(..)`` expression, which
+    the grammar spells as a call."""
+    if node.type in _UNEVALUATED_OPERANDS:
+        return True
+    if node.type == "call_expression":
+        function = node.child_by_field_name("function")
+        if function is not None and function.type == "identifier" and _text(function) == "noexcept":
+            return True
+    return False
+
+
+class _Context(NamedTuple):
+    """What a node's ancestors say about it, carried down by
+    :func:`_walk_in_context`: its parent and grandparent, and the answers
+    :func:`_unevaluated`, :func:`_in_template` and :func:`_inside_a_body`
+    would give for it."""
+
+    parent: Node | None
+    grandparent: Node | None
+    unevaluated: bool
+    in_template: bool
+    in_body: bool
+
+
+def _walk_in_context(root: Node):
+    """:func:`_walk`'s pre-order, each node paired with its :class:`_Context`
+    — carried down from the parent rather than read back up to the root.
+
+    ``Node.parent`` holds no pointer: tree-sitter finds a parent by
+    descending from the root, so reading the ancestors back costs the
+    depth squared per node, and a call chain of depth N cost N³ (15 s at
+    800 calls). Carried down, the walk is linear and every answer is the
+    same, since each is the parent's answer or the parent's own type. Only
+    the root's are read back, once.
+    """
+    parent = root.parent
+    stack = [
+        (
+            root,
+            _Context(
+                parent,
+                parent.parent if parent is not None else None,
+                _unevaluated(root),
+                _in_template(root),
+                _inside_a_body(root),
+            ),
+        )
+    ]
+    while stack:
+        current, context = stack.pop()
+        yield current, context
+        if not current.child_count:
+            continue
+        kind = current.type
+        below = _Context(
+            current,
+            context.parent,
+            context.unevaluated or _opens_unevaluated(current),
+            context.in_template or kind == "template_declaration",
+            context.in_body or kind == "compound_statement",
+        )
+        stack.extend(zip(reversed(current.children), repeat(below)))
 
 
 def _site(
@@ -1480,12 +1544,12 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
     the terminal identifier's, so lane B's join keys on where the name is,
     same as every other language."""
     found: list[dict] = []
-    for node in _walk(root):
+    for node, context in _walk_in_context(root):
         if node.type not in ("call_expression", "new_expression", "declaration"):
             continue
         # Every shape below, dropped in one place: inside an unevaluated
         # operand there is no call to record (ADR-121 §1).
-        if _unevaluated(node):
+        if context.unevaluated:
             continue
         if node.type == "call_expression":
             function = node.child_by_field_name("function")
@@ -1536,13 +1600,12 @@ def _operator_tokens(root: Node) -> array:
     written past :data:`COLUMN_LIMIT`.
     """
     packed: set[int] = set()
-    for node in _walk(root):
+    for node, context in _walk_in_context(root):
         if node.type not in _OPERATOR_NODES:
             continue
-        parent = node.parent
-        if parent is not None and parent.type == "ERROR":
+        if context.parent is not None and context.parent.type == "ERROR":
             continue
-        if _unevaluated(node):
+        if context.unevaluated:
             continue
         token, spelling = _operator_of(node)
         if token is None:
@@ -1552,7 +1615,7 @@ def _operator_tokens(root: Node) -> array:
             continue
         packed.add(
             pack_operator(
-                token.start_point.row + 1, column, spelling, _in_template(node)
+                token.start_point.row + 1, column, spelling, context.in_template
             )
         )
     return array("Q", sorted(packed))
@@ -1608,16 +1671,15 @@ def _construction_tokens(root: Node) -> array:
     one written past :data:`COLUMN_LIMIT`.
     """
     packed: set[int] = set()
-    for node in _walk(root):
-        found = _constructions_of(node)
+    for node, context in _walk_in_context(root):
+        found = _constructions_of(node, context)
         if not found:
             continue
-        parent = node.parent
-        if parent is not None and parent.type == "ERROR":
+        if context.parent is not None and context.parent.type == "ERROR":
             continue
-        if _unevaluated(node):
+        if context.unevaluated:
             continue
-        in_template = _in_template(node)
+        in_template = context.in_template
         for token, kind in found:
             column = token.start_point.column
             if column >= COLUMN_LIMIT:
@@ -1630,8 +1692,9 @@ def _construction_tokens(root: Node) -> array:
     return array("Q", sorted(packed))
 
 
-def _constructions_of(node: Node) -> list[tuple[Node, str]]:
-    """The construction tokens *node* itself carries, as ``(token, kind)``.
+def _constructions_of(node: Node, context: _Context) -> list[tuple[Node, str]]:
+    """The construction tokens *node* itself carries, as ``(token, kind)``;
+    *context* is what its ancestors say (:func:`_walk_in_context`).
 
     Usually none. A ``declaration`` can carry more than one — ``T a, b;``
     declares two — and every other shape carries at most one. The three
@@ -1649,7 +1712,7 @@ def _constructions_of(node: Node) -> list[tuple[Node, str]]:
             and value.type in ("argument_list", "initializer_list")
             and declarator is not None
             and declarator.type == "identifier"
-            and _declares_in_place(node.parent)
+            and _declares_in_place(context.parent, context.grandparent)
         ):
             return [(declarator, "decl-init")]
         return []
@@ -1661,14 +1724,14 @@ def _constructions_of(node: Node) -> list[tuple[Node, str]]:
         if (
             declarator is not None
             and declarator.type == "identifier"
-            and _declares_in_place(node.parent)
-            and _inside_a_body(node)
+            and _declares_in_place(context.parent, context.grandparent)
+            and context.in_body
         ):
             return [(declarator, "decl-paren")]
         return []
     if node.type == "declaration":
         # `T x;` — the default constructor, with no initialiser to read.
-        if not _declares_in_place(node):
+        if not _declares_in_place(node, context.parent):
             return []
         return [
             (child, "decl-default")
@@ -1689,7 +1752,7 @@ def _constructions_of(node: Node) -> list[tuple[Node, str]]:
         # constructs the parameter's or the return's type. Under an
         # `init_declarator` the declarator is the token instead, and no
         # other holder is recorded.
-        parent = node.parent
+        parent = context.parent
         if parent is not None and parent.type in ("argument_list", "return_statement"):
             brace = node.child(0)
             if brace is not None and brace.type == "{":
@@ -1714,16 +1777,16 @@ def _constructions_of(node: Node) -> list[tuple[Node, str]]:
     return []
 
 
-def _declares_in_place(declaration: Node | None) -> bool:
+def _declares_in_place(declaration: Node | None, holder: Node | None) -> bool:
     """Whether *declaration* is one a ``decl-*`` token may be read from: a
-    declaration with a type, sitting directly in one of
-    :data:`_DECLARATION_HOLDERS`."""
+    declaration with a type, sitting directly in *holder*, one of
+    :data:`_DECLARATION_HOLDERS`. The caller passes the holder, its parent,
+    because ``Node.parent`` is a walk from the root (:func:`_walk_in_context`)."""
     if declaration is None or declaration.type != "declaration":
         return False
     if declaration.child_by_field_name("type") is None:
         return False
-    parent = declaration.parent
-    return parent is not None and parent.type in _DECLARATION_HOLDERS
+    return holder is not None and holder.type in _DECLARATION_HOLDERS
 
 
 def _inside_a_body(node: Node) -> bool:
