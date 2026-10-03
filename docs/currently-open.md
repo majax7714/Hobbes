@@ -107,9 +107,8 @@ Last reviewed: 2026-10-03 (0.2.89-beta).
   call: the prevention**, ids that tell the impl blocks apart (Java's
   `~n`, or a self-type that keeps `*const`/`*mut` and the trait). It
   changes symbol ids; built, each later def gets a node and C-180 lifts
-  (dagger would get back its 229 calls and memchr its 2). **Go's second
-  `init`** files its lane B `uses` under the module (dagger, 89 rows in 22
-  files): unregistered, not yet contained.
+  (dagger would get back its 229 calls and memchr its 2). Go's second
+  `init` is mapped into the node (C-183, ADR-166, 0.2.92-beta).
 - **An `extends`-chain walk (TS/JS):** 104 rows at 0 contradicted (ajv 18,
   hono 8, xmpp.js 2, zod about 76), 0 on Preact. It would be a new kind of
   rule (a chain of lane B hops) for under a point per cell. Measured, not

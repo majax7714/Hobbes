@@ -643,6 +643,29 @@ def _is_test(rel: str, symbol: dict) -> bool:
     )
 
 
+def init_spans(files: list[GoFile]) -> dict[str, list[tuple[int, int]]]:
+    """Every ``<module>.init`` id a file writes two or more ``func init()``
+    for, with the ``(line, end_line)`` of each def (ADR-166, C-183).
+
+    Go lets a file declare any number of package-level ``init`` functions
+    and runs them all, in order, before ``main``; no code can name or call
+    one. Lane A mints one id per file for all of them and the node sits at
+    the first, so every def is the node's: a fact written inside a later
+    one is filed under it. A method named ``init`` has a receiver and its
+    own qualname, and is not listed.
+    """
+    out: dict[str, list[tuple[int, int]]] = {}
+    for parsed in files:
+        defs = sorted(
+            (symbol["line"], symbol["end_line"])
+            for symbol in parsed.symbols
+            if symbol["kind"] == "function" and symbol["qualname"] == "init"
+        )
+        if len(defs) > 1:
+            out[f"{module_id(parsed.path)}.init"] = defs
+    return out
+
+
 def _join(files: list[GoFile]) -> dict:
     """Assemble the layer bundle — the `tssource.join_facts` contract."""
     nodes: dict[str, dict] = {}
@@ -707,6 +730,9 @@ def _join(files: list[GoFile]) -> dict:
             for parsed in files
             if parsed.build_constraint
         },
+        # ADR-166 (C-183): a file's `func init()` defs, where it writes two
+        # or more; the projection reads the later ones as the node's lines.
+        "init_spans": init_spans(files),
         "files": files,
         "tests": sorted(
             (test for parsed in files for test in parsed.tests),

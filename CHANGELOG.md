@@ -11,9 +11,25 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.91-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.92-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.92-beta — 2026-10-03 (a Go file's `init` functions are one node; a fact inside a later one is the node's; ADR-166, C-183)
+
+**Patch: where the layer files a fact**, Go. The duplicate-qualname measurement (2026-10-02) found dagger's
+second `func init()` in 22 files filing its lane B `uses` under the module, unregistered. Max chose route 1 of
+three: map each later `init` into the node.
+
+- **Why one node.** Go runs every `init` a file declares and no code can name one, so lane A's one id per file,
+  `<module>.init`, at the first def, is a true source for what any of them does. The calls in a later `init` were
+  already filed there; now the uses are too.
+- **How.** Lane A lists a file's `init` defs where it writes two or more (`gosource.init_spans`, a method named
+  `init` excepted). The later ones join ADR-155's later defs, read by the projection's enclosing lookup only.
+- **Said.** One `go-inits` record per ingest names the files and the later defs' lines (C-183, surfaced),
+  shown by `list_blind_spots` and the ingest summary.
+- Refusing (C-180's route) was rejected: nothing about the edge is false, and dagger would lose 96 rows.
+- **Regraded** dagger: exactly the 89 rows moved, nothing else; Go symbols identical.
 
 ## 0.2.91-beta — 2026-10-03 (verify: a test that errors on both trees is a fault, not a failure; ADR-100 amended, harness v3)
 

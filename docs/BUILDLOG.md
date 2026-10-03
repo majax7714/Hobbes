@@ -15699,3 +15699,17 @@ went to the Rust collision.
   `FAILING`; any other `error` still fails. Harness v3; ADR-100 amended. Session `54cf`'s row reads as a
   fault now; a stored record is rescored into a new file, never in place.
 - **Checks:** `test_harness.py` 28 passed (one new test; the Go verify test's version pin moved to 3).
+
+## 2026-10-03 (thirty-seventh session, cont.) — Go's later `init` is the node's; C-183 registered (0.2.92-beta, ADR-166)
+
+- **Probe** (dagger's stored graph, `internal/cmd/dagger/main.go`): inside the second `init` (143–245),
+  68 lane B `uses` sat under the module and 7 lane B `calls` already under `main.init`. Module ids are per
+  file, so the id is shared only within a file.
+- **Built** (Max: route 1): `gosource.init_spans` (a method named `init` excepted), merged into ADR-155's
+  `later_defs` before the projection; a `go-inits` record. `minigoinit` fixture: dagger's first `init`
+  verbatim and a second in its shape. Without the spans the hand-built use lands on the module (checked).
+- **Regrade:** dagger re-ingested contained (about 20 min); 89 rows moved, nothing else (ADR-166).
+  A wait loop on `pgrep -f "hobbes ingest --repo …"` matched its own command line and never ended
+  (the known trap); the log's "wrote graph.json" line is the signal.
+- **Checks:** `test_go_inits.py` 8 passed, 1 `lane_b` passed on the host with scip-go; the suites run on
+  the commit in a clean worktree.

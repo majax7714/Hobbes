@@ -455,6 +455,14 @@ def's edges are untouched; the module edge a refused fact raises is
 kept. Ids that tell the blocks apart (Java's `~n`, or the full self-type)
 are the open prevention.
 
+A Go file may declare any number of `func init()`; Go runs them all and no
+code can name one, so lane A mints one id per file, `<module>.init`, at the
+first def. Since 0.2.92-beta (ADR-166, C-183) every later `init`'s lines
+are the node's when the projection looks for a fact's caller (ADR-155's
+enclosing lookup, not the start one), so a lane B `uses` written inside a
+later `init` is filed under the node and not the module; one `go-inits`
+record per ingest names the files.
+
 **Lane A no longer *resolves* symbols; it still *detects* syntax (ADR-029).**
 An earlier wording said resolution "moves entirely to lane B", which assumed
 lane B could answer everything lane A could. It cannot answer *is this a
@@ -2268,7 +2276,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.91-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.91-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.92-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.92-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

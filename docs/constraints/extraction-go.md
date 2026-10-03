@@ -125,6 +125,36 @@
   (`S-20260913T145700Z-a323`); registered as its own entry on Max's
   decision, 2026-09-13, under the residue rule (ADR-043; C-11 → C-24).
 
+### C-183 — A Go file's `func init()` defs are one node, at the first — *registered 2026-10-03 (0.2.92-beta, ADR-166)*
+- **Cannot tell you:** which of a file's `init` functions an edge comes
+  from, where the file declares two or more. Go runs every package-level
+  `init` a file writes, in order, and no code can name or call one, so
+  lane A mints one id per file, `<module>.init`, and the node sits at the
+  first def. What is written inside any of them is filed under that node
+  (since 0.2.92-beta; before, a lane B `uses` fact inside a later `init`
+  had no lane A scope and was filed under the module). The edge's
+  evidence line tells the defs apart; the node's own line and extent are
+  the first def's. A method named `init` has a receiver and its own
+  qualname, and is not one of them.
+- **Because:** an id is `<module>.<qualname>` (ADR-021), and every `init`
+  in a file has the qualname `init`. Telling them apart (`init~2`, as
+  Java suffixes overloads) changes symbol ids for nothing a caller could
+  use: no code can reference an `init`.
+- **Bites at:** `graph_neighborhood` and `who_calls` on `<module>.init`
+  (one node's edges, from every def), and the node's line in
+  `get_module_doc`. Measured 2026-10-02 over the Go cells: dagger 22
+  files (89 lane B `uses` moved from the module to the node at
+  0.2.92-beta; its 7 `calls` there were already the node's); fzf, mux,
+  toml, cobra and quic-go 0.
+- **You find out:** surfaced — every ingest where a file declares two or more `init`
+  writes one `go-inits` degradation record (the count, examples with
+  their later defs' lines, this entry), shown by `list_blind_spots` and
+  the ingest summary.
+- **Provider (P9):** none; this is Hobbes's id rule.
+- **Source:** the duplicate-qualname measurement,
+  `~/.hobbes/bench/dup-qualnames-2026-10-02/RESULTS.md`; ADR-166; the
+  regrade `~/.hobbes/bench/c183-go-inits/`.
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

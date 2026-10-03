@@ -487,6 +487,25 @@ def _shared_qualname_record(
     }
 
 
+def _go_init_record(inits: dict[str, list[tuple[int, int]]]) -> dict:
+    """The one degradation record ADR-166 writes per ingest where a Go file
+    declares two or more ``func init()``: how many, and examples."""
+    examples = "; ".join(
+        f"{symbol_id} (later def at line {', '.join(str(line) for line, _ in spans)})"
+        for symbol_id, spans in list(inits.items())[:3]
+    )
+    return {
+        "path": ".",
+        "stage": "go-inits",
+        "message": (
+            f"{len(inits)} Go file(s) declare two or more `func init()`; Go runs them "
+            "all and no code can name one, so each file's are one node, `<module>.init`, "
+            "at the first def, and what is written inside a later one is filed under it "
+            f"(ADR-166, C-183). Read an edge's evidence line to tell them apart. {examples}"
+        ),
+    }
+
+
 def _cfg_twin_record(twins: dict[str, dict[str, list[tuple[int, int]]]]) -> dict:
     """The one degradation record ADR-165 writes per ingest with a Rust
     cfg twin (C-182): how many, and examples with their def lines."""
@@ -865,6 +884,12 @@ def _build_symbol_layer(
         if rust
         else {}
     )
+    # ADR-166 (C-183): a Go file's later `func init()` defs, read off the
+    # settled symbols the same way; every init is the node's code, so they
+    # join ADR-155's later defs and the enclosing lookup files under it.
+    go_inits = _shared_later_defs(graph["symbols"], go.get("init_spans") or {}) if go else {}
+    if go_inits:
+        later_defs = {**(later_defs or {}), **go_inits}
     with timings.step("project"):
         projected = scipsource.project(
             resolved,
@@ -1151,6 +1176,8 @@ def _build_symbol_layer(
         degraded.append(_shared_qualname_record(shared_later, projected["shared_qualname"]))
     if rust and rust.get("cfg_twins"):
         degraded.append(_cfg_twin_record(rust["cfg_twins"]))
+    if go_inits:
+        degraded.append(_go_init_record(go_inits))
     graph["resolution_coverage"] = [
         {
             "file": row.file,

@@ -6,6 +6,14 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-183 registered, 2026-10-03 (0.2.92-beta; ADR-166, Max: route 1, map each later `init` into the node):
+- **C-183 registered, surfaced.** A Go file may declare several `func init()`; lane A mints one
+  `<module>.init` for them, and a lane B `uses` inside a later one was filed under the module (dagger: 89
+  rows in 22 files), unregistered. The later defs now join ADR-155's enclosing lookup, so the fact is the
+  node's; a `go-inits` record names the files.
+- Tally: 183 entries, 135 active (103 surfaced, 27 partial, 4 unsurfaced, 1 n/a), 31 lifted,
+  11 superseded, 6 folded.
+
 C-182 registered, 2026-10-03 (0.2.89-beta; ADR-165, Max: route 1, then "map to the node"):
 - **C-182 registered, partial.** CI's `hobbes lanes` failed on the `minirustimpl` fixture's cfg twin:
   lane A guessed the first `width` arm, lane B named the compiled one. A probe showed the graph drew no

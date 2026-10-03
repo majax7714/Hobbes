@@ -131,7 +131,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-63, C-165, C-166, C-167, C-168, C-177, C-98, C-99, C-100, C-90, C-89, C-11, C-24, C-97 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
 | [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-64, C-150, C-158, C-159, C-161, C-173, C-74, C-85, C-79, C-16, C-33, C-34 |
-| [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102, C-141, C-139 |
+| [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102, C-141, C-183, C-139 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-157, C-180, C-182, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
 | [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-131, C-132, C-133, C-134, C-135, C-136, C-138, C-149, C-172, C-130, C-137 |
@@ -151,11 +151,11 @@ their segment, in that order, and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and eighty-two entries: one hundred and thirty-four active, thirty-one lifted, eleven superseded, six folded**
+**One hundred and eighty-three entries: one hundred and thirty-five active, thirty-one lifted, eleven superseded, six folded**
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 102 | every active entry not listed below |
+| active — surfaced | 103 | every active entry not listed below |
 | active — *partial* | 27 | C-1, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150, C-153, C-164, C-167, C-168, C-176, C-181, C-182 |
 | active — **unsurfaced** (debt) | 4 | C-19, C-20, C-112, C-179 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
