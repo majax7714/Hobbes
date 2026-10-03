@@ -20,6 +20,7 @@ and :func:`ingest` (extract, stamp with the repo's git SHA, write).
 
 from __future__ import annotations
 
+import re
 import subprocess
 
 from collections import Counter, defaultdict
@@ -608,6 +609,79 @@ def _python_loads_record(loads: list[dict]) -> dict:
             f"the review name the load beside it; {len(unplaced)} name no module the ingest "
             "could place (outside the repo, not literal, or more than one candidate)"
             + (f": {examples}" if examples else "")
+        ),
+    }
+
+
+#: A name spelled like a C/C++ macro: capitals and digits in two or more
+#: underscore-joined parts (``GTEST_LOCK_EXCLUDED_``, ``FMT_CATCH``).
+_MACRO_STYLE = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]*)+$")
+
+#: What ends a declarator's parameter list and may precede a trailing
+#: annotation macro: ``)`` and the qualifiers written after it.
+_AFTER_PARAMETERS = re.compile(r"(?:\)|\bconst|\bvolatile|\bnoexcept|\boverride|\bfinal|&)\s*$")
+
+#: A member initialiser list's start: ``) :`` (C-164's second shape).
+_INITIALISER_START = re.compile(r"\)\s*:\s*$")
+
+#: A block's end, then only blank space before the name on its line: a
+#: macro written where a statement goes (``} FMT_CATCH(...) {}``).
+_AFTER_BLOCK = re.compile(r"\}\s*$")
+
+
+def _cpp_macro_names(
+    repo_root: Path, symbols: list[dict], nodes: list[dict], cpp_paths: dict
+) -> list[dict]:
+    """C++ functions and methods left in the graph that tree-sitter-cpp
+    named for something written after the true declarator (C-164's
+    remainder, ADR-135's amendment): a macro-spelled name right after a
+    parameter list or a block's closing brace, or any name right after
+    ``) :``, the first member initialiser. Where an index ran, ADR-135's R1 has removed most of them.
+    Sorted by id."""
+    path_of = {n["id"]: n.get("path") for n in nodes}
+    texts: dict[str, list[str]] = {}
+    named = []
+    for symbol in symbols:
+        path = path_of.get(symbol.get("module"))
+        name = symbol.get("name") or ""
+        if symbol.get("kind") not in ("function", "method") or path not in cpp_paths:
+            continue
+        if path not in texts:
+            try:
+                texts[path] = (repo_root / path).read_text(errors="replace").splitlines()
+            except OSError:
+                texts[path] = []
+        lines = texts[path]
+        row = symbol.get("line", 0) - 1
+        if not 0 <= row < len(lines) or name not in lines[row]:
+            continue
+        before = "\n".join(lines[max(0, row - 2):row] + [lines[row][: lines[row].index(name)]])
+        if _INITIALISER_START.search(before) or (
+            _MACRO_STYLE.match(name)
+            and (_AFTER_PARAMETERS.search(before) or _AFTER_BLOCK.search(before))
+        ):
+            named.append(symbol)
+    return sorted(named, key=lambda symbol: symbol["id"])
+
+
+def _cpp_macro_name_record(named: list[dict]) -> dict:
+    """The one degradation record per ingest naming C-164's remainder: C++
+    functions whose name is spelled like a macro, which may be the macro's
+    name and not the function's."""
+    examples = "; ".join(
+        f"{symbol['name']} at {symbol['module']}:{symbol['line']}" for symbol in named[:5]
+    )
+    return {
+        "path": ".",
+        "stage": "cpp-macro-names",
+        "message": (
+            f"{len(named)} C++ function(s) are named for what follows their declarator: a "
+            "trailing annotation macro tree-sitter-cpp read as the declarator (`void f() "
+            "GTEST_LOCK_EXCLUDED_(mu) {` is a function called `GTEST_LOCK_EXCLUDED_`), a "
+            "macro written as a statement after a block (`} FMT_CATCH(...) {}`), or a "
+            "constructor's first member initialiser (`C(int x) : size_(x) {`). The function's "
+            "calls are drawn from the misnamed symbol, and no index ran there to remove it "
+            f"(ADR-135, C-164). {examples}{' …' if len(named) > 5 else ''}"
         ),
     }
 
@@ -1368,6 +1442,9 @@ def _build_symbol_layer(
         degraded.append(_go_init_record(go_inits))
     if python_repeats:
         degraded.append(_python_repeats_record(python_repeats))
+    macro_named = _cpp_macro_names(repo_root, graph["symbols"], graph["nodes"], cpp_languages)
+    if macro_named:
+        degraded.append(_cpp_macro_name_record(macro_named))
     graph["resolution_coverage"] = [
         {
             "file": row.file,

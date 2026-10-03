@@ -524,9 +524,14 @@ headers parsed with tree-sitter ERROR nodes.
   (the ten swallowed tests are still not symbols).
 - **You find out:** **partial** (since 0.2.47-beta) — `graph.json`'s
   `lane_a_contradicted` block and one ingest summary line count what was
-  removed and re-read, and are absent where nothing fired. Nothing tells
-  you about the remainder above: a misnamed symbol in an unindexed or
-  uncompiled file looks like any other.
+  removed and re-read, and are absent where nothing fired. Since
+  0.2.103-beta (ADR-135's amendment) one `cpp-macro-names` record per
+  ingest counts what is left of the first two shapes where no index read
+  the file or the configuration never compiles it — a macro-spelled name
+  after a parameter list, a qualifier or a block's brace, and any name
+  after `) :` — with examples (fmt lane A alone 18, with lane B 1, args 0).
+  Nothing names a swallowing extent where no index ran, or a name after a
+  non-ASCII byte.
 - **Provider (P9):** tree-sitter-cpp **0.23.4**.
 - **Counted key-free, 2026-09-18 (ADR-135 proposed; nothing built):**
   on the four cells with an index, **18 misnamed symbols, all on fmt** —

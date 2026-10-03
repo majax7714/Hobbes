@@ -15961,3 +15961,16 @@ went to the Rust collision.
   57 locals, 458 variables, 302 outputs, 84 module calls (61 local), 39 shared addresses.
 - Host: pytest 2,828, `lane_b` 28 of 28, Go `./...` 404, oracle Go green; proxy and image rebuilt
   (`24beb72d7c70`).
+
+## 2026-10-03 (thirty-ninth session, cont.) — C-164's remainder named; 0.2.103-beta (ADR-135's amendment)
+
+- Phase 1 item 4. C-164 (partial) said "nothing tells you" about a misnamed C++ symbol where no index ran.
+  A macro-spelled-name cue alone was noisy (ScummVM 1,512, C-style real functions); tightened to what the
+  misparse writes before the name: a parameter list, a qualifier or a block's brace for a macro-spelled
+  name, `) :` for any name. Probed tree-sitter-cpp on four trailing-macro shapes (all misname); a fixture
+  with an in-class declaration did not reproduce, the real gtest line did.
+- Measured with `_cpp_macro_names`: fmt lane A alone 18 (the register's key-free count with the index: 18),
+  fmt's stored lane-B graph 1 (`os.cc:160` `FMT_CATCH`, uncompiled), args 0 and 0, ScummVM's stored graph 15
+  read by hand (one real capitals-named constructor, `QMIX_DISTANCES`).
+- **Built:** one `cpp-macro-names` record per ingest; `test_cpp_macro_names.py` 3. Nothing drawn differently.
+- Host: pytest 2,831, `lane_b` 28 of 28; image rebuilt.

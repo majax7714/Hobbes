@@ -862,7 +862,10 @@ index neither rule runs (P6). Checked as ADR-134 was, not graded
 (`oracle-grading.md` §10.20): fmt 18 symbols refused, 1 extent re-read,
 wrong-caller rows 105 → 32 (the 32 the driver's naming grain), no right
 row moved, every graded number ±0; nothing fires on args, cJSON or
-sqlite-vector.
+sqlite-vector. Where neither read
+can fire, a C++ function named for a macro after its declarator or for a
+first member initialiser is counted in one `cpp-macro-names` record per
+ingest (ADR-135's amendment, 0.2.103-beta); nothing is removed.
 
 **A line R1 vacated is not a clean file's (ADR-136, 0.2.48-beta).** A
 function-like macro that *generates* a definition

@@ -258,3 +258,24 @@ without re-scoping a fact (87 facts were re-scoped in all).
 Not built here: a `lane_b` end-to-end case (the unit's ingest test feeds
 lane B's facts by hand; the real cells are the end-to-end evidence), and
 the friend and nested-class equivalences in `probe.py`.
+
+## Amendment — 2026-10-03: the remainder is named (0.2.103-beta; the extraction order's Phase 1 item 4)
+
+C-164's **You find out** said "nothing tells you" about the remainder: a misnamed symbol in a file no index
+read, or in code the configuration never compiles, looked like any other. A precedent-1 gap. One lane A
+read, after R1 and R2, now names what is left: a C++ function or method whose name is (a) spelled like a
+macro (capitals and digits in two or more `_`-joined parts) and written right after a parameter list, a
+trailing qualifier (`const`, `noexcept`, `override`, `final`, `&`) or a block's closing brace, or (b) any name
+written right after `) :`, the first member initialiser. One `cpp-macro-names` degradation record per ingest
+counts them, with five examples (`_cpp_macro_names`, `_cpp_macro_name_record` in `extract/__init__.py`).
+Nothing is removed or drawn differently: without an index there is no true definition to hand the facts to.
+
+Measured: fmt with lane A alone 18 named (`GTEST_LOCK_EXCLUDED_`, `GTEST_EXCLUSIVE_LOCK_REQUIRED_`,
+`FMT_CATCH`, `str_`, `char_value`, `type_`, `size`), against the 18 the key-free count above found with the
+index; fmt's stored graph with lane B 1, `src/os.cc:160`'s `FMT_CATCH`, the uncompiled remainder named
+above; args 0 either way. ScummVM's stored 0.2.48-beta graph: 15, read by hand: constructors named for an
+initialiser (`byteCode`, `asCTypeInfo`, `dgVector`, `value`), function-defining macros (`EM_JS`,
+`EM_ASYNC_JS`, `CUSTOM_XML_PARSER`), and one real constructor of a capitals-named struct written after
+another's `{}` (`QMIX_DISTANCES`): the record says what to read, not that every one is wrong.
+**Still unnamed:** an extent that swallows later definitions where no index ran (the `TEST` at 201), a
+non-ASCII byte before the name, and recovery shapes these reads do not see.

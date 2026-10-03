@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.102-beta).
+Last reviewed: 2026-10-03 (0.2.103-beta).
 
 ## Decisions open for Max (no spend)
 
@@ -85,8 +85,8 @@ measured.
 3. **Go's and Java's caller roll-up on real repos.** Port
    `~/.hobbes/bench/c176-ts-scope/probe.py` to the stored RTA and javac keys
    (both carry `sites[].caller`); widen C-176, measured on TS/JS only.
-4. **C-164's remainder** reads "nothing tells you"
-   (`constraints/extraction-cpp.md`): surface it if it is unsurfaced.
+4. ~~C-164's remainder~~ named at 0.2.103-beta (ADR-135's amendment);
+   swallowing extents without an index stay unnamed (C-164, partial).
 
 **Phase 2, rules a key grades:**
 5. **Rust operators, `Deref`, `Index` (C-174),** ADR-131's shape: lane B

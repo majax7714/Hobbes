@@ -11,9 +11,22 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.102-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.103-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.103-beta — 2026-10-03 (C-164's remainder named; ADR-135's amendment)
+
+**Patch: what the layer says**, C++. C-164 said "nothing tells you" about a misnamed lane A symbol in a file
+no index read or the build never compiles. Phase 1 item 4 of the approved extraction order.
+
+- **Named per ingest:** one `cpp-macro-names` record counts C++ functions named for what follows their
+  declarator: a macro-spelled name after a parameter list, a qualifier or a block's brace
+  (`GTEST_LOCK_EXCLUDED_`, `FMT_CATCH`), or any name after `) :`, the first member initialiser (`str_`).
+  Nothing is removed or drawn differently.
+- Measured: fmt lane A alone 18 (the key-free count with the index found 18), fmt with lane B 1 (`os.cc:160`,
+  uncompiled), args 0; ScummVM's stored graph 15, one of them a real constructor (the record says to read
+  the line). Swallowing extents without an index stay unnamed (C-164, partial).
 
 ## 0.2.102-beta — 2026-10-03 (the Terraform layer's limits registered and named; ADR-173, C-187 to C-193)
 
