@@ -995,6 +995,16 @@ def _build_symbol_layer(
         )
         for module in modules
     }
+    # What each Python file's imports of the standard library bind
+    # (ADR-164, C-181): a call rooted there that no provider placed is
+    # `stdlib-import`, not a missing environment and not an untyped
+    # receiver. A repo module's own top-level name is never the stdlib's.
+    repo_roots = frozenset(module.id.split(".")[0] for module in modules)
+    py_stdlib = {
+        module.path: names
+        for module in modules
+        if (names := tail.stdlib_bindings(parsed[module.id].imports, repo_roots))
+    }
     # Java's static imports bind a bare name the same way (`import static
     # a.b.C.m` binds `m`) — lane A's own parse, so `assertEquals(..)`
     # classifies as `import-binding`, never `unclassified` (ADR-096).
@@ -1056,6 +1066,7 @@ def _build_symbol_layer(
         build_tags=go.get("build_tag_sites") if go else None,
         qualified=cpp["qualified_sites"] if cpp else None,
         languages=cpp_languages,
+        stdlib_bindings=py_stdlib,
     )
     # C-58's surfacing: sites the semantic lane resolved to a declaration
     # below the symbol floor still count as `resolved` (the number is not

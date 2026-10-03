@@ -15565,3 +15565,44 @@ the work, on `main`, zero spend. The run directory is `~/.hobbes/bench/c180-rust
   Max's call), `bench-drivers.md`, the suite sizes and the handoff.
 - **Image:** the proxy and `hobbes-session:local` were rebuilt at 0.2.87-beta. The knowledge server was not
   restarted.
+
+## 2026-10-03 (thirty-fifth session, cont.) — C-181 registered (0.2.88-beta, ADR-164)
+
+Max's instruction (2026-10-02): register and contain the scip-python stdlib limit flask's `urlsplit` row
+showed, precedent 1. A subagent did the work, on `main`, zero spend. The run directory is
+`~/.hobbes/bench/c181-stdlib-import/`. It was first written as `c180-stdlib-local/` and renamed once C-180
+went to the Rust collision.
+- **Verified first, in the image.** Fixtures `fxc`, `fxd` and `fxe` were dumped with `local` symbols kept.
+  Every member of `urllib.parse`, `email.utils`, `importlib.metadata`, `ctypes.wintypes` and the other dotted
+  modules gets a document-local symbol, in every import form, and so do `sys.exit` and `typing.overload`.
+  gettext's `_` gets no occurrence at all. The brief's "a top-level module is not affected" was wrong for
+  `sys.exit`. Lane A drew no edge to an in-repo namesake, with or without lane B.
+- **Stopped before building and re-asked.** Both the premise and the recommended refusal step had changed.
+  Max chose R1 (2026-10-03): one tail class, no refusal.
+- **Built.**
+  - `tail.stdlib_bindings` reads lane A's import facts against a pinned `PY_STDLIB_MODULES` (3.12's
+    `sys.stdlib_module_names`). It excludes repo roots, relative imports, and names another import also binds.
+  - The class `stdlib-import` is decided before `import-binding` and `attr-call`, for a bare call or a
+    receiver that is exactly a bound name or path.
+  - Its meaning is in `tailMeanings`, `_TAIL_REASON` and `TAIL_MEANINGS`.
+- **Found while building:** the `ministdlib` fixture's `try: from urllib.parse import quote` …
+  `except ImportError: from ministdlib.helpers import urlsplit as quote` keeps lane A's `syntactic` edge to the
+  repo function. Lane B's local answer cannot veto it (ADR-111). No graded cell writes the shape. It is
+  registered as C-181's residual (partial), pinned by the fixture test, and left for Max.
+- **Regraded.** Before was HEAD at `4c54a89`; `2a973cb` moved only Rust.
+  - Edges, symbols and grade lines are byte-identical on all four cells.
+  - `stdlib-import`: flask 34, click 181, rich 82, pyparsing 27 (standing driver only). The probe had
+    projected flask 15, click 105 and rich 18.
+  - Confirmed: flask 1,552, click 3,768, rich 4,968, pyparsing 3,517, all unchanged. Suspect: 15, 20, 42 and
+    66, unchanged.
+  - Why the projection was low: `causes.py` attributes the extra sites to decorators (`@t.overload`), which
+    the probe did not count; to C-173's dead code (click 31, rich 58); and to C-178's stdlib star re-exports
+    (flask 1, click 5, rich 2). The class meaning names all three entries.
+- **Also found:** C-173's record for rich's `_win32_console.py` names line 12 only. Everything after its
+  `else: raise ImportError` has no lane B answer. Noted in `currently-open.md`, not built.
+- **Checks:** pytest 2,713 passed, 25 of them `lane_b`, run on the host; Go `./...` all ok. The proxy and
+  `hobbes-session:local` were rebuilt at 0.2.88-beta, and the image's proxy reports `0.2.88-beta`. The
+  knowledge server was not restarted, and this repo was not re-ingested after the bump.
+- **Docs:** ADR-164; C-181 in `extraction-call-graph.md` (partial) and HISTORY; the register (181 entries,
+  133 active, 26 partial); architecture §3.4 and the §8 header; CHANGELOG; README; `currently-open.md`
+  (the `urlsplit` row deleted, two items added); `bench-drivers.md`; the handoff.

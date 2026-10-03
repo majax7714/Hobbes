@@ -31,6 +31,20 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-03 — C-181 registered (0.2.88-beta)
+
+- ADR-164: `c181-stdlib-import/`. This directory was first written as `c180-stdlib-local/` and renamed,
+  because C-180 went to the Rust collision. It holds:
+  - `index.sh <clone> <name>` and `dump.mjs`: raw scip-python in the image, `local` symbols kept;
+  - `idx/` (rich, flask, click and pyparsing raw dumps) and the fixtures `fxc`, `fxd` and `fxe` with
+    `*-idx/`;
+  - `probe.py`, `probe.txt`: syntax-only reach over the raw dumps;
+  - `run.sh <arm>` with `ROOT=`: the rich, flask, click and pyparsing regrade plus this repo's ingest;
+  - `compare.py <repo>…`, `compare.txt`: tail per class, with edges, symbols and grade lines compared;
+  - `sites.py <repo>`, `sites-<repo>.txt`: each `stdlib-import` site with the raw answer;
+  - `causes.py`: each site's cause;
+  - `before/` (HEAD `4c54a89`) and `after/`.
+
 ## 2026-10-03 — C-180 contained (0.2.87-beta)
 
 - ADR-163: `c180-rust-impl-qualnames/` (`measure.py <repo> <graph.json>` the colliding Rust ids by impl

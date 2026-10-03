@@ -28,6 +28,24 @@ checkable fact about the site:
   ``unclassified`` was almost entirely this (``PG_UUID``,
   ``load_dataset``, ``LLM`` — imports of the very packages
   ``dependency_coverage`` reported missing).
+- ``stdlib-import`` — a Python call whose name, or whose direct
+  receiver, an import of the **standard library** in the same file binds:
+  ``from urllib.parse import urlsplit`` … ``urlsplit(..)``, ``import
+  importlib.metadata`` … ``importlib.metadata.version(..)``, ``from
+  urllib import parse`` … ``parse.urlsplit(..)``. The module's top-level
+  name is in the pinned :data:`PY_STDLIB_MODULES` and names no repo
+  module, and no non-stdlib import in the file binds the same name. The
+  call lands outside the repo, and no provider placed it: scip-python
+  0.6.6 names what several stdlib modules define with a document-local
+  symbol (``urllib.parse``, ``email.utils``, ``importlib.metadata``,
+  ``ctypes.wintypes``, ``sys.exit`` …) and writes no occurrence at all
+  for gettext's ``_`` (ADR-164, C-181); it is silent in code Pyright
+  reads as never run (C-173), and names a member of a stdlib star
+  re-export as another symbol (C-178); without lane B nothing resolves
+  outside the repo. The class says where the call is rooted, not which
+  of these it was. Decided before ``import-binding``, whose "missing
+  environment" it is not, and before ``attr-call``, whose receiver is
+  here a module the file imports, not a value no provider could type.
 - ``builtin-name`` — a bare call whose name matches the language's pinned
   builtin list. The class says "matches": a local shadowing ``len`` would
   match too, and the name is honest about that. An import binding
@@ -116,6 +134,7 @@ tell "no external-origin sites" from "no provider that reports them".
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from pathlib import Path, PurePosixPath
 
@@ -125,6 +144,9 @@ LOCAL = "local-binding"
 NESTED = "nested-decl"
 EXTERNAL_ORIGIN = "external-origin"
 IMPORT_BINDING = "import-binding"
+#: A Python call rooted at a same-file import of the standard library
+#: that no provider placed (ADR-164, C-181).
+STDLIB_IMPORT = "stdlib-import"
 BUILTIN = "builtin-name"
 ATTR = "attr-call"
 #: A callee that is itself an expression — no name to resolve (C-63).
@@ -233,6 +255,50 @@ PY_BUILTINS = frozenset({
     "open", "ord", "pow", "print", "property", "quit", "range", "repr",
     "reversed", "round", "set", "setattr", "slice", "sorted",
     "staticmethod", "str", "sum", "super", "tuple", "type", "vars", "zip",
+})
+
+#: The Python standard library's top-level modules, for ``stdlib-import``
+#: (ADR-164, C-181): Python 3.12's ``sys.stdlib_module_names``,
+#: underscored names dropped like :data:`PY_BUILTINS`'s. Pinned, not read
+#: from the running interpreter, for the same reason. 3.12 rather than
+#: 3.13 because it still holds the modules 3.13 removed (``cgi``,
+#: ``telnetlib`` …), which a repo written for an older Python imports
+#: from the standard library all the same.
+PY_STDLIB_MODULES = frozenset({
+    "abc", "aifc", "antigravity", "argparse", "array", "ast", "asyncio",
+    "atexit", "audioop", "base64", "bdb", "binascii", "bisect", "builtins",
+    "bz2", "cProfile", "calendar", "cgi", "cgitb", "chunk", "cmath", "cmd",
+    "code", "codecs", "codeop", "collections", "colorsys", "compileall",
+    "concurrent", "configparser", "contextlib", "contextvars", "copy",
+    "copyreg", "crypt", "csv", "ctypes", "curses", "dataclasses",
+    "datetime", "dbm", "decimal", "difflib", "dis", "doctest", "email",
+    "encodings", "ensurepip", "enum", "errno", "faulthandler", "fcntl",
+    "filecmp", "fileinput", "fnmatch", "fractions", "ftplib", "functools",
+    "gc", "genericpath", "getopt", "getpass", "gettext", "glob",
+    "graphlib", "grp", "gzip", "hashlib", "heapq", "hmac", "html", "http",
+    "idlelib", "imaplib", "imghdr", "importlib", "inspect", "io",
+    "ipaddress", "itertools", "json", "keyword", "lib2to3", "linecache",
+    "locale", "logging", "lzma", "mailbox", "mailcap", "marshal", "math",
+    "mimetypes", "mmap", "modulefinder", "msilib", "msvcrt",
+    "multiprocessing", "netrc", "nis", "nntplib", "nt", "ntpath",
+    "nturl2path", "numbers", "opcode", "operator", "optparse", "os",
+    "ossaudiodev", "pathlib", "pdb", "pickle", "pickletools", "pipes",
+    "pkgutil", "platform", "plistlib", "poplib", "posix", "posixpath",
+    "pprint", "profile", "pstats", "pty", "pwd", "py_compile", "pyclbr",
+    "pydoc", "pydoc_data", "pyexpat", "queue", "quopri", "random", "re",
+    "readline", "reprlib", "resource", "rlcompleter", "runpy", "sched",
+    "secrets", "select", "selectors", "shelve", "shlex", "shutil",
+    "signal", "site", "smtplib", "sndhdr", "socket", "socketserver",
+    "spwd", "sqlite3", "sre_compile", "sre_constants", "sre_parse", "ssl",
+    "stat", "statistics", "string", "stringprep", "struct", "subprocess",
+    "sunau", "symtable", "sys", "sysconfig", "syslog", "tabnanny",
+    "tarfile", "telnetlib", "tempfile", "termios", "textwrap", "this",
+    "threading", "time", "timeit", "tkinter", "token", "tokenize",
+    "tomllib", "trace", "traceback", "tracemalloc", "tty", "turtle",
+    "turtledemo", "types", "typing", "unicodedata", "unittest", "urllib",
+    "uu", "uuid", "venv", "warnings", "wave", "weakref", "webbrowser",
+    "winreg", "winsound", "wsgiref", "xdrlib", "xml", "xmlrpc", "zipapp",
+    "zipfile", "zipimport", "zlib", "zoneinfo"
 })
 
 #: The Go spec's predeclared functions and convertible predeclared types
@@ -361,8 +427,11 @@ def _is_builtin(lang: str | None, name: str) -> bool:
 #: test suite pins this table against :func:`classify`'s decision tree,
 #: so a provider that learns a new class must widen its row here too.
 CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
-    "python": frozenset({FALLBACK, LOCAL, IMPORT_BINDING, BUILTIN, ATTR,
-                         EXPR_CALLEE, UNCLASSIFIED, BELOW_FLOOR}),
+    # `stdlib-import` (ADR-164): Python's alone — the pinned module list
+    # and the import parse it reads are Python's.
+    "python": frozenset({FALLBACK, LOCAL, STDLIB_IMPORT, IMPORT_BINDING,
+                         BUILTIN, ATTR, EXPR_CALLEE, UNCLASSIFIED,
+                         BELOW_FLOOR}),
     "ts/js": frozenset({FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, ATTR,
                         EXPR_CALLEE, UNION_MEMBER, UNCLASSIFIED, BELOW_FLOOR}),
     "go": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, BUILD_TAG, UNCLASSIFIED,
@@ -403,10 +472,11 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
 #: count contradicted (ADR-130), ``shared-qualname`` one at a later def
 #: of a Rust id two impl headers share (ADR-163), ``below-floor``, last,
 #: a resolved site with no symbol to land on.
-ALL_CLASSES = (FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, IMPORT_BINDING,
-               BUILTIN, ATTR, EXPR_CALLEE, UNION_MEMBER, PATH_CALL, OVERLOAD,
-               INHERITED, BUILD_TAG, UNCLASSIFIED, QUALIFIER_MISMATCH,
-               ARITY_MISMATCH, SHARED_QUALNAME, BELOW_FLOOR)
+ALL_CLASSES = (FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, STDLIB_IMPORT,
+               IMPORT_BINDING, BUILTIN, ATTR, EXPR_CALLEE, UNION_MEMBER,
+               PATH_CALL, OVERLOAD, INHERITED, BUILD_TAG, UNCLASSIFIED,
+               QUALIFIER_MISMATCH, ARITY_MISMATCH, SHARED_QUALNAME,
+               BELOW_FLOOR)
 
 
 def classes_available(coverage_rows: list[dict]) -> dict[str, list[str]]:
@@ -472,6 +542,48 @@ def _continuation(prev_text: str) -> str | None:
     return None
 
 
+def _locate(line_text: str, name: str, col: int) -> int | None:
+    """Where *name* starts on its line: the occurrence nearest *col*
+    (the first when the provider gave none), or None when the line does
+    not hold it."""
+    hits, start = [], 0
+    while (found := line_text.find(name, start)) != -1:
+        hits.append(found)
+        start = found + 1
+    if not hits:
+        return None
+    return min(hits, key=lambda h: abs(h - col)) if col >= 0 else hits[0]
+
+
+#: A dotted name chain ending in the ``.`` before an attribute call's
+#: name, read back from the name: ``importlib.metadata.`` in
+#: ``importlib.metadata.version(..)``.
+_RECEIVER_CHAIN = re.compile(r"([A-Za-z_]\w*(?:\s*\.\s*[A-Za-z_]\w*)*)\s*\.\s*$")
+
+
+def _receiver(line_text: str, name: str, col: int) -> str | None:
+    """The receiver of an attribute call *name* when it is a plain dotted
+    name chain written on the call's own line (``importlib.metadata`` for
+    ``importlib.metadata.version(..)``), whitespace dropped; None for any
+    other receiver — a call's result (``f().x``), a subscript, a chain
+    hanging off one of those, or a chain wrapped onto an earlier line.
+    ``stdlib-import`` reads it (ADR-164): it is the text, never a type."""
+    at = _locate(line_text, name, col)
+    if at is None:
+        return None
+    m = _RECEIVER_CHAIN.search(line_text[:at])
+    if m is None:
+        return None
+    j = m.start() - 1
+    while j >= 0 and line_text[j] in " \t":
+        j -= 1
+    # The chain is the whole receiver only when nothing it hangs off
+    # precedes it: `f().os.x` and `a[0].b.x` are not module reads.
+    if j >= 0 and line_text[j] in ".)]}'\"":
+        return None
+    return re.sub(r"\s+", "", m.group(1))
+
+
 def _shape(
     line_text: str, name: str, col: int, prev_text: str | None = None
 ) -> str | None:
@@ -480,13 +592,9 @@ def _shape(
     put the terminal on a line the recorded text may not contain). When
     the name opens its line, *prev_text* (the previous source line, only
     passed for the trailing-chain languages) answers instead."""
-    hits, start = [], 0
-    while (found := line_text.find(name, start)) != -1:
-        hits.append(found)
-        start = found + 1
-    if not hits:
+    at = _locate(line_text, name, col)
+    if at is None:
         return None
-    at = min(hits, key=lambda h: abs(h - col)) if col >= 0 else hits[0]
     j = at - 1
     while j >= 0 and line_text[j] in " \t":
         j -= 1
@@ -531,6 +639,7 @@ def classify(
     build_tags: set[tuple[str, int, str]] | None = None,
     qualified: dict[tuple[str, int, str], str] | None = None,
     languages: dict[str, str] | None = None,
+    stdlib_bindings: dict[str, frozenset[str]] | None = None,
 ) -> dict[str, Counter]:
     """Per-file tail classes for the *unresolved* call sites.
 
@@ -549,6 +658,10 @@ def classify(
     namespace rather than as a list a builtin table could pin (ADR-113
     §1); *languages* maps a file to the language its provider claimed,
     for the one extension two of them share (a ``.h`` C++ took).
+    *stdlib_bindings* maps a Python file to what its imports of the
+    standard library bind (:func:`stdlib_bindings`): the bound names and
+    each ``import a.b`` path; a bare site of one, or an attribute site
+    whose whole receiver is one, is ``stdlib-import`` (ADR-164).
     *local_bindings* maps a file to ``(name, start, end)`` tuples — lane
     A's sub-module bindings with enclosing-function extents (ADR-046);
     a bare site matches only when an extent spans its line, and a
@@ -568,6 +681,7 @@ def classify(
     languages = languages or {}
     lines = _Lines(repo_root)
     out: dict[str, Counter] = {}
+    stdlib_bindings = stdlib_bindings or {}
     for site in unresolved:
         key = (site.file, site.line, site.name)
         lang = language_of(site.file, languages.get(site.file))
@@ -603,6 +717,7 @@ def classify(
                 else None
             )
             bound = import_bindings.get(site.file, frozenset())
+            stdlib = stdlib_bindings.get(site.file, frozenset())
             locals_ = local_bindings.get(site.file, ())
             qualifier = qualified.get(key)
             if shape == "bare" and any(
@@ -610,6 +725,20 @@ def classify(
                 for (name, start, end) in locals_
             ):
                 cls = LOCAL
+            elif shape == "bare" and site.name in stdlib:
+                cls = STDLIB_IMPORT
+            elif (
+                shape == "attr"
+                and stdlib
+                and (receiver := _receiver(text, site.name, site.col)) in stdlib
+                # A parameter or local named like the module shadows the
+                # import inside its function (ADR-046's extent).
+                and not any(
+                    name == receiver.split(".")[0] and start <= site.line <= end
+                    for (name, start, end) in locals_
+                )
+            ):
+                cls = STDLIB_IMPORT
             elif shape == "bare" and site.name in bound:
                 cls = IMPORT_BINDING
             elif shape == "bare" and _is_builtin(lang, site.name):
@@ -628,6 +757,47 @@ def classify(
                 cls = UNCLASSIFIED
         out.setdefault(site.file, Counter())[cls] += 1
     return out
+
+
+def stdlib_bindings(imports, repo_roots=frozenset()) -> frozenset[str]:
+    """What one Python file's imports of the standard library bind, for
+    ``stdlib-import`` (ADR-164, C-181): read from lane A's own import
+    facts (``PlainImport``, ``FromImport``), never from an index.
+
+    - ``from a.b import x as y`` binds ``y``; ``from a import b`` binds
+      ``b`` whether ``b`` is a function or a submodule;
+    - ``import a.b as c`` binds ``c``;
+    - ``import a.b.c`` binds the paths ``a``, ``a.b`` and ``a.b.c``, each
+      a receiver an attribute call can be written through.
+
+    An import counts when its module's top-level name is in
+    :data:`PY_STDLIB_MODULES` and is not the top-level name of any repo
+    module (*repo_roots*: a repo's own ``types`` or ``test`` package is
+    not the standard library's), and is absolute (a relative import is
+    the repo's). A name some other import in the same file also binds —
+    ``try: from urllib.parse import quote`` … ``except ImportError: from
+    .compat import quote`` — is left out: which one runs is not a fact
+    the file states.
+    """
+    std: set[str] = set()
+    other: set[str] = set()
+    for imp in imports:
+        module = getattr(imp, "module", "") or ""
+        root = module.split(".")[0]
+        is_std = (
+            getattr(imp, "level", 0) == 0
+            and root in PY_STDLIB_MODULES
+            and root not in repo_roots
+        )
+        if hasattr(imp, "names"):
+            names = {bound for _, bound in imp.names if bound != "*"}
+        elif getattr(imp, "alias", None):
+            names = {imp.alias}
+        else:
+            parts = module.split(".")
+            names = {".".join(parts[: i + 1]) for i in range(len(parts))}
+        (std if is_std else other).update(names)
+    return frozenset(std - other)
 
 
 def rollup(coverage_rows: list[dict]) -> dict[str, dict]:

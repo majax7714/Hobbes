@@ -1158,6 +1158,7 @@ var tailMeanings = []struct{ class, meaning string }{
 	{"local-binding", "bound below the modelled vocabulary in its own file — a parameter, local, or nested def (C-9); seen and deliberately not modelled: the binding is in that file, but what it holds may be defined anywhere (a parameter's callback, a local alias of an imported class) — trace the value's origin yourself"},
 	{"nested-decl", "declared in another repo file below the modelled vocabulary (C-9)"},
 	{"external-origin", "every declaration lives outside the repo — a dependency or ambient lib; often an environment gap (C-23/C-27/C-30)"},
+	{"stdlib-import", "bound by a same-file import of the Python standard library — the callee or its whole receiver (urlsplit(..), parse.urlsplit(..), sys.exit(..)); the target is the standard library's, outside the repo, and no provider placed it: scip-python 0.6.6 names what several stdlib modules define with a document-local symbol and writes no occurrence for gettext's _ (C-181), is silent in code Pyright reads as never run (C-173), or names a member of a stdlib star re-export as another symbol (C-178); without lane B nothing resolves outside the repo"},
 	{"import-binding", "bound by a same-file import; where the call lands is unresolved — usually a missing environment (C-23/C-27/C-30)"},
 	{"builtin-name", "the name matches the language's builtin list — language machinery, not architecture"},
 	{"attr-call", "an attribute call whose receiver no static provider could type — the genuine limit (C-2); verify these targets yourself where they matter"},

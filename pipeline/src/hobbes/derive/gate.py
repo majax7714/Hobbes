@@ -218,6 +218,7 @@ _TAIL_REASON = {
     "fallback-resolved": ("laneb-miss", "tail fallback-resolved: syntactic-tier edge only (C-7)"),
     "unclassified": ("laneb-miss", "tail unclassified: no observation applies (ADR-045)"),
     "build-tag-set": ("laneb-miss", "tail build-tag-set: build-constraint split name (C-71)"),
+    "stdlib-import": ("laneb-miss", "tail stdlib-import: rooted at a same-file stdlib import, no provider placed it (ADR-164, C-181; C-173, C-178)"),
     "import-binding": ("laneb-miss", "tail import-binding: same-file import, landing unresolved (C-23/C-27/C-30)"),
     "external-origin": ("laneb-miss", "tail external-origin: declarations outside the repo (C-23/C-27/C-30)"),
     "path-call": ("laneb-miss", "tail path-call: ::-qualified call the index left dark"),

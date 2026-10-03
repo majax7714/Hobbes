@@ -164,7 +164,7 @@ everywhere else.
 | what shipped in a version                  | `CHANGELOG.md`                                        |
 | the resume point                           | `docs/session-handoff.md`: rewritten, never appended  |
 | a decision or work noted but not done      | `docs/currently-open.md`: deleted when done           |
-| a decision made                            | `docs/adr/NNN-title.md` (the last is 162; 106 is *not taken*) |
+| a decision made                            | `docs/adr/NNN-title.md` (the last is 164; 106 is *not taken*) |
 | a concession of information                | `docs/constraints/<segment>.md` (`C-n`)               |
 | how the design works                       | `docs/hobbes-architecture.md`                         |
 | a procedure                                | `docs/runbook.md`                                     |

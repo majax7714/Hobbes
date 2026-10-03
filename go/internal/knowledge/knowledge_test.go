@@ -1144,7 +1144,7 @@ func blindSpotRepo(t *testing.T) string {
 			{"path": "scripts", "stage": "go-modules", "message": "orphan directory"},
 		},
 		"tail_classes_available": map[string][]string{
-			"python": {"fallback-resolved", "local-binding", "import-binding",
+			"python": {"fallback-resolved", "local-binding", "stdlib-import", "import-binding",
 				"builtin-name", "attr-call", "expr-callee", "unclassified", "below-floor"},
 			"ts/js": {"fallback-resolved", "local-binding", "nested-decl",
 				"external-origin", "attr-call", "expr-callee", "union-member", "unclassified", "below-floor"},
@@ -1278,9 +1278,10 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		// `qualifier-mismatch` (ADR-125) and `arity-mismatch` (ADR-130)
 		// come next: C++ alone can report either, so every other lane
 		// names both as absent; `shared-qualname` (ADR-163) closes both
-		// lists, Rust's alone.
+		// lists, Rust's alone. `stdlib-import` (ADR-164) is Python's alone,
+		// so only the TS lane names it absent.
 		"classes this lane cannot report: nested-decl, external-origin, union-member, path-call, overload-set, inherited-member, build-tag-set, qualifier-mismatch, arity-mismatch, shared-qualname (C-32)",
-		"classes this lane cannot report: import-binding, builtin-name, path-call, overload-set, inherited-member, build-tag-set, qualifier-mismatch, arity-mismatch, shared-qualname (C-32)",
+		"classes this lane cannot report: stdlib-import, import-binding, builtin-name, path-call, overload-set, inherited-member, build-tag-set, qualifier-mismatch, arity-mismatch, shared-qualname (C-32)",
 		// C-31: the verification base, stated before any percentage:
 		"verification base — a sample, not the language (C-31",
 		"go: verified on 1 repo: one repo — this one",

@@ -245,6 +245,106 @@ class TestClasses:
         assert tails[f] == {tail.UNCLASSIFIED: 1}
 
 
+class TestStdlibImport:
+    """ADR-164, C-181: a Python call rooted at a same-file import of the
+    standard library, that no provider placed, is ``stdlib-import`` —
+    neither ``import-binding``'s missing environment nor ``attr-call``'s
+    untyped receiver. Lane A's own import facts decide it; no index."""
+
+    def _bindings(self, source, repo_roots=frozenset()):
+        from hobbes.extract.pysource import parse_source
+
+        return tail.stdlib_bindings(parse_source(source.encode()).imports, repo_roots)
+
+    def test_the_bindings_are_the_names_and_paths_stdlib_imports_bind(self):
+        got = self._bindings(
+            "import email.utils as eu\n"
+            "import importlib.metadata\n"
+            "from urllib import parse\n"
+            "from urllib.parse import urlsplit as split\n"
+            "from gettext import gettext as _\n"
+            "import requests\n"
+            "from .compat import thing\n"
+            "from attrs import define\n"
+        )
+        assert got == frozenset({"eu", "importlib", "importlib.metadata",
+                                 "parse", "split", "_"})
+
+    def test_a_name_another_import_also_binds_is_left_out(self):
+        got = self._bindings(
+            "try:\n"
+            "    from urllib.parse import quote\n"
+            "except ImportError:\n"
+            "    from .compat import quote\n"
+            "from urllib.parse import unquote\n"
+        )
+        assert got == frozenset({"unquote"})
+
+    def test_a_relative_import_and_a_repo_module_named_like_the_stdlib_are_not_it(self):
+        assert self._bindings("from .json import dumps\n") == frozenset()
+        # The repo's own top-level `types` package is not the stdlib's.
+        assert self._bindings("from types import Model\n", frozenset({"types"})) == frozenset()
+        assert self._bindings("from types import SimpleNamespace\n") == frozenset({"SimpleNamespace"})
+
+    def test_the_pinned_list_is_not_the_running_interpreter(self):
+        assert {"urllib", "email", "importlib", "sys", "gettext", "cgi"} <= tail.PY_STDLIB_MODULES
+        assert not any(name.startswith("_") for name in tail.PY_STDLIB_MODULES)
+        assert "requests" not in tail.PY_STDLIB_MODULES
+
+    def _classify(self, tmp_path, source, line, name, col, bindings, **kw):
+        f = write(tmp_path, "a.py", source)
+        return tail.classify([site(f, line, name, col)], tmp_path,
+                             stdlib_bindings={f: frozenset(bindings)}, **kw)[f]
+
+    def test_a_bare_call_of_a_stdlib_bound_name_is_stdlib_import(self, tmp_path):
+        got = self._classify(tmp_path, "from urllib.parse import urlsplit\nurlsplit(u)\n",
+                             2, "urlsplit", 0, {"urlsplit"},
+                             import_bindings={"a.py": frozenset({"urlsplit"})})
+        assert got == {tail.STDLIB_IMPORT: 1}
+        assert tail.STDLIB_IMPORT not in tail.NOT_MODELLED  # cannot resolve
+
+    def test_an_attribute_call_whose_whole_receiver_is_bound_is_stdlib_import(self, tmp_path):
+        for text, name, col, bound in (
+            ("importlib.metadata.version('x')\n", "version", 19, {"importlib", "importlib.metadata"}),
+            ("parse.urlsplit(u)\n", "urlsplit", 6, {"parse"}),
+            ("eu.formatdate(1)\n", "formatdate", 3, {"eu"}),
+            ("sys.exit(1)\n", "exit", 4, {"sys"}),
+            ("x = importlib . metadata.version('x')\n", "version", 25, {"importlib.metadata"}),
+        ):
+            assert self._classify(tmp_path, text, 1, name, col, bound) == {tail.STDLIB_IMPORT: 1}, text
+
+    def test_a_receiver_that_is_not_the_bound_name_stays_attr_call(self, tmp_path):
+        for text, name, col in (
+            ("sys.stdout.write('x')\n", "write", 11),  # a value the module holds
+            ("f().sys.exit(1)\n", "exit", 8),  # a chain hanging off a call
+            ("a[0].sys.exit(1)\n", "exit", 9),  # off a subscript
+            ("self.sys.exit(1)\n", "exit", 9),  # another receiver
+        ):
+            assert self._classify(tmp_path, text, 1, name, col, {"sys"}) == {tail.ATTR: 1}, text
+
+    def test_a_local_named_like_the_module_shadows_it(self, tmp_path):
+        source = "def run(parse):\n    parse.urlsplit(u)\n    urlsplit(u)\n"
+        f = write(tmp_path, "a.py", source)
+        tails = tail.classify(
+            [site(f, 2, "urlsplit", 10), site(f, 3, "urlsplit", 4)], tmp_path,
+            stdlib_bindings={f: frozenset({"parse", "urlsplit"})},
+            local_bindings={f: (("parse", 1, 3), ("urlsplit", 1, 3))},
+        )
+        assert tails[f] == {tail.ATTR: 1, tail.LOCAL: 1}
+
+    def test_a_fallback_outranks_it(self, tmp_path):
+        f = write(tmp_path, "a.py", "urlsplit(u)\n")
+        tails = tail.classify([site(f, 1, "urlsplit", 0)], tmp_path,
+                              fallback={(f, 1, "urlsplit"): ("x",)},
+                              stdlib_bindings={f: frozenset({"urlsplit"})})
+        assert tails[f] == {tail.FALLBACK: 1}
+
+    def test_it_is_pythons_alone(self):
+        with_class = {l for l, c in tail.CLASSES_AVAILABLE.items() if tail.STDLIB_IMPORT in c}
+        assert with_class == {"python"}
+        assert tail.ALL_CLASSES.index(tail.STDLIB_IMPORT) < tail.ALL_CLASSES.index(tail.IMPORT_BINDING)
+
+
 class TestRollup:
     def test_rollup_groups_by_language_and_sums_tails(self):
         rows = [
@@ -372,6 +472,9 @@ class TestArtifact:
             tail.FALLBACK, tail.LOCAL, tail.NESTED, tail.EXTERNAL_ORIGIN,
             tail.IMPORT_BINDING, tail.BUILTIN, tail.ATTR, tail.PATH_CALL,
             tail.UNCLASSIFIED,
+            # Lane A alone resolves nothing outside the repo, so miniapp's
+            # stdlib calls are counted here (ADR-164).
+            tail.STDLIB_IMPORT,
         }
 
 
@@ -510,7 +613,7 @@ class TestCaptureLineNamesMissingClasses:
         cli._print_tail_view(rows, tail.classes_available(rows))
         out = capsys.readouterr().out
         assert ("classes this lane cannot report: nested-decl, external-origin, "
-                "import-binding, expr-callee, union-member, path-call, overload-set, "
+                "stdlib-import, import-binding, expr-callee, union-member, path-call, overload-set, "
                 "inherited-member, qualifier-mismatch, arity-mismatch, shared-qualname "
                 "(C-32)") in out
 

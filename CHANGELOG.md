@@ -11,9 +11,37 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.87-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.88-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.88-beta — 2026-10-03 (a Python call rooted at a stdlib import that no provider placed is tailed `stdlib-import`; ADR-164, C-181)
+
+**Patch: what the layer says**, Python. Precedent 1: the tools named the wrong cause for these sites. Max
+chose route R1 of three. No edge moves.
+
+- **The cause.** scip-python 0.6.6 names what several stdlib modules define with a document-local symbol
+  (`urllib.parse`, `email.utils`, `importlib.metadata`, `ctypes.wintypes`, `sys.exit`, `typing.overload` …)
+  and writes no occurrence for gettext's `_`. The call stays unresolved. It was tailed `import-binding`
+  ("usually a missing environment") or `attr-call` (C-2's untyped receiver), and neither cause was true.
+- **Said now.** The new Python tail class `stdlib-import` counts an unresolved call whose name, or whose whole
+  receiver, a same-file stdlib import binds. That import is absolute, its top-level name is in a pinned
+  `sys.stdlib_module_names` and is no repo module's, and no other import in the file binds the name. The
+  class is decided before `import-binding` and `attr-call`. Its meaning names C-181, and C-173 and C-178,
+  whose stdlib calls the class also counts. `list_blind_spots`, the ingest summary and the gate's map
+  carry it.
+- **Lane A draws no edge to an in-repo namesake** at these sites; a fixture test pins it. The one exception
+  is a name an `except ImportError:` branch rebinds to a repo function, which keeps lane A's `syntactic`
+  edge. That is C-181's residual (partial), written in no graded cell.
+- **Measured** (before → after; edges, symbols and grade lines byte-identical):
+  - flask: 34 sites move (30 from `attr-call`, 4 from `import-binding`); confirmed 1,552 and suspect 15
+    unchanged.
+  - click: 181 sites move (80 and 101); confirmed 3,768 and suspect 20 unchanged.
+  - rich: 82 sites move (65 and 17); confirmed 4,968 and suspect 42 unchanged.
+  - pyparsing, through its standing driver: 27 sites move; confirmed 3,517 and suspect 66 unchanged.
+- **Found on the way:** C-173's record misses code after a platform-guarded `raise`: rich's
+  `_win32_console.py` has no lane B answer after line 21, and the record names line 12. This is noted in
+  `currently-open.md`.
 
 ## 0.2.87-beta — 2026-10-03 (a fact at a later def of a Rust id two impl blocks share is refused; ADR-163, C-180)
 

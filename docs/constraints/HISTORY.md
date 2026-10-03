@@ -6,6 +6,15 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-181 registered, 2026-10-03 (0.2.88-beta; ADR-164, Max: route R1):
+- **C-181 registered, partial.** scip-python 0.6.6 names what several stdlib modules define with a
+  document-local symbol (`urllib.parse`, `email.utils`, `importlib.metadata`, `sys.exit` …) and writes no
+  occurrence for gettext's `_`, so the call stays unresolved and was tailed `import-binding` or `attr-call`,
+  both the wrong cause. It is now the tail class `stdlib-import`, naming this entry. Partial: a name an
+  `except ImportError:` branch rebinds to a repo function keeps lane A's `syntactic` edge (no graded cell
+  writes it).
+- 181 entries, 133 active (102 surfaced, 26 partial, 4 unsurfaced, 1 n/a), 31 lifted.
+
 C-180 registered and contained, 2026-10-03 (0.2.87-beta; ADR-163, Max: the narrow route):
 - **C-180 registered, surfaced.** Two differently written `impl` blocks in one Rust file mint one symbol id
   (`impl Pointer for *const T` and `for *mut T` are both `T`). A fact written inside, or resolved onto, a

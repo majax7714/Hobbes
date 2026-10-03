@@ -1050,7 +1050,13 @@ ADR-090 the same bindings also *veto* lane A's fallback: a bare name
 bound in a scope that spans the call never resolves to a module-level
 namesake, since 0.2.10-beta a Go selector's qualifier bound that way
 never resolves through the import it shadows (ADR-046 amended, C-139),
-and a Rust `name!(...)` binds only to a macro), same-file
+and a Rust `name!(...)` binds only to a macro), a Python call whose
+name or whole receiver a same-file import of the **standard library**
+binds (`stdlib-import`, since 0.2.88-beta: ADR-164, C-181 — lane A's
+import facts against a pinned `sys.stdlib_module_names`, decided before
+`import-binding` and `attr-call`; the target is outside the repo and
+scip-python left it unplaced: a document-local symbol, no occurrence for
+gettext's `_`, a dead branch (C-173) or a star re-export (C-178)), same-file
 import bindings for Python (`import-binding`, lane A's own
 parse — usually the shape of a missing environment, C-23/C-27/C-30),
 pinned builtin-name matches, text shape (`attr-call`), and a callee
@@ -2253,7 +2259,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.87-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.87-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.88-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.88-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

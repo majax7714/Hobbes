@@ -824,6 +824,41 @@
   `oracle-grading.md` §10.44, §10.45); ADR-161; `~/.hobbes/bench/c9-local-alias/pp-index/` (the raw index),
   `~/.hobbes/bench/c178-star-reexport/`.
 
+### C-181 — scip-python leaves a call into several standard-library modules unplaced — *registered 2026-10-03 (0.2.88-beta, ADR-164): counted as `stdlib-import`; partial — an in-repo rebinding of such a name keeps lane A's fallback*
+- **Cannot tell you:** where a Python call rooted at an import of the standard library lands when scip-python
+  names it with a document-local symbol or writes no occurrence for it. The site is not resolved, so it
+  never counts as `external`, and before 0.2.88-beta its tail class blamed the wrong cause:
+  `import-binding` ("usually a missing environment") for a bare name, `attr-call` (C-2's untyped receiver)
+  for a member of an imported module. The target is the standard library, outside the repo, so no repo
+  edge is missing. **What is left:** a name a stdlib import binds that an `except ImportError:` branch
+  rebinds to a repo function (`try: from urllib.parse import quote` … `except ImportError: from .compat
+  import quote`) keeps lane A's `syntactic` edge to the repo function: lane B's local answer cannot veto
+  it the way an external answer does (ADR-111). None of flask, click, rich or this repo writes that shape
+  (measured 2026-10-03); the `ministdlib` fixture does, and its test pins the edge.
+- **Because:** scip-python 0.6.6 names what several stdlib modules define with a symbol local to the
+  document (`local N`), at the import and at every use: every member of `urllib.parse`, `email.utils`,
+  `importlib.metadata`, `concurrent.futures`, `urllib.request`, `xml.etree.ElementTree`, `http.client`,
+  `json.decoder`, `logging.handlers` and `ctypes.wintypes` read in the image, whether written `urlsplit`,
+  `parse.urlsplit` (`from urllib import parse`), `eu.formatdate` (`import email.utils as eu`) or
+  `importlib.metadata.version`; and `sys.exit` and `typing.overload`, while `sys.getsizeof` resolves. It writes no occurrence
+  at all for a call of gettext's `_`. Names that land in a module the index resolves (`os.path.join` →
+  `posixpath`, `functools.reduce`, `json.dumps`, `collections.abc.Mapping` → `typing`) are not affected.
+  Why the indexer does this is not read.
+- **Bites at:** capture and the tail, because the sites stay unresolved. `who_calls` and impact are not
+  affected, because Hobbes draws no symbol edge to a stdlib function in any case. Measured at 0.2.88-beta
+  as `stdlib-import`: flask 34, click 181 and rich 82 call sites (pyparsing 27). Of those, this entry's
+  two causes account for flask 33, click 145 (74 of them `_`) and rich 22. The rest are calls into the
+  stdlib that C-173's dead code or C-178's star re-exports left unplaced, and the class counts them too
+  (ADR-164's table).
+- **You find out:** *partial* — every such unresolved call is counted in its file's tail as
+  `stdlib-import`, whose meaning names this entry and the provider in the ingest summary and
+  `list_blind_spots`. The residual rebinding edge is drawn `syntactic` and nothing names its cause.
+- **Provider (P9):** scip-python **0.6.6** — its document-local symbols for members of several stdlib
+  modules, and no occurrence for gettext's `_`.
+- **Source:** ADR-164; the flask rows of 2026-10-02 (`~/.hobbes/bench/flask-rows-2026-10-02/`) and
+  `~/.hobbes/bench/c181-stdlib-import/` (`probe.py`, `probe.txt`, fixtures `fxc`–`fxe` with raw dumps,
+  `run.sh`, `compare.py`, `sites.py`, `causes.py`, `before/`, `after/`).
+
 ---
 
 ## Lifted constraints in this segment

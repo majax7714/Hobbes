@@ -62,6 +62,7 @@ TAIL_MEANINGS = {
     "local-binding": "bound below the modelled vocabulary in its own file (C-9) — seen and deliberately not modelled; what it holds may be defined anywhere",
     "nested-decl": "declared in another repo file below the modelled vocabulary (C-9)",
     "external-origin": "every declaration lives outside the repo — often an environment gap (C-23/C-27/C-30)",
+    "stdlib-import": "bound by a same-file import of the Python standard library — the callee or its whole receiver (urlsplit(..), parse.urlsplit(..), sys.exit(..)); the target is the standard library's, outside the repo, and no provider placed it: scip-python 0.6.6 names what several stdlib modules define with a document-local symbol and writes no occurrence for gettext's _ (C-181), is silent in code Pyright reads as never run (C-173), or names a member of a stdlib star re-export as another symbol (C-178); without lane B nothing resolves outside the repo",
     "import-binding": "bound by a same-file import; the landing site is unresolved — usually a missing environment (C-23/C-27/C-30)",
     "builtin-name": "matches the language's pinned builtin list — language machinery, not architecture",
     "attr-call": "receiver no static provider could type — the genuine limit (C-2); verify these targets yourself where they matter",

@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.87-beta).
+Last reviewed: 2026-10-03 (0.2.88-beta).
 
 ## Decisions open for Max (no spend)
 
@@ -22,6 +22,13 @@ Last reviewed: 2026-10-03 (0.2.87-beta).
   `modal_e1` (untested bench scripts). Proposed: exempt a docstring-only
   module (an ADR-117 amendment, a patch), add cheap tests for the three
   scripts, and decide on `dedupe`, which is kept as E3's record as it ran.
+- **C-181's residual** (ADR-164): a name that a stdlib import binds, and
+  that an `except ImportError:` branch rebinds to a repo function, keeps
+  lane A's `syntactic` edge to the repo function. Lane B's local answer
+  cannot veto it (ADR-111). No graded cell writes this shape; the
+  `ministdlib` fixture pins it. Proposed: refuse lane A's fallback where
+  the same name is also bound by a stdlib import (a patch), or leave it
+  registered.
 - **C-179 surfacing:** a module loaded by `importlib` or `__import__` draws
   no import edge. It is **unsurfaced** (debt). The route is Max's call:
   name the load where `tests_guarding` says "unguarded".
@@ -86,8 +93,13 @@ Last reviewed: 2026-10-03 (0.2.87-beta).
 - **Not audited** (carried from the honesty audit): Terraform/HCL;
   repo-scale counts of any implicit shape outside Python's `__exit__`;
   Go's and Java's caller roll-up on real repos.
-- **scip-python names no occurrence for flask's `urlsplit`**, at either the
-  import or the call (`app.py:15`, `:725`). Not read yet. A single-repo row.
+- **C-173's record misses code after a platform-guarded `raise`** (found
+  by ADR-164's regrade, 2026-10-03). rich's `_win32_console.py` raises
+  `ImportError` in the `else` of `if sys.platform == "win32":`. Pyright
+  reads the rest of the module as dead, and the ingest has no lane B answer
+  from line 22 to line 577. C-173's record for the file names line 12
+  only, so the limit is not named where it applies. Measure the shape
+  across the cells, then widen the record.
 - **C-178's residue:** such a call has no lane B answer. External
   references to the stdlib's star re-exports keep their misnamed monikers
   (no repo edge).

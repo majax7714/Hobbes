@@ -1,10 +1,11 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (thirty-second session); Hobbes 0.2.87-beta on `main`.**
+**Reviewed 2026-10-03 (thirty-second session); Hobbes 0.2.88-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
-0.2.87-beta (rebuilt by the C-180 unit; the knowledge server running then was
-not restarted, so restart it), and this repo was last ingested at 0.2.86-beta. If `main` has
+0.2.88-beta (rebuilt by the C-181 unit; the knowledge server running then was
+not restarted, so restart it), and this repo was last ingested by that unit's
+regrade, before its version bump. If `main` has
 moved, ingest at HEAD again. A new session's knowledge server is a new
 container from the current image, so it starts fresh.
 
@@ -34,12 +35,18 @@ full ordered queue is under "Extraction, in order" in
 [`currently-open.md`](currently-open.md).
 
 **Waiting on Max:** the red graph job (5 unguarded modules), how to surface
-C-179, ADR-126 §3, and the rest of the "Decisions open for Max" section in
+C-179, C-181's residual, ADR-126 §3, and the rest of the "Decisions open for Max" section in
 [`currently-open.md`](currently-open.md). Don't build any of them until Max
 answers.
 
 ## Where the last day left things (2026-10-02/03; the CHANGELOG has each one)
 
+- **0.2.88-beta, ADR-164, C-181 registered (partial)** (Max: route R1): a
+  Python call rooted at a same-file stdlib import that scip-python left
+  unplaced is tailed `stdlib-import`, not `import-binding`/`attr-call`.
+  flask 34, click 181, rich 82 sites moved; no edge or grade moved. Open
+  for Max: C-181's `except ImportError:` residual; C-173's record misses
+  code after a platform-guarded `raise` (both in `currently-open.md`).
 - **0.2.87-beta, ADR-163, C-180 registered and contained** (Max: the narrow
   route): a fact at a later def of a Rust id two impl headers share is
   refused, tailed `shared-qualname`. memchr 921 → 919 (the false
@@ -76,7 +83,7 @@ answers.
   its strict companion (ADR-124); fmt is 100%, strict 99.62%. Trace-graded
   Python cells measure recall, never precision (C-60). rich is fitted
   (ADR-160), and pyparsing is held out.
-- **Register:** 180 entries: 132 active (102 surfaced, 25 partial, 4
+- **Register:** 181 entries: 133 active (102 surfaced, 26 partial, 4
   unsurfaced — C-19, C-20, C-112, C-179 — 1 n/a), 31 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open.** H-37 is the latest, fixed at
