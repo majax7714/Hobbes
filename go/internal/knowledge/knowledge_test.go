@@ -1799,3 +1799,45 @@ func TestARemovedArtifactIsNotServedFromMemory(t *testing.T) {
 		t.Fatalf("a removed graph.json should say to ingest; got %v", err)
 	}
 }
+
+// C-179 (ADR-167): a module a test loads by name reads unguarded, because
+// the graph draws no import edge for a load; the answer names the load.
+// A load the ingest could not place, or of another module, is not said.
+func TestTestsGuardingNamesALoadByName(t *testing.T) {
+	repo := fixtureRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	data, _ := os.ReadFile(path)
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	doc["nodes"] = append(doc["nodes"].([]any),
+		map[string]any{"id": "ttt_probe", "kind": "module", "path": "scripts/ttt_probe.py"},
+		map[string]any{"id": "other", "kind": "module", "path": "scripts/other.py"})
+	doc["dynamic_loads"] = []any{
+		map[string]any{"path": "tests/test_ttt_probe.py", "line": 18, "via": "spec_from_file_location", "written": "scripts/ttt_probe.py", "target": "ttt_probe"},
+		map[string]any{"path": "tests/test_x.py", "line": 4, "via": "import_module", "written": "pkg.gone", "target": ""},
+	}
+	out, _ := json.Marshal(doc)
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := Open(repo)
+	probe, err := s.TestsGuarding("ttt_probe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(probe, "unguarded") ||
+		!strings.Contains(probe, "ttt_probe is loaded by name at tests/test_ttt_probe.py:18 (`spec_from_file_location` \"scripts/ttt_probe.py\")") ||
+		!strings.Contains(probe, "(C-179)") {
+		t.Errorf("want the unguarded warning with the load named:\n%s", probe)
+	}
+	other, err := s.TestsGuarding("other")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(other, "C-179") {
+		t.Errorf("no load names this module; no C-179 line:\n%s", other)
+	}
+}

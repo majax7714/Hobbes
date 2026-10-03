@@ -15748,3 +15748,14 @@ went to the Rust collision.
   the `rust-qualnames` record's wording names both shapes. `minirustimpl/haystacks/std.rs`, a file no target
   includes, writes both shapes; `test_shared_qualnames.py` 30 passed, its `lane_b` case passed on the host.
 - **Regrade:** memchr ingested in 13 s; 919/0, 2 haystacks rows refused, nothing else moved (ADR-165).
+
+## 2026-10-03 (thirty-seventh session, cont.) — C-179 named at the point of use (0.2.96-beta, ADR-167)
+
+- **Real cases first:** this repo's loads are three `spec_from_file_location` tests (a module-level `/`
+  chain or an inline one), two `atlas0` `__import__`s and three stdlib `__import__`s. The detector reads
+  exactly those shapes; a computed argument is recorded with nothing written.
+- **Built** (Max: route 1): ADR-167 written first. Placement by import name or exact/unique path suffix;
+  the Go knowledge server and the review name a placed load; a `python-loads` record. No edge.
+- **Checks:** `test_dynamic_loads.py` 9, `test_review.py` 34, Go `./internal/knowledge` ok; the suites on
+  the commit in the clean worktree. The live `tests_guarding` answer waits for this repo's ingest and the
+  image rebuild at the end of the batch.

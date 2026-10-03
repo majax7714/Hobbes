@@ -157,6 +157,8 @@ def extract_repo(
         for link, target in linked_copies(repo_root)
     ]
     degraded += too_deep_python
+    if graph.get("dynamic_loads"):
+        degraded.append(_python_loads_record(graph["dynamic_loads"]))
 
     # Languages reflect what the repo actually contains — a TS-only repo
     # (M6) must not claim python.
@@ -484,6 +486,31 @@ def _shared_qualname_record(
             f"inside or resolved onto one is refused: {calls} call(s), counted in the "
             f"tail as `shared-qualname`, and {len(refused) - calls} other reference(s) "
             f"(ADR-163, C-180, C-182). Later defs: {examples}"
+        ),
+    }
+
+
+def _python_loads_record(loads: list[dict]) -> dict:
+    """The one degradation record ADR-167 writes per ingest where a Python
+    file loads a module by name: how many, how many were placed (C-179)."""
+    placed = [load for load in loads if load["target"]]
+    unplaced = [load for load in loads if not load["target"]]
+    examples = "; ".join(
+        f"{load['path']}:{load['line']} ({load['via']}"
+        f"{' ' + repr(load['written']) if load['written'] else ', nothing literal'})"
+        for load in unplaced[:3]
+    )
+    return {
+        "path": ".",
+        "stage": "python-loads",
+        "message": (
+            f"{len(loads)} Python call(s) in {len({load['path'] for load in loads})} file(s) load a "
+            "module by name (`importlib.import_module`, `__import__`, `spec_from_file_location`); "
+            "the graph draws no import edge for a load, so reach through one is not seen "
+            f"(ADR-167, C-179). {len(placed)} name an in-repo module, and tests_guarding and "
+            f"the review name the load beside it; {len(unplaced)} name no module the ingest "
+            "could place (outside the repo, not literal, or more than one candidate)"
+            + (f": {examples}" if examples else "")
         ),
     }
 

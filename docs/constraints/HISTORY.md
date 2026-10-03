@@ -6,6 +6,14 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-179 partial, 2026-10-03 (0.2.96-beta; ADR-167, Max: route 1, name the load at the point of use):
+- **C-179 unsurfaced → partial.** Lane A records each `import_module`/`__import__`/`spec_from_file_location`
+  call with what it names as written and places it on an in-repo module only exactly; `tests_guarding`
+  and `hobbes review` name a placed load where they say "unguarded", and a `python-loads` record counts
+  them all. Partial: a load that names nothing placeable is only counted. No edge is drawn.
+- Tally: 183 entries, 135 active (104 surfaced, 27 partial, 3 unsurfaced, 1 n/a), 31 lifted,
+  11 superseded, 6 folded.
+
 C-182 surfaced, 2026-10-03 (0.2.95-beta; ADR-165 amended, Max: the proposed route):
 - **C-182 partial → surfaced.** Its residual, same-header repeats that are not cfg twins, was named
   nowhere. A two-kinds repeat (`struct B` beside `const B`) is now refused like C-180's ids; every other

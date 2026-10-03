@@ -360,6 +360,15 @@ type builtBy struct {
 	Dirty    bool   `json:"dirty"`
 }
 
+// dynamicLoad is one by-name module load lane A read (C-179, ADR-167).
+type dynamicLoad struct {
+	Path    string `json:"path"`
+	Line    int    `json:"line"`
+	Via     string `json:"via"`
+	Written string `json:"written"`
+	Target  string `json:"target"`
+}
+
 type graphDoc struct {
 	SHA         string   `json:"sha"`
 	Dirty       bool     `json:"dirty"`
@@ -391,6 +400,12 @@ type graphDoc struct {
 	// lines that come from here. Absent in pre-ADR-125 artifacts and in
 	// every repo without C++, which then render exactly as before.
 	CppTemplatePatterns []string `json:"cpp_template_patterns"`
+	// C-179's naming (ADR-167): each place a Python file loads a module by
+	// name (`importlib.import_module`, `__import__`, a spec from a file
+	// path), with the in-repo module it names where the ingest could place
+	// it. The graph draws no import edge for a load, so tests_guarding
+	// names the load where it says "unguarded". Absent before 0.2.96-beta.
+	DynamicLoads []dynamicLoad `json:"dynamic_loads"`
 	// Per artifact language, how many repos Hobbes's accuracy was
 	// measured on (architecture §3.8, C-31) — a property of Hobbes, not
 	// of the repo, stamped so the proxy states it where an agent reads.
@@ -810,6 +825,9 @@ func (s *Store) TestsGuarding(target string) (string, error) {
 		for _, m := range valueOnly(g, modules) {
 			b.WriteString(fmt.Sprintf("  %s declares no function and no call targets it; reach follows calls only, so no test can be seen guarding it (C-156)\n", m))
 		}
+		for _, l := range loadsOf(g, modules) {
+			b.WriteString(fmt.Sprintf("  %s is loaded by name at %s:%d (`%s` %q); the graph draws no import edge for a load, so a test that reaches it that way is not seen (C-179)\n", l.Target, l.Path, l.Line, l.Via, l.Written))
+		}
 	}
 	return b.String(), nil
 }
@@ -817,6 +835,27 @@ func (s *Store) TestsGuarding(target string) (string, error) {
 // callableKinds are the symbol kinds a `calls` edge can target; the
 // pipeline's testmap.CALLABLE_KINDS is the same set.
 var callableKinds = map[string]bool{"function": true, "method": true, "class": true, "type": true, "macro": true}
+
+// loadsOf returns the by-name loads whose placed target is among want, in
+// target, path and line order (C-179).
+func loadsOf(g *graphDoc, want map[string]bool) []dynamicLoad {
+	var out []dynamicLoad
+	for _, l := range g.DynamicLoads {
+		if l.Target != "" && want[l.Target] {
+			out = append(out, l)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Target != out[j].Target {
+			return out[i].Target < out[j].Target
+		}
+		if out[i].Path != out[j].Path {
+			return out[i].Path < out[j].Path
+		}
+		return out[i].Line < out[j].Line
+	})
+	return out
+}
 
 // valueOnly returns, sorted, the modules among want that no `calls` edge
 // could reach: no symbol of a callable kind and no recorded call into any

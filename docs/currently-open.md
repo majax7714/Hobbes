@@ -22,9 +22,6 @@ Last reviewed: 2026-10-03 (0.2.89-beta).
   `ministdlib` fixture pins it. Proposed: refuse lane A's fallback where
   the same name is also bound by a stdlib import (a patch), or leave it
   registered.
-- **C-179 surfacing:** a module loaded by `importlib` or `__import__` draws
-  no import edge. It is **unsurfaced** (debt). The route is Max's call:
-  name the load where `tests_guarding` says "unguarded".
 - **ADR-126 §3:** whether to build the "may reach through dispatch (not
   traced)" section in `tests_guarding` and `hobbes review` on
   `oracle-grading.md` §10.12's numbers. It needs a syntax exclusion for

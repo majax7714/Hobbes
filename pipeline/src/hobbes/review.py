@@ -74,6 +74,11 @@ class CoverageDelta:
     #: hold no code — a Python file that is at most its docstring
     #: (ADR-117's amendment). Not asked for a guard, and said.
     no_code: list[str] = field(default_factory=list)
+    #: The listed modules (new or lost) that some file loads by name, each
+    #: with its loads as ``path:line (via)`` (C-179, ADR-167). The graph
+    #: draws no import edge for a load, so a test that reaches the module
+    #: that way is not seen. Still listed: the review says why.
+    loaded_by_name: dict[str, list[str]] = field(default_factory=dict)
     #: New modules whose every guarding test reaches them only by way of a
     #: pytest fixture (ADR-137, C-4). Guarded, so not listed as unguarded and
     #: not a reason for attention — said, because a fixture that sets code
@@ -306,6 +311,7 @@ def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str]) 
         head_tests=len(head.tests.get("tests", [])),
         fixture_trees=_fixture_counts(head.graph, head.fixture_trees),
         value_only=sorted(value_only_modules(head.graph) & {*new_unguarded, *lost_guards}),
+        loaded_by_name=_loaded_by_name(head.graph, {*new_unguarded, *lost_guards}),
         no_code=no_code,
         fixture_only=sorted(
             module
@@ -478,10 +484,29 @@ def soft_prompt(
     return "\n".join(sections)
 
 
+def _loaded_by_name(graph: dict, listed: set[str]) -> dict[str, list[str]]:
+    """The by-name loads lane A placed on a listed module (C-179)."""
+    out: dict[str, list[str]] = {}
+    for load in sorted(
+        graph.get("dynamic_loads") or [], key=lambda l: (l["path"], l["line"])
+    ):
+        if load.get("target") in listed:
+            out.setdefault(load["target"], []).append(
+                f"{load['path']}:{load['line']} ({load['via']} {load['written']!r})"
+            )
+    return out
+
+
 def _value_only_note(coverage: CoverageDelta, module: str) -> str:
-    """Why a listed module can have no guard, when the graph shows it (C-156)."""
+    """Why a listed module can have no guard, when the graph shows it (C-156,
+    C-179)."""
     if module in coverage.value_only:
         return " — declares no function and no call targets it; reach follows calls only (C-156)"
+    if module in coverage.loaded_by_name:
+        return (
+            " — loaded by name at " + ", ".join(coverage.loaded_by_name[module])
+            + "; the graph draws no import edge for a load (C-179)"
+        )
     return ""
 
 
@@ -626,6 +651,7 @@ def review_to_dict(review: Review) -> dict:
             "broken_guards": review.coverage.broken_guards,
             "fixture_trees": review.coverage.fixture_trees,
             "value_only": review.coverage.value_only,
+            "loaded_by_name": review.coverage.loaded_by_name,
             "no_code": review.coverage.no_code,
             "fixture_only": review.coverage.fixture_only,
             "autouse_only": review.coverage.autouse_only,

@@ -158,7 +158,7 @@
 - **Source:** W0's "`go/internal/version` stays unguarded" item, traced
   2026-09-16 to the rule in ADR-007; surfaced by ADR-117.
 
-### C-179 — A module a Python file loads at run time draws no import, so nothing reaches it through that load
+### C-179 — A module a Python file loads at run time draws no import, so nothing reaches it through that load — *named at the point of use since 0.2.96-beta (ADR-167); partial*
 - **Cannot tell you:** that a test, or any code, uses a module it loads
   at run time instead of with an `import` statement:
   `importlib.util.spec_from_file_location(…)` then `exec_module`,
@@ -183,10 +183,17 @@
   until its test changed to a plain import, 2026-10-02); `who_calls`
   shows no caller through the load; `graph_neighborhood` shows no edge
   from the loader.
-- **You find out:** **unsurfaced.** The call through the loaded value is
-  counted in `list_blind_spots` as `attr-call`, whose gloss names an
-  untyped receiver, not the load; nothing names the load or this entry
-  where `tests_guarding` says "unguarded".
+- **You find out:** *partial* — since 0.2.96-beta (ADR-167) lane A records
+  each load with what it names as written (a literal module name; a
+  `spec_from_file_location` path's trailing literals, through one
+  module-level name) and places it on an in-repo module only exactly.
+  Where it is placed, `tests_guarding` names the load after "unguarded"
+  and `hobbes review` beside the listed module (`--json`:
+  `coverage.loaded_by_name`); one `python-loads` record per ingest counts
+  the loads, placed and not, in `list_blind_spots`. A load that names
+  nothing placeable (a computed name, a path built from non-literals, two
+  candidate files) is only counted. No edge is drawn. The call through
+  the loaded value is still counted `attr-call`.
 - **Source:** the graph job's 22 unguarded new modules, traced
   2026-10-02 (the thirty-third session); the probe is in the session's
   BUILDLOG entry.

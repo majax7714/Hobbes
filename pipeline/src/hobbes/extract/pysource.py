@@ -597,6 +597,18 @@ class StaticTest:
     on_false: tuple[tuple[int, int], ...] = ()
 
 
+@dataclass(frozen=True)
+class DynamicLoad:
+    """One call that loads a module by name (C-179, ADR-167): ``via`` is the
+    callee's last name, ``written`` what the call names as written — a
+    module name, a path tail ending in ``.py`` — or ``""`` when nothing
+    literal says."""
+
+    line: int
+    via: str
+    written: str
+
+
 @dataclass
 class ParsedFile:
     """Everything one walk collects from one file."""
@@ -606,6 +618,8 @@ class ParsedFile:
     calls: list[Call] = field(default_factory=list)
     env_reads: list[EnvRead] = field(default_factory=list)
     local_bindings: list[LocalBinding] = field(default_factory=list)
+    #: Every by-name module load, in written order (C-179, ADR-167).
+    dynamic_loads: tuple[DynamicLoad, ...] = ()
     #: The module docstring's literal, exactly as written, or None.
     #: This module extracts, it does not interpret.
     docstring: str | None = None
@@ -705,6 +719,7 @@ def parse_source(source: bytes) -> ParsedFile:
     parsed.local_bindings = _collect_local_bindings(root)
     parsed.local_imports = _collect_local_imports(root)
     parsed.static_tests = _collect_static_tests(root)
+    parsed.dynamic_loads = _dynamic_loads(root)
     parsed.sys_aliases, parsed.typing_aliases = _module_aliases(root)
     return parsed
 
@@ -1181,6 +1196,83 @@ def _collect_static_tests(root: Node) -> list[StaticTest]:
 
     walk(root)
     return out
+
+
+#: The callees, by last name, that load a module by name (ADR-167).
+_LOADERS = ("import_module", "__import__", "spec_from_file_location")
+
+
+def _dynamic_loads(root: Node) -> tuple[DynamicLoad, ...]:
+    """Every call to a loader, with what it names as written (ADR-167).
+
+    ``import_module`` and ``__import__``: the first argument, when it is a
+    plain string literal. ``spec_from_file_location``: the location (second
+    argument, or ``location=``) — a string literal, or the trailing string
+    literals of a ``/`` chain — followed through one module-level
+    assignment when it is a bare name, and kept only when it ends in
+    ``.py``. Nothing is resolved here; the graph places what is written.
+    """
+    counts: Counter = Counter()
+    values: dict[str, Node] = {}
+    for statement in root.named_children:
+        inner = statement.named_children[0] if statement.named_children else None
+        if statement.type != "expression_statement" or inner is None or inner.type != "assignment":
+            continue
+        left = inner.child_by_field_name("left")
+        right = inner.child_by_field_name("right")
+        if left is not None and left.type == "identifier" and right is not None:
+            counts[_text(left)] += 1
+            values[_text(left)] = right
+    module_values = {name: node for name, node in values.items() if counts[name] == 1}
+
+    out: list[DynamicLoad] = []
+
+    def walk(node: Node) -> None:
+        if node.type == "call":
+            function = node.child_by_field_name("function")
+            name = None
+            if function is not None and function.type == "identifier":
+                name = _text(function)
+            elif function is not None and function.type == "attribute":
+                attribute = function.child_by_field_name("attribute")
+                name = _text(attribute) if attribute is not None else None
+            if name in _LOADERS:
+                out.append(DynamicLoad(_line(node), name, _load_written(
+                    name, node.child_by_field_name("arguments"), module_values
+                )))
+        for child in node.children:
+            walk(child)
+
+    walk(root)
+    return tuple(out)
+
+
+def _load_written(via: str, arguments: Node | None, module_values: dict[str, Node]) -> str:
+    if arguments is None:
+        return ""
+    named = [c for c in arguments.named_children if c.type != "comment"]
+    positional = [c for c in named if c.type != "keyword_argument"]
+    if via != "spec_from_file_location":
+        return (_static_string(positional[0]) or "") if positional else ""
+    location = positional[1] if len(positional) > 1 else None
+    for keyword in (c for c in named if c.type == "keyword_argument"):
+        if _text(keyword.child_by_field_name("name")) == "location":
+            location = keyword.child_by_field_name("value")
+    if location is not None and location.type == "identifier":
+        location = module_values.get(_text(location))
+    tail = _path_tail(location) if location is not None else None
+    return tail if tail and tail.endswith(".py") else ""
+
+
+def _path_tail(node: Node) -> str | None:
+    """A string literal, or a ``/`` chain's trailing string literals joined."""
+    if node.type == "binary_operator" and _text(node.child_by_field_name("operator")) == "/":
+        right = _static_string(node.child_by_field_name("right"))
+        if right is None:
+            return None
+        left = _path_tail(node.child_by_field_name("left"))
+        return f"{left}/{right}" if left else right
+    return _static_string(node)
 
 
 def _module_docstring(root: Node) -> str | None:

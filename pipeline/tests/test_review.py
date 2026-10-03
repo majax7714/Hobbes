@@ -251,6 +251,35 @@ class TestCoverageDelta:
         assert "      app.billing\n" in text
         assert review_to_dict(review)["coverage"]["value_only"] == ["app.settings"]
 
+    def test_a_module_loaded_by_name_is_listed_with_the_load(self, repo):
+        # C-179 (ADR-167): a test that loads a script by path reaches it in
+        # fact, not in the graph. The review still lists it, and names the load.
+        write(repo, "scripts/probe.py", "def run():\n    return 1\n")
+        write(
+            repo,
+            "tests/test_probe.py",
+            "import importlib.util\nfrom pathlib import Path\n\n"
+            'SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "probe.py"\n\n\n'
+            "def test_run():\n"
+            '    spec = importlib.util.spec_from_file_location("probe", SCRIPT)\n'
+            "    mod = importlib.util.module_from_spec(spec)\n"
+            "    spec.loader.exec_module(mod)\n"
+            "    assert mod.run() == 1\n",
+        )
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "a script and a test that loads it by path")
+        review = build_review(repo, "HEAD~1", "HEAD")
+        assert review.coverage.new_unguarded == ["probe"]
+        assert review.coverage.loaded_by_name == {
+            "probe": ["tests/test_probe.py:8 (spec_from_file_location 'scripts/probe.py')"]
+        }
+        text = format_review(review)
+        assert (
+            "      probe — loaded by name at tests/test_probe.py:8 (spec_from_file_location "
+            "'scripts/probe.py'); the graph draws no import edge for a load (C-179)"
+        ) in text
+        assert review_to_dict(review)["coverage"]["loaded_by_name"] == review.coverage.loaded_by_name
+
     def test_a_module_that_holds_no_code_is_not_asked_for_a_guard(self, repo):
         # ADR-117's amendment: a docstring and nothing else has nothing to
         # guard. It leaves the list and is said; a constant beside it stays.

@@ -11,9 +11,26 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.95-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.96-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.96-beta — 2026-10-03 (a module loaded by name is named where it reads unguarded; ADR-167, C-179)
+
+**Patch: what the layer says**, Python. A test that loads a module with `importlib.import_module`,
+`__import__` or `spec_from_file_location` reaches it at run time but not in the graph, so `tests_guarding`
+said "unguarded" and the review listed the module, with no reason. C-179 was unsurfaced. Max approved route 1
+of three: name the load at the point of use.
+
+- **Lane A records each load** with what it names as written: a literal module name, or a
+  `spec_from_file_location` path's trailing string literals (`… / "scripts" / "ttt_probe.py"`), followed
+  through one module-level name. The ingest places it on an in-repo module only exactly (one import name, or
+  one path equal to or ending in it). The graph carries `dynamic_loads` where there is any.
+- **Said:** `tests_guarding` names each placed load of the target after "unguarded"; `hobbes review` adds it
+  beside the listed module and in `--json` under `coverage.loaded_by_name`; one `python-loads` record counts
+  all loads, placed and not. C-179 is partial.
+- **No edge is drawn.** This repo: 8 loads, 5 placed (the three probe/guard scripts its tests load by path,
+  and two `atlas0` modules). rich, flask, click and pyparsing: 1–2 loads each, none placeable.
 
 ## 0.2.95-beta — 2026-10-03 (C-182's residual: a two-kinds Rust repeat is refused, the rest is named; ADR-165 amended)
 

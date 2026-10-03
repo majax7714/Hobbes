@@ -74,11 +74,42 @@ def build_graph(modules: list[ModuleInfo], parsed: dict[str, ParsedFile]) -> dic
                 {"path": module.path, "line": read.line}
             )
 
-    return {
+    graph = {
         "nodes": sorted(nodes.values(), key=lambda n: n["id"]),
         "symbols": symbols,
         "module_edges": _edge_list(module_edges),
     }
+    # ADR-167 (C-179): each by-name load, placed on an in-repo module only
+    # exactly. No edge is drawn; the key is written only where a load is.
+    loads = _dynamic_loads(modules, parsed)
+    if loads:
+        graph["dynamic_loads"] = loads
+    return graph
+
+
+def _dynamic_loads(modules: list[ModuleInfo], parsed: dict[str, ParsedFile]) -> list[dict]:
+    """The by-name loads (ADR-167), each with the module it names or ``""``:
+    a name equal to one module's import name, or a written path equal to
+    one module's path or the one module path that ends in ``/`` plus it."""
+    by_name: dict[str, list[str]] = defaultdict(list)
+    for m in modules:
+        by_name[m.import_name].append(m.id)
+    paths = [m.path for m in modules]
+    by_path = {m.path: m.id for m in modules}
+    out = []
+    for module in modules:
+        for load in parsed[module.id].dynamic_loads:
+            target = ""
+            if load.via == "spec_from_file_location" and load.written:
+                found = [p for p in paths if p == load.written or p.endswith("/" + load.written)]
+                target = by_path[found[0]] if len(found) == 1 else ""
+            elif len(by_name.get(load.written, ())) == 1:
+                target = by_name[load.written][0]
+            out.append(
+                {"path": module.path, "line": load.line, "via": load.via,
+                 "written": load.written, "target": target}
+            )
+    return sorted(out, key=lambda r: (r["path"], r["line"], r["via"]))
 
 
 def resolve_call_sites(
