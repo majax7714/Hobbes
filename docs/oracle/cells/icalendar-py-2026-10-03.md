@@ -75,3 +75,8 @@ no `calls` row. None is C-178's re-export shape.
 **The `cls(…)` rule's rows (C1–C5)** wait for the rule. Its step 0 was read on this cell only after the grade:
 81 sites, 71 seen only at the own class, 6 at the own class and a subclass, 4 not executed. The rule's wording
 is frozen in `PREREG.md`; any narrowing must rest on the fitted cells, not on these rows.
+
+## After ADR-168 (0.2.97-beta)
+
+Regraded against this key: 3,477 confirmed, 16 suspect, 54 unobserved, recall 68.7%, poison PASS. The 6
+Hobbes-wrong rows are gone; the 16 left are the C-60 rows above. `~/.hobbes/bench/c184-union-receiver/after/icalendar/`.

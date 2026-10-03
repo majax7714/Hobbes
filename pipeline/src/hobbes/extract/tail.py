@@ -69,8 +69,10 @@ checkable fact about the site:
   neither is the static answer — any one target is a possible dispatch
   presented as the resolved one. Lane A abstains (the helper's
   ``ambiguous`` field), the join vetoes lane B's occurrence there, and
-  the site is counted here. TS/JS only (ADR-104, C-97; the oracle lane's
-  ``static→union-member`` on ajv and hono, 2026-09-09). The TypeScript
+  the site is counted here. TS/JS (ADR-104, C-97; the oracle lane's
+  ``static→union-member`` on ajv and hono, 2026-09-09); and Python since
+  ADR-168 (C-184), where lane A reads the union from the annotations it can
+  see — a parameter's, a return's, an attribute's, an alias. The typed
   form of C-58's interface dispatch, which likewise draws no edge.
 - ``path-call`` — a ``::``-qualified call (Rust) the index left dark.
   Java has no ``::`` call (a method reference is a use, not a call); its
@@ -421,16 +423,19 @@ def _is_builtin(lang: str | None, name: str) -> bool:
 #: Python and Go; ``import-binding`` is lane A's Python parse; the
 #: ``local-binding`` collectors are Python/Go (ADR-046), Java (anonymous
 #: class members, ADR-096) and TS (checker); ``expr-callee`` is recorded
-#: by the Python and TS providers only (C-63); ``union-member`` needs a
-#: checker that types the receiver, which only the TS helper has (ADR-104);
+#: by the Python and TS providers only (C-63); ``union-member`` needs the
+#: receiver typed: the TS helper's checker (ADR-104), and Python's lane A
+#: reading the annotations it can see (ADR-168);
 #: ``path-call`` needs ``::``, which only Rust's grammar spells. The
 #: test suite pins this table against :func:`classify`'s decision tree,
 #: so a provider that learns a new class must widen its row here too.
 CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
     # `stdlib-import` (ADR-164): Python's alone — the pinned module list
     # and the import parse it reads are Python's.
+    # `union-member` (ADR-168): lane A reads the receiver's union from the
+    # annotations it can see, where TS's helper has a checker.
     "python": frozenset({FALLBACK, LOCAL, STDLIB_IMPORT, IMPORT_BINDING,
-                         BUILTIN, ATTR, EXPR_CALLEE, UNCLASSIFIED,
+                         BUILTIN, ATTR, EXPR_CALLEE, UNION_MEMBER, UNCLASSIFIED,
                          BELOW_FLOOR}),
     "ts/js": frozenset({FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, ATTR,
                         EXPR_CALLEE, UNION_MEMBER, UNCLASSIFIED, BELOW_FLOOR}),

@@ -15,16 +15,6 @@ Last reviewed: 2026-10-03 (0.2.96-beta).
 
 ## Decisions open for Max (no spend)
 
-- **C-184 containment (precedent 1: it outranks the `cls(…)` rule).** The
-  held-out icalendar grade found scip-python drawing a method call on a
-  union-typed receiver to the first member's method at `semantic` (6
-  Hobbes-wrong rows; `oracle-grading.md` §10.46). Routes: (1) lane A reads
-  a receiver's declared annotation where it is written (a parameter, an
-  attribute, a `TypeAlias` of `A | B`/`Union[…]`) and, where two or more
-  in-repo members declare the member, the join vetoes lane B and the tail
-  says `union-member`, as ADR-104 does for TS (measured first on the
-  cells); (2) surface only: a record counting lane B answers at a member
-  of a union-named alias; (3) leave it registered.
 - **C-181's residual** (ADR-164): a name that a stdlib import binds, and
   that an `except ImportError:` branch rebinds to a repo function, keeps
   lane A's `syntactic` edge to the repo function. Lane B's local answer
@@ -83,7 +73,7 @@ Last reviewed: 2026-10-03 (0.2.96-beta).
    graded at 0.2.96-beta (`oracle-grading.md` §10.46) and its rule rows
    C1–C5 are pre-registered (`~/.hobbes/bench/heldout-icalendar/PREREG.md`).
    Next: the ADR (tier `syntactic`; a subclass-only site is C-60's declared
-   target), then the build and the C-rows. Waits behind C-184's containment.
+   target), then the build and the C-rows. C-184 is contained (ADR-168).
 2. C-174's remainder, per language.
 
 ### Candidates, unranked

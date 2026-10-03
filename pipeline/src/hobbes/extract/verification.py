@@ -33,12 +33,13 @@ VERIFICATION_BASE: dict[str, dict] = {
         # 2026-08-27 (trace-graded), flask 2026-09-22 (trace-graded, keyed
         # for ADR-145's amendment), rich 2026-10-01 (trace-graded, held out:
         # no rule fitted on it, until ADR-160 was measured on it), pyparsing
-        # 2026-10-02 (trace-graded, held out in its place); the counts follow
-        # the §3.8 rows.
-        "repos": 11,
+        # 2026-10-02 (trace-graded, held out in its place), icalendar
+        # 2026-10-03 (trace-graded, held out for the `cls(…)` unit); the
+        # counts follow the §3.8 rows.
+        "repos": 12,
         # This repo's zone is trace-graded since the oracle lane's phase 2
         # (ADR-089, O6, 2026-08-25): recall-against-executed, never precision.
-        "on": 'this repo (dogfood, continuous — trace-graded, twice); pallets/click, pallets/flask (trace-graded); Textualize/rich (trace-graded; held out until ADR-160 was fitted on it); pyparsing/pyparsing (trace-graded, held out); + six SWE-bench repos at span/declaration grain (astropy, django, scikit-learn, sphinx, sympy, xarray)',
+        "on": 'this repo (dogfood, continuous — trace-graded, twice); pallets/click, pallets/flask (trace-graded); Textualize/rich (trace-graded; held out until ADR-160 was fitted on it); pyparsing/pyparsing (trace-graded, held out); collective/icalendar (trace-graded, held out); + six SWE-bench repos at span/declaration grain (astropy, django, scikit-learn, sphinx, sympy, xarray)',
         "depth": "multi-repo",
     },
     "typescript": {

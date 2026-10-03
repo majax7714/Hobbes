@@ -15804,3 +15804,21 @@ went to the Rust collision.
   with `/mcp`. A direct stdio call to the proxy's `tests_guarding` returned nothing and was not pursued.
 - Docs: the handoff rewritten; `build-and-test.md` suite sizes; CLAUDE.md and AGENTS.md name ADR-167 as the
   last (they said 165 through ADR-166 and ADR-167's commits: missed at each, fixed here).
+
+## 2026-10-03 (thirty-seventh session, cont.) — C-184 contained (0.2.97-beta, ADR-168)
+
+- Max: "good to proceed with the recommended decisions" (C-184 route 1; flask's `sansio/` route 1).
+- **Step 0** (`~/.hobbes/bench/c184-union-receiver/`): a by-target refusal would cost icalendar 239 true
+  edges; receiver syntax alone does not separate; scip-python's hover types are `?` for parameters. Every
+  wrong row's union is written in the source, so lane A reads it (`sim_laneA.py`): icalendar 6/6 wrong,
+  12 confirmed, 2 unobserved refused; rich, flask, click, pyparsing and this repo 0.
+- **Built:** `pysource.TypeFacts` (aliases, classes, attribute and return annotations, `__getitem__`
+  returns, receiver reads), `pyunion.union_member_sites`, the sites' `ambiguous`, `union-member` for Python,
+  the Go gloss. `minipyunion` writes icalendar's shapes; without the veto the hand-built `vAdr.to_ical`
+  edge is drawn (checked). `test_pyunion.py` 12 + `lane_b` on the host.
+- **Regrade:** exactly the simulation on icalendar; the other four cells byte-identical (ADR-168).
+- **A red commit, fixed here:** the icalendar record (`21d019e`) edited §3.8's Python row, which
+  `test_verification.py` pins verbatim to `verification.py`; I ran only the register and docs tests on that
+  docs commit, so `21d019e`, `6d2274f` and `2149c8b` were red on that one test. The row now names icalendar
+  in the "graded on" cell alone, with its numbers in the evidence column, and Python's verification base
+  is 12 repos (in this release, as rich's and pyparsing's additions were). Full suite 2,782 passed.

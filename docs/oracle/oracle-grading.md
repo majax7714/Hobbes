@@ -2763,6 +2763,10 @@ registered as **C-184** (unsurfaced). The other 16 are C-60's declared targets (
 C-178's check: 32 `uses` rows lack the target's name, all instance attributes filed under their class; no
 `calls` row. Drivers: `~/.hobbes/bench/heldout-icalendar/`, `~/.hobbes/bench/cls-classmethod/`.
 
+**Contained at 0.2.97-beta (ADR-168, Max: route 1):** lane A reads the union where the source writes it and
+the join draws nothing at such a site. icalendar 3,489 → 3,477 confirmed, 22 → 16 suspect (the 6 wrong rows
+gone, 12 key-agreeing union rows withdrawn), recall 68.7%; rich, flask, click and pyparsing byte-identical.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

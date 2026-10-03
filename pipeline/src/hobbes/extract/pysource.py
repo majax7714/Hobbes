@@ -597,6 +597,42 @@ class StaticTest:
     on_false: tuple[tuple[int, int], ...] = ()
 
 
+#: A type lane A cannot read (ADR-168): anything but a name, ``None``, a
+#: ``|`` union, ``Union[…]``/``Optional[…]`` or a string holding one.
+UNREAD_TYPE = ("?",)
+
+
+@dataclass(frozen=True)
+class ReceiverRead:
+    """How the receiver ``R`` of a method call ``R.m(…)`` inside a function
+    reads (ADR-168): ``how`` is ``param`` (``key``: its annotation's type),
+    ``local`` (bound once, from a call: ``key`` is the callee's last name),
+    ``attribute`` (``key``: the attribute's name), ``subscript`` (``key``:
+    None) or ``result`` (a call's result: ``key`` is the callee's last name).
+    ``line``/``col`` are the method name's, where the call site sits."""
+
+    line: int
+    col: int
+    method: str
+    how: str
+    key: object
+
+
+@dataclass(frozen=True)
+class TypeFacts:
+    """What a file writes about types, as lane A reads it (ADR-168, C-184).
+    A type is a name (its last segment), ``"None"``, ``("|", members)`` or
+    :data:`UNREAD_TYPE`. Nothing is resolved here; :mod:`pyunion` decides."""
+
+    aliases: tuple[tuple[str, object], ...] = ()
+    #: ``(name, methods, bases)`` per class, bases by last name.
+    classes: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...] = ()
+    attributes: tuple[tuple[str, object], ...] = ()
+    returns: tuple[tuple[str, object], ...] = ()
+    getitems: tuple[object, ...] = ()
+    receivers: tuple[ReceiverRead, ...] = ()
+
+
 @dataclass(frozen=True)
 class DynamicLoad:
     """One call that loads a module by name (C-179, ADR-167): ``via`` is the
@@ -620,6 +656,8 @@ class ParsedFile:
     local_bindings: list[LocalBinding] = field(default_factory=list)
     #: Every by-name module load, in written order (C-179, ADR-167).
     dynamic_loads: tuple[DynamicLoad, ...] = ()
+    #: What the file writes about types (C-184, ADR-168).
+    type_facts: TypeFacts = field(default_factory=TypeFacts)
     #: The module docstring's literal, exactly as written, or None.
     #: This module extracts, it does not interpret.
     docstring: str | None = None
@@ -720,6 +758,7 @@ def parse_source(source: bytes) -> ParsedFile:
     parsed.local_imports = _collect_local_imports(root)
     parsed.static_tests = _collect_static_tests(root)
     parsed.dynamic_loads = _dynamic_loads(root)
+    parsed.type_facts = _type_facts(root)
     parsed.sys_aliases, parsed.typing_aliases = _module_aliases(root)
     return parsed
 
@@ -1195,6 +1234,209 @@ def _collect_static_tests(root: Node) -> list[StaticTest]:
             walk(child)
 
     walk(root)
+    return out
+
+
+def _type_of(node: Node | None) -> object:
+    """A type annotation or alias value as ADR-168 reads it."""
+    if node is None:
+        return UNREAD_TYPE
+    kind = node.type
+    if kind in ("type", "parenthesized_expression"):
+        inner = [c for c in node.named_children if c.type != "comment"]
+        return _type_of(inner[0]) if len(inner) == 1 else UNREAD_TYPE
+    if kind == "identifier":
+        return _text(node)
+    if kind == "attribute":
+        attribute = node.child_by_field_name("attribute")
+        return _text(attribute) if attribute is not None else UNREAD_TYPE
+    if kind == "none":
+        return "None"
+    if kind == "binary_operator" and _text(node.child_by_field_name("operator")) == "|":
+        return ("|", (_type_of(node.child_by_field_name("left")), _type_of(node.child_by_field_name("right"))))
+    if kind in ("subscript", "generic_type"):
+        if kind == "subscript":
+            head = node.child_by_field_name("value")
+            args = node.children_by_field_name("subscript")
+        else:
+            head = node.named_children[0] if node.named_children else None
+            parameter = next((c for c in node.named_children if c.type == "type_parameter"), None)
+            args = [c for c in parameter.named_children if c.type != "comment"] if parameter is not None else []
+        name = _type_of(head) if head is not None else UNREAD_TYPE
+        if name == "Union" and args:
+            return ("|", tuple(_type_of(a) for a in args))
+        if name == "Optional" and len(args) == 1:
+            return ("|", (_type_of(args[0]), "None"))
+        return UNREAD_TYPE
+    if kind == "string":
+        text = _static_string(node)
+        if text is None:
+            return UNREAD_TYPE
+        inner = _PARSER.parse(text.encode()).root_node
+        statement = inner.named_children[0] if inner.named_children else None
+        if statement is None or statement.type != "expression_statement" or not statement.named_children:
+            return UNREAD_TYPE
+        return _type_of(statement.named_children[0])
+    return UNREAD_TYPE
+
+
+def _last_name(node: Node | None) -> str | None:
+    if node is None:
+        return None
+    if node.type == "identifier":
+        return _text(node)
+    if node.type == "attribute":
+        attribute = node.child_by_field_name("attribute")
+        return _text(attribute) if attribute is not None else None
+    return None
+
+
+def _own_nodes(body: Node):
+    """Every node under *body* except what a nested def or class holds."""
+    stack = list(reversed(body.children))
+    while stack:
+        node = stack.pop()
+        yield node
+        if node.type in ("function_definition", "class_definition", "lambda"):
+            continue
+        stack.extend(reversed(node.children))
+
+
+def _type_facts(root: Node) -> TypeFacts:
+    """The type facts ADR-168 reads; see :class:`TypeFacts`."""
+    aliases: list[tuple[str, object]] = []
+    for statement in root.named_children:
+        if statement.type == "type_alias_statement":
+            left = statement.child_by_field_name("left")
+            name = _type_of(left)
+            if isinstance(name, str):
+                aliases.append((name, _type_of(statement.child_by_field_name("right"))))
+            continue
+        inner = statement.named_children[0] if statement.type == "expression_statement" and statement.named_children else None
+        if inner is None or inner.type != "assignment":
+            continue
+        left = inner.child_by_field_name("left")
+        right = inner.child_by_field_name("right")
+        if left is None or left.type != "identifier" or right is None:
+            continue
+        annotation = inner.child_by_field_name("type")
+        value = _type_of(right)
+        if annotation is not None and _type_of(annotation) == "TypeAlias":
+            aliases.append((_text(left), value))
+        elif annotation is None and isinstance(value, tuple) and value[0] == "|":
+            aliases.append((_text(left), value))
+
+    classes: list = []
+    attributes: list = []
+    returns: list = []
+    getitems: list = []
+    receivers: list[ReceiverRead] = []
+    for node in _walk_all(root):
+        kind = node.type
+        if kind == "class_definition":
+            name = node.child_by_field_name("name")
+            body = node.child_by_field_name("body")
+            supers = node.child_by_field_name("superclasses")
+            bases = tuple(
+                n for n in (_last_name(c) for c in (supers.named_children if supers is not None else ())) if n
+            )
+            methods = []
+            for child in body.named_children if body is not None else ():
+                definition = child.child_by_field_name("definition") if child.type == "decorated_definition" else child
+                if definition is not None and definition.type == "function_definition":
+                    methods.append(_text(definition.child_by_field_name("name")))
+                if child.type == "expression_statement" and child.named_children:
+                    assign = child.named_children[0]
+                    target = assign.child_by_field_name("left") if assign.type == "assignment" else None
+                    if target is not None and target.type == "identifier" and assign.child_by_field_name("type") is not None:
+                        attributes.append((_text(target), _type_of(assign.child_by_field_name("type"))))
+            if name is not None:
+                classes.append((_text(name), tuple(methods), bases))
+        elif kind == "assignment":
+            target = node.child_by_field_name("left")
+            annotation = node.child_by_field_name("type")
+            if (
+                annotation is not None and target is not None and target.type == "attribute"
+                and _last_name(target.child_by_field_name("object")) == "self"
+            ):
+                attributes.append((_text(target.child_by_field_name("attribute")), _type_of(annotation)))
+        elif kind == "function_definition":
+            name = _text(node.child_by_field_name("name"))
+            returned = node.child_by_field_name("return_type")
+            if returned is not None:
+                returns.append((name, _type_of(returned)))
+                if name == "__getitem__":
+                    getitems.append(_type_of(returned))
+            receivers.extend(_receiver_reads(node))
+    return TypeFacts(
+        tuple(aliases), tuple(classes), tuple(attributes), tuple(returns), tuple(getitems), tuple(receivers)
+    )
+
+
+def _walk_all(root: Node):
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        yield node
+        stack.extend(reversed(node.children))
+
+
+def _receiver_reads(function: Node) -> list[ReceiverRead]:
+    """Each method call in *function*'s own body with a receiver ADR-168 can read."""
+    body = function.child_by_field_name("body")
+    if body is None:
+        return []
+    params: dict[str, object] = {}
+    parameters = function.child_by_field_name("parameters")
+    for parameter in parameters.named_children if parameters is not None else ():
+        if parameter.type in ("typed_parameter", "typed_default_parameter"):
+            ident = parameter.child_by_field_name("name") or next(
+                (c for c in parameter.named_children if c.type == "identifier"), None
+            )
+            if ident is not None:
+                params[_text(ident)] = _type_of(parameter.child_by_field_name("type"))
+    nodes = list(_own_nodes(body))
+    binds: dict[str, list[Node]] = defaultdict(list)
+    for node in nodes:
+        if node.type == "assignment":
+            left = node.child_by_field_name("left")
+            right = node.child_by_field_name("right")
+            if left is not None and left.type == "identifier":
+                binds[_text(left)].append(right)
+    out: list[ReceiverRead] = []
+    for node in nodes:
+        if node.type != "call":
+            continue
+        function_node = node.child_by_field_name("function")
+        if function_node is None or function_node.type != "attribute":
+            continue
+        receiver = function_node.child_by_field_name("object")
+        attribute = function_node.child_by_field_name("attribute")
+        if receiver is None or attribute is None:
+            continue
+        read = None
+        if receiver.type == "identifier":
+            name = _text(receiver)
+            if name in params:
+                read = ("param", params[name])
+            elif len(binds.get(name, ())) == 1 and binds[name][0] is not None and binds[name][0].type == "call":
+                callee = _last_name(binds[name][0].child_by_field_name("function"))
+                if callee:
+                    read = ("local", callee)
+        elif receiver.type == "attribute":
+            name = _last_name(receiver)
+            if name:
+                read = ("attribute", name)
+        elif receiver.type == "subscript":
+            read = ("subscript", None)
+        elif receiver.type == "call":
+            callee = _last_name(receiver.child_by_field_name("function"))
+            if callee:
+                read = ("result", callee)
+        if read is not None:
+            out.append(ReceiverRead(
+                attribute.start_point.row + 1, attribute.start_point.column, _text(attribute), *read
+            ))
     return out
 
 

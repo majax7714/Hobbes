@@ -499,10 +499,11 @@ class TestClassesAvailable:
         with_marker = {l for l, c in tail.CLASSES_AVAILABLE.items() if tail.EXPR_CALLEE in c}
         assert with_marker == {"python", "ts/js"}
 
-    def test_union_member_is_available_exactly_where_a_checker_types_the_receiver(self):
-        # only the TS helper has a checker on the receiver (ADR-104)
+    def test_union_member_is_available_exactly_where_the_receiver_is_typed(self):
+        # the TS helper's checker (ADR-104); Python's lane A reading the
+        # annotations written in the source (ADR-168)
         with_class = {l for l, c in tail.CLASSES_AVAILABLE.items() if tail.UNION_MEMBER in c}
-        assert with_class == {"ts/js"}
+        assert with_class == {"ts/js", "python"}
         assert tail.ALL_CLASSES.index(tail.UNION_MEMBER) == tail.ALL_CLASSES.index(tail.EXPR_CALLEE) + 1
 
     def test_checker_origin_classes_are_ts_only(self):

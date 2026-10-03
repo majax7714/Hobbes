@@ -198,7 +198,7 @@
   2026-10-02 (the thirty-third session); the probe is in the session's
   BUILDLOG entry.
 
-### C-184 — A Python method call on a union-typed receiver is drawn to the first member's method — *registered 2026-10-03 (held-out icalendar); unsurfaced*
+### C-184 — A Python method call on a union-typed receiver is drawn to the first member's method — *registered 2026-10-03 (held-out icalendar); contained where the union is written since 0.2.97-beta (ADR-168); partial*
 - **Cannot tell you:** which member of a union a call reaches. Where a
   receiver's declared type is a union of classes (`VPROPERTY: TypeAlias =
   vAdr | vBoolean | …`, an attribute annotated `A | B | C`), scip-python
@@ -221,12 +221,27 @@
   the suite did not execute are not counted; the scale beyond the key is
   unmeasured. Not seen in the other Python cells' suspects (rich, flask,
   click, pyparsing: 0 Hobbes-wrong).
-- **You find out:** **unsurfaced.** Nothing marks such an edge; it reads
-  as any other `semantic` edge.
+- **Contained (ADR-168, 0.2.97-beta):** lane A reads the receiver's union
+  where the source writes it — a parameter's annotation, a local bound once
+  from a call whose return annotation is a union, a class attribute's
+  annotation, a call result's return annotation, and, for a subscript, every
+  union an in-repo `__getitem__` returns — aliases expanded, by name across
+  the repo. Where two or more in-repo members declare the method, the site
+  is `union-member`: the join draws nothing there from either lane, as
+  ADR-104 does for TS. On icalendar that removed all 6 wrong rows, and with
+  them the union-typed rows the key happened to confirm (an agreement of
+  picks, not a truth).
+- **Residual:** a union Pyright *infers* (`x = a if c else b`, a loop over
+  mixed values, a union lane A cannot read: a generic, a class name defined
+  twice) is not read, so the first-member pick can still be drawn there.
+- **You find out:** *partial* — a contained site is counted in
+  `list_blind_spots` under the tail class `union-member`, whose gloss names
+  this entry; an edge drawn at the residual reads as any other `semantic`
+  edge.
 - **Provider (P9):** scip-python **0.6.6** (its bundled Pyright's member
   lookup on a union type).
 - **Source:** `oracle-grading.md` §10.46; `cells/icalendar-py-2026-10-03.md`.
-  Containment is Max's call ([`currently-open.md`](../currently-open.md)).
+  ADR-168; the regrade `~/.hobbes/bench/c184-union-receiver/`.
 
 ### C-5 — Routes with computed paths are skipped
 - **Cannot tell you:** that an endpoint exists when its path is an

@@ -38,6 +38,7 @@ from hobbes.extract import (
     laneacache,
     minted,
     pystatic,
+    pyunion,
     reexport,
     scipsource,
     staging,
@@ -339,7 +340,10 @@ def _timed(timings: Timings, name: str, thunk):
 
 
 def _syntax_sites(modules, parsed) -> list:
-    """Lane A's call sites, in evidence-IR shape (ADR-029)."""
+    """Lane A's call sites, in evidence-IR shape (ADR-029). A method call on
+    a receiver that reads as a union of in-repo classes is ``union-member``
+    (ADR-168, C-184): the join draws nothing there from either lane."""
+    union_sites = pyunion.union_member_sites(modules, parsed)
     return [
         ev.Site(
             provider=ev.TREE_SITTER,
@@ -349,6 +353,9 @@ def _syntax_sites(modules, parsed) -> list:
             name=call.callee.split(".")[-1],
             col=call.col,
             scope=f"{module.id}.{call.scope}" if call.scope else module.id,
+            ambiguous=(
+                tail.UNION_MEMBER if (module.path, call.line, call.col) in union_sites else ""
+            ),
         )
         for module in modules
         for call in parsed[module.id].calls

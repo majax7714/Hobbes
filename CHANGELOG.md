@@ -11,9 +11,27 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.96-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.97-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.97-beta — 2026-10-03 (a Python call on a union-typed receiver is not drawn; ADR-168, C-184)
+
+**Patch: what the layer draws**, Python. The held-out icalendar grade found scip-python answering a method call
+on a union-typed receiver with the union's first member, drawn at `semantic`: `component['TZOFFSETFROM'].to_ical()`
+was an edge to `vAdr.to_ical`, the head of `VPROPERTY = vAdr | vBoolean | …` (6 Hobbes-wrong rows). TypeScript's
+twin was contained by ADR-104; Python's was not. Max chose route 1: contain it the same way.
+
+- **Lane A reads the union where the source writes it:** a parameter's annotation, a local bound once from a
+  call whose return annotation is a union, a class attribute's annotation, a call result's return annotation,
+  and for a subscript every union an in-repo `__getitem__` returns; aliases expanded, by name across the repo.
+- **Where two or more in-repo members declare the method, the site is `union-member`**: the join draws nothing
+  there from either lane, and the tail counts it (the class is now available to Python).
+- Any read that is unreadable or disagrees leaves the site as it was.
+- **Regraded:** icalendar 3,489 → 3,477 confirmed, 22 → 16 suspect (the 6 wrong rows gone; 12 key-agreeing
+  union rows withdrawn, an agreement of picks), recall 68.9% → 68.7%; rich, flask, click and pyparsing
+  byte-identical. C-184 is partial: a union Pyright infers is not read.
+- Python's verification base names icalendar (12 repos; §3.8).
 
 ## 0.2.96-beta — 2026-10-03 (a module loaded by name is named where it reads unguarded; ADR-167, C-179)
 

@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-184 contained, 2026-10-03 (0.2.97-beta; ADR-168, Max: route 1):
+- **C-184 unsurfaced → partial.** Lane A reads a receiver's union where the source writes it, and the join
+  draws nothing there (`union-member`, as ADR-104 for TS). icalendar's 6 wrong rows gone; the other Python
+  cells byte-identical. Residual: a union Pyright infers is not read.
+- Tally: 184 entries, 136 active (104 surfaced, 28 partial, 3 unsurfaced, 1 n/a), 31 lifted,
+  11 superseded, 6 folded.
+
 C-184 registered, 2026-10-03 (the held-out icalendar grade at 0.2.96-beta):
 - **C-184 registered, unsurfaced.** scip-python draws a method call on a union-typed receiver to the first
   member's method, at `semantic`: 6 Hobbes-wrong rows on icalendar (`VPROPERTY`'s head `vAdr`, a strategy
