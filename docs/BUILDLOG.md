@@ -16103,3 +16103,5 @@ went to the Rust collision.
   H6 met: this repo's graph unchanged on every unedited file.
 - Verification base: C++ four repos (chromaprint, gulrak/filesystem added; §3.8 and `verification.py`).
 - Host: pytest 2,844, `lane_b` 28 of 28.
+- Proxy and image rebuilt at 0.2.108-beta (`1a04763f50bd`), Go suites pass; this repo ingested at `05d6bd6`.
+  The old knowledge-server container was stopped; reconnect `hobbes-knowledge` with `/mcp`.

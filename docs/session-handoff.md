@@ -3,7 +3,7 @@
 **Reviewed 2026-10-03 (fortieth session); Hobbes 0.2.108-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
-0.2.108-beta (rebuilt at the close; see the BUILDLOG for its id), and this repo was
+0.2.108-beta (image `1a04763f50bd`), and this repo was
 ingested at HEAD after it; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
 new container from the current image, so it starts fresh.
 
