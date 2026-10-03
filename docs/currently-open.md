@@ -70,9 +70,13 @@ Last reviewed: 2026-10-02 (0.2.86-beta).
 
 ## Extraction, in order (no spend; each measured first)
 
-1. **`cls(…)` in a classmethod** (rich 57, pyparsing 17). **Pick the next
-   held-out Python repo before measuring.** pyparsing is held out now, and
-   fitting the rule on it would spend it. On the new cell, also count the
+1. **`cls(…)` in a classmethod** (rich 57, pyparsing 17). **The held-out
+   cell is collective/icalendar v7.3.0** (`138c8453`; Max, 2026-10-02): 81
+   `cls(…)` sites by an `ast` scan, 18,166 tests offline, nothing ingested
+   or keyed yet (`~/.hobbes/bench/heldout-scout-2026-10-02/RESULTS.md`;
+   dnspython v2.8.0 is the spare). Pre-register it before the ingest and
+   the key; its tests live in the package (`src/icalendar/tests`). pyparsing
+   stays held out. On the new cell, also count the
    `semantic` rows whose line does not hold the target's name (C-178's
    check), because a trace key grades calls only.
 2. C-174's remainder, per language.
@@ -82,17 +86,17 @@ Last reviewed: 2026-10-02 (0.2.86-beta).
 - **Not audited** (carried from the honesty audit): Terraform/HCL;
   repo-scale counts of any implicit shape outside Python's `__exit__`;
   Go's and Java's caller roll-up on real repos.
-- **An aliased function-local import that draws nothing** (`from .testing
-  import FlaskClient as cls; cls(…)`: flask 2). click's `termui.py:980`
-  draws since ADR-154; find out why flask's two do not. A single-repo row.
 - **scip-python names no occurrence for flask's `urlsplit`**, at either the
   import or the call (`app.py:15`, `:725`). Not read yet. A single-repo row.
 - **C-178's residue:** such a call has no lane B answer. External
   references to the stdlib's star re-exports keep their misnamed monikers
   (no repo edge).
-- **Other languages' duplicate qualnames** (ADR-155 covers Python only).
-  TS/JS was read and the shape is absent. Go, Java and Rust are not
-  measured.
+- **Other languages' duplicate qualnames** (ADR-155 covers Python only;
+  measured 2026-10-02, `~/.hobbes/bench/dup-qualnames-2026-10-02/RESULTS.md`).
+  TS/JS and Java are clean. Rust's impl-block collision is being
+  registered and contained. **Go's second `init`** files its lane B `uses`
+  under the module (dagger, 89 rows in 22 files): unregistered, not yet
+  contained.
 - **An `extends`-chain walk (TS/JS):** 104 rows at 0 contradicted (ajv 18,
   hono 8, xmpp.js 2, zod about 76), 0 on Preact. It would be a new kind of
   rule (a chain of lane B hops) for under a point per cell. Measured, not

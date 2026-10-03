@@ -15503,3 +15503,27 @@ about 8× per doubling of a call chain's depth.
 - **No version:** nothing drawn, refused or said changes (CLAUDE.md §7). The C++ lane A cache misses once,
   because its fingerprint hashes the extraction code. The architecture's ADR-128 paragraph names the carried
   walk. `workstreams.md` and `currently-open.md` were updated, and the item was removed from the latter.
+
+## 2026-10-02 (thirty-fifth session, cont.) — three read-only measurements; icalendar picked as the held-out cell
+
+No code changed and no version. Three subagents read and measured. Their records are under `~/.hobbes/bench/*-2026-10-02/`.
+- **flask's aliased local `cls`** (`app.py:812`, `:831`): this is a correct refusal under C-9's "a name bound twice".
+  - `cls = self.test_client_class` comes first, then the import inside `if cls is None:`.
+  - scip-python names the import as one local with two bindings. `_shadowed` refuses it, and the tail counts it as
+    `local-binding`.
+  - The trace shows `:831` calls two classes.
+  - The row's premise (an alias) was wrong. It is closed in `currently-open.md`.
+- **flask's `urlsplit`:** scip-python 0.6.6 gives every name imported from a dotted stdlib module a document-local
+  symbol. Such a site counts as `import-binding`, and that class's description blames a missing environment.
+  - This is unregistered: a precedent 1 defect. Max said to register and contain it.
+- **Duplicate qualnames, Go, Java and Rust:**
+  - **Java** is clean: overloads get `~n`.
+  - **Go:** a second `init` files its lane B `uses` under the module (dagger, 89).
+  - **Rust:** `_impl_type` names distinct impl blocks alike. memchr `ext.rs:33/:37` draws a false
+    `T.distance calls T.distance` at `semantic`, and the key graded it confirmed. dagger has 217 `uses` under the module
+    and 3 misses that `oracle-misses.md` blames on the wrong cause.
+  - None of it is registered. Max said to register and contain the Rust collision. Go's `init` is noted in
+    `currently-open.md`.
+- **The held-out Python cell for `cls(…)`:** collective/icalendar v7.3.0 (`138c8453`), Max's pick. It has 81 sites by an
+  `ast` scan, 9% of them in a subclassed class, and 18,166 tests pass offline. dnspython v2.8.0 is the spare.
+  - Nothing is ingested or keyed.
