@@ -1502,7 +1502,11 @@ vocabulary:
 A nested function's calls are its top-level symbol's. They had named
 the nested function, an id with no node. No grade moved, since no key
 reads a caller. Test reach grew where a constructor or nested function
-calls on (npq 139 tests). C-176 keeps the floor.
+calls on (npq 139 tests). C-176 keeps the floor. In Go and Java the
+same rule files a Java enum constant's body methods and an anonymous
+class in a field under the class, and a Go package var's initializer
+under the var; since 0.2.104-beta `who_calls` says what a class or a Go
+var named as a caller stands for (measured 2026-10-03: jsoup 1,691 rows).
 
 **A tagged template is a call site (ADR-159, 0.2.83-beta; facts v8; C-177
 lifted).** `` tag`text` `` calls `tag`, so lane A records it as it records
@@ -2330,7 +2334,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.102-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.102-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.104-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.104-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

@@ -89,6 +89,9 @@ type graphIndex struct {
 	symbolLang map[string]string
 	// Each symbol's declared name, the graph's `name` field (hookNote).
 	symbolName map[string]string
+	// symbolKind is each symbol's kind, read by WhoCalls to say what a
+	// class or a Go var named as a caller stands for (C-176).
+	symbolKind map[string]string
 	// The module nodes whose file is TypeScript or JavaScript: lane A
 	// names no symbol inside an object literal's method, an unnamed
 	// class, a function assigned to a property or a namespace there, so
@@ -188,6 +191,7 @@ func indexGraph(g *graphDoc) *graphIndex {
 		laneBExtent:   map[string]bool{},
 		symbolLang:    make(map[string]string, len(g.Symbols)),
 		symbolName:    make(map[string]string, len(g.Symbols)),
+		symbolKind:    make(map[string]string, len(g.Symbols)),
 		tsModule:      map[string]bool{},
 	}
 	for _, id := range g.CppTemplatePatterns {
@@ -208,6 +212,7 @@ func indexGraph(g *graphDoc) *graphIndex {
 		idx.symbolKnown[g.Symbols[i].ID] = true
 		idx.symbolLang[g.Symbols[i].ID] = moduleLang[g.Symbols[i].Module]
 		idx.symbolName[g.Symbols[i].ID] = g.Symbols[i].Name
+		idx.symbolKind[g.Symbols[i].ID] = g.Symbols[i].Kind
 		if g.Symbols[i].DeclaredBy == "scip" {
 			idx.laneBDeclared[g.Symbols[i].ID] = true
 			if g.Symbols[i].Extent == "braces" {
@@ -646,7 +651,7 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 	b.WriteString(idx.hookNote(symbolID))
 
 	callers, users, implementors := 0, 0, 0
-	tsModuleCaller := false
+	tsModuleCaller, classCaller, goVarCaller := false, false, false
 	var uses, implemented strings.Builder
 	for _, i := range idx.symbolTo[symbolID] {
 		e := g.SymbolEdges[i]
@@ -658,6 +663,12 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 			callers++
 			if idx.tsModule[e.From] {
 				tsModuleCaller = true
+			}
+			switch lang, kind := idx.symbolLang[e.From], idx.symbolKind[e.From]; {
+			case (lang == "java" || lang == "python") && (kind == "type" || kind == "class"):
+				classCaller = true
+			case lang == "go" && (kind == "var" || kind == "const"):
+				goVarCaller = true
 			}
 			b.WriteString(fmt.Sprintf("  %s%s%s%s\n", e.From, e.cite(), e.qualify(), idx.templateNote(e)))
 		case "uses":
@@ -676,6 +687,19 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 		// and initializers are the class's since ADR-158. No key reads a
 		// caller.
 		b.WriteString("  (a TS/JS module named as a caller may stand for an object literal's method, an unnamed class's method, a function assigned to a property or a namespace's function in that file, not top-level code: they are not graph symbols, C-176)\n")
+	}
+	if classCaller {
+		// C-176: Java and Python file a class body's code that is no
+		// method symbol under the class — an initializer, a static or
+		// instance block, and in Java an enum constant's body methods and
+		// an anonymous class written in a field (jsoup: 1,691 rows from
+		// HtmlTreeBuilderState's constant bodies, 2026-10-03).
+		b.WriteString("  (a class named as a caller stands for code in its body that is not a method symbol: a field initializer, an initializer block, and in Java an enum constant's body methods or an anonymous class in a field, C-176)\n")
+	}
+	if goVarCaller {
+		// C-176: a Go package var's initializer, a func literal assigned
+		// to it included, is filed under the var, and runs at package init.
+		b.WriteString("  (a Go package var named as a caller stands for its initializer, a function literal assigned to it included, which runs at package init, C-176)\n")
 	}
 	if users > 0 || implementors > 0 {
 		if callers == 0 {

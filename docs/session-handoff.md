@@ -32,9 +32,10 @@ session went belongs in the BUILDLOG.
 
 **Next:** the extraction order Max approved on 2026-10-03, in
 [`currently-open.md`](currently-open.md) § Extraction: Phase 1's audits
-first (Terraform/HCL done at 0.2.102-beta, ADR-173; C-164's remainder named at
-0.2.103-beta; then C-174's repo-scale counts outside Python, and Go's and
-Java's caller roll-up), and the counts go back to Max
+first, all done: Terraform/HCL at 0.2.102-beta (ADR-173), C-164's remainder at
+0.2.103-beta, C-174's counts and C-176 on Go and Java at 0.2.104-beta. The
+counts are with Max for the trace-oracle decision, and item 5's premise
+changed (no graded Rust crate implements an operator trait), and the counts go back to Max
 for the trace-oracle decision. Then Phase 2's graded rules (Rust operators,
 then Rust's impl-distinct ids, then C++ functors and conversions), each on a
 held-out cell picked first. Python held out: structlog, icalendar,

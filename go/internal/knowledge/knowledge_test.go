@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -528,6 +529,56 @@ func TestWhoCallsQualifiesATSModuleCaller(t *testing.T) {
 	}
 	if strings.Contains(other, "C-176") {
 		t.Errorf("a non-TS caller list gained the C-176 note:\n%s", other)
+	}
+}
+
+// C-176 on Java and Go (2026-10-03): a class named as a caller stands for
+// code in its body that is no method symbol (jsoup's enum constant bodies),
+// and a Go package var for its initializer.
+func TestWhoCallsQualifiesAClassAndAGoVarCaller(t *testing.T) {
+	repo := hookRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	data, _ := os.ReadFile(path)
+	var doc map[string]any
+	json.Unmarshal(data, &doc)
+	doc["nodes"] = append(doc["nodes"].([]any),
+		map[string]any{"id": "jv/State", "kind": "module", "path": "jv/State.java"})
+	for _, sym := range [][4]string{
+		{"jv/State.State", "jv/State", "State", "type"},
+		{"jv/State.State.isWhitespace", "jv/State", "isWhitespace", "method"},
+		{"hk/pkg.handler", "hk/pkg", "handler", "var"},
+	} {
+		doc["symbols"] = append(doc["symbols"].([]any), map[string]any{
+			"id": sym[0], "module": sym[1], "name": sym[2], "kind": sym[3], "line": 3})
+	}
+	for _, e := range [][3]string{
+		{"jv/State.State", "jv/State.State.isWhitespace", "jv/State.java:27"},
+		{"hk/pkg.handler", "hk/pkg.init", "hk/pkg.go:9"},
+	} {
+		file, line, _ := strings.Cut(e[2], ":")
+		n, _ := strconv.Atoi(line)
+		doc["symbol_edges"] = append(doc["symbol_edges"].([]any), map[string]any{
+			"from": e[0], "to": e[1], "type": "calls", "tier": "semantic",
+			"evidence": []any{map[string]any{"path": file, "line": n}}})
+	}
+	out, _ := json.Marshal(doc)
+	os.WriteFile(path, out, 0o644)
+	s := Open(repo)
+	java, err := s.WhoCalls("jv/State.State.isWhitespace")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(java, "an enum constant's body methods") || strings.Contains(java, "Go package var") {
+		t.Errorf("want the class note alone:\n%s", java)
+	}
+	gov, _ := s.WhoCalls("hk/pkg.init")
+	if !strings.Contains(gov, "a Go package var named as a caller stands for its initializer") ||
+		strings.Contains(gov, "a class named as a caller") {
+		t.Errorf("want the Go var note alone:\n%s", gov)
+	}
+	plain, _ := s.WhoCalls("app.core.run")
+	if strings.Contains(plain, "a class named as a caller") || strings.Contains(plain, "Go package var") {
+		t.Errorf("a function caller list gained a C-176 note:\n%s", plain)
 	}
 }
 

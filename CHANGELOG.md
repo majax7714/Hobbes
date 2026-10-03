@@ -11,9 +11,23 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.103-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.104-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.104-beta — 2026-10-03 (C-176 measured on Go and Java; `who_calls` names a class or Go var caller)
+
+**Patch: what the layer says.** Phase 1 items 2 and 3 of the approved extraction order.
+
+- **C-176 widened:** a Java enum constant's body methods (jsoup 1,691 rows: `HtmlTreeBuilderState` 1,012,
+  `TokeniserState` 664) and an anonymous class in a field are filed under the class; a Go package var's
+  initializer, a func literal included (gitleaks 51, quic-go 32), under the var. Measured against the RTA
+  and javac keys' callers; Hobbes's caller always holds the line, so these are a coarser grain, not wrong.
+- **`who_calls`** adds a note under a caller list that names a Java or Python class, or a Go package var,
+  saying what code it stands for. It was TS/JS-only.
+- **C-174's repo-scale counts** recorded (upper bounds): Python's traces key no implicit dunder; Rust's
+  graded crates implement no operator, `Index` or `PartialEq` trait; the other languages' targets and sites
+  by kind.
 
 ## 0.2.103-beta — 2026-10-03 (C-164's remainder named; ADR-135's amendment)
 

@@ -15974,3 +15974,23 @@ went to the Rust collision.
   read by hand (one real capitals-named constructor, `QMIX_DISTANCES`).
 - **Built:** one `cpp-macro-names` record per ingest; `test_cpp_macro_names.py` 3. Nothing drawn differently.
 - Host: pytest 2,831, `lane_b` 28 of 28; image rebuilt.
+
+## 2026-10-03 (thirty-ninth session, cont.) — C-174 counted, C-176 on Go and Java; 0.2.104-beta
+
+- Phase 1 items 2 and 3, by three read-only subagents (cited lines spot-checked; jsoup's enum-body rows
+  recounted from the graph, 1,012 under `HtmlTreeBuilderState`, and from the probe's rows, 664
+  `TokeniserState`).
+- **Python** (`~/.hobbes/bench/c174-counts-2026-10-03/python/`): `trace_oracle.py` listens to `CALL` and
+  `PY_START` only (`:410-412`) and disables each code object after its first start, except `__enter__`/
+  `__exit__`; an implicit dunder fires `PY_START` alone (probe on CPython 3.12.13), so no stored trace holds
+  one. Static upper bound of lines that may reach a repo dunder: flask 875 to pyparsing 6,308. An oracle
+  change would generalise H-37's opcode read; local CPU about 2–3 h for six cells.
+- **Other languages** (`…/langs/`, upper bounds): Rust's graded crates write no operator, `Index` or
+  `PartialEq` impl, so item 5's premise changed (re-ask Max). The rest recorded in C-174's "Bites at".
+- **Caller roll-up** (`~/.hobbes/bench/c176-go-java-2026-10-03/`, the TS probe ported; every clone
+  re-ingested at 0.2.102-beta, which rewrote their `graph.json`, `~/dagger`'s included): 0 wrong callers;
+  unnamed coarser grains found: Java enum constant bodies (jsoup 1,691) and Go package-var initializers
+  (gitleaks 51, quic-go 32). **Built:** C-176 widened, two `who_calls` notes, `knowledge_test.go` +1.
+- **Slip:** 0.2.103-beta's bump pinned the architecture's §8 header by line number after an insertion had
+  moved it, so it read 0.2.102-beta at `cef7b4f`; fixed here, by content. Grep the version, never a line.
+- Host: pytest 2,831, Go `./...` 405; proxy and image rebuilt (`5f4de28d881e`).

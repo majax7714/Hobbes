@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.103-beta).
+Last reviewed: 2026-10-03 (0.2.104-beta).
 
 ## Decisions open for Max (no spend)
 
@@ -76,22 +76,22 @@ measured.
 **Phase 1, audits (an unnamed limit outranks recall):**
 1. ~~Terraform/HCL~~ done at 0.2.102-beta (ADR-173, C-187 to C-193); its
    prevention is in "Decisions open for Max".
-2. **C-174's implicit shapes at repo scale, outside Python.** A counter
-   per language over the stored clones (Rust `?`/Drop/`for`/operators,
-   Java try-with-resources/for-each/concatenation, Go `init`/Stringer, C++
-   destructors/range-for, TS `for…of`/`await`/spread). Counts go into
-   C-174's "Bites at". **Take them back to Max** for the trace-oracle
-   decision below.
-3. **Go's and Java's caller roll-up on real repos.** Port
-   `~/.hobbes/bench/c176-ts-scope/probe.py` to the stored RTA and javac keys
-   (both carry `sites[].caller`); widen C-176, measured on TS/JS only.
+2. ~~C-174's repo-scale counts~~ recorded at 0.2.104-beta (C-174's "Bites at";
+   `~/.hobbes/bench/c174-counts-2026-10-03/`). Taken to Max for the
+   trace-oracle decision.
+3. ~~Go's and Java's caller roll-up~~ measured at 0.2.104-beta: C-176
+   widened (Java enum constant bodies, Go package vars), `who_calls` names
+   both (`~/.hobbes/bench/c176-go-java-2026-10-03/`).
 4. ~~C-164's remainder~~ named at 0.2.103-beta (ADR-135's amendment);
    swallowing extents without an index stay unnamed (C-164, partial).
 
 **Phase 2, rules a key grades:**
 5. **Rust operators, `Deref`, `Index` (C-174),** ADR-131's shape: lane B
    already draws `uses` at the token; rustc's MIR key holds these as Call
-   terminators. Probe first: that the `uses` target is the repo impl
+   terminators. **Premise changed 2026-10-03, re-ask Max before building:**
+   none of the three graded crates implements an operator, `Index` or
+   `PartialEq` trait, and their two `Deref` impls have no inbound edge; the
+   rule would need a new crate that writes them. Probe first: that the `uses` target is the repo impl
    method, and that MIR's `fn_span` line is the token's. No Rust cell is
    held out; pick one.
 6. **Then Rust's impl-distinct ids** (C-180's prevention, Max 2026-10-03:

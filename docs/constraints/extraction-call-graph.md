@@ -843,8 +843,17 @@
   intuitions about them. Measured on the three keyed Python cells (the held-out rich cell,
   `oracle-grading.md` §10.40): observed `__exit__` misses rich 75, flask 88, click 35. The trace
   oracle sees almost no `__enter__` (rich 1), because CPython 3.12 emits no call event for it, so
-  `__enter__`'s share is unmeasured, not small. No other language's share is measured at repo
-  scale.
+  `__enter__`'s share is unmeasured, not small. **Counted at repo scale 2026-10-03**
+  (`~/.hobbes/bench/c174-counts-2026-10-03/`; every site count an upper bound, the receiver's type
+  unknown): Python's stored traces hold no implicit dunder call at all (the tracer listens to `CALL`
+  and `PY_START` and keys only `with` and `__call__`), and the lines that may reach a repo dunder run
+  from 875 (flask) to 6,308 (pyparsing); Rust's graded crates define 20 `Iterator`, 12 `From`, 2
+  `Deref`, 1 `Drop` and 1 `Display` impl and no operator, `Index` or `PartialEq` impl (memchr 280 `?`,
+  139 index, 208 comparison sites); Java's cells 162 `toString`, 18 `close`, 15 `iterator` bodies
+  (enhanced-for 12–340, try-with-resources 3–48 per cell); TS/JS 105 class and 108 object accessors,
+  5 `then`, no `[Symbol.iterator]` or `[Symbol.dispose]`; Go 45 `String()`, 30 `Error()`, 39 `init()`
+  over six repos; C++ fmt and args 46 destructors, 24 `operator()`, 46 `begin`/`end` members; C's
+  cells no `cleanup` or `constructor` attribute.
 - **You find out:** **surfaced**.
   - The always-on "not detected at all" statement in `list_blind_spots` and in `hobbes plan`'s
     manifest names it in every language's terms since 0.2.80-beta.
@@ -861,12 +870,16 @@
   2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); `go/internal/knowledge` and
   `derive/manifests.py`, with their tests.
 
-### C-176 — A call's caller is the nearest enclosing symbol, so code below the symbol floor speaks as its container — in TypeScript and JavaScript, as the module — *registered 2026-10-01 (0.2.80-beta, the honesty audit); narrowed 2026-10-01 (ADR-158, 0.2.82-beta): a named class owns its constructor, accessors, static blocks, field initializers and member decorators, and a nested function's calls are its top-level symbol's*
+### C-176 — A call's caller is the nearest enclosing symbol, so code below the symbol floor speaks as its container — in TypeScript and JavaScript, as the module — *registered 2026-10-01 (0.2.80-beta, the honesty audit); narrowed 2026-10-01 (ADR-158, 0.2.82-beta): a named class owns its constructor, accessors, static blocks, field initializers and member decorators, and a nested function's calls are its top-level symbol's; widened 2026-10-03 (0.2.104-beta): measured on Go and Java, Java's enum constant bodies and Go's package vars named, and `who_calls` says so for both*
 - **Cannot tell you:** which function a call is written in, where that function is not a graph
   symbol. Every lane files a call under the innermost enclosing **symbol**. So a lambda's or a
   closure's calls are filed under the def around it, and a top-level callback's under the module
   (C-9's floor, C-58's closures). Python, Java and, since ADR-158, TS/JS file a class body's code
-  (an initializer, a static block, a TS constructor or accessor) under the class. TS/JS's symbols
+  (an initializer, a static block, a TS constructor or accessor) under the class. In Java that
+  includes **an enum constant's body**: `Initial { boolean process(…) { … } }`'s method is no symbol,
+  so its calls are the enum type's, and so are an anonymous class's written in a field. A Go
+  **package var's initializer**, a function literal assigned to the var included, is filed under the
+  var. TS/JS's symbols
   are top-level declarations and the methods of top-level named classes, so the calls inside these
   are filed under the **module**, as if written at top level:
   - an object literal's method;
@@ -884,7 +897,15 @@
   0.2.82-beta against the tsc key's callers (`~/.hobbes/bench/c176-ts-scope/probe.py`, rows where
   Hobbes says the module and the key a named function): ajv 338 (mostly its object-literal
   `code(cxt)` keyword methods), Preact 247 (prototype-assigned functions), cheerio 52, cue 51,
-  tileserver-gl 43, Express 16, npq 7, xmpp.js 7, folio-2025 0.
+  tileserver-gl 43, Express 16, npq 7, xmpp.js 7, folio-2025 0. **Go and Java, measured 2026-10-03**
+  at 0.2.102-beta against the RTA and javac keys' callers (`~/.hobbes/bench/c176-go-java-2026-10-03/`,
+  a port of the TS probe; 0 rows where Hobbes's caller does not hold the line): Go's closures toml 107,
+  mux 266, fzf 660, cobra 202, gitleaks 96, quic-go 91, this repo's `go/` 37, dagger's 19 cells 755; a
+  package var's func literal gitleaks 51, quic-go 32 (a var's other initializers have no key site:
+  mux 29, gitleaks 6, quic-go 5). Java: jsoup's enum constant bodies **1,691** (`HtmlTreeBuilderState`,
+  `TokeniserState`), its anonymous classes 93 and field initializers 68; Severed-Chains' field
+  initializers 5,969 (2,231 inside lambdas); spring-data-elasticsearch 309 and spring-petclinic 3, all
+  class-body code. Go's `init` and a Java lambda in a method agree with their keys.
 - **Was (to 0.2.81-beta):**
   - **The constructor, an accessor, a `static {}` block and a field initializer** of a named class
     were filed under the module, as were a member's decorators. Module-filed rows inside a class's
@@ -898,7 +919,10 @@
 - **You find out:** *partial.* `who_calls` adds a note under a caller list that names a TS/JS
   module: the module may stand for an object literal's method, an unnamed class's method, a
   function assigned to a property or a namespace's function, and is not necessarily top-level code.
-  `graph_neighborhood` and the surface say nothing. The general roll-up rule is stated here and
+  Since 0.2.104-beta it adds one under a list naming a Java or Python class (code in its body that is
+  no method symbol: an initializer, a block, a Java enum constant's body or an anonymous class in a
+  field) and one naming a Go package var (its initializer). `graph_neighborhood` and the surface say
+  nothing. The general roll-up rule is stated here and
   nowhere else.
 - **Source:** the 2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); ADR-158
   (`~/.hobbes/bench/c176-ts-scope/`); `tsextract/extract.mjs` `enclosingScope`,
