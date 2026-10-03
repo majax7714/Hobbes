@@ -15792,3 +15792,15 @@ went to the Rust collision.
   `test_target_repo_gets_whole_dir_ignored`, which ADR-012's amendment (`4ba9e35`) renamed `…_excluded`.
   pytest was green; only the graph job reads the ids. I-2 now names the new test, and its statement says
   where the ignore line goes. Lesson added.
+
+## 2026-10-03 (thirty-seventh session, close) — the graph job passes on the host at 0.2.96-beta
+
+- `scripts/ci-graph.sh 3fda729` at `6d2274f`, on the host: ingest contained (the `python-loads` record: 8
+  loads, 5 placed); `lanes` 17,593 sites, 0 unexplained, 1 `cfg-twin`, exit 3; invariants compile and run;
+  review "nothing needs attention"; `lane_b` 26 passed; "graph checks passed". The job rebuilt the image
+  (`4a556e979473`).
+- Every unit's commit passed the full pytest suite in a clean worktree (2,750 → 2,770); Go `./...` 403.
+- The knowledge server's old container (image `89d75de7b604`) was stopped; reconnect `hobbes-knowledge`
+  with `/mcp`. A direct stdio call to the proxy's `tests_guarding` returned nothing and was not pursued.
+- Docs: the handoff rewritten; `build-and-test.md` suite sizes; CLAUDE.md and AGENTS.md name ADR-167 as the
+  last (they said 165 through ADR-166 and ADR-167's commits: missed at each, fixed here).

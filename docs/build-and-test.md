@@ -56,13 +56,13 @@ so a bare `ok` proves nothing. Verify them in the image with `-v`.
 ## Suite sizes
 
 Last checked 2026-10-03. pytest and Go were re-run on the host at
-0.2.90-beta, tsextract and vitest at 0.2.83-beta; the rest were run at
+0.2.96-beta, tsextract and vitest at 0.2.83-beta; the rest were run at
 0.2.74-beta.
 
 | Suite | Size | Notes |
 |---|---|---|
-| pytest | 2,740 | 25 of them `lane_b`, run on the host at 0.2.90-beta |
-| Go `./...` | 402 with subtests | 402 pass |
+| pytest | 2,770 | 26 of them `lane_b`, run on the host at 0.2.96-beta |
+| Go `./...` | 403 with subtests | 403 pass |
 | oracle-lane Go | 131 with subtests | 119 pass, 12 skip on a host without clang++ or cmake; the C++ ones pass in the image |
 | vitest | 52 | |
 | tsextract | 49 | |

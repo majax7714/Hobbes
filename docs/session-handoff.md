@@ -1,12 +1,13 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (thirty-sixth session); Hobbes 0.2.96-beta on `main`.**
+**Reviewed 2026-10-03 (thirty-seventh session); Hobbes 0.2.96-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
-by the commits since then; they are unpushed. The image and the proxy are at
-0.2.90-beta; this repo was ingested at `474a099` and the old knowledge
-server's container stopped, for a `/mcp` reconnect. CI passed on Max's push. If `main` has
-moved, ingest at HEAD again. A new session's knowledge server is a new
-container from the current image, so it starts fresh.
+by the commits since then; they are unpushed. The image (`4a556e979473`, rebuilt by the graph job) and
+the proxy are at 0.2.96-beta; this repo was ingested at `6d2274f` by the host
+run of `scripts/ci-graph.sh 3fda729`, which passed. The old knowledge
+server's container was stopped for a `/mcp` reconnect. If `main` has moved,
+ingest at HEAD again. A new session's knowledge server is a new container
+from the current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
 file; don't append to it. Anything open but not done goes in
@@ -26,59 +27,42 @@ session went belongs in the BUILDLOG.
   repos."
 - 2026-10-02, on rule tiering: "syntatic over semantic when not clearly
   semantic to preserve honesty".
+- 2026-10-03, on the open-items routes: "all those look good. good to
+  proceed- approved".
 
-**Next unit: `cls(…)` in a classmethod** (rich 57, pyparsing 17), measured
-first. **Before you measure it, pick the next held-out Python repo.**
-pyparsing is held out now, and fitting the rule on it would spend it. The
-full ordered queue is under "Extraction, in order" in
-[`currently-open.md`](currently-open.md).
+**Next: C-184's containment, Max's call first** (precedent 1). The held-out
+icalendar grade found scip-python drawing a method call on a union-typed
+receiver to the union's first member at `semantic` (6 Hobbes-wrong rows,
+`oracle-grading.md` §10.46). TypeScript's face is contained (ADR-104); the
+routes are at the top of [`currently-open.md`](currently-open.md). **Then
+the `cls(…)` rule**: step 0 and icalendar's pre-registration are done; the
+ADR, the build and the C-rows are next (its wording is frozen in
+`~/.hobbes/bench/heldout-icalendar/PREREG.md`).
 
-**Waiting on Max:** how to surface C-179, C-181's and C-182's residuals, ADR-126 §3, and the rest of the "Decisions open for Max" section in
-[`currently-open.md`](currently-open.md). Don't build any of them until Max
-answers.
+**Waiting on Max:** C-184's route; flask's `sansio/` (re-ask: the probe
+showed the missing `Flask → App` is scip-python omitting `Flask#`'s
+relationships, not PEP 420 naming); C-181's residual, ADR-126 §3 and the
+rest of "Decisions open for Max". Don't build any of them until Max answers.
 
-## Where the last day left things (2026-10-02/03; the CHANGELOG has each one)
+## Where the last day left things (2026-10-03; the CHANGELOG has each one)
 
-- **The graph job is green** (CI on Max's push; red since 2026-09-26):
-  `lanes` exit 3 (ADR-165), review "nothing needs attention", `lane_b` 25
-  passed. The four bench modules got tests (`dedupe` wrapped in functions,
-  Max: route 1).
-- **0.2.90-beta, ADR-117 amended** (Max: the graph job's proposal): a
-  Python module that is at most its docstring is not asked for a guard;
-  the review names it on its own line. `lattice`'s `__init__` was one of
-  the graph job's five.
-- **0.2.89-beta, ADR-165, C-182 registered (partial)** (Max: route 1, then
-  "map to the node"): CI's `hobbes lanes` failed on ADR-163's fixture cfg
-  twin; the probe found the edge itself dropped (`below-floor`). A Rust cfg
-  twin's arms are now the node's both ways, the lane row is `cfg-twin`, and
-  a `rust-cfg-twins` record names twins. memchr byte-identical (919/919).
-- **0.2.88-beta, ADR-164, C-181 registered (partial)** (Max: route R1): a
-  Python call rooted at a same-file stdlib import that scip-python left
-  unplaced is tailed `stdlib-import`, not `import-binding`/`attr-call`.
-  flask 34, click 181, rich 82 sites moved; no edge or grade moved. Open
-  for Max: C-181's `except ImportError:` residual; C-173's record misses
-  code after a platform-guarded `raise` (both in `currently-open.md`).
-- **0.2.87-beta, ADR-163, C-180 registered and contained** (Max: the narrow
-  route): a fact at a later def of a Rust id two impl headers share is
-  refused, tailed `shared-qualname`. memchr 921 → 919 (the false
-  `T.distance` self-call gone), dagger-rust 3,592 → 3,363 (wrong-caller
-  rows), 0 contradicted, strict 100%. The prevention (distinct ids) is open.
-
-- **0.2.85-beta, ADR-160 (unit `3814`):** a call through a local alias is
-  drawn `syntactic`. rich went from 4,844 to 4,968 (90.20% → 92.51%); flask
-  and click are identical; pyparsing +1. rich counts as fitted from here on.
-- **pyparsing 3.3.3 is the held-out Python cell** (`oracle-grading.md`
-  §10.44): 3,516 confirmed, 0 Hobbes-wrong calls of 66 suspects, recall
-  50.6%.
-- **0.2.86-beta, ADR-161 (unit `aa88`), C-178 contained:** scip-python
-  answers the first `pkg.Name` it resolves through a `from … import *`
-  re-export for every later one. Hobbes now refuses, by shape, any Python
-  reference whose token is not its name, through a chain rooted at an
-  imported name, before the join, and counts the refusals. On pyparsing, 2,919 are refused, and
-  the wrong `uses` rows fell from 1,671 to 10; no `calls` row moved.
-- **Same day:** I-4's roster names `csource`/`cppsource` (`83555c9`). C-179
-  is registered, unsurfaced. The graph job's unguarded modules went from 22
-  to 5 (`1d5a7c0`).
+Max approved eight routes; seven are built, each its own commit, regraded
+where it could move a cell:
+- **0.2.91-beta, ADR-100 amended:** verify's `E2E` (an error on both trees
+  is a fault, not a failure; harness v3).
+- **0.2.92-beta, ADR-166, C-183:** a Go file's later `init` is the node's
+  (dagger: 89 `uses` moved from the module, nothing else).
+- **0.2.93-beta, ADR-012 amended:** the ignore line goes in
+  `.git/info/exclude`; the ingest no longer edits the tracked tree.
+  I-2's guard was renamed with its test (`6d2274f`, caught by the graph job).
+- **0.2.94-beta, ADR-154 amended:** C-173's record names the code after a
+  platform-guarded `raise` (rich: 16–661; graph byte-identical).
+- **0.2.95-beta, ADR-165 amended:** C-182's two-kinds repeat is refused,
+  the rest named in `rust-repeats` (memchr 919/919; C-182 surfaced).
+- **0.2.96-beta, ADR-167:** C-179 named where `tests_guarding` and the
+  review say "unguarded" (this repo: 5 loads placed; C-179 partial).
+- **Not built:** flask's `sansio/` (re-ask, above); `cls(…)` (behind
+  C-184).
 
 ## Where things stand
 
@@ -91,7 +75,9 @@ answers.
   quic-go (99.6%; all 15 rows are the oracle's grain). Each figure carries
   its strict companion (ADR-124); fmt is 100%, strict 99.62%. Trace-graded
   Python cells measure recall, never precision (C-60). rich is fitted
-  (ADR-160), and pyparsing is held out.
+  (ADR-160); pyparsing is held out; icalendar is graded held out at
+  0.2.96-beta (68.9%, **6 Hobbes-wrong**, C-184) and is the `cls(…)` rule's
+  held-out cell.
 - **Register:** 184 entries: 136 active (104 surfaced, 27 partial, 4
   unsurfaced — C-19, C-20, C-112, C-184 — 1 n/a), 31 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
