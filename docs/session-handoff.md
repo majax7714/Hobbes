@@ -94,8 +94,8 @@ move a cell:
 - **Register:** 193 entries: 144 active (112 surfaced, 28 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 32 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
-- **Oracle defect log: nothing open.** H-37 is the latest, fixed at
-  0.2.79-beta. RC-4 still carries its price: its silencing is
+- **Oracle defect log: H-38 open** (2026-10-03): the trace oracle's
+  `getattr` reads run a repo's `__getattr__`; not met on a standing cell. RC-4 still carries its price: its silencing is
   indiscriminate, and it hides 6 of C-153's rows.
 - **Shanks, the harness** (ADR-107, ADR-112, ADR-152): 98 session logs, and
   the tracker reads 98 of 40 (4 areas, 4 false blocks, all closed, 0

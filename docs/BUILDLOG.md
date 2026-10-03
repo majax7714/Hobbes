@@ -16011,3 +16011,15 @@ went to the Rust collision.
   cases; miniapp ids now `tf:infra:…`), `test_emit.py`, `test_cli.py`, the SPA's and Go's fixtures.
 - terraform-aws-eks re-ingested: 287 tf nodes (203 before), 230 reference edges over 288 sites.
 - Host: pytest 2,834, Go `./...` 405, vitest 52; proxy and image rebuilt (`2ac2a1a6b4fd`). `lane_b` not re-run: HCL has no lane B.
+
+## 2026-10-03 (thirty-ninth session, cont.) — the trace-extension measuring run; H-38 logged
+
+- A subagent copied the oracle lane, patched the copy's tracer (H-37's opcode read generalised to in-repo
+  dunders and property getters, a sidecar `oracle.implicit.json`) and ran it through the standing
+  `contain.Run` path in the image: flask 494 passed, structlog 926 passed / 2 failed, both as standing; the
+  regular in-repo pairs identical to the standing keys; regrading today's graphs reproduces the standing
+  grades. Observed implicit rows: flask 208, structlog 191, mostly property getters; 0 Hobbes edges change
+  grade. click and rich: the command was denied by the session's permission classifier ("Security Weaken");
+  not retried or worked around, taken to Max.
+- **H-38 logged open** (RC-12, new): the standing tracer's `getattr` reads (`trace_oracle.py:268`, `:283`,
+  `:287`, read here) run a repo's `__getattr__`; the measuring fixture failed under trace only.

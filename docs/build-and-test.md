@@ -60,7 +60,7 @@ Last checked 2026-10-03. pytest and Go were re-run on the host at 0.2.105-beta, 
 
 | Suite | Size | Notes |
 |---|---|---|
-| pytest | 2,834 | 28 of them `lane_b`, run on the host at 0.2.104-beta |
+| pytest | 2,834 | 28 of them `lane_b`, run on the host at 0.2.104-beta; the rest at 0.2.105-beta |
 | Go `./...` | 405 with subtests | 405 pass |
 | oracle-lane Go | 131 with subtests | 119 pass, 12 skip on a host without clang++ or cmake; the C++ ones pass in the image |
 | vitest | 52 | |

@@ -77,10 +77,14 @@ measured.
    swallowing extents without an index stay unnamed (C-164, partial).
 
 **Max, 2026-10-03, on the Phase 1 routes ("good with recommended"):**
-- **The Python trace oracle: measure first.** A patched copy of the tracer,
-  bench tooling only, run in the image on rich, flask, click and structlog
-  for observed implicit-dunder counts; the standing keys stay as they are.
-  The extension itself is decided on those counts.
+- **The Python trace oracle: measure first.** Run 2026-10-03, contained,
+  on flask and structlog (`~/.hobbes/bench/c174-counts-2026-10-03/python/trace-run/`):
+  208 and 191 implicit rows (13.4%, 15.4% of confirmed), mostly property
+  getters (116, 105); operator, iteration and truth 7 and 14; no Hobbes
+  edge changes grade; recall falls by denominator only (55.7% → 51.8%,
+  77.8% → 69.5%). click and rich not run: the session's permission
+  classifier denied the command. **Back with Max:** run click and rich,
+  and the extension itself.
 - ~~C-187's prevention~~ built at 0.2.105-beta: ids scoped by directory,
   C-187 lifted.
 - **Item 5 deferred** until a graded Rust crate writes operator impls;
@@ -134,6 +138,9 @@ rows could not be graded.
   external symbol names); a `bench-rust` pack; `hobbes cache` hygiene.
 
 ## Other no-spend work
+
+- **H-38** (`oracle/oracle-defects.md`): read the trace oracle's
+  `__code__`/`__func__`/`__wrapped__` through the type, with a fixture.
 
 - **W1/W3:** the decorated-declaration line convention, the C-15
   namespacing ADR, and `fetch-java` on the egress proxy.
