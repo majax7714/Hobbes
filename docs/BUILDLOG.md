@@ -15759,3 +15759,13 @@ went to the Rust collision.
 - **Checks:** `test_dynamic_loads.py` 9, `test_review.py` 34, Go `./internal/knowledge` ok; the suites on
   the commit in the clean worktree. The live `tests_guarding` answer waits for this repo's ingest and the
   image rebuild at the end of the batch.
+
+## 2026-10-03 (thirty-seventh session, cont.) — icalendar pre-registered for the `cls(…)` unit; proxy and image at 0.2.96-beta
+
+- **Step 0** (`~/.hobbes/bench/cls-classmethod/step0.py`, fitted cells only; pyparsing and icalendar not read):
+  rich 58 `cls(…)` sites in a classmethod (55 confirmed by the key at the own class, 2 seen only at a
+  subclass — `PromptBase.ask`, `MarkdownElement.create` — 1 not executed); flask 2 (1, 1); click 0. None is drawn.
+- **Pre-registered** before the ingest and the key: `~/.hobbes/bench/heldout-icalendar/PREREG.md` (sha256
+  `0bf6103e53c17e96…`), frozen at 0.2.96-beta `a5b4f41`, image `58f823a5a3d1`. icalendar v7.3.0 cloned at `138c8453` (the
+  scout's clone was gone), venv `uv sync --group test`, CPython 3.12.13.
+- Proxy rebuilt static (`hobbes-proxy 0.2.96-beta`) and the image rebuilt.
