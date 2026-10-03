@@ -15868,3 +15868,18 @@ went to the Rust collision.
   is the dispatch-harness flight log); C-13, C-171's Python residual and W1's parked tail (Java follow-ups,
   C-67's Gradle leftovers, `bench-rust`, cache hygiene) added, as they had no entry there.
 - `test_agent_docs.py` 4 passed. Next: C-174's remainder, Python first.
+
+## 2026-10-03 (thirty-eighth session, cont.) — C-174's Python remainder: an instance's `__call__`, pre-registered
+
+- Max: route 1 ("good with route one and to proceed after ast scan … go for diversity"). Scoping (read-only):
+  of C-174's Python shapes only an instance's `__call__` is keyed by the trace beyond `with`
+  (`trace_oracle.py:304-310`); operators, iteration, truth tests and builtins are invisible to it.
+- **Held-out cell picked by an `ast` scan of written sites** (ten candidates, source only): structlog 26.1.0
+  (`8174a86`, logging; 136 name-matched sites over 31 classes) over voluptuous (`Schema` dominant),
+  marshmallow, toolz, tenacity; attrs, boltons, cachetools, glom and pluggy write none. pyparsing is the
+  second held-out cell, partially seen (its `__call__` miss count was read in scoping, no row).
+- **Step 0** (fitted only, `~/.hobbes/bench/instance-call/step0.py`): rich 7 grain rows, 6 confirmed, 1 not
+  executed; flask and click draw nothing.
+- **Pre-registered** before the ingest and the key: `~/.hobbes/bench/heldout-structlog/PREREG.md` (sha256
+  `d65d5f69005d0fefabfbc8b61b305c6c44e8b9e221a0e8fcf293bd611341471f`), the rule as worded and S1–S4, P1–P2,
+  F1–F2. The baseline cell launched at 0.2.99-beta.
