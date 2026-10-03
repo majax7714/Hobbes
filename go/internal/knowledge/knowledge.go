@@ -1287,7 +1287,15 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 			rows = append(rows, row)
 		}
 	}
-	if len(rows) == 0 && scope != "." {
+	// A scope of Terraform files has no call sites and is still served:
+	// the hcl-layer record names what that layer cannot see (ADR-173).
+	infra := 0
+	for _, n := range g.Nodes {
+		if strings.HasPrefix(n.ID, "tf:") && strings.HasPrefix(n.Path, prefix) {
+			infra++
+		}
+	}
+	if len(rows) == 0 && infra == 0 && scope != "." {
 		return "", fmt.Errorf(
 			"no detected call sites under %q — scope is a repo-relative "+
 				"path prefix (e.g. src/app), or \".\" for the whole repo", scope)
@@ -1318,7 +1326,7 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 	}
 	first := true
 	for _, lang := range sortedKeys(g.VerificationBase) {
-		if scope != "." && !inScope[artifactLangBucket[lang]] {
+		if scope != "." && !inScope[artifactLangBucket[lang]] && !(lang == "hcl" && infra > 0) {
 			continue
 		}
 		if first {
@@ -1425,7 +1433,10 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 			row.File, row.Unresolved, row.Sites, classList(row.Tail))
 		shown++
 	}
-	if shown == 0 {
+	if len(rows) == 0 && infra > 0 {
+		fmt.Fprintf(&b, "\nno call sites under this scope: it holds %d Terraform node(s), and the "+
+			"hcl-layer record above names what that layer does not read (C-187 to C-193).\n", infra)
+	} else if shown == 0 {
 		b.WriteString("\nevery detected call site under this scope is accounted for.\n")
 	}
 

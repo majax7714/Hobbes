@@ -1183,6 +1183,16 @@ nothing else, and putting it back reproduces the artifact byte-for-byte.
 Nodes it *shares* with another producer survive its removal — an `env:VAR`
 that Python also reads is not the Terraform pack's to take away.
 
+**The Terraform pack's reach (ADR-173, 0.2.102-beta).** It draws a block's
+direct references, the two literal env-set shapes and the `packages` join,
+and a reference resolves only in its own directory, as Terraform's does.
+Node ids carry no directory, so one address declared in two directories is
+one node (C-187; the prevention is Max's). It does not follow locals,
+variables, outputs or module sources, read `.tf.json` or `.tofu`, or read a
+plan's child modules (C-188 to C-193). One `hcl-layer` record per ingest
+counts each in the repo, `hcl-parse` names a damaged file, and
+`list_blind_spots` serves a scope that holds only `.tf` files.
+
 **Packs degrade, except when they refuse.** A pack that raises is reported
 in `extraction_errors` and the ingest continues (P6). The exception is
 `PackRefusal`, which is re-raised: a pack declining input the user supplied
@@ -2317,7 +2327,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.101-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.101-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.102-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.102-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

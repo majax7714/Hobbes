@@ -46,6 +46,7 @@ def _run(ctx: PackContext) -> PackResult:
         nodes=infra["nodes"],
         module_edges=infra["module_edges"],
         languages=["hcl"],
+        errors=infra["errors"],
     )
 
 

@@ -136,7 +136,9 @@ class TestPlan:
 class TestNoTerraform:
     def test_repo_without_tf_is_empty(self, tmp_path):
         infra = extract_terraform(tmp_path, [])
-        assert infra == {"nodes": [], "module_edges": [], "tf_file_count": 0}
+        assert infra == {
+            "nodes": [], "module_edges": [], "tf_file_count": 0, "errors": []
+        }
 
 
 class TestDeterminism:
@@ -145,3 +147,85 @@ class TestDeterminism:
         assert extract_terraform(FIXTURE, modules) == extract_terraform(
             FIXTURE, modules
         )
+
+
+def _write(root: Path, files: dict[str, str]) -> Path:
+    for rel, text in files.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text)
+    return root
+
+
+class TestDirectoryScope:
+    """ADR-173: a reference resolves in its own directory, as Terraform's does."""
+
+    def test_reference_to_another_directorys_address_refused(self, tmp_path):
+        _write(tmp_path, {
+            "net/main.tf": 'resource "aws_vpc" "v" {}\n',
+            "stage/main.tf": 'resource "aws_flow_log" "fl" {\n  vpc_id = aws_vpc.v.id\n}\n',
+        })
+        infra = extract_terraform(tmp_path, [])
+        assert edge_set(infra, "references") == set()
+        assert "1 reference(s) to an address declared only in another directory refused" in (
+            infra["errors"][0]["message"]
+        )
+
+    def test_same_directory_reference_kept_across_files(self, tmp_path):
+        _write(tmp_path, {
+            "net/a.tf": 'resource "aws_vpc" "v" {}\n',
+            "net/b.tf": 'resource "aws_subnet" "s" {\n  vpc_id = aws_vpc.v.id\n}\n',
+        })
+        infra = extract_terraform(tmp_path, [])
+        assert edge_set(infra, "references") == {("tf:aws_subnet.s", "tf:aws_vpc.v")}
+
+    def test_shared_address_named_with_its_directories(self, tmp_path):
+        bucket = 'resource "aws_s3_bucket" "logs" {}\n'
+        _write(tmp_path, {"envs/dev/main.tf": bucket, "envs/prod/main.tf": bucket})
+        infra = extract_terraform(tmp_path, [])
+        assert [n["id"] for n in infra["nodes"]] == ["tf:aws_s3_bucket.logs"]
+        message = infra["errors"][0]["message"]
+        assert "1 address(es) are declared in more than one directory" in message
+        assert "aws_s3_bucket.logs (2 dirs)" in message and "(C-187)" in message
+
+
+class TestLayerRecord:
+    """ADR-173: one ``hcl-layer`` record per ingest, ``hcl-parse`` per damaged file."""
+
+    def test_counts_what_the_layer_does_not_read(self, tmp_path):
+        _write(tmp_path, {
+            "main.tf": (
+                'locals {\n  a = 1\n}\n'
+                'variable "v" {}\n'
+                'output "o" {\n  value = 1\n}\n'
+                'module "net" {\n  source = "./modules/net"\n}\n'
+                'module "vpc" {\n  source = "terraform-aws-modules/vpc/aws"\n}\n'
+            ),
+            "extra.tf.json": "{}",
+            "x.tofu": "",
+        })
+        infra = extract_terraform(tmp_path, [])
+        (record,) = infra["errors"]
+        assert record["stage"] == "hcl-layer" and record["path"] == "."
+        message = record["message"]
+        assert "read 1 .tf file(s)" in message
+        assert "1 `locals`, 1 `variable` and 1 `output` block(s) are not nodes" in message
+        assert "2 module call(s) (1 local, 1 registry or remote)" in message
+        assert "2 .tf.json or .tofu file(s) not read: extra.tf.json, x.tofu (C-192)" in message
+        for entry in ("C-188", "C-189", "C-190", "C-191"):
+            assert entry in message
+        assert "C-187" not in message  # nothing shared, nothing refused
+
+    def test_swallowed_block_is_named_by_a_parse_record(self, tmp_path):
+        _write(tmp_path, {"main.tf": (
+            'resource "a" "x" {\n  name = "b"\n\n'
+            'resource "aws_iam_role" "swallowed" {\n  name = "s"\n}\n'
+        )})
+        infra = extract_terraform(tmp_path, [])
+        assert "tf:aws_iam_role.swallowed" not in {n["id"] for n in infra["nodes"]}
+        stages = [(e["stage"], e["path"]) for e in infra["errors"]]
+        assert stages == [("hcl-layer", "."), ("hcl-parse", "main.tf")]
+        assert "(C-192)" in infra["errors"][1]["message"]
+
+    def test_tf_json_is_not_detected_as_tf(self, tmp_path):
+        _write(tmp_path, {"only.tf.json": "{}"})
+        assert extract_terraform(tmp_path, [])["tf_file_count"] == 0

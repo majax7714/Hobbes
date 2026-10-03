@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.101-beta; extraction order approved).
+Last reviewed: 2026-10-03 (0.2.102-beta).
 
 ## Decisions open for Max (no spend)
 
@@ -22,6 +22,12 @@ Last reviewed: 2026-10-03 (0.2.101-beta; extraction order approved).
   `ministdlib` fixture pins it. Proposed: refuse lane A's fallback where
   the same name is also bound by a stdlib import (a patch), or leave it
   registered.
+- **C-187's prevention** (ADR-173 § Not decided here): one Terraform
+  address in two directories is one node (terraform-aws-eks: 170 of 288
+  reference sites touch a merged node). Route 1, ids scoped by directory
+  (`tf:<dir>:<address>`, C-187 lifts, every multi-directory `tf:` id
+  changes); route 2, C-180's refusal of later directories' facts; route 3,
+  leave it named.
 - **Extending the Python trace oracle** to key operator, iteration and
   truth-test dunders, which would unblock C-174's other Python shapes.
   Max, 2026-10-03: decided once extraction Phase 1's repo-scale counts
@@ -68,10 +74,8 @@ grade. Each rule is measured on a held-out cell picked before it is
 measured.
 
 **Phase 1, audits (an unnamed limit outranks recall):**
-1. **Terraform/HCL.** A shipped layer with no `C-n` at all; §3.8 says "this
-   repo only" and the honesty audit's fixtures skipped it. A fixture of HCL
-   shapes (`module` sources, `for_each`/`count`, `dynamic`, locals, data
-   sources, provider aliases), ingested in the image; a `C-n` per limit.
+1. ~~Terraform/HCL~~ done at 0.2.102-beta (ADR-173, C-187 to C-193); its
+   prevention is in "Decisions open for Max".
 2. **C-174's implicit shapes at repo scale, outside Python.** A counter
    per language over the stored clones (Rust `?`/Drop/`for`/operators,
    Java try-with-resources/for-each/concatenation, Go `init`/Stringer, C++

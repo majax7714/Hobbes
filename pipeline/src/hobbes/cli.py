@@ -1829,7 +1829,8 @@ def build_parser() -> argparse.ArgumentParser:
     ingest_parser.add_argument(
         "--tf-plan",
         help="a `terraform show -json` file to enrich the infra graph "
-        "(never .tfstate)",
+        "(never .tfstate); only its root module's resources are read, and "
+        "its edges cite the plan at line 1 (C-193)",
     )
 
     render_parser = sub.add_parser(

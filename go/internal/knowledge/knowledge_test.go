@@ -1334,6 +1334,47 @@ func TestBlindSpotsUnknownScopeSaysHow(t *testing.T) {
 	}
 }
 
+func TestBlindSpotsServesATerraformOnlyScope(t *testing.T) {
+	repo := blindSpotRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	raw, _ := os.ReadFile(path)
+	var g map[string]any
+	json.Unmarshal(raw, &g)
+	g["nodes"] = append(g["nodes"].([]any),
+		map[string]any{"id": "tf:aws_vpc.v", "kind": "resource", "path": "infra/main.tf"})
+	vb, _ := g["verification_base"].(map[string]any)
+	if vb == nil {
+		vb = map[string]any{}
+	}
+	vb["hcl"] = map[string]any{"note": "verified on 1 repo: this repo only"}
+	g["verification_base"] = vb
+	g["extraction_errors"] = append(asSlice(g["extraction_errors"]),
+		map[string]any{"path": ".", "stage": "hcl-layer", "message": "the Terraform layer read 1 .tf file(s) (C-188)"})
+	data, _ := json.Marshal(g)
+	os.WriteFile(path, data, 0o644)
+	out, err := Open(repo).ListBlindSpots("infra/")
+	if err != nil {
+		t.Fatalf("a Terraform-only scope was refused: %v", err)
+	}
+	for _, want := range []string{
+		"hcl: verified on 1 repo: this repo only",
+		"degraded: .: hcl-layer:",
+		"it holds 1 Terraform node(s)",
+	} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "every detected call site under this scope is accounted for") {
+		t.Fatalf("an infra-only scope claimed its call sites accounted:\n%s", out)
+	}
+}
+
+func asSlice(v any) []any {
+	s, _ := v.([]any)
+	return s
+}
+
 func TestBlindSpotsCleanScopeSaysAccounted(t *testing.T) {
 	s := Open(blindSpotRepo(t))
 	out, err := s.ListBlindSpots("src/app/api.py")

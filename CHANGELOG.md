@@ -11,9 +11,26 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.101-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.102-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.102-beta — 2026-10-03 (the Terraform layer's limits registered and named; ADR-173, C-187 to C-193)
+
+**Patch: what the layer says and refuses**, Terraform/HCL. The layer had no register entry; the honesty
+audit had no HCL fixture. One was built (`~/.hobbes/bench/honesty-audit/fixtures/tf/`), and Max's approved
+extraction order put it first.
+
+- **Refused:** a `references` edge whose target address is declared only in another directory. Terraform
+  never resolves one; valid code has none (terraform-aws-eks and terraform-aws-vpc: 0).
+- **C-187 registered:** one address in two directories is one node. terraform-aws-eks: 39 addresses over 123
+  of 287 blocks, 170 of 288 reference sites touch a merged node. Named, not prevented: the routes are Max's.
+- **C-188 to C-193 registered:** references through locals, variables and outputs; module calls not
+  followed; env-set's literal shapes; `packages`' paths; `.tf.json`, `.tofu` and parse-damaged regions;
+  the plan's root module and line-1 evidence.
+- **Named per ingest:** one `hcl-layer` record with the repo's counts, one `hcl-parse` record per damaged
+  `.tf` file. `list_blind_spots` serves a scope holding only `.tf` files instead of refusing it, with HCL's
+  verification line. `--tf-plan`'s help states C-193.
 
 ## 0.2.101-beta — 2026-10-03 (a Python name defined more than once in one scope is named; ADR-172, C-186)
 

@@ -14,6 +14,11 @@ and module-level edges in graph.json's shape:
   resolving to a repo file the Python extractor discovered: the
   infra-packages-app-code edge.
 
+A reference resolves in its own directory, as Terraform resolves it: an
+address declared only in another directory draws nothing (ADR-173). What
+the layer does not read is registered (C-187 to C-193) and named per
+ingest in one ``hcl-layer`` record, and per damaged file in ``hcl-parse``.
+
 Never reads ``.tfstate`` — state carries secrets (engineering rule; the
 policy engine's builtin floor, ADR-011, enforces the same for agents).
 """
@@ -35,6 +40,13 @@ _PARSER = Parser(Language(tree_sitter_hcl.language()))
 #: Top-level block types that become graph nodes, → node kind.
 _BLOCK_KINDS = {"resource": "resource", "data": "data", "module": "tf-module"}
 
+#: Top-level block types the layer does not make nodes of, counted in the
+#: ``hcl-layer`` record (C-188).
+_INDIRECT_BLOCKS = ("locals", "variable", "output")
+
+#: Terraform files in a syntax the layer does not parse (C-192).
+_UNREAD_SUFFIXES = (".tf.json", ".tofu")
+
 #: Chain heads that can never be a declared-block reference.
 _NON_ADDRESS_HEADS = {"var", "local", "path", "each", "count", "terraform", "self"}
 
@@ -46,7 +58,8 @@ class PlanError(RuntimeError):
 def extract_terraform(
     repo_root: Path, modules: list[ModuleInfo], tf_plan: Path | None = None
 ) -> dict:
-    """Extract the infra layer: ``{"nodes", "module_edges", "tf_file_count"}``.
+    """Extract the infra layer: ``{"nodes", "module_edges", "tf_file_count",
+    "errors"}``.
 
     *modules* is the Python discovery result, used for the ``packages``
     join. *tf_plan* optionally names a ``terraform show -json`` file.
@@ -57,21 +70,38 @@ def extract_terraform(
 
     parsed: list[tuple[str, Node, str, str]] = []  # (file, block, addr, kind)
     declared: dict[str, str] = {}  # address → node id
+    declared_dirs: dict[str, set[str]] = {}  # address → directories declaring it
+    indirect = dict.fromkeys(_INDIRECT_BLOCKS, 0)
+    module_sources = {"local": 0, "remote": 0}
+    errors: list[dict] = []
     for rel in tf_files:
         root = _PARSER.parse((repo_root / rel).read_bytes()).root_node
+        if root.has_error:
+            errors.append(_parse_record(rel))
+        for block_type, block in _top_level(root):
+            if block_type in indirect:
+                indirect[block_type] += 1
         for block, addr, kind in _top_blocks(root):
             declared.setdefault(addr, f"tf:{addr}")
+            declared_dirs.setdefault(addr, set()).add(posixpath.dirname(rel))
             parsed.append((rel, block, addr, kind))
+            if kind == "tf-module":
+                module_sources[_module_source_kind(block)] += 1
 
     nodes: dict[str, dict] = {}
     edges: dict[tuple, list] = {}
+    cross_directory = 0
     for rel, block, addr, kind in parsed:
         source_id = f"tf:{addr}"
         nodes.setdefault(source_id, {"id": source_id, "kind": kind, "path": rel})
 
+        tf_dir = posixpath.dirname(rel)
         for chain, line in _traversals(block):
             target_addr = _addr_from_chain(chain)
             if target_addr in declared and target_addr != addr:
+                if tf_dir not in declared_dirs[target_addr]:
+                    cross_directory += 1  # Terraform never resolves it (ADR-173)
+                    continue
                 _add_edge(edges, source_id, declared[target_addr], "references", rel, line)
 
         for key, line in _env_keys(block):
@@ -79,7 +109,6 @@ def extract_terraform(
             nodes.setdefault(env_id, {"id": env_id, "kind": "env", "name": key})
             _add_edge(edges, source_id, env_id, "env-set", rel, line)
 
-        tf_dir = posixpath.dirname(rel)
         for literal, line in _string_values(block):
             target_module = _resolve_repo_path(repo_root, tf_dir, literal, module_by_path)
             if target_module is not None:
@@ -88,10 +117,17 @@ def extract_terraform(
     if tf_plan is not None:
         _consume_plan(repo_root, tf_plan, declared, nodes, edges)
 
+    if tf_files:
+        shared = {a: d for a, d in declared_dirs.items() if len(d) > 1}
+        errors.insert(0, _layer_record(
+            len(tf_files), indirect, module_sources,
+            _walk_files(repo_root, _UNREAD_SUFFIXES), shared, cross_directory,
+        ))
     return {
         "nodes": sorted(nodes.values(), key=lambda n: n["id"]),
         "module_edges": _edge_list(edges),
         "tf_file_count": len(tf_files),
+        "errors": errors,
     }
 
 
@@ -102,6 +138,13 @@ def discover_tf(repo_root: Path) -> list[str]:
     Public because the Terraform pack's detection needs the same pruned
     walk: a plain ``glob("**/*.tf")`` would descend into ``node_modules``.
     """
+    return _walk_files(repo_root, (".tf",))
+
+
+def _walk_files(repo_root: Path, suffixes: tuple[str, ...]) -> list[str]:
+    """Repo-relative paths whose name ends in one of *suffixes*, under
+    discovery's pruning. A name is matched whole (``x.tf.json`` is not
+    ``.tf``)."""
     found = []
     stack = [repo_root]
     while stack:
@@ -114,28 +157,106 @@ def discover_tf(repo_root: Path) -> list[str]:
                     and not is_linked_copy(child, repo_root)
                 ):
                     stack.append(child)
-            elif child.suffix == ".tf":
+            elif child.name.endswith(suffixes):
                 found.append(child.relative_to(repo_root).as_posix())
     return sorted(found)
+
+
+def _parse_record(rel: str) -> dict:
+    """The ``hcl-parse`` record for a ``.tf`` file tree-sitter-hcl parsed
+    with errors (C-192): its recovery can swallow every block after an
+    unclosed brace."""
+    return {
+        "path": rel,
+        "stage": "hcl-parse",
+        "message": (
+            f"{rel} parsed with syntax errors (tree-sitter ERROR nodes); a block inside a "
+            "region the parse could not read is not a node and its references are not "
+            "drawn — an unclosed brace can take the rest of the file (C-192)"
+        ),
+    }
+
+
+def _layer_record(
+    tf_count: int,
+    indirect: dict[str, int],
+    module_sources: dict[str, int],
+    unread: list[str],
+    shared: dict[str, set[str]],
+    cross_directory: int,
+) -> dict:
+    """The one ``hcl-layer`` record per ingest that names what the Terraform
+    layer does not read, with this repo's counts (ADR-173, C-187 to C-193)."""
+    parts = [
+        f"the Terraform layer read {tf_count} .tf file(s), syntactic. It draws `references` "
+        "only where a block names another block in its own directory",
+        f"{indirect['locals']} `locals`, {indirect['variable']} `variable` and "
+        f"{indirect['output']} `output` block(s) are not nodes, and a reference through one "
+        "is not drawn (C-188)",
+        f"{module_sources['local'] + module_sources['remote']} module call(s) "
+        f"({module_sources['local']} local, {module_sources['remote']} registry or remote) are "
+        "one node each, not followed into their source (C-189)",
+        "`env-set` reads only literal keys of `environment { variables = {…} }` and "
+        "`env { name = … }`: a Python env-read with no env-set does not mean nothing sets "
+        "it (C-190)",
+        "`packages` joins only a literal or `${path.module}` path to a Python file (C-191)",
+    ]
+    if unread:
+        parts.append(
+            f"{len(unread)} .tf.json or .tofu file(s) not read: "
+            + ", ".join(unread[:3]) + (" …" if len(unread) > 3 else "") + " (C-192)"
+        )
+    if shared:
+        examples = ", ".join(
+            f"{addr} ({len(dirs)} dirs)"
+            for addr, dirs in sorted(shared.items(), key=lambda item: (-len(item[1]), item[0]))[:3]
+        )
+        parts.append(
+            f"{len(shared)} address(es) are declared in more than one directory, and each is "
+            "one node whose path is the first directory's; an edge to it may belong to "
+            f"either: {examples}{' …' if len(shared) > 3 else ''} (C-187)"
+        )
+    if cross_directory:
+        parts.append(
+            f"{cross_directory} reference(s) to an address declared only in another "
+            "directory refused, since Terraform never resolves one (C-187)"
+        )
+    return {"path": ".", "stage": "hcl-layer", "message": "; ".join(parts)}
 
 
 def _text(node: Node) -> str:
     return (node.text or b"").decode("utf-8", "replace")
 
 
-def _top_blocks(root: Node):
-    """Yield (block node, address, kind) for node-worthy top-level blocks."""
+def _top_level(root: Node):
+    """Yield (block type, block node) for every top-level block."""
     body = next((c for c in root.children if c.type == "body"), None)
     for block in body.children if body else []:
         if block.type != "block":
             continue
-        block_type = None
-        labels = []
-        for child in block.children:
-            if child.type == "identifier" and block_type is None:
-                block_type = _text(child)
-            elif child.type == "string_lit":
-                labels.append(_string_label(child))
+        block_type = next(
+            (_text(c) for c in block.children if c.type == "identifier"), None
+        )
+        yield block_type, block
+
+
+def _module_source_kind(block: Node) -> str:
+    """``local`` for a module block whose ``source`` is a ``./`` or ``../``
+    path, ``remote`` for anything else (a registry address, git, a URL)."""
+    body = next((c for c in block.children if c.type == "body"), None)
+    for attribute in body.children if body else []:
+        if attribute.type == "attribute" and _text(attribute.children[0]) == "source":
+            source = _pure_string(attribute.children[-1]) or ""
+            return "local" if source.startswith(("./", "../")) else "remote"
+    return "remote"
+
+
+def _top_blocks(root: Node):
+    """Yield (block node, address, kind) for node-worthy top-level blocks."""
+    for block_type, block in _top_level(root):
+        labels = [
+            _string_label(child) for child in block.children if child.type == "string_lit"
+        ]
         kind = _BLOCK_KINDS.get(block_type)
         if kind is None:
             continue

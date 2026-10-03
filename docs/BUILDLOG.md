@@ -15942,3 +15942,22 @@ went to the Rust collision.
   Phase 1's counts go back to him.
 - Stale lines fixed: "C-139's finer extent" was C-141's (C-139 lifted 2026-09-13); click's 806 marked as
   predating ADR-153; `workstreams.md` W1 pointed at the handoff for the C++ list, now `currently-open.md`.
+
+## 2026-10-03 (thirty-ninth session, cont.) — the Terraform layer audited; 0.2.102-beta (ADR-173, C-187 to C-193)
+
+- Phase 1 item 1. The layer had no `C-n` and the honesty audit no HCL fixture. Built
+  `~/.hobbes/bench/honesty-audit/fixtures/tf/` (S1–S21, one shape each, a tiny Python app for the joins),
+  ingested at 0.2.101-beta: direct, indexed, keyed, splat, `depends_on`, `dynamic` and data references drawn;
+  indirection, module contents, five env and path shapes, `.tf.json`/`.tofu` and a swallowed block not; two
+  wrong: the address merge across directories and a cross-directory reference (`RESULTS.md` § Terraform).
+- Sized on two shallow public clones (`~/.hobbes/bench/tf-audit-2026-10-03/`, `merge_probe.py`):
+  terraform-aws-eks `e072462` 39 shared addresses over 123 of 287 blocks, 170 of 288 reference sites touch a
+  merged node; terraform-aws-vpc `b3abd6d` 8, 47 of 166, 37 of 162; 0 cross-directory and 0 parse errors.
+- **Built:** the directory check, `hcl-layer` (with counts) and `hcl-parse` records, `_walk_files` for the
+  unread suffixes; `ListBlindSpots` serves an infra-only scope; `--tf-plan` help states C-193. Tests:
+  `test_terraform.py` +6 (22), `test_packs.py`'s degradation test now expects the survivor's record,
+  `knowledge_test.go` +1. C-187's prevention taken to Max as three routes (ADR-173), not built.
+- Re-ingested at 0.2.102-beta: the fixture's 11 references → 10 (the stage edge refused); eks's record counts
+  57 locals, 458 variables, 302 outputs, 84 module calls (61 local), 39 shared addresses.
+- Host: pytest 2,828, `lane_b` 28 of 28, Go `./...` 404, oracle Go green; proxy and image rebuilt
+  (`24beb72d7c70`).

@@ -32,14 +32,14 @@ session went belongs in the BUILDLOG.
 
 **Next:** the extraction order Max approved on 2026-10-03, in
 [`currently-open.md`](currently-open.md) § Extraction: Phase 1's audits
-first (Terraform/HCL, C-174's repo-scale counts outside Python, Go's and
-Java's caller roll-up, C-164's remainder), and the counts go back to Max
+first (Terraform/HCL done at 0.2.102-beta, ADR-173; then C-174's repo-scale
+counts outside Python, Go's and Java's caller roll-up, C-164's remainder), and the counts go back to Max
 for the trace-oracle decision. Then Phase 2's graded rules (Rust operators,
 then Rust's impl-distinct ids, then C++ functors and conversions), each on a
 held-out cell picked first. Python held out: structlog, icalendar,
 pyparsing; unused: voluptuous, marshmallow, toolz, tenacity.
 
-**Waiting on Max:** C-181's residual, ADR-126 §3 and the rest of "Decisions open for Max" in
+**Waiting on Max:** C-187's prevention (ADR-173), C-181's residual, ADR-126 §3 and the rest of "Decisions open for Max" in
 [`currently-open.md`](currently-open.md). Don't build any
 of them until Max answers.
 
@@ -89,7 +89,7 @@ move a cell:
   (ADR-160); pyparsing, icalendar and structlog are graded held out
   (icalendar 70.2%, its 6 wrong rows contained by ADR-168; structlog 77.8%
   at 0.2.100-beta).
-- **Register:** 186 entries: 138 active (106 surfaced, 28 partial, 3
+- **Register:** 193 entries: 145 active (113 surfaced, 28 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 31 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open.** H-37 is the latest, fixed at

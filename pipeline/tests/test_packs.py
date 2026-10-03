@@ -452,7 +452,8 @@ class TestDegradation:
         out = run_packs(_context(MINIAPP), (broken, terraform.PACK))
 
         assert out.ran == ["terraform"]  # the survivor still ran
-        assert len(out.errors) == 1
+        # The survivor's own hcl-layer record (ADR-173) follows the failure's.
+        assert [e["stage"] for e in out.errors] == ["pack:broken", "hcl-layer"]
         error = out.errors[0]
         assert error["stage"] == "pack:broken"
         assert "no framework here" in error["message"]
