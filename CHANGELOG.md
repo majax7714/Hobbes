@@ -11,9 +11,19 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.97-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.98-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.98-beta — 2026-10-03 (a Python class base the index states no relationship for is named; ADR-169, C-185)
+
+**Patch: what the layer says**, Python. flask's `class Flask(App)` has no `implements` edge, and nothing said so.
+The re-ask's probe found the cause is scip-python 0.6.6 writing no symbol entry at all for some classes, not
+PEP 420 naming. Max chose route 1: register it, surfaced.
+
+- Lane A records each class header's bases; after the join, a base lane B resolved in the header with no
+  `implements` edge from the class is named in one `python-bases` record per ingest (C-185). Nothing is drawn.
+- Regraded: flask 14, rich 16, click 9, pyparsing 42, icalendar 4 pairs named; edges and grades unchanged.
 
 ## 0.2.97-beta — 2026-10-03 (a Python call on a union-typed receiver is not drawn; ADR-168, C-184)
 

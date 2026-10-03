@@ -243,6 +243,31 @@
 - **Source:** `oracle-grading.md` §10.46; `cells/icalendar-py-2026-10-03.md`.
   ADR-168; the regrade `~/.hobbes/bench/c184-union-receiver/`.
 
+### C-185 — A Python class whose relationships scip-python never states draws no `implements` edge to its base — *registered 2026-10-03 (0.2.98-beta, ADR-169)*
+- **Cannot tell you:** that a class extends an in-repo base, where the index
+  states no relationship for the class. scip-python 0.6.6 writes no
+  SymbolInformation at all for some classes (flask's `Flask`, icalendar's
+  `Component`, click's `Group`), so no class-level `implements` edge is
+  drawn from them, and the pair is not counted `outside` either. The base
+  name in the header is still resolved, as a `uses` reference, and the
+  methods' own `implements` pairs may still be stated (`Flask.
+  create_jinja_environment → App.create_jinja_environment`).
+- **Because:** the class-level `implements` edge comes only from the
+  index's `relationships` (ADR-120); why scip-python omits some classes is
+  unread.
+- **Bites at:** `graph_neighborhood` and the graph view (no class edge to the
+  base), and C-58's dispatch reading through a base. Measured 2026-10-03, of
+  the in-repo bases lane B resolved in a class header: flask 14 of 80, rich
+  16 of 80, click 9 of 97, pyparsing 42 of 168, icalendar 4 of 60, this repo
+  0 of 9.
+- **You find out:** surfaced — every ingest where lane B ran for Python and
+  such a pair exists writes one `python-bases` degradation record (the
+  count, examples, this entry), shown by `list_blind_spots` and the ingest
+  summary.
+- **Provider (P9):** scip-python **0.6.6**.
+- **Source:** the flask `sansio/` re-ask's probe (2026-10-03); ADR-169;
+  `~/.hobbes/bench/c185-unstated-bases/`.
+
 ### C-5 — Routes with computed paths are skipped
 - **Cannot tell you:** that an endpoint exists when its path is an
   f-string or a variable rather than a literal.

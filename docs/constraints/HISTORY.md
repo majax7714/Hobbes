@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-185 registered, 2026-10-03 (0.2.98-beta; ADR-169, Max: route 1 of the flask `sansio/` re-ask):
+- **C-185 registered, surfaced.** scip-python writes no SymbolInformation for some classes, so no class
+  `implements` edge is drawn to a base lane B itself resolved in the header (flask 14 of 80, click 9 of 97,
+  pyparsing 42 of 168…). A `python-bases` record names the pairs; nothing is drawn.
+- Tally: 185 entries, 137 active (105 surfaced, 28 partial, 3 unsurfaced, 1 n/a), 31 lifted,
+  11 superseded, 6 folded.
+
 C-184 contained, 2026-10-03 (0.2.97-beta; ADR-168, Max: route 1):
 - **C-184 unsurfaced → partial.** Lane A reads a receiver's union where the source writes it, and the join
   draws nothing there (`union-member`, as ADR-104 for TS). icalendar's 6 wrong rows gone; the other Python

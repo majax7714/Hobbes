@@ -781,7 +781,11 @@ both ends the symbol *starting* at the line. What is not drawn is
 counted and printed: a pair to a declaration outside the repo, one
 whose source is no graph definition, one nothing oriented, and one
 whose end lane A keeps no symbol for (Go's interface method specs;
-C-58's floor). `who_calls` lists the edges into a symbol under
+C-58's floor). A pair the index never states is not counted there: scip-python
+0.6.6 writes no symbol entry at all for some classes (flask's `Flask`), so
+since 0.2.98-beta a Python class whose header names an in-repo base lane B
+resolved, with no `implements` edge to it, is named in one `python-bases`
+record (ADR-169, C-185). `who_calls` lists the edges into a symbol under
 "implemented or overridden by". **The edge is the set, not the
 dispatch:** a call to an interface method still draws to the declared
 target only (C-58), and reach still follows `calls` (ADR-007); the
@@ -2285,7 +2289,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.97-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.97-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.98-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.98-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

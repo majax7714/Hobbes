@@ -631,6 +631,9 @@ class TypeFacts:
     returns: tuple[tuple[str, object], ...] = ()
     getitems: tuple[object, ...] = ()
     receivers: tuple[ReceiverRead, ...] = ()
+    #: ``(class line, last base's line, base head names)`` per class with a
+    #: base (C-185, ADR-169): where scip-python resolves the base it writes.
+    heads: tuple[tuple[int, int, tuple[str, ...]], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1331,6 +1334,7 @@ def _type_facts(root: Node) -> TypeFacts:
     returns: list = []
     getitems: list = []
     receivers: list[ReceiverRead] = []
+    heads: list = []
     for node in _walk_all(root):
         kind = node.type
         if kind == "class_definition":
@@ -1352,6 +1356,18 @@ def _type_facts(root: Node) -> TypeFacts:
                         attributes.append((_text(target), _type_of(assign.child_by_field_name("type"))))
             if name is not None:
                 classes.append((_text(name), tuple(methods), bases))
+            base_nodes = [
+                c for c in (supers.named_children if supers is not None else ())
+                if c.type not in ("keyword_argument", "comment")
+            ]
+            heads_named = tuple(
+                n for n in (
+                    _last_name(c.child_by_field_name("value") if c.type in ("subscript", "generic_type") else c)
+                    for c in base_nodes
+                ) if n
+            )
+            if heads_named:
+                heads.append((_line(node), _last_line(base_nodes[-1]), heads_named))
         elif kind == "assignment":
             target = node.child_by_field_name("left")
             annotation = node.child_by_field_name("type")
@@ -1369,7 +1385,8 @@ def _type_facts(root: Node) -> TypeFacts:
                     getitems.append(_type_of(returned))
             receivers.extend(_receiver_reads(node))
     return TypeFacts(
-        tuple(aliases), tuple(classes), tuple(attributes), tuple(returns), tuple(getitems), tuple(receivers)
+        tuple(aliases), tuple(classes), tuple(attributes), tuple(returns), tuple(getitems), tuple(receivers),
+        tuple(heads),
     )
 
 

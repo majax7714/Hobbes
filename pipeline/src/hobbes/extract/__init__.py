@@ -37,6 +37,7 @@ from hobbes.extract import (
     ingestlock,
     laneacache,
     minted,
+    pybases,
     pystatic,
     pyunion,
     reexport,
@@ -493,6 +494,21 @@ def _shared_qualname_record(
             f"inside or resolved onto one is refused: {calls} call(s), counted in the "
             f"tail as `shared-qualname`, and {len(refused) - calls} other reference(s) "
             f"(ADR-163, C-180, C-182). Later defs: {examples}"
+        ),
+    }
+
+
+def _unstated_bases_record(pairs: list[tuple[str, str]]) -> dict:
+    """The one degradation record ADR-169 writes per ingest (C-185)."""
+    examples = "; ".join(f"{cls} -> {base}" for cls, base in pairs[:5])
+    return {
+        "path": ".",
+        "stage": "python-bases",
+        "message": (
+            f"{len(pairs)} Python class(es) name an in-repo base the index resolved in the class header, "
+            "but the index states no relationship for the class (scip-python 0.6.6 writes none for some "
+            "classes), so no `implements` edge is drawn from it to the base; its methods' own pairs may "
+            f"still be (ADR-169, C-185). {examples}{' …' if len(pairs) > 5 else ''}"
         ),
     }
 
@@ -979,6 +995,13 @@ def _build_symbol_layer(
         "undirected": implements_counts["implements_undirected"],
         "below_floor": projected.get("implements_below_floor", 0),
     }
+    # ADR-169 (C-185): a Python class whose base lane B resolved in its
+    # header and whose `implements` edge the index never stated. Only where
+    # lane B ran for Python; nothing is drawn, one record names the pairs.
+    if python_reading is not None and modules:
+        unstated = pybases.unstated_bases(modules, parsed, graph["symbols"], projected["symbol_edges"])
+        if unstated:
+            degraded.append(_unstated_bases_record(unstated))
     with timings.step("lane agreement"):
       graph["lane_agreement"] = _lane_agreement(
         syntax,

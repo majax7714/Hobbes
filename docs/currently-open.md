@@ -41,19 +41,11 @@ Last reviewed: 2026-10-03 (0.2.96-beta).
   ADR-145's `syntactic` fixture-value edges (40 of flask's items, `with
   app.app_context():`). Allowing it would stack one `syntactic` rule on
   another.
-- **flask's `src/flask/sansio/` and the missing `Flask → App`** (re-ask,
-  2026-10-03: the probe overturned the premise Max approved). Lane A names
-  the PEP 420 modules `app`, `scaffold`, `blueprints`; scip-python's own
-  monikers say the same (`app/App#`), so references join (`flask.app →
-  app` is drawn). The missing class pair is scip-python 0.6.6's: it writes
-  no SymbolInformation for `Flask#` at all (its method pair
-  `create_jinja_environment` is stated; `Blueprint#`, `App# → Scaffold#`
-  are too), so the pair is not even counted `outside`; why is unread.
-  Routes for Max: register the provider omission, surfaced by counting
-  lane A's in-repo bases with no `implements` row; register the PEP 420
-  naming (ids are not the import path); draw the pair from lane A's bases
-  (`syntactic`, a recall rule, measured first). Evidence: the cached facts
-  `~/.hobbes/cache/index/f38d9da296f86d6eefa21375.facts.ndjson`.
+- **flask's PEP 420 `sansio/` naming** (route 2 of the 2026-10-03 re-ask,
+  not taken): lane A and scip-python both name the modules `app`,
+  `scaffold`, `blueprints`, not `flask.sansio.*`; references join. Register
+  it if it ever bites (two namespace directories each holding `app.py`
+  would collide, C-28). The missing `Flask → App` is C-185's (ADR-169).
 - **`npm ci` refused three of four lockfile-bearing JS repos** (counted
   under C-23 in C-165). Open: whether "pinned or declined" falls back to
   anything. Nothing is proposed.

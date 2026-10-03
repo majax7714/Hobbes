@@ -15822,3 +15822,13 @@ went to the Rust collision.
   docs commit, so `21d019e`, `6d2274f` and `2149c8b` were red on that one test. The row now names icalendar
   in the "graded on" cell alone, with its numbers in the evidence column, and Python's verification base
   is 12 repos (in this release, as rich's and pyparsing's additions were). Full suite 2,782 passed.
+
+## 2026-10-03 (thirty-seventh session, cont.) — C-185 registered (0.2.98-beta, ADR-169)
+
+- **Measured first:** base names matched by name alone were noisy (`unittest.TestCase` paired with
+  pyparsing's own); the base lane B resolved in the header is the measure (`c185-missing-bases2.py`). The
+  raw icalendar index confirms scip-python writes no SymbolInformation for `Component#`,
+  `TimezoneDaylight#`, `TimezoneStandard#`, as for flask's `Flask#`.
+- **Built:** `TypeFacts.heads`, `pybases.unstated_bases`, the `python-bases` record; `test_pybases.py` 5.
+- **Regrade:** the record's counts equal the measurement on all five cells; edges byte-identical.
+- flask's PEP 420 naming stays in `currently-open.md` (route 2, not taken).

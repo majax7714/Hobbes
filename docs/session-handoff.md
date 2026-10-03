@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (thirty-seventh session); Hobbes 0.2.97-beta on `main`.**
+**Reviewed 2026-10-03 (thirty-seventh session); Hobbes 0.2.98-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image (`4a556e979473`, rebuilt by the graph job) and
 the proxy are at 0.2.96-beta; this repo was ingested at `6d2274f` by the host
@@ -78,7 +78,7 @@ where it could move a cell:
   (ADR-160); pyparsing is held out; icalendar is graded held out at
   0.2.96-beta (68.9%, **6 Hobbes-wrong**, C-184) and is the `cls(…)` rule's
   held-out cell.
-- **Register:** 184 entries: 136 active (104 surfaced, 28 partial, 3
+- **Register:** 185 entries: 137 active (105 surfaced, 28 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 31 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open.** H-37 is the latest, fixed at
