@@ -4,8 +4,8 @@ Every ``### C-n`` heading under ``docs/constraints/`` is one entry, and
 its status is written on it: *lifted*, *superseded* or *folded* in the
 heading, otherwise the first word of its **You find out** field. The
 index's "Debt summary" table, its headline, and the copies in
-``README.md``, ``CLAUDE.md`` and ``docs/session-handoff.md`` are held to
-that read here — a copy had drifted at the 2026-09-16 and the 2026-09-18
+``README.md`` and ``docs/session-handoff.md`` are held to that read here
+(``CLAUDE.md`` stopped carrying one when it was cut to an entry point) — a copy had drifted at the 2026-09-16 and the 2026-09-18
 reviews (the top-level review's docs item)."""
 from __future__ import annotations
 
@@ -92,7 +92,7 @@ def test_every_copy_of_the_tally_agrees():
         f"{total} entries[;:] {active} active \\({counts['surfaced']} surfaced, {counts['partial']} partial, "
         f"{counts['unsurfaced']} unsurfaced\\b[^)]{{0,40}}?\\b{counts['n/a']} n/a\\), {counts['lifted']} lifted"
     )
-    for copy in ("CLAUDE.md", "docs/session-handoff.md"):
+    for copy in ("docs/session-handoff.md",):
         assert re.search(digits, flat((ROOT / copy).read_text())), f"{copy}: {digits}"
 
 

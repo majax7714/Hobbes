@@ -166,6 +166,6 @@ their segment, in that order, and are marked in the heading.
 The table is the register's current state, read from each entry's
 heading and its **You find out** field, and
 `pipeline/tests/test_register_tally.py` holds it — and the copies in the
-root `README.md`, `CLAUDE.md` and `docs/session-handoff.md` — to the
+root `README.md` and `docs/session-handoff.md` — to the
 segment files. The dated notes that used to follow it are in
 [`HISTORY.md`](HISTORY.md), newest first; a new note goes there.

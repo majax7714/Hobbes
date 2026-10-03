@@ -44,7 +44,7 @@ item opens when Max names it. Sequencing context is
    for its harness) ran on four keys 2026-09-04 and its four no-spend
    fixes are in, not re-run. **API spend and Modal compute are off the
    table for the next steps (Max, 2026-09-04):** current work is the
-   no-spend queue in `session-handoff.md` NEXT — named work dispatched
+   no-spend queue in `currently-open.md` — named work dispatched
    through Shanks, the harness (item 9), the extraction residue, then
    W0's discipline items and collaborator onboarding. Every run in
    W2/W3 stays held.

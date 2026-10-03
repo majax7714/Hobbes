@@ -662,7 +662,8 @@ script runs on a developer box.
 (cd bench/calvin/lattice && uv run pytest)   # the Calvin experiments' E0 instruments (bench tooling)
 ```
 
-Suite sizes are kept in one place, [`CLAUDE.md`](CLAUDE.md), rather
+Suite sizes are kept in one place,
+[`docs/build-and-test.md`](docs/build-and-test.md), rather
 than repeated here. CI runs every suite but does not check those counts.
 
 Tests accompany the code they test in the same commit; the pytest suite

@@ -15420,3 +15420,29 @@ modules"; then "good to go with route 1, leave the need my attention for after".
 - **C-179 registered, unsurfaced** (extraction-call-graph.md, beside C-156): the index, HISTORY, and the
   tally copies (179 entries, 131 active, 4 unsurfaced); `test_register_tally.py` passes. No version move,
   as for C-156's registration. Surfacing it is Max's call.
+
+## 2026-10-02 (thirty-fourth session) — agent hygiene: the entry docs capped, open items and procedures split out
+
+**Asked (Max):** CLAUDE.md, and therefore AGENTS.md, at about 200 lines with a hard cap of 250; the
+handoff at about 100 with a hard cap of 150; everything else in its own doc and pointed to; a
+`currently-open.md` for decisions and work noted but not done; and a policy that exploring and reading
+the knowledge tools cannot cover is done by subagents and summarized.
+
+- **CLAUDE.md** went from 376 to 221 lines. Its "FIRST" section is now *context hygiene*: (1) the
+  knowledge tools, with how they are served folded in; (2) delegating the reading they can't cover to
+  subagents, with the four cases where reading directly is fine; (3) keeping the entry docs small.
+  The project map, the full build and the suite sizes moved out. The status block is down to the
+  headline. AGENTS.md is still its copy.
+- **The handoff** went from 316 to 108 lines: START HERE, the last day, where things stand (it is now the
+  only register-tally copy besides the README), and the standing policy.
+- **New docs:** `currently-open.md` (the open-for-Max decisions, the extraction queue and candidates,
+  other no-spend work, and the held spend), `runbook.md` (the dispatch, regrade and practical notes),
+  `project-map.md`, and `build-and-test.md` (the one home of the suite sizes).
+- **Held by a test:** `test_agent_docs.py` checks the caps, that AGENTS.md is identical to CLAUDE.md,
+  the pointers, and that every doc the entry docs name exists. `test_register_tally.py` no longer
+  reads CLAUDE.md. README, `constraints/README.md` and `workstreams.md` now point at the new homes.
+- **Checked by a subagent** against the old two files: four losses (the "say so plainly" branch rule,
+  "even when structural", TTT's Modal apps being deployed, and "none has a syntactic rule ready") and
+  five misstatements were fixed. Its last finding is left for Max: ADR-103's notes still say "a minor
+  is for a structural change", against his 2026-09-13 word that a constraint fix is a patch even when
+  structural. No version move: docs and a test.
