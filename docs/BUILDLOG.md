@@ -15785,3 +15785,10 @@ went to the Rust collision.
   wording stays as `PREREG.md` froze it.
 - Python's verification base (`verification.py`) does not yet name icalendar; adding it moves the number
   and is left for the C-184 unit.
+
+## 2026-10-03 (thirty-seventh session, cont.) — I-2's guard renamed with its test
+
+- The host run of `scripts/ci-graph.sh 3fda729` stopped at `invariants compile`: I-2's `guarded_by` named
+  `test_target_repo_gets_whole_dir_ignored`, which ADR-012's amendment (`4ba9e35`) renamed `…_excluded`.
+  pytest was green; only the graph job reads the ids. I-2 now names the new test, and its statement says
+  where the ignore line goes. Lesson added.

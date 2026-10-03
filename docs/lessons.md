@@ -92,6 +92,11 @@ writing a brief, a probe or a pre-registration. The resume point is
   multi-line command split the Policy line). If the tracker refuses a log,
   read the log's line before the parser.
 
+- **Renaming a test: grep `.hobbes/invariants/` for it.** An invariant's
+  `guarded_by` names tests by id, and only the graph job's `invariants
+  compile` reads them; pytest stays green. ADR-012's amendment renamed
+  I-2's guard and the host run of `scripts/ci-graph.sh` caught it.
+
 ## Grading
 
 - **Read every suspect of a new key, row by row.** A trace key never

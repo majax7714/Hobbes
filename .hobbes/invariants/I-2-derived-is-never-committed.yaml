@@ -4,8 +4,9 @@ id: I-2
 statement: >-
   Artifacts under .hobbes/derived/ are regenerable pipeline output and are
   never committed. The repo policy denies `git add` of that path, ingest
-  writes the gitignore entry, and provenance lives in the SHA stamp rather
-  than in version control.
+  ensures git ignores it (a `.gitignore` line here; a target clone's
+  `.git/info/exclude` since ADR-012's 2026-10-03 amendment), and provenance
+  lives in the SHA stamp rather than in version control.
 scope: .hobbes/derived
 status: confirmed
 # Soft: the claim is about what git tracks, which none of the four
@@ -13,5 +14,5 @@ status: confirmed
 check: soft
 guarded_by:
   - pipeline/tests/test_emit.py::TestEnsureHobbesIgnored::test_appends_without_clobbering
-  - pipeline/tests/test_emit.py::TestEnsureHobbesIgnored::test_target_repo_gets_whole_dir_ignored
+  - pipeline/tests/test_emit.py::TestEnsureHobbesIgnored::test_target_repo_gets_whole_dir_excluded
   - pipeline/tests/test_emit.py::TestEnsureHobbesIgnored::test_tracked_hobbes_content_is_respected
