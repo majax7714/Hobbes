@@ -72,7 +72,9 @@ follow that thesis.
   (https://agents.md/, accessed 2026-10-02). It says nothing about length.
 
 **Not from a source:** closing each unit with a commit is this repo's own convention. *Best practices*
-has a commit step at the end of a task, and no source here argues for it further.
+has a commit step at the end of a task, and no source here argues for it further. Max (2026-10-02):
+smaller commits are better hygiene. The one limit is the repo's same-commit rules (tests, `C-n`, the
+architecture, the version bump): a commit is the smallest *complete* unit, never a red midpoint.
 
 ## Costs and limits
 

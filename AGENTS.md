@@ -94,6 +94,10 @@ live and `lane_b` tests skip in the sandbox, so run them on the host.
 2. append to the BUILDLOG;
 3. commit.
 
+Commit small and often, but commit whole. Each commit is the smallest
+*complete* unit: green, with its tests, its `C-n`, its architecture
+amendment and its version bump if it has them. A change to what the
+layer draws keeps its bump in the same commit; docs and tests never bump.
 Don't wait for "the end of the session", and don't leave a change
 uncommitted. What a particular operation needs on top of that (an image
 rebuild, a tracker re-render, a knowledge-server restart) is in
