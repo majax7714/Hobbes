@@ -352,7 +352,13 @@ new active entry and the two cross-reference. Field key: `README.md`,
   read as code flow, in an `if`/`elif`, a `while`, an `assert`, a short-circuit operand and a
   conditional expression, and marks the branch never taken unreachable. scip-python emits no
   occurrence there; only `import` lines keep theirs. `sys.platform.startswith(…)` is not
-  read, so such a branch stays live.
+  read, so such a branch stays live. A branch that ends in `raise` ends its block when it
+  runs, so Pyright also marks the rest of the block after the `if` unreachable; the ingest
+  reads that since 0.2.94-beta for the `if` on True and its `else` on False when no `elif`
+  stands between (rich's `_win32_console.py` raises `ImportError` in the `else` of a
+  `win32` test: lines 16–661 are named, where line 12 alone was). A `return`, `sys.exit()`
+  or another `NoReturn` call that ends a branch is not read, so the record can still name
+  less than Pyright elides there.
 - **Bites at:** click 104 call sites (80 in `_winconsole.py`, after `assert sys.platform ==
   "win32"`), flask 2, attrs 1, this repo 2; on click 17 symbol edges have evidence there,
   15 of them in `_winconsole.py`. A name a file defines in a dead branch and once outside it (a *twin*:

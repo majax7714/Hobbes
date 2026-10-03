@@ -516,7 +516,8 @@ call to such a def from the function that writes it is lane A's since 0.2.73-bet
 C-173 (scip-python's Pyright reads Python as Linux, pinned in the staged config since
 0.2.74-beta, at the interpreter's version, and indexes nothing in a branch a static
 `sys.platform`/`os.name`/`sys.version_info`/`TYPE_CHECKING` test never takes; lane A evaluates
-the same tests and a `scip-python` record per file names the dead lines; a name defined in a dead
+the same tests and a `scip-python` record per file names the dead lines, since 0.2.94-beta also the
+rest of a block after an `if` whose taken branch ends in `raise`; a name defined in a dead
 branch and once outside it is one node at its live def; ADR-154; a name one scope defines more
 than once outside a dead branch is one definition there too, at its first def, and since
 0.2.75-beta each later live def's lines are the node's when the projection looks for a lane B
@@ -2276,7 +2277,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.93-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.93-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.94-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.94-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

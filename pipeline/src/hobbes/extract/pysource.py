@@ -1064,12 +1064,36 @@ def _has_static_form(condition: tuple) -> bool:
     return True
 
 
+def _ends_in_raise(block: Node | None) -> bool:
+    """Whether *block*'s last statement, comments aside, is a ``raise``."""
+    if block is None:
+        return False
+    statements = [c for c in block.named_children if c.type != "comment"]
+    return bool(statements) and statements[-1].type == "raise_statement"
+
+
+def _rest_of_block(node: Node) -> tuple[int, int] | None:
+    """The span of the statements after *node* in its block, or None."""
+    rest = []
+    sibling = node.next_named_sibling
+    while sibling is not None:
+        if sibling.type != "comment":
+            rest.append(sibling)
+        sibling = sibling.next_named_sibling
+    if not rest:
+        return None
+    return _clipped(_line(rest[0]), _last_line(rest[-1]), _last_line(node))
+
+
 def _collect_static_tests(root: Node) -> list[StaticTest]:
     """Every test Pyright 0.6.6 may read statically, with the spans each
     kills on True and on False (ADR-154).
 
     The contexts, exactly ADR-154's: an ``if`` and each ``elif`` (False
-    kills its own consequence, True every later clause); a ``while``
+    kills its own consequence, True every later clause; and, C-173's
+    widening, the rest of the block after the ``if`` where the branch that
+    reading runs ends in ``raise``: the ``if`` on True, its ``else`` on
+    False when there is no ``elif``); a ``while``
     (False its body, True its ``else``); an ``assert`` (False the rest of
     its block); each operand of an ``and`` / ``or`` but the last (the
     operands after it, on False for ``and``, on True for ``or``); and a
@@ -1093,17 +1117,27 @@ def _collect_static_tests(root: Node) -> list[StaticTest]:
         kind = node.type
         if kind == "if_statement":
             clauses = [node, *node.children_by_field_name("alternative")]
+            # C-173's widening: a branch that ends in `raise` ends its block
+            # when it runs, so the rest of the block after the `if` is never
+            # run either. Only where the branch's running is one test's
+            # reading: the `if` on True, and its `else` on False when no
+            # `elif` stands between them.
+            rest = _rest_of_block(node)
             for i, clause in enumerate(clauses):
                 test = clause.child_by_field_name("condition")
                 body = clause.child_by_field_name("consequence")
                 if test is None or body is None:
                     continue
                 after = _last_line(test)
-                record(
-                    test,
-                    [span(later, after) for later in clauses[i + 1 :]],
-                    [span(body, after)],
-                )
+                on_true = [span(later, after) for later in clauses[i + 1 :]]
+                on_false = [span(body, after)]
+                if i == 0 and rest is not None:
+                    if _ends_in_raise(body):
+                        on_true.append(rest)
+                    if len(clauses) == 2 and clauses[1].type == "else_clause":
+                        if _ends_in_raise(clauses[1].child_by_field_name("body")):
+                            on_false.append(rest)
+                record(test, on_true, on_false)
         elif kind == "while_statement":
             test = node.child_by_field_name("condition")
             body = node.child_by_field_name("body")

@@ -87,13 +87,6 @@ Last reviewed: 2026-10-03 (0.2.89-beta).
 - **Not audited** (carried from the honesty audit): Terraform/HCL;
   repo-scale counts of any implicit shape outside Python's `__exit__`;
   Go's and Java's caller roll-up on real repos.
-- **C-173's record misses code after a platform-guarded `raise`** (found
-  by ADR-164's regrade, 2026-10-03). rich's `_win32_console.py` raises
-  `ImportError` in the `else` of `if sys.platform == "win32":`. Pyright
-  reads the rest of the module as dead, and the ingest has no lane B answer
-  from line 22 to line 577. C-173's record for the file names line 12
-  only, so the limit is not named where it applies. Measure the shape
-  across the cells, then widen the record.
 - **C-178's residue:** such a call has no lane B answer. External
   references to the stdlib's star re-exports keep their misnamed monikers
   (no repo edge).

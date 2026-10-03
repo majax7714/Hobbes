@@ -11,9 +11,24 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.93-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.94-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.94-beta — 2026-10-03 (C-173's record names the code after a platform-guarded `raise`; ADR-154 amended)
+
+**Patch: what the layer says**, Python. ADR-164's regrade found rich's `_win32_console.py` with no lane B
+answer for most of the module, while C-173's record for the file named line 12 alone: the module raises
+`ImportError` in the `else` of `if sys.platform == "win32":`, and Pyright reads everything after the `if` as
+never run. Max approved the recommended route: extend the detector for `raise` only.
+
+- Where the branch a static test's reading runs ends in `raise`, the rest of the block after the `if` is dead
+  under that reading: the `if` on True, and its `else` on False when no `elif` stands between them.
+- `return`, `sys.exit()` and other `NoReturn` calls are not read; C-173 says so.
+- **Regraded** rich: edges, symbols and module edges byte-identical, the grade unchanged (4,968 confirmed,
+  92.5%). The records widened: `_win32_console.py` names lines 12, 16–661 and the 42 `syntactic` edges with
+  evidence there (it named line 12 and 0 edges); `_windows.py` adds 25–30. flask, click, pyparsing and this
+  repo read no new region.
 
 ## 0.2.93-beta — 2026-10-03 (the ingest no longer edits the tracked `.gitignore`; ADR-012 amended)
 

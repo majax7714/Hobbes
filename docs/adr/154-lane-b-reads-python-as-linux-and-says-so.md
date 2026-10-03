@@ -145,3 +145,23 @@ As decided, with one departure the doer named and two defects fixed at the revie
   (`getchar → raw_terminal` at 965, two `uses` at the twins' import lines), 980 and
   `getchar → _translate_ch_to_exc` `syntactic` → `semantic`, the 930 row withheld, the twins at
   938 and 964, lane disagreements 2 → 0 (`oracle-grading.md` §10.38).
+
+## Amendment — 2026-10-03: a branch that ends in `raise` (0.2.94-beta, C-173 widened)
+
+**Status:** accepted (Max, 2026-10-03, the recommended route: extend the detector for `raise` only).
+ADR-164's regrade found rich's `_win32_console.py` with no lane B answer from line 22 to 577, while C-173's
+record for the file named line 12 alone: the module raises `ImportError` in the `else` of `if sys.platform
+== "win32":`, and Pyright reads everything after the `if` as never run. The limit was not named where it
+applies.
+
+- Lane A's `if` context gains one span: where the branch a reading runs ends in `raise` (its last statement,
+  comments aside), the rest of the block after the `if` is killed under that reading. Only where the
+  branch's running is one test's reading: the `if` on True, and its `else` on False when no `elif` stands
+  between them. An `else` after an `elif` runs only when both tests read False, which one test cannot say.
+- `return`, `sys.exit()` and other `NoReturn` calls are not read; C-173 says so.
+- Measured over rich, flask, click, pyparsing and this repo: two files change, both in rich —
+  `_win32_console.py` (16–661 added) and `_windows.py` (25–30, after an `else: raise` inside a `try`).
+
+Built: `pysource._ends_in_raise`, `pysource._rest_of_block`, the `if` branch of `_collect_static_tests`.
+Tests: `test_pystatic.py` (both shapes, a branch whose `raise` is nested, an `else` after an `elif`, and a
+`raise` on the live reading).

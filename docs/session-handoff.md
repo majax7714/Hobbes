@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (thirty-sixth session); Hobbes 0.2.93-beta on `main`.**
+**Reviewed 2026-10-03 (thirty-sixth session); Hobbes 0.2.94-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
 0.2.90-beta; this repo was ingested at `474a099` and the old knowledge

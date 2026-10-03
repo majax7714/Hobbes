@@ -15726,3 +15726,16 @@ went to the Rust collision.
 - **Checks:** `test_emit.py`, `test_cli.py`, `test_ingestlock.py` 116 passed (the ignore tests rewritten:
   exclude written, tree untouched, an existing `.gitignore` line enough, `derived/` ignored under tracked
   content, no clobbering, a non-git directory, and a first ingest that now reads `dirty: false`).
+
+## 2026-10-03 (thirty-seventh session, cont.) — C-173's record widened for a platform-guarded `raise` (0.2.94-beta, ADR-154 amended)
+
+- **Measured first**, with and without the widening, over rich, flask, click, pyparsing and this repo's
+  tracked Python: two files change, both rich (`_win32_console.py` 16–661, `_windows.py` 25–30). An
+  `ast` scan by a reader had found only the first (top-level `raise`).
+- **Built:** `_ends_in_raise` and `_rest_of_block` in `pysource`, the `if` context's extra span; the
+  evaluator (`pystatic`, no grammar, I-4) is unchanged. Five `test_pystatic.py` cases.
+- **Regrade** (`~/.hobbes/bench/c173-platform-raise/`, `run.sh`; before is `c181-stdlib-import/after/rich`,
+  0.2.88-beta, since nothing in 0.2.89–0.2.93 moves rich's edges): rich's graph edges, symbols and module
+  edges byte-identical, grade identical; the two records widened as measured (ADR-154's amendment).
+- **Checks:** `test_pystatic.py`, `test_pysource.py`, `test_later_defs.py` 332 passed; the suite on the
+  commit in the clean worktree.

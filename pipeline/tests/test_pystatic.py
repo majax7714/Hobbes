@@ -163,6 +163,74 @@ class TestEachContext:
         )
         assert regions(source) == ((4, 4),)
 
+    def test_an_else_that_raises_kills_the_rest_of_the_module(self):
+        # rich's `_win32_console.py` (C-173's widening): Pyright reads
+        # everything after the `if` as never run on Linux.
+        source = (
+            "import sys\n"  # 1
+            'if sys.platform == "win32":\n'  # 2
+            "    windll = 1\n"  # 3
+            "else:\n"  # 4
+            '    raise ImportError("only on Windows")\n'  # 5
+            "\n"  # 6
+            "def f():\n"  # 7
+            "    return g()\n"  # 8
+        )
+        assert regions(source) == ((3, 3), (7, 8))
+
+    def test_an_if_that_raises_kills_the_rest_of_its_block_on_true(self):
+        # rich's `_windows.py` shape, inside a `try`, with the test negated.
+        source = (
+            "import sys\n"  # 1
+            "try:\n"  # 2
+            '    if sys.platform != "win32":\n'  # 3
+            "        raise ImportError\n"  # 4
+            "    import ctypes\n"  # 5
+            "except ImportError:\n"  # 6
+            "    ctypes = None\n"  # 7
+        )
+        assert regions(source) == ((5, 5),)
+
+    def test_a_branch_that_does_not_end_in_raise_kills_nothing_after(self):
+        source = (
+            "import sys\n"  # 1
+            'if sys.platform == "win32":\n'  # 2
+            "    x = 1\n"  # 3
+            "else:\n"  # 4
+            "    if y:\n"  # 5
+            "        raise ImportError\n"  # 6
+            "    z = 2\n"  # 7
+            "w = 3\n"  # 8
+        )
+        assert regions(source) == ((3, 3),)
+
+    def test_an_else_after_an_elif_is_not_one_tests_reading(self):
+        # The `else` runs only when both tests read False; one test's
+        # reading cannot say so, so nothing after the `if` is killed.
+        source = (
+            "import os\n"  # 1
+            "import sys\n"  # 2
+            'if sys.platform == "win32":\n'  # 3
+            "    x = 1\n"  # 4
+            'elif os.name == "posix":\n'  # 5
+            "    x = 2\n"  # 6
+            "else:\n"  # 7
+            "    raise ImportError\n"  # 8
+            "y = 3\n"  # 9
+        )
+        assert regions(source) == ((4, 4), (7, 8))
+
+    def test_a_raise_on_the_live_reading_kills_nothing_after(self):
+        source = (
+            "import sys\n"  # 1
+            'if sys.platform == "linux":\n'  # 2
+            "    x = 1\n"  # 3
+            "else:\n"  # 4
+            "    raise ImportError\n"  # 5
+            "y = 3\n"  # 6
+        )
+        assert regions(source) == ((4, 5),)
+
     def test_a_deciding_operand_kills_the_operand_on_its_own_line(self):
         source = (
             "import os\n"  # 1
