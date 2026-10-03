@@ -15,16 +15,6 @@ Last reviewed: 2026-10-03 (0.2.89-beta).
 
 ## Decisions open for Max (no spend)
 
-- **The graph job is red** (since 2026-09-26). It reviews from the last
-  green run, `57e4be2` (ADR-114). On `3f95d67` it failed one step
-  earlier, at `hobbes lanes` (the `minirustimpl` cfg twin); 0.2.89-beta
-  fixed that (ADR-165), and a host run of `scripts/ci-graph.sh 57e4be2`
-  passes `lanes` (exit 3) and fails at review. Unguarded new modules went from 22 to 5
-  on 2026-10-02. Left: `lattice` and `dedupe` (value-only, C-156; they
-  stay red under the current rule), and `draw`, `make_fixture` and
-  `modal_e1` (untested bench scripts). Proposed: exempt a docstring-only
-  module (an ADR-117 amendment, a patch), add cheap tests for the three
-  scripts, and decide on `dedupe`, which is kept as E3's record as it ran.
 - **C-182's residual** (ADR-165): a Rust qualname repeated in one file
   with one header that is not a cfg twin (an arm without `#[cfg]`, two
   kinds such as `struct B` beside `const B`, or a file no crate compiles:

@@ -15680,3 +15680,11 @@ went to the Rust collision.
 - **`make_fixture`**: `main(argv)` under `__main__` (it read `sys.argv` at import); `test_fixture` trims a
   synthetic float16/bfloat16 file and reruns the script over the fixture, which must come back unchanged.
 - **Checks:** lattice 631 passed, 32 skipped (no clang on the host). Bench only: no version.
+
+## 2026-10-03 (thirty-sixth session, cont.) — the graph job passes on the host
+
+- `scripts/ci-graph.sh 57e4be2` (CI's own base, the last green run) at `c5ce88f`, on the host: ingest
+  contained; `lanes` 17,492 sites, 1 disagree, 0 unexplained, 1 `cfg-twin` (C-182), exit 3; compiled
+  invariants run; review "nothing needs attention", `lattice` named under "holds no code"; `lane_b`
+  25 passed; "graph checks passed", exit 0. CI itself runs on Max's push. The open item is deleted from
+  `currently-open.md`.

@@ -34,13 +34,16 @@ pyparsing is held out now, and fitting the rule on it would spend it. The
 full ordered queue is under "Extraction, in order" in
 [`currently-open.md`](currently-open.md).
 
-**Waiting on Max:** the red graph job (5 unguarded modules; `lanes` is
-fixed), how to surface C-179, C-181's and C-182's residuals, ADR-126 §3, and the rest of the "Decisions open for Max" section in
+**Waiting on Max:** how to surface C-179, C-181's and C-182's residuals, ADR-126 §3, and the rest of the "Decisions open for Max" section in
 [`currently-open.md`](currently-open.md). Don't build any of them until Max
 answers.
 
 ## Where the last day left things (2026-10-02/03; the CHANGELOG has each one)
 
+- **The graph job should be green on the next push.** `scripts/ci-graph.sh
+  57e4be2` passes on the host at `c5ce88f`: `lanes` exit 3 (ADR-165), review
+  "nothing needs attention", `lane_b` 25 passed. The four bench modules got
+  tests (`dedupe` wrapped in functions, Max: route 1). CI confirms on push.
 - **0.2.90-beta, ADR-117 amended** (Max: the graph job's proposal): a
   Python module that is at most its docstring is not asked for a guard;
   the review names it on its own line. `lattice`'s `__init__` was one of
