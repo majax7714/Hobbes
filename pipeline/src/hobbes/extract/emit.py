@@ -25,21 +25,48 @@ class StampError(RuntimeError):
 
 
 def ensure_hobbes_ignored(repo_root: Path) -> str | None:
-    """Guarantee the repo gitignores Hobbes files (ADR-012).
+    """Guarantee git ignores Hobbes files (ADR-012, amended 2026-10-03).
 
     Hobbes artifacts are personal-environment files: target repos get the
     entire ``.hobbes/`` directory ignored so they can never be pushed by
     accident. A repo that already *tracks* content under ``.hobbes/`` (the
     hobbes repo dogfooding architecture §10) keeps that choice — only
-    ``.hobbes/derived/`` is ensured there. Returns a description of the
-    change made, or None when nothing was needed.
+    ``.hobbes/derived/`` is ensured there.
+
+    In a git repo the line goes in the clone's own ``info/exclude``, which
+    git reads and never tracks, so the ingest leaves the repo's tree as it
+    found it and the stamp's ``dirty`` flag is the user's alone. Where any
+    rule already ignores the path (the repo's ``.gitignore``, an earlier
+    ingest's line, the user's global excludes) nothing is written. A
+    directory that is not a git repo has no tree to dirty and no exclude
+    file, so it gets a ``.gitignore`` line, which a later ``git init``
+    reads. Returns a description of the change made, or None when nothing
+    was needed.
     """
     repo_root = Path(repo_root)
     try:
         tracked = _git(repo_root, "ls-files", ".hobbes")
+        exclude = Path(_git(repo_root, "rev-parse", "--git-path", "info/exclude"))
     except (subprocess.CalledProcessError, OSError):
-        tracked = ""  # not a git repo (hobbes init outside git): target posture
+        return _ensure_gitignore_line(repo_root, ".hobbes/")  # not a git repo
     line = ".hobbes/derived/" if tracked else ".hobbes/"
+    ignored = subprocess.run(
+        ["git", "-C", str(repo_root), "check-ignore", "-q", line],
+        capture_output=True,
+    )
+    if ignored.returncode == 0:
+        return None
+    if not exclude.is_absolute():
+        exclude = repo_root / exclude
+    exclude.parent.mkdir(parents=True, exist_ok=True)
+    text = exclude.read_text() if exclude.exists() else ""
+    if text and not text.endswith("\n"):
+        text += "\n"
+    exclude.write_text(text + line + "\n")
+    return f"added {line} to .git/info/exclude"
+
+
+def _ensure_gitignore_line(repo_root: Path, line: str) -> str | None:
     gitignore = repo_root / ".gitignore"
     text = gitignore.read_text() if gitignore.exists() else ""
     if line in text.splitlines():

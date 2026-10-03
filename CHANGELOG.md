@@ -11,9 +11,22 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.92-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.93-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.93-beta — 2026-10-03 (the ingest no longer edits the tracked `.gitignore`; ADR-012 amended)
+
+**Patch: what the ingest does to the repo.** Max approved route 1 of two (2026-10-03). `hobbes ingest` and
+`hobbes init` appended `.hobbes/` to the target's tracked `.gitignore` without asking, so the first ingest of
+every repo left a modified file in the user's tree and flipped the stamp's `dirty` flag. Nothing named it.
+
+- **In a git repo the line goes in the clone's `.git/info/exclude`** (`git rev-parse --git-path`, so a linked
+  worktree writes the shared one). Git reads it and never tracks it; the ingest leaves the tree as it found it.
+- **Nothing is written where any rule already ignores the path** (`git check-ignore`): the repo's
+  `.gitignore`, an earlier ingest's line there (left in place), or the user's global excludes.
+- A repo that tracks `.hobbes/` content still has only `.hobbes/derived/` ensured. A directory that is not a
+  git repo still gets a `.gitignore` line. `hobbes init`'s `*.tfstate` lines stay in `.gitignore`.
 
 ## 0.2.92-beta — 2026-10-03 (a Go file's `init` functions are one node; a fact inside a later one is the node's; ADR-166, C-183)
 

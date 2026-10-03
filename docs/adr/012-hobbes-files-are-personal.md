@@ -51,3 +51,33 @@ their `.hobbes/` into version control.
   `.hobbes/policies/` in that repo is one `git add -f` away, and the
   tracked-content guard then preserves it automatically.
 - The hobbes repo's own dogfooding is unchanged.
+
+## Amendment — 2026-10-03: the line goes in `.git/info/exclude` (0.2.93-beta)
+
+**Status:** accepted (Max, 2026-10-03: route 1 of two, "write `.git/info/exclude` instead").
+
+The decision above appended `.hobbes/` to the target's **tracked** `.gitignore` without asking, and nothing
+reverted it: the first ingest of every repo left a modified file in the user's tree and flipped the stamp's
+`dirty` flag. No register entry named it. The repo's tree is the user's, and "Hobbes files are personal"
+is a fact about this clone, not about the repo.
+
+1. **In a git repo, the line goes in the clone's own `info/exclude`** (`git rev-parse --git-path
+   info/exclude`, so a linked worktree writes the shared one). Git reads it and never tracks it. The
+   ingest no longer modifies the tree, and `dirty` is the user's alone.
+2. **Nothing is written where any rule already ignores the path** (`git check-ignore`): the repo's
+   `.gitignore`, a line an earlier ingest wrote there, or the user's global excludes. Earlier lines are left
+   where they are; Hobbes does not edit them back out.
+3. **The tracked-content exception is unchanged**: where `.hobbes/` content is tracked, only
+   `.hobbes/derived/` is ensured.
+4. **A directory that is not a git repo** has no tree to dirty and no exclude file; it still gets a
+   `.gitignore` line, which a later `git init` reads.
+5. `hobbes init`'s `*.tfstate` lines stay in `.gitignore`: they protect every clone, and `init` is the
+   explicit bootstrap the user runs.
+
+**What this gives up.** The protection is per clone: a second clone is protected when Hobbes first runs in
+it, not before. A `.hobbes/` directory only exists where Hobbes has run, so nothing is left unprotected.
+The visible, auditable line the first decision preferred is now in `.git/info/exclude`; the CLI still
+reports the write.
+
+Built: `extract/emit.py` (`ensure_hobbes_ignored`, `_ensure_gitignore_line`); tests in
+`test_emit.py::TestEnsureHobbesIgnored`.

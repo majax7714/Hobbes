@@ -113,10 +113,15 @@ Everything below assumes you are inside the target repo.
 hobbes init
 ```
 
-Scaffolds `.hobbes/` and **gitignores the whole directory** (ADR-012):
-in your repos, Hobbes files are personal, not something collaborators
-inherit. (This repo is the exception — it versions its own `.hobbes/`
-for dogfooding.)
+Scaffolds `.hobbes/` and **has git ignore the whole directory**
+(ADR-012): in your repos, Hobbes files are personal, not something
+collaborators inherit. The line goes in this clone's `.git/info/exclude`,
+which git never tracks, so neither `init` nor `ingest` edits your
+tracked files to do it (a directory that is not a git repo gets a
+`.gitignore` line instead). `init` also adds `*.tfstate` lines to
+`.gitignore`, because state files carry secrets for anyone who clones.
+(This repo is the exception — it versions its own `.hobbes/` for
+dogfooding.)
 
 Then open `.hobbes/policies/repo.policy`. This is the one file you
 should read before running an agent, because it decides what a session
@@ -451,7 +456,7 @@ code do the gating.
 - **Expecting `soft` invariants to be checked by CI.** They are checked
   by a reviewer session, or by you.
 - **Expecting decisions to survive a fresh clone.** `.hobbes/` is
-  gitignored in your repos (ADR-012), so approvals, denials, and the
+  ignored in your repos (ADR-012), so approvals, denials, and the
   intent confirmation live in *this* clone on *this* machine. A known
   limitation, with the opt-in fix in `future_additions.md`.
 - **Ingesting a repo whose dependencies are not installed.** The indexer

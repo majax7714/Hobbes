@@ -60,8 +60,6 @@ Last reviewed: 2026-10-03 (0.2.89-beta).
 - **`npm ci` refused three of four lockfile-bearing JS repos** (counted
   under C-23 in C-165). Open: whether "pinned or declined" falls back to
   anything. Nothing is proposed.
-- **The ingest's `.gitignore` edit:** register it as a constraint, or
-  change it.
 - **Calvin's findings, proposed and not registered:** G-diff coverage. The
   driver never puts inf/NaN in `b` alone and never mixes inf kinds, so
   one-sided masks pass. The fix is `inf_b`/`nan_b`/mixed specials, then a

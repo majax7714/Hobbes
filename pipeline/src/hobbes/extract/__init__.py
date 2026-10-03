@@ -2010,8 +2010,9 @@ def ingest(
     Returns the written paths (``.hobbes/derived/{graph,tests,interfaces}.json``).
     Requires *repo_root* to be a git repo with at least one commit — the SHA
     is the provenance every downstream claim pins to (P3). Always ensures
-    the repo gitignores Hobbes files first (ADR-012), so the stamp's
-    ``dirty`` flag reflects that edit when it happens. An ingest of a repo
+    git ignores Hobbes files first (ADR-012); in a git repo the line goes
+    in the clone's ``info/exclude``, so the ingest leaves the tree and the
+    stamp's ``dirty`` flag as it found them. An ingest of a repo
     whose ingest is already running raises
     :class:`~hobbes.extract.ingestlock.IngestBusy` before anything is
     staged, indexed or written (ADR-127).

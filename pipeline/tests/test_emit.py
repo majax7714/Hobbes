@@ -97,11 +97,25 @@ class TestWriteArtifacts:
 
 
 class TestEnsureHobbesIgnored:
-    def test_target_repo_gets_whole_dir_ignored(self, git_fixture):
+    """ADR-012 as amended 2026-10-03: in a git repo the line goes in
+    ``.git/info/exclude``, never the tracked tree."""
+
+    @staticmethod
+    def _exclude(repo):
+        return (repo / ".git" / "info" / "exclude").read_text().splitlines()
+
+    def test_target_repo_gets_whole_dir_excluded(self, git_fixture):
         (git_fixture / ".gitignore").unlink()
         action = ensure_hobbes_ignored(git_fixture)
-        assert action == "added .hobbes/ to .gitignore"
+        assert action == "added .hobbes/ to .git/info/exclude"
+        assert ".hobbes/" in self._exclude(git_fixture)
+        assert not (git_fixture / ".gitignore").exists()  # the tree is untouched
         assert ensure_hobbes_ignored(git_fixture) is None  # idempotent
+
+    def test_a_line_already_in_gitignore_is_enough(self, git_fixture):
+        # An earlier ingest's `.gitignore` line, or the user's own.
+        assert ensure_hobbes_ignored(git_fixture) is None
+        assert ".hobbes/" not in self._exclude(git_fixture)
 
     def test_tracked_hobbes_content_is_respected(self, git_fixture):
         # A repo dogfooding §10 (committed policy) keeps its versioning;
@@ -115,19 +129,30 @@ class TestEnsureHobbesIgnored:
         subprocess.run([*git, "commit", "-qm", "policy"], check=True)
 
         action = ensure_hobbes_ignored(git_fixture)
-        assert action == "added .hobbes/derived/ to .gitignore"
+        assert action == "added .hobbes/derived/ to .git/info/exclude"
+        status = subprocess.run(
+            [*git, "status", "--porcelain", "--untracked-files=all"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+        (git_fixture / ".hobbes" / "derived").mkdir()
+        (git_fixture / ".hobbes" / "derived" / "graph.json").write_text("{}")
+        assert subprocess.run(
+            [*git, "status", "--porcelain", "--untracked-files=all"],
+            capture_output=True, text=True, check=True,
+        ).stdout == status  # derived/ is ignored
 
     def test_appends_without_clobbering(self, git_fixture):
-        (git_fixture / ".gitignore").write_text("node_modules/")  # no newline
+        (git_fixture / ".gitignore").unlink()
+        exclude = git_fixture / ".git" / "info" / "exclude"
+        exclude.write_text("node_modules/")  # no newline
         ensure_hobbes_ignored(git_fixture)
-        assert (git_fixture / ".gitignore").read_text() == "node_modules/\n.hobbes/\n"
+        assert exclude.read_text() == "node_modules/\n.hobbes/\n"
 
-    def test_non_git_dir_gets_target_posture(self, tmp_path):
+    def test_non_git_dir_gets_a_gitignore_line(self, tmp_path):
         assert ensure_hobbes_ignored(tmp_path) == "added .hobbes/ to .gitignore"
+        assert ensure_hobbes_ignored(tmp_path) is None
 
-    def test_first_ingest_of_unprotected_repo_adds_line_and_reports_dirty(
-        self, git_fixture
-    ):
+    def test_first_ingest_of_unprotected_repo_leaves_the_tree_clean(self, git_fixture):
         (git_fixture / ".gitignore").unlink()
         subprocess.run(
             ["git", "-C", str(git_fixture), "-c", "user.name=t", "-c",
@@ -136,8 +161,9 @@ class TestEnsureHobbesIgnored:
         )
         paths = ingest(git_fixture)
         doc = json.loads(paths[0].read_text())
-        assert doc["dirty"] is True  # the gitignore edit is honestly visible
-        assert ".hobbes/" in (git_fixture / ".gitignore").read_text().splitlines()
+        assert doc["dirty"] is False  # the ignore line is in info/exclude, not the tree
+        assert ".hobbes/" in self._exclude(git_fixture)
+        assert not (git_fixture / ".gitignore").exists()
 
 
 class TestIngest:

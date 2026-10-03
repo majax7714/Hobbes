@@ -15713,3 +15713,16 @@ went to the Rust collision.
   (the known trap); the log's "wrote graph.json" line is the signal.
 - **Checks:** `test_go_inits.py` 8 passed, 1 `lane_b` passed on the host with scip-go; the suites run on
   the commit in a clean worktree.
+
+## 2026-10-03 (thirty-seventh session, cont.) — the ignore line moves to `.git/info/exclude` (0.2.93-beta, ADR-012 amended)
+
+- **Route 1** (Max): `ensure_hobbes_ignored` writes the clone's `info/exclude` in a git repo, skips a path
+  any rule already ignores (`git check-ignore`), keeps the tracked-content exception, and keeps the
+  `.gitignore` line for a non-git directory. `hobbes init`'s `*.tfstate` lines are unchanged.
+  `first-run.md` says where the line goes.
+- Checked before building: every `git add -A` that could stage `.hobbes/` either excludes it by pathspec
+  (bench workspace, TTT cell, the session binary) or stages a scratch tree it is not in (verify's
+  generation step, the plan's integration clone).
+- **Checks:** `test_emit.py`, `test_cli.py`, `test_ingestlock.py` 116 passed (the ignore tests rewritten:
+  exclude written, tree untouched, an existing `.gitignore` line enough, `derived/` ignored under tracked
+  content, no clobbering, a non-git directory, and a first ingest that now reads `dirty: false`).
