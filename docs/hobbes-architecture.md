@@ -419,7 +419,10 @@ call-shape detection inside token trees — an identifier immediately
 followed by a parenthesized token tree is a call site at that identifier,
 and so is one followed by a turbofish and then one (`x.f::<T>(..)`; a
 `::`, a balanced `<…>`; without the `::`, `a < b > (c)` is two
-comparisons; 0.2.113-beta).
+comparisons; 0.2.113-beta). A `fn` under `#[proc_macro]`,
+`#[proc_macro_attribute]` or `#[proc_macro_derive]` is minted a `macro`, as
+a `macro_rules!` is: the compiler runs it at expansion, and an invocation
+is no runtime call of it (0.2.114-beta).
 A false-shaped site produces no edge, because nothing resolves at it;
 rust-analyzer meanwhile emits macro-argument occurrences at their real
 pre-expansion positions, so the two lanes still meet on ranges. Its
@@ -2379,7 +2382,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.113-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.113-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.114-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

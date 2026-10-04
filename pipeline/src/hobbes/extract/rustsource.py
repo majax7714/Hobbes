@@ -297,6 +297,8 @@ def _walk_items(
             if not name:
                 continue
             kind = "method" if in_impl else "function"
+            if not in_impl and _is_proc_macro_attr(attrs):
+                kind = "macro"
             parsed.symbols.append(
                 _symbol(name, _dotted(prefix, name), kind, node)
                 | {"is_test": _is_test_attr(attrs), "impl": header}
@@ -443,6 +445,29 @@ def _is_test_attr(attrs: list[Node]) -> bool:
                 break
         if path is not None and _TEST_ATTR.match(path):
             return True
+    return False
+
+
+#: The attributes that make a ``fn`` a macro definition: the compiler runs
+#: it at expansion, and dependents can only invoke it as a macro.
+_PROC_MACRO_ATTRS = frozenset({"proc_macro", "proc_macro_attribute", "proc_macro_derive"})
+
+
+def _is_proc_macro_attr(attrs: list[Node]) -> bool:
+    """Whether one of *attrs* is ``#[proc_macro]``, ``#[proc_macro_attribute]``
+    or ``#[proc_macro_derive(…)]``. Such a fn is minted as a ``macro``, as a
+    ``macro_rules!`` is: read as a ``function``, an invocation ``raw_sql!(..)``
+    was drawn as a runtime call of it (sea-query, 2026-10-03: 16 contradicted
+    rows, the key holding the expansion's calls instead)."""
+    for item in attrs:
+        attribute = _child_of_type(item, "attribute")
+        if attribute is None:
+            continue
+        for child in attribute.children:
+            if child.type in ("identifier", "scoped_identifier"):
+                if _text(child) in _PROC_MACRO_ATTRS:
+                    return True
+                break
     return False
 
 

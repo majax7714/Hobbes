@@ -411,6 +411,35 @@ class TestMacroInvocationsBindOnlyToMacros:
         assert fb[("src/lib.rs", 6, "format")] == ("src/lib.rs", 1)
 
 
+class TestProcMacroFnsAreMacros:
+    """sea-query (2026-10-03): `#[proc_macro] pub fn raw_sql` was minted a
+    `function`, so `sea_query::raw_sql!(..)` in a test was drawn as a runtime
+    call of it; rustc's MIR holds the expansion's calls there instead."""
+
+    def test_the_three_proc_macro_attributes_mint_a_macro(self, tmp_path):
+        (tmp_path / "Cargo.toml").write_text('[package]\nname = "d"\nversion = "0.1.0"\n')
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "lib.rs").write_text(
+            "use proc_macro::TokenStream;\n"
+            "#[proc_macro]\n"
+            "pub fn raw_sql(input: TokenStream) -> TokenStream { expand(input) }\n"
+            "#[cfg(feature = \"x\")]\n"
+            "#[proc_macro_attribute]\n"
+            "pub fn enum_def(a: TokenStream, i: TokenStream) -> TokenStream { i }\n"
+            "#[proc_macro_derive(Iden, attributes(iden))]\n"
+            "pub fn derive_iden(i: TokenStream) -> TokenStream { i }\n"
+            "#[inline]\n"
+            "fn expand(i: TokenStream) -> TokenStream { i }\n"
+            "pub struct S;\n"
+            "impl S { #[proc_macro] fn not_one(&self) {} }\n"
+        )
+        kinds = {s["qualname"]: s["kind"] for s in extract_rust(tmp_path)["files"][0].symbols}
+        assert kinds["raw_sql"] == kinds["enum_def"] == kinds["derive_iden"] == "macro"
+        assert kinds["expand"] == "function"
+        # only a free fn can be a proc macro; a method keeps its kind
+        assert kinds["S.not_one"] == "method"
+
+
 class TestPathQualifiedCallsBindByTheirHead:
     """C-72 (lifted): serde's two wrong syntactic edges — `Option::<T>::
     deserialize(d)` bound by the bare name to the first same-file

@@ -11,9 +11,21 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.113-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.114-beta — 2026-10-03 (a Rust proc-macro fn is a macro, not a function)
+
+**Patch: what the layer says**, Rust. Precedent 1: an unnamed limit, found on the held-out sea-query cell.
+
+- `#[proc_macro] pub fn raw_sql` was minted a `function`, so `sea_query::raw_sql!(..)` in a test was a
+  `calls` edge read as a runtime call; the compiler runs the fn at expansion, and rustc's MIR holds the
+  expansion's calls there. sea-query graded 16 such rows contradicted, all `semantic`. A free `fn` under
+  `#[proc_macro]`, `#[proc_macro_attribute]` or `#[proc_macro_derive]` is now a `macro` node, as a
+  `macro_rules!` is, and its invocations read as macro uses.
+- sea-query 5,601 confirmed, **16 → 0 contradicted** (99.7% → 100%); hecs unchanged (1,379). No edge is
+  added or removed on either: 11 and 3 nodes change kind. No other graded Rust cell defines a proc macro.
 
 ## 0.2.113-beta — 2026-10-03 (a Rust turbofish call inside a macro argument is a call site)
 

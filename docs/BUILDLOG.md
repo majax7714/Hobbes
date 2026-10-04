@@ -16196,3 +16196,8 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   37 are postgres's `Row::get`, vacuous again). Scored: T1 (0 contradicted added), T3, T4 (0 lost on six cells
   plus reshape), T6, T7 met; T2 **not measured on a held-out cell**; T5 missed (+116 against ≥150: lines, not
   calls). pytest 2,863.
+- **sea-query's standing grade** (held out, position 5, before any rule; R1–R6, R8, R9 carried by amendment 3):
+  5,601 confirmed, **16 contradicted**, recall 83.8%, poison PASS. All 16: `raw_sql!`/`raw_query!` invocations
+  drawn as `calls` to the `#[proc_macro]` fn, an unnamed limit. **0.2.114-beta** mints such a fn a `macro`
+  (kind only; no edge moves): 16 → 0. reshape (position 85): 1,315/1,315, recall 96.3%, poison PASS.
+  pytest 2,864.
