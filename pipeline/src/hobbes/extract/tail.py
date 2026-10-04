@@ -54,8 +54,12 @@ checkable fact about the site:
   form of the same observation: its standard library is the namespace
   ``std``, so a qualified site whose first qualifier is ``std`` matches
   it without any list being able to hold it (ADR-113 §1).
-- ``attr-call`` — an attribute call (``x.foo()``): a receiver no static
-  provider could type. The genuine static-analysis limit, C-2's core.
+- ``attr-call`` — an attribute call (``x.foo()``) no static provider
+  resolved: a receiver no provider could type, the genuine static-analysis
+  limit and C-2's core, or a typed receiver whose member the index names
+  nothing at (scip-typescript and a member reached through a re-exported
+  alias, ``z.object(..)``: zod's 1,232 sites). The class is the shape; it
+  does not say which cause (since 0.2.119-beta the text names both).
 - ``expr-callee`` — the callee is itself an expression (``handlers[k]()``,
   ``f()()``, ``(a or b)()``): there is no identifier for the semantic
   lane to put an occurrence on, so nothing can resolve it. A parse

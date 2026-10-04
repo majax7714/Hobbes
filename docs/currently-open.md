@@ -38,10 +38,9 @@ key no implicit call, so a rule's rows could not be graded.
   the token. Sized routes, for Max: (i) a function-literal field of a top-level named class is a `method`
   symbol, drawn where lane B names it at the token, `semantic` (zod 42, hono 81 rows); (ii) leave the alias
   registered (a multi-hop `syntactic` read held by one cell). Not built.
-- **`attr-call`'s stated reason** (found by 2a): the tail text reads "receiver no static provider could type
-  (C-2)"; at zod's 1,232 alias sites the receiver is typed and the index does not follow a re-exported alias.
-  The site is counted and surfaced; the reason given is wrong for this shape. Whether to split the class or
-  widen its text is Max's.
+- **The gate's map reason for `attr-call`** (0.2.119-beta left it): `gate.py` files the class under
+  `dynamic-dispatch`; a re-exported alias site (zod 1,232) is not dispatch. The closed vocabulary is
+  `MAP_REASONS`; changing it is Max's.
 
 **Python:**
 - **Whether to extend the standing trace oracle (C-174).** Measured on all four keyed cells, contained

@@ -53,6 +53,12 @@
   point at the verification work that is its own. Since 0.2.9-beta it
   also serves the ingest summary's per-directory rows, so a miss has a
   directory as well as a file.
+- **Also in `attr-call`** (2026-10-04, 0.2.119-beta): a typed receiver whose member the index names
+  nothing at. scip-typescript writes no occurrence at a member reached through a re-exported alias
+  (`import * as z` → `export *` → `export { objectType as object }` → `const objectType = X.create`):
+  zod's 1,232 `static→property` misses. Until 0.2.119 the class's text said only "receiver no static
+  provider could type"; it now names both causes. The class is the site's shape and does not say which.
+  The Calvin gate still files the class under the map reason `dynamic-dispatch` (`gate.py`).
 - **Note:** deliberately counts, never a confidence score. An edge with no
   named target cannot be drawn, checked, or cited — it is C-1's false edge
   wearing a probability. The tail classes keep that rule: each is an

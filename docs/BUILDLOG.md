@@ -16364,3 +16364,14 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
 - The premise moved (callee small and, for cue, `syntactic` only; caller larger and syntax-only), so the
   route goes back to Max before the ADR. Records: `RESULTS-1b-step0.md`; `currently-open.md`;
   `bench-drivers.md`. Docs only; no bump.
+
+## 2026-10-04 (forty-fourth session, cont.) — `attr-call` names both causes; 0.2.119-beta
+
+- Max: "recommended is approved" — 1b route (a) scope only, 2a route (i) after 1b, and `attr-call`'s text
+  widened. The wording first (an honesty item outranks recall work).
+- `attr-call`'s text in `knowledge.go` (`list_blind_spots`), `manifests.py`, `gate.py` and `tail.py` named
+  only an untyped receiver; zod's 1,232 alias sites have a typed one the index names nothing past. Now names
+  both. C-2 amended (where a user meets it); architecture §3's tail paragraph; the knowledge test pins it.
+- Left for Max: the gate's map reason `dynamic-dispatch` for the class (`currently-open.md`).
+- Go `./...` ok; pytest 2,884 passed (lane_b not re-run: nothing it reads moved). Proxy and image rebuilt
+  (`168527701a7a`, `hobbes-proxy 0.2.119-beta`).

@@ -212,7 +212,7 @@ _STEP_BY_EXT = {".py": "index-python", ".go": "index-go", ".ts": "index-typescri
 #: tail class → (map reason, detail); the C-n entries are the knowledge proxy's tail meanings. `builtin-name` is left out: language
 #: machinery the grounder's builtin list binds, not a blind spot.
 _TAIL_REASON = {
-    "attr-call": ("dynamic-dispatch", "tail attr-call: receiver no static provider could type (C-2)"),
+    "attr-call": ("dynamic-dispatch", "tail attr-call: no static provider resolved it — untyped receiver, or nothing named at the member (C-2)"),
     "expr-callee": ("dynamic-dispatch", "tail expr-callee: callee is an expression (C-63)"),
     "union-member": ("dynamic-dispatch", "tail union-member: union receiver, lane B vetoed (C-97)"),
     "fallback-resolved": ("laneb-miss", "tail fallback-resolved: syntactic-tier edge only (C-7)"),

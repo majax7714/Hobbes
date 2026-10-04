@@ -55,7 +55,7 @@ so a bare `ok` proves nothing. Verify them in the image with `-v`.
 
 ## Suite sizes
 
-Last checked 2026-10-04. pytest was re-run on the host at 0.2.118-beta and Go at 0.2.118-beta, tsextract and vitest at 0.2.83-beta; the rest were run at
+Last checked 2026-10-04. pytest was re-run on the host at 0.2.119-beta and Go at 0.2.119-beta, tsextract and vitest at 0.2.83-beta; the rest were run at
 0.2.74-beta.
 
 | Suite | Size | Notes |

@@ -15,6 +15,17 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.119-beta — 2026-10-04 (`attr-call` names both of its causes)
+
+**Patch: what the layer says.** C-2 amended (Max: "recommended is approved").
+
+- The `attr-call` tail class said every such site had "a receiver no static provider could type". On zod,
+  1,232 key-confirmed calls sit there with a typed receiver: they reach `ZodObject.create` through a
+  re-exported alias (`z.object(..)` → `export { objectType as object }` → `const objectType =
+  ZodObject.create`), and scip-typescript writes no occurrence at the member. The text in
+  `list_blind_spots`, the derived manifests, the gate's detail and `tail.py` now names both causes: an
+  untyped receiver, or a typed one whose member the index names nothing at. Nothing drawn moves.
+
 ## 0.2.118-beta — 2026-10-04 (a Rust operator applied to a repo impl is a call)
 
 **Patch: what the layer draws**, Rust. ADR-178 (Max: item 5, route a); C-174 narrowed.

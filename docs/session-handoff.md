@@ -1,10 +1,10 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-04 (forty-fourth session); Hobbes 0.2.118-beta on `main`.**
+**Reviewed 2026-10-04 (forty-fourth session); Hobbes 0.2.119-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
-0.2.118-beta (image `65bd07c9f2a4`), and this repo was
-ingested at HEAD after it; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
+0.2.119-beta (image `168527701a7a`); this repo was
+ingested at 0.2.118-beta; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
 new container from the current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this

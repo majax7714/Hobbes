@@ -1321,7 +1321,10 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		"a `with` statement's __enter__/__exit__ where the item's\nclass is not known",
 		"a destructor, an initializer the runtime runs",
 		// meanings appear only for classes present, with their C-refs:
-		"attr-call — an attribute call whose receiver no static provider could type",
+		// 0.2.119-beta: the text names both causes; zod's 1,232 alias sites
+		// have a typed receiver the index names nothing past.
+		"attr-call — an attribute call no static provider resolved",
+		"or it was typed and the index named nothing at the member",
 		// C-63 (surfaced 2026-09-05): a callee that is an expression is a
 		// counted site with its own class and gloss.
 		"web/main.ts — 7 of 9 sites unresolved (local-binding 4, expr-callee 1, union-member 1, unclassified 1)",

@@ -1145,7 +1145,8 @@ scip-python left it unplaced: a document-local symbol, no occurrence for
 gettext's `_`, a dead branch (C-173) or a star re-export (C-178)), same-file
 import bindings for Python (`import-binding`, lane A's own
 parse — usually the shape of a missing environment, C-23/C-27/C-30),
-pinned builtin-name matches, text shape (`attr-call`), and a callee
+pinned builtin-name matches, text shape (`attr-call`: an untyped receiver, or since 0.2.119-beta's text also
+a typed one whose member the index names nothing at, a re-exported alias), and a callee
 that is itself an expression (`expr-callee` — a subscript, a call's
 result, a parenthesised value in callee position: the Python and TS
 providers count the site under the marker name `<expr>`, and nothing
@@ -2401,7 +2402,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.118-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.118-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.119-beta** (2026-10-04, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.119-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this
