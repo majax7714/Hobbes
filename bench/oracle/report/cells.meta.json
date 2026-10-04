@@ -725,7 +725,7 @@
   "run": "contained",
   "draw": "random",
   "label": "sea-query",
-  "note": "16 proc-macro invocations read as calls until 0.2.114-beta minted the fns as macros"
+  "note": "16 proc-macro invocations read as calls until 0.2.114-beta minted the fns as macros; fitted for ADR-177 (0.2.117-beta): 5,601 to 6,263, recall 93.7%"
  },
  "reshape-rust": {
   "lang": "Rust",
