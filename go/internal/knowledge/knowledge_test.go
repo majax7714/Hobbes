@@ -1304,6 +1304,10 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		"degraded: scripts: go-modules: orphan directory",
 		"src/app/core.py — 5 of 20 sites unresolved (builtin-name 3, attr-call 2, below-floor 2)",
 		"below-floor — resolved by the semantic lane to a declaration below the symbol floor",
+		// A Rust trait's provided method is called statically: the text
+		// names the floor (C-9) and keeps C-58 to a call that dispatches.
+		"trait member",
+		"(C-9; C-58 where the call dispatches)",
 		// the always-on denominator honesty, C-1/C-4/C-5:
 		"not over the repo",
 		// C-4 after ADR-137 and ADR-139: only what is still not drawn.

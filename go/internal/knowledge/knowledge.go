@@ -1240,7 +1240,7 @@ var tailMeanings = []struct{ class, meaning string }{
 	// closure, a nested function below C-9's floor) — the call graph's
 	// known hole, per file (C-58). Missing from this table until
 	// 2026-09-03 (C-77): the proxy printed the by-design rollup without it.
-	{"below-floor", "resolved by the semantic lane to a declaration below the symbol floor — an interface method, a closure, a nested function — so no edge is drawn (C-58); the callee is known to the index and not to the graph."},
+	{"below-floor", "resolved by the semantic lane to a declaration below the symbol floor — such as an interface or trait member, a closure, a nested function, a C struct's function-pointer field — so no edge is drawn (C-9; C-58 where the call dispatches); the callee is known to the index and not to the graph."},
 }
 
 // notModelled marks the classes the graph sees and deliberately

@@ -229,7 +229,7 @@ _TAIL_REASON = {
     "qualifier-mismatch": ("laneb-miss", "tail qualifier-mismatch: the written specialisation contradicts lane B's (ADR-125, C-153)"),
     "arity-mismatch": ("laneb-miss", "tail arity-mismatch: more arguments written than lane B's target takes (ADR-130, C-153)"),
     "shared-qualname": ("laneb-miss", "tail shared-qualname: a later def of a Rust id two impl headers share, refused (ADR-163, C-180)"),
-    "below-floor": ("oracle-miss:interface", "tail below-floor: resolved below the symbol floor — interface method, closure or nested function (C-58)"),
+    "below-floor": ("oracle-miss:interface", "tail below-floor: resolved to a declaration lane A keeps no node for — an interface or trait member, a closure, a nested function, a function-pointer field (C-9; C-58 where the call dispatches)"),
 }
 _TAIL_OMIT = frozenset({"builtin-name"})
 

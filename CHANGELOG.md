@@ -15,6 +15,21 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.115-beta — 2026-10-04 (`below-floor` names the floor, not only dispatch)
+
+**Patch: what the layer says**, every language. Precedent 1: a limit named with the wrong cause.
+
+- The `below-floor` tail class (the ingest's tail, `list_blind_spots`' glossary, `hobbes derive gate`'s
+  reason) said "an interface method, a closure or a nested function (C-58)". On the Rust draw, 669 of
+  sea-query's 1,088 misses are calls onto a trait's **provided** method: a body, called statically (rustc's
+  MIR keys it as a static call), with no node because lane A's walk does not enter a `trait` body. Calling
+  that dispatch was wrong. The text now reads "an interface or trait member, a closure, a nested function, a
+  function-pointer field" and cites C-9's floor, with C-58 only where the call dispatches.
+- The ingest's `verification base` line said Rust was verified on 3 repos; architecture §3.8 has named
+  seven since the first random Rust draw (2026-10-03), and `test_verification.py`'s pin of §3.8 was red on
+  `main`. It now reads 7, with the four drawn cells.
+- No edge, node or count moves.
+
 ## 0.2.114-beta — 2026-10-03 (a Rust proc-macro fn is a macro, not a function)
 
 **Patch: what the layer says**, Rust. Precedent 1: an unnamed limit, found on the held-out sea-query cell.

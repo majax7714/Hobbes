@@ -16241,3 +16241,14 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   because the line now has an observed site; nothing contradicted. `analysis-click-rich.json`,
   `breakdown-click-rich.json`, `report.{standing,base,merged}.json` in the run dir.
 - The open decision (whether to extend the standing oracle) goes back to Max with all four counts.
+
+## 2026-10-04 (forty-third session, cont.) — Route 1 step 1: `below-floor` names the floor; 0.2.115-beta
+
+- Max approved Route 1 (the Rust round). Step 1: the `below-floor` text in `gate.py`, `tail.py` and the
+  knowledge server's glossary called every floored callee "an interface method … (C-58)"; sea-query's 669
+  trait provided methods are static calls below C-9's floor. Reworded in all three; architecture §3.4's
+  paragraph amended; the Go blind-spots test pins "trait member" and the C-9/C-58 split.
+- Found red on `main` and fixed in the same commit: `test_every_section_38_row_is_pinned_verbatim` (the
+  forty-second session's docs commit named the four drawn Rust cells in §3.8, `verification.py` still said
+  3 repos). Verified red on a clean stash before the fix.
+- pytest 2,864 passed; Go `./...` passed. Image not rebuilt yet: it will be after step 4's bump.

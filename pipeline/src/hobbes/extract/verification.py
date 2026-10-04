@@ -71,8 +71,9 @@ VERIFICATION_BASE: dict[str, dict] = {
     "rust": {
         # Compiler-graded on both since the oracle lane's phase 2 (ADR-089,
         # O7, 2026-08-25); ADR-040's hand-check is superseded.
-        "repos": 3,
-        "on": 'rust_proj (one small crate, re-earned under containment 2026-08-28); dagger — its sdk/rust workspace (O7); BurntSushi/memchr (2026-08-27/28)',
+        # Four held-out cells drawn at random, 2026-10-03 (§10.49).
+        "repos": 7,
+        "on": 'rust_proj (one small crate, re-earned under containment 2026-08-28); dagger — its sdk/rust workspace (O7); BurntSushi/memchr (2026-08-27/28); eycorsican/leaf, Ralith/hecs, SeaQL/sea-query, fabianlindfors/reshape — drawn at random, held out (2026-10-03)',
         "depth": "multi-repo",
     },
     "java": {

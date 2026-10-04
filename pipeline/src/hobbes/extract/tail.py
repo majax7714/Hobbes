@@ -184,8 +184,10 @@ ARITY_MISMATCH = "arity-mismatch"
 #: :func:`classify` verdict either.
 SHARED_QUALNAME = "shared-qualname"
 #: The semantic lane resolved the site to a declaration lane A keeps no
-#: symbol for — an interface method, a closure, a nested function (C-9's
-#: floor) — so the site counts as resolved and draws no edge (C-58).
+#: symbol for — an interface or trait member, a closure, a nested
+#: function (C-9's floor) — so the site counts as resolved and draws no
+#: edge (C-58 where the call dispatches). A Rust trait's provided method
+#: has a body and is called statically: below the floor, not dispatch.
 #: Not an unresolved site: the row's ``floored`` count, named here so
 #: the tail says where the call graph's known hole is, per file.
 BELOW_FLOOR = "below-floor"
