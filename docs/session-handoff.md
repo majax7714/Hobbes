@@ -4,7 +4,7 @@
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
 0.2.120-beta (image `ac9349eeceb5`); this repo was
-ingested at 0.2.118-beta; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
+ingested at HEAD (`1a16ff4`) after it; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
 new container from the current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
