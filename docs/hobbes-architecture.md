@@ -423,7 +423,8 @@ pre-expansion positions, so the two lanes still meet on ranges. Its
 fallback binds a `::`-qualified call only when the path's head singles
 out one declaration (C-72, lifted 2026-09-03): a path it could not read
 (`Option::<T>::deserialize`) is never a bare name, a bare name never
-reaches a method, a trait head is dispatch, and two `impl` blocks
+reaches a method, a call through a value (`x.f(..)`, with or without a
+turbofish, `x.f::<T>(..)`) is never bound, a trait head is dispatch, and two `impl` blocks
 declaring the same `Type.name` are an overload set — each abstention
 lands in the tail's `path-call`.
 
@@ -2375,7 +2376,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.111-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.111-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.112-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.112-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

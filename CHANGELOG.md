@@ -11,9 +11,21 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.111-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.112-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.112-beta — 2026-10-03 (a Rust method call with a turbofish is a value's method, not a bare name; C-72's second face)
+
+**Patch: what the layer draws**, Rust lane A. Found on the Rust draw's second cell (Ralith/hecs).
+
+- `world.reserve::<T>(1)` parses as a `generic_function` around the `field_expression`, so lane A did not
+  read it as a call through a value and bound it by the bare name to a same-file free fn: on hecs, three
+  `#[test]` fns named `reserve` and `query_one`. Where lane B answered, the graph was right and `hobbes lanes`
+  exited 1 on three unexplained rows; where it did not, the edge was drawn wrong at `syntactic`. Now the call
+  stays lane B's, as `x.f(..)` always was.
+- hecs lane A alone: exactly those 3 edges gone, none added. Regraded with lane B on: memchr 921, rust_proj 17,
+  leaf 1,590, hecs 1,263, dagger `sdk/rust` 3,595 confirmed, each unchanged; `hobbes lanes` on hecs exits 0.
 
 ## 0.2.111-beta — 2026-10-03 (a C build that derived no compile database keeps its cause in the record; C-135)
 

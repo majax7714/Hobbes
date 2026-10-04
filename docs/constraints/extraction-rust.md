@@ -234,6 +234,15 @@ new active entry and the two cross-reference. Field key: `README.md`,
   generic path and the bare-to-method case, the trait head and the
   overload set with a real `Local::make` still resolving, the same
   shapes inside a macro body).
+- **A second face, found and fixed 2026-10-03 (0.2.112-beta):** a
+  method call written with a turbofish, `world.reserve::<T>(1)`, parses
+  as a `generic_function` around the `field_expression`; it was not
+  read as a value's method, so the bare-name lookup bound it to a
+  same-file free fn (hecs `tests/tests.rs`: three `#[test]` fns named
+  `reserve` and `query_one`, 3 wrong `syntactic` edges where lane B did
+  not answer; with lane B they were `hobbes lanes` rows, exit 1). Now
+  `_is_dotted` sees through the turbofish and the call stays lane B's.
+  Test: `test_a_turbofish_method_call_is_a_values_method`.
 - **Residual edge cases:** `Type::assoc()` where the type is declared
   in another file is unchanged (it resolved through `mod_map` before,
   and still does, only for a unique qualname); a trait declared in

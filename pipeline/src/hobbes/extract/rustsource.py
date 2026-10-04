@@ -560,7 +560,7 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
                 _call(
                     terminal,
                     path=_qualifier_segments(function),
-                    dotted=function.type == "field_expression",
+                    dotted=_is_dotted(function),
                     scope=_enclosing(symbols, node.start_point.row + 1),
                     first_str=_first_string(node.child_by_field_name("arguments")),
                     qualified=_is_path_qualified(function),
@@ -672,6 +672,18 @@ def _terminal_identifier(function: Node) -> Node | None:
         inner = function.child_by_field_name("function")
         return _terminal_identifier(inner) if inner is not None else None
     return None
+
+
+def _is_dotted(function: Node) -> bool:
+    """Whether a callee is a value's method: ``x.name(..)``, or with a
+    turbofish, ``x.name::<T>(..)``, which tree-sitter parses as a
+    ``generic_function`` around the ``field_expression``. Read as a bare
+    name, the turbofish form bound to a same-file free fn of that name
+    (hecs, 2026-10-03: ``world.reserve::<T>(1)`` → the test ``fn reserve``)."""
+    if function.type == "generic_function":
+        inner = function.child_by_field_name("function")
+        return inner is not None and _is_dotted(inner)
+    return function.type == "field_expression"
 
 
 def _is_path_qualified(function: Node) -> bool:

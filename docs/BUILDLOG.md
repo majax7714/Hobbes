@@ -16180,3 +16180,11 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   failure" and kept only cargo's offline git error; the helper's cause ("bear over make produced no compile
   database entries") had been cut by a 500-character tail. The record keeps head and tail now; leaf
   re-ingested shows the cause. pytest 2,861 passed; the helper's 97 pass.
+- **The cells' grades at 0.2.110-beta's extraction** (cell records to follow): leaf 1,590 confirmed,
+  **44 contradicted** (97.3%; all one C-182 cfg twin, `crypto.rs`'s `mod aead` under `openssl-aead` and under
+  aws-lc/ring, the node at the uncompiled first arm), recall 86.9%, poison PASS; hecs 1,263/1,263, recall 83.0%,
+  poison PASS, its key holding 82 sites onto repo `Deref`/`PartialEq`/`Mul` methods (item 5's crate).
+- **0.2.112-beta (C-72's second face):** hecs' `hobbes lanes` exited 1 on three rows: lane A bound
+  `world.reserve::<T>(1)` (a `generic_function` around a `field_expression`) by the bare name to a same-file
+  `#[test] fn reserve`. Fixed (`_is_dotted`); hecs lane A alone loses exactly those 3 edges; the five Rust cells
+  regrade unchanged (`~/.hobbes/bench/rust-heldout-2026-10-03/regrade-turbofish/`). pytest 2,862.

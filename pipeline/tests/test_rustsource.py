@@ -414,6 +414,32 @@ class TestPathQualifiedCallsBindByTheirHead:
         # a bare name never reaches a method either (line 9)
         assert ("src/lib.rs", 9, "deserialize") not in layer["call_fallback"]
 
+    def test_a_turbofish_method_call_is_a_values_method(self, tmp_path):
+        # hecs `tests/tests.rs` (2026-10-03): `world.reserve::<(f32, i64,
+        # f32)>(1)` and `world.query_one::<..>(entity)` bound by the bare
+        # name to the file's own `#[test] fn reserve` / `fn query_one`.
+        layer = self._crate(
+            tmp_path,
+            "pub struct World;\n"
+            "impl World { pub fn reserve<T>(&mut self, n: u32) {} }\n"
+            "fn reserve() {\n"
+            "    let mut world = World;\n"
+            "    world.reserve::<(f32, i64, f32)>(1);\n"
+            "}\n"
+            "fn panics() {\n"
+            "    let mut world = World;\n"
+            "    world.reserve::<(f32, i64, f32)>(1);\n"
+            "    reserve();\n"
+            "}\n",
+        )
+        sites = {c["line"]: c for c in layer["files"][0].calls if c["name"] == "reserve"}
+        assert sites[5]["dotted"] and sites[9]["dotted"] and not sites[10]["dotted"]
+        fallback = layer["call_fallback"]
+        assert ("src/lib.rs", 5, "reserve") not in fallback
+        assert ("src/lib.rs", 9, "reserve") not in fallback
+        # the bare call still binds to the free fn
+        assert fallback[("src/lib.rs", 10, "reserve")] == ("src/lib.rs", 3)
+
     def test_a_trait_head_is_dispatch_and_an_overload_set_abstains(self, tmp_path):
         layer = self._crate(
             tmp_path,
