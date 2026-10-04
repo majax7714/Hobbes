@@ -26,9 +26,12 @@ key no implicit call, so a rule's rows could not be graded.
 **TypeScript / JavaScript** (each moves the TS symbol set):
 - **Lifting C-176's floor** (ADR-158's amendment approved 2026-10-04; it did not move the symbol set).
   The floor: an object literal's method, an unnamed class, a property-assigned function, a namespace.
-  Approved 2026-10-04 as route 1b, after 2a below: the methods of an object literal bound to a top-level
-  name first (ajv 338 caller rows; cue 49 callee misses), pre-registered on a new held-out JS cell
-  (DRAW-RULE-2, positions 42–80). Property-assigned functions (Preact 247, Express 46) wait for it.
+  Route 1b (approved 2026-10-04: an object literal's members bound to a top-level name) measured at step 0
+  (`~/.hobbes/bench/ts-floor-2026-10-04/RESULTS-1b-step0.md`), and the premise moved: the caller side is
+  ~515 rows (ajv 449, tileserver 43, hono 8, xmpp 6, cue 7, kbet 2), a scope read from syntax alone; the
+  callee side is ~48 key rows, and cue's 39 are cross-file calls to shorthand members, which scip-typescript
+  writes as locals (no cross-file name), so an edge there is lane A's alone, `syntactic`. **Re-asked; not
+  built.** Then the new held-out JS cell (DRAW-RULE-2, positions 42–80).
 - **Class-property functions**, measured (2a, 2026-10-04; zod's cell record, last section). The 1,029 pairs
   are mostly an alias chain: zod 1,230 of 1,274 rows reach `ZodX.create` through `z.object` → `export *` →
   `export { objectType as object }` → `const objectType = ZodObject.create`, and the index writes nothing at

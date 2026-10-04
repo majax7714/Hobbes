@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-04 (forty-third session); Hobbes 0.2.118-beta on `main`.**
+**Reviewed 2026-10-04 (forty-fourth session); Hobbes 0.2.118-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
 0.2.118-beta (image `65bd07c9f2a4`), and this repo was
@@ -31,16 +31,25 @@ session went belongs in the BUILDLOG.
   new held-out cell; then item 5, route a ("good for the recommended route with item 5"). Permission for `oracle py-trace` given for future use (local allow
   rules in `.claude/settings.local.json`).
 
-**Next:** Route 1 (Rust) is done. Take the TS and Python routes in `currently-open.md` § Extraction to Max
-(ADR-158's amendment, zod's class-property functions, C-181's residual, ADR-156 and fixture values). C is
-the next-thinnest language (two cells); its draw would continue §10.5's order.
+**Next:** the TS/JS routes (forty-fourth session, Max: "approved recommended"): 1a done (ADR-158's
+amendment approved), 2a measured (class-property functions: ~123 rows `semantic`, zod's 1,230 alias rows
+`syntactic` only), 1b's step 0 measured and **re-asked** (the premise moved). Their entries in
+`currently-open.md` § Extraction carry the sized routes. C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
+- 1b's re-ask: lift C-176's floor for a top-level-bound literal's members as scope only, or with edges.
+- 2a's sized routes (class-property functions) and `attr-call`'s stated reason.
 - **Whether to extend the standing trace oracle:** all four cells measured (click and rich on 2026-10-04).
-- The TS and Python routes above.
+- The Python routes (C-181's residual, ADR-156 and fixture values).
 Don't build any of them until Max answers.
 
 ## Where the last day left things (2026-10-04; the CHANGELOG has each one)
+
+Forty-fourth session (Max: routes for the TS/JS items; "approved recommended"): docs only, no bump.
+- **1a:** ADR-158's amendment approved as built (0.2.82-beta); the open item is now C-176's floor alone.
+- **2a:** all 13 keyed TS/JS cells regraded at `d101148` (0 contradicted, poison passed). zod's 1,274
+  `static→property` rows: 42 lane B names at the token, 1,232 an alias chain the index writes nothing at.
+- **1b step 0:** caller side ~515 rows, callee side ~48; shorthand members are locals in the index.
 
 Forty-third session (Max: condense the open extraction items, then Route 1):
 - `currently-open.md` trimmed to what is open, grouped by language (205 → 160 lines, nothing dropped).

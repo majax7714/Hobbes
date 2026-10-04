@@ -16349,3 +16349,18 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
 - Found: the alias sites sit in tail `attr-call`, whose text names an untypable receiver; the receiver is
   typed. Recorded in `currently-open.md` for Max; nothing changed.
 - Records: zod's cell record (new section); `currently-open.md`; `bench-drivers.md`. Docs only; no bump.
+
+## 2026-10-04 (forty-fourth session, cont.) — 1b step 0: an object literal's members, measured; re-asked
+
+- Raw index (`mini-literal/`): `prop: function`/arrow members get a global `meta` symbol (`b0:`) that a
+  cross-file call names; method shorthand, accessors and `export default {…}` members get **locals**, so a
+  cross-file call to them is unnamed by the index.
+- Caller side (`c176-ts-scope/probe.py` on today's graphs, `classify_caller.mjs`): the rule would file ~515
+  `lost-caller` rows under a literal member (ajv 449/458, tileserver 43/43, hono 8, xmpp 6, cue 7 + 17 via a
+  nested literal, kbet 2); cheerio, zod, Express, Preact and npq none (argument/returned literals, prototype
+  and name-assigned functions, unnamed classes). ajv reads 458 `lost-caller` rows against C-176's 338 at 0.2.82; the gap (key or code) is not read yet.
+- Callee side (`classify_literal.mjs`): ~48 key misses fit the shape (cue 39 shorthand, cross-file, lane B
+  silent; tileserver 7; xmpp 2) of ~1,890 literal-member misses.
+- The premise moved (callee small and, for cue, `syntactic` only; caller larger and syntax-only), so the
+  route goes back to Max before the ADR. Records: `RESULTS-1b-step0.md`; `currently-open.md`;
+  `bench-drivers.md`. Docs only; no bump.
