@@ -16225,3 +16225,19 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   fixture values); the notes with nothing proposed get their own list; "Parked by Max" joins the gated list.
   205 → 160 lines. No item was decided or dropped. The pointers in the handoff and `workstreams.md` follow
   the moved section.
+
+## 2026-10-04 (forty-third session, cont.) — the trace-extension measuring run's click and rich cells
+
+- Max gave the permission for `oracle py-trace` (local allow rules in `.claude/settings.local.json`, not
+  committed). The patched copy (`~/.hobbes/bench/c174-counts-2026-10-03/python/trace-run/oracle`) ran each
+  cell as its standing key was run (repo venv python, `--runs 2`, `-q -p no:cacheprovider`), contained.
+- click: suite exits `[1, 1]` and coverage identical to `click-py-r4` (the 24 `less`-pager failures are the
+  image's, in the standing key too). rich: exits `[0, 0]`; C-callee calls 2,125,368 against 2,125,376, the
+  rest identical. Both cells' regular in-repo pairs are identical to the standing keys (4,561; 5,351).
+- Implicit rows: click 676 (property 533, module `__getattr__` 86 of which 57 at `IMPORT_NAME`), rich 1,308
+  (property 708, `__eq__` 115, `__str__` 90, `__getitem__` 69, `__get__` 50). Graded on the on-disk graphs
+  (click 0.2.100-beta, rich 0.2.99-beta), merged key against base: recall 82.0% → 71.5%, 93.6% → 75.3%;
+  confirmed unchanged; one rich edge (`markdown.py:458` → `rich.text.Text`) `unobserved` → `suspect`
+  because the line now has an observed site; nothing contradicted. `analysis-click-rich.json`,
+  `breakdown-click-rich.json`, `report.{standing,base,merged}.json` in the run dir.
+- The open decision (whether to extend the standing oracle) goes back to Max with all four counts.

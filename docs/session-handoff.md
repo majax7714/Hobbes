@@ -35,10 +35,7 @@ held-out cell). C is the next-thinnest language (two cells); its draw would cont
 
 **Waiting on Max:**
 - The two routes above, and item 5's re-ask.
-- **The trace measuring run's click and rich cells** (the permission classifier denied the contained
-  `oracle py-trace` command; not retried). The command is in
-  `~/.hobbes/bench/c174-counts-2026-10-03/python/trace-run/`.
-- **Whether to extend the standing trace oracle** on the flask and structlog counts.
+- **Whether to extend the standing trace oracle:** all four cells now measured (`currently-open.md`).
 - C-181's residual and the rest of `currently-open.md` § Extraction's routes.
 Don't build any of them until Max answers.
 
