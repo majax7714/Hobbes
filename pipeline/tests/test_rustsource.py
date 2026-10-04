@@ -143,6 +143,36 @@ class TestCallSites:
             assert source[site.line - 1][site.col :].startswith(site.name)
 
 
+    def test_a_turbofish_call_in_a_macro_argument_is_a_site(self, tmp_path):
+        # hecs (2026-10-03): `assert!(w0_e.satisfies::<Q>())`,
+        # `assert_eq!(w0_e.query::<Q>().get().unwrap(), ..)` — 175 of its
+        # misses were lane B answers no call site claimed, so the join
+        # filed them as `uses`. Without the `::`, `c < d > (e)` is two
+        # comparisons, not a call.
+        (tmp_path / "Cargo.toml").write_text('[package]\nname = "m"\nversion = "0.1.0"\n')
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "lib.rs").write_text(
+            "pub struct W;\n"
+            "impl W { pub fn has<T>(&self) -> bool { true } }\n"
+            "pub fn f(w: &W, c: u8, d: u8, e: u8) {\n"
+            "    assert!(w.has::<(&'static i32, &'static String)>());\n"
+            "    assert!(w.has::<Vec<Vec<u8>>>() && W::has::<fn() -> u8>(w));\n"
+            "    assert!(c < d > (e));\n"
+            "}\n"
+        )
+        layer = extract_rust(tmp_path)
+        sites = [(c["line"], c["name"], c["col"], c["dotted"], c["path"]) for c in layer["files"][0].calls]
+        assert (4, "has", 14, True, []) in sites
+        assert (5, "has", 14, True, []) in sites
+        line5 = "    assert!(w.has::<Vec<Vec<u8>>>() && W::has::<fn() -> u8>(w));"
+        assert (5, "has", line5.index("W::has") + 3, False, ["W"]) in sites
+        assert [s for s in sites if s[0] == 6 and s[1] != "assert"] == []
+        # the dotted ones stay lane B's; the path-qualified one binds by its head
+        fallback = layer["call_fallback"]
+        assert ("src/lib.rs", 4, "has") not in fallback
+        assert fallback[("src/lib.rs", 5, "has")] == ("src/lib.rs", 2)
+
+
 class TestFallback:
     def test_mod_declarations_map_to_files_by_rustc_rules(self, layer):
         fallback = layer["call_fallback"]

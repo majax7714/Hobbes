@@ -16188,3 +16188,11 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   `world.reserve::<T>(1)` (a `generic_function` around a `field_expression`) by the bare name to a same-file
   `#[test] fn reserve`. Fixed (`_is_dotted`); hecs lane A alone loses exactly those 3 edges; the five Rust cells
   regrade unchanged (`~/.hobbes/bench/rust-heldout-2026-10-03/regrade-turbofish/`). pytest 2,862.
+- **0.2.113-beta (a turbofish call in a macro argument is a site):** 177 of hecs' 259 misses were lane B answers
+  filed as `uses` because the token-tree scan wanted `(` right after the identifier. Pre-registered
+  (`PREREG-rule.md`, six amendments; final sha256 `270a559e…`). Held-out cells drawn by the rule's shape
+  condition: sea-query (position 5; all 85 sites are std `collect`, vacuous — the condition counted syntax, a
+  flaw recorded in amendment 4), slumber passed over (sites across five packages), reshape (position 85; its
+  37 are postgres's `Row::get`, vacuous again). Scored: T1 (0 contradicted added), T3, T4 (0 lost on six cells
+  plus reshape), T6, T7 met; T2 **not measured on a held-out cell**; T5 missed (+116 against ≥150: lines, not
+  calls). pytest 2,863.

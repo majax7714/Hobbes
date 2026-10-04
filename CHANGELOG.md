@@ -11,9 +11,23 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.112-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.113-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.113-beta — 2026-10-03 (a Rust turbofish call inside a macro argument is a call site)
+
+**Patch: what the layer draws**, Rust. Found on hecs; pre-registered (`~/.hobbes/bench/rust-heldout-2026-10-03/PREREG-rule.md`).
+
+- Inside a macro's token tree, lane A recorded a call only where `(` follows the identifier directly, so
+  `assert!(e.satisfies::<Q>())` was no site. Lane B resolved the call, and with no site to claim it the join
+  filed it as `uses`. An identifier followed by `::`, a balanced `<…>` and a `(`-delimited token tree is now a
+  call site, as the same call outside a macro already was. Without the `::` (`a < b > (c)`) nothing changes.
+- **hecs (fitted): 1,263 → 1,379 confirmed, 0 contradicted, recall 83.0% → 90.6%**; every turbofish call on
+  its miss lines is closed (the 61 misses left there are `Deref`/`next`). memchr, rust_proj, leaf, dagger
+  `sdk/rust` unchanged. **Held out, sea-query and reshape: unchanged** (5,601 and 1,315, 0 lost, poison PASS),
+  because their in-macro turbofish callees are external (`Iterator::collect`, postgres's `Row::get`): the
+  rule's gain is measured on a fitted cell only. `hobbes lanes`: no unexplained row on any Rust cell.
 
 ## 0.2.112-beta — 2026-10-03 (a Rust method call with a turbofish is a value's method, not a bare name; C-72's second face)
 

@@ -618,21 +618,49 @@ def _call(
     }
 
 
+#: How far each token moves a turbofish's angle-bracket depth. ``->`` is
+#: its own token (``fn() -> u8``), so it closes nothing.
+_ANGLE_DEPTH = {"<": 1, ">": -1, ">>": -2}
+
+
+def _past_turbofish(children: list[Node], at: int) -> int:
+    """The index after a turbofish starting at *at* (``::`` then a
+    balanced ``<…>`` at this token tree's level), or *at* itself when there
+    is none or it does not close cleanly. hecs (2026-10-03): 175 of its
+    misses were ``x.f::<T>(..)`` inside ``assert!``/``assert_eq!``, which
+    lane B resolved and the join filed as ``uses``, because no call site
+    claimed them."""
+    if at + 1 >= len(children) or children[at].type != "::" or children[at + 1].type != "<":
+        return at
+    depth = 0
+    for i in range(at + 1, len(children)):
+        depth += _ANGLE_DEPTH.get(children[i].type, 0)
+        if depth == 0:
+            return i + 1
+        if depth < 0:
+            return at
+    return at
+
+
 def _token_tree_calls(tree: Node, symbols: list[dict]) -> list[dict]:
     """Call-shape detection inside an unparsed macro body (ADR-040 §4).
 
     An identifier immediately followed by a ``(``-delimited token tree is
-    recorded as a call site; the ``::``-joined identifiers before it are
-    its path, a ``.`` before it marks a method call. Anything else in the
-    token soup is left alone. The shape can lie — and a lying shape
-    produces no edge, because nothing resolves at it.
+    recorded as a call site, and so is one followed by a turbofish first
+    (``x.has::<T>(..)``, ``W::get::<T>(..)``: ``::``, a balanced ``<…>``,
+    then the ``(``); the ``::``-joined identifiers before it are its path,
+    a ``.`` before it marks a method call. Without the ``::``, ``a < b >
+    (c)`` is two comparisons and is left alone, as is anything else in the
+    token soup. The shape can lie — and a lying shape produces no edge,
+    because nothing resolves at it.
     """
     found: list[dict] = []
     children = tree.children
     for at, node in enumerate(children):
         if node.type != "identifier":
             continue
-        nxt = children[at + 1] if at + 1 < len(children) else None
+        args = _past_turbofish(children, at + 1)
+        nxt = children[args] if args < len(children) else None
         if nxt is None or nxt.type != "token_tree" or not _text(nxt).startswith("("):
             continue
         path: list[str] = []
