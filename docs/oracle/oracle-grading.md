@@ -2860,7 +2860,7 @@ cells** — the result that matters most:
 - sea-query's 16 rows were `raw_sql!` invocations drawn as `calls` to a `#[proc_macro]` fn minted `function`:
   unnamed, so precedent 1. **Fixed at 0.2.114-beta** (such a fn is a `macro`; no edge moves).
 
-R2 missed on leaf (97.3%), met on hecs and sea-query; R3, R4 (55–92%), R5, R6, R8 met on the three cells
+R2 missed on leaf (97.3%; 100% since 0.2.116-beta, ADR-165's second amendment), met on hecs and sea-query; R3, R4 (55–92%), R5, R6, R8 met on the three cells
 they bind (reshape was drawn for the rule alone and carries none of them); **R7 missed** (leaf has no `macro→*` miss); **R9 missed on hecs** — three rows where lane A
 bound `world.reserve::<T>(1)` to a same-file test `fn reserve` — **fixed at 0.2.112-beta** (C-72's second
 face; `hobbes lanes` exit 0 since). R10 met: leaf keys 1 operator-trait site, so the walk took hecs, whose key

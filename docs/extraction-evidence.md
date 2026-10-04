@@ -729,9 +729,10 @@ Compiler-graded against rustc's MIR (O7), contained. Cells: [`leaf`](oracle/cell
 | Date | Numbers |
 |---|---|
 | 2026-10-03 | **leaf** 1,590 confirmed, **44 contradicted** (97.3%, strict 97.3%; one C-182 cfg twin, the node at the uncompiled arm), recall 86.9%. **hecs** 1,263/1,263, recall 83.0%; **1,379/1,379, 90.6% at 0.2.113-beta** (the turbofish rule, fitted here). **sea-query** 5,601 confirmed, 16 contradicted (proc-macro invocations as calls) → **5,601/5,601 at 0.2.114-beta**, recall 83.8%. **reshape** 1,315/1,315, recall 96.3%. Poison PASS on all four, 0 falsely confirmed |
+| 2026-10-04 | **leaf** **1,634/1,634** (100%, strict 100%), recall 89.3%, at 0.2.116-beta: the cfg twin's node sits at the arm lane B defined, and 45 lane B references inside uncompiled arms are refused (ADR-165's second amendment). memchr, dagger `sdk/rust`, rust_proj, hecs, sea-query, reshape unchanged. |
 
 **Verified:** every contradicted row, read against the source. **Fixed from these cells:** the `scip-c`
 record's cause (0.2.111-beta, leaf), a turbofish method call bound to a free fn (0.2.112-beta, hecs), a
 turbofish call inside a macro argument not taken for a call (0.2.113-beta, hecs), a proc-macro fn minted a
-function (0.2.114-beta, sea-query). **Found and taken to Max:** C-182's first graded cost (leaf), and calls
+function (0.2.114-beta, sea-query). **Found and taken to Max:** C-182's first graded cost (leaf; built as route 1 at 0.2.116-beta), and calls
 onto a trait's provided method, which has no node (669 of sea-query's 1,088 misses).

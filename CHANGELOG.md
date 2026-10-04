@@ -15,6 +15,22 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.116-beta — 2026-10-04 (a Rust cfg twin's node sits at the arm the build compiles; references in an uncompiled arm are refused)
+
+**Patch: what the layer draws**, Rust. ADR-165's second amendment (Max: Route 1, "the node's line follows
+the arm lane B indexed"); C-182 narrowed. Precedent 1 for the second half.
+
+- A cfg twin (one item written under two or more `#[cfg]` arms) was one node at its **first** arm, whichever
+  the build compiled. rust-analyzer defines items only in compiled code, so where exactly one arm holds a
+  lane B definition the node now sits there. leaf's `mod aead` twin: 44 `semantic` call edges pointed into
+  the uncompiled openssl arm; **leaf 1,590 → 1,634 confirmed, 44 → 0 contradicted** (97.3% → 100%).
+- The probe for that found C-182's record wrong: rust-analyzer still writes *references* inside an
+  uncompiled arm, resolved against the compiled arm's scope (`self.cipher` read as the module `aead`). 23
+  `semantic` `uses` edges on leaf rested on them, which the MIR key cannot grade. A lane B reference inside
+  the widest uncompiled `cfg`-gated region is now refused before the join (45 on leaf, three files); lane A's
+  facts there stay `syntactic`. The `rust-cfg-twins` record counts both.
+- memchr, dagger `sdk/rust`, rust_proj, sea-query, hecs and reshape regrade unchanged. No id changes.
+
 ## 0.2.115-beta — 2026-10-04 (`below-floor` names the floor, not only dispatch)
 
 **Patch: what the layer says**, every language. Precedent 1: a limit named with the wrong cause.

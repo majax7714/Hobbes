@@ -124,17 +124,24 @@
 - **Source:** ADR-120, the relationships measurement of 2026-09-16
   (`~/.hobbes/bench/relationships-probe/measure-this-repo.txt`).
 
-### C-182 — A cfg twin is one node at its first arm, whichever arm the build compiles — *registered 2026-10-03 (0.2.89-beta, ADR-165); its residual refused or named since 0.2.95-beta*
+### C-182 — A cfg twin is one node, at its first arm unless lane B defined exactly one — *registered 2026-10-03 (0.2.89-beta, ADR-165); its residual refused or named since 0.2.95-beta; narrowed 2026-10-04 (0.2.116-beta, ADR-165's second amendment): the node sits at the arm lane B defined, and lane B's references inside an uncompiled arm are refused*
 - **Cannot tell you:** which arm of a Rust item written under two or more
-  `#[cfg(…)]` arms the build compiles. A cfg twin is a qualname with two
-  or more defs in one file, each gated by a `cfg` (on the item or an
-  enclosing `mod`/`impl`), all of one kind and one impl header. Every arm
-  mints the same id; the node sits at the **first** arm's line even where
-  the default build compiles another (`cow.rs`'s `width`: the node is the
-  `alloc` arm, rust-analyzer builds the `not(alloc)` one). Lane A reads no
-  features, so it files **every** arm's calls under the node (syntactic);
-  lane B indexes only the compiled arm, so a callee only an inactive arm
-  calls is drawn at `syntactic` alone. A call lane B resolves onto any arm
+  `#[cfg(…)]` arms the build compiles, unless lane B says so. A cfg twin
+  is a qualname with two or more defs in one file, each gated by a `cfg`
+  (on the item or an enclosing `mod`/`impl`), all of one kind and one impl
+  header. Every arm mints the same id. **Since 0.2.116-beta** the node sits
+  at the arm holding lane B's definition where exactly one arm holds one
+  (rust-analyzer defines items only in compiled code); with lane B silent on
+  the file, or no single defined arm, it sits at the **first** arm's line
+  even where the build compiles another (`cow.rs`'s `width`). Lane A reads
+  no features, so it files **every** arm's calls under the node
+  (syntactic). Lane B *defines* only in the compiled arm but still writes
+  *references* inside the others, resolved against the compiled arm's
+  scope (leaf: `self.cipher` read as the module `aead`); before 0.2.116-beta
+  23 such `semantic` `uses` edges were drawn on leaf, and since then every
+  reference inside the widest uncompiled `cfg`-gated region holding no lane
+  B definition is refused and counted. A callee only an inactive arm calls
+  is drawn at `syntactic` alone. A call lane B resolves onto any arm
   draws to the node (since 0.2.89-beta; before, onto a later arm it drew
   nothing and was tailed `below-floor`, the wrong cause). Where lane A's
   guess names one arm and lane B's answer another, `hobbes lanes` lists
@@ -166,9 +173,13 @@
   onto the compiled arm point at uncompiled lines (`AeadCipher.new` 65,
   compiled 235). The key contradicts all 44: 97.3% where every other Rust
   cell reads 100%. The edges name the right item; their line is wrong.
+  **Since 0.2.116-beta** the node is at 235 and leaf reads 1,634 confirmed,
+  0 contradicted; 45 lane B references in three files' uncompiled arms are
+  refused (`~/.hobbes/bench/c182-compiled-arm-2026-10-04/`).
 - **You find out:** surfaced — every ingest with a twin writes one
-  `rust-cfg-twins` degradation record (the count, examples with their def
-  lines, this entry), shown by `list_blind_spots` and the ingest summary;
+  `rust-cfg-twins` degradation record (the count, how many sit at the arm
+  lane B defined, the lane B references refused in uncompiled arms and in
+  how many files, examples with their def lines, this entry), shown by `list_blind_spots` and the ingest summary;
   `hobbes lanes` cites this entry beside the `cfg-twin` count. Since
   0.2.95-beta a `rust-repeats` record names the residual's ids, their
   files and def lines, and a refused two-kinds id is counted in the

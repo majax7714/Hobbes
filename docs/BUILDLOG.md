@@ -16252,3 +16252,25 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   forty-second session's docs commit named the four drawn Rust cells in §3.8, `verification.py` still said
   3 repos). Verified red on a clean stash before the fix.
 - pytest 2,864 passed; Go `./...` passed. Image not rebuilt yet: it will be after step 4's bump.
+
+## 2026-10-04 (forty-third session, cont.) — Route 1 step 2: C-182's node line, and a precedent-1 find; 0.2.116-beta
+
+- **Probe** (leaf's cached lane B facts, `~/.hobbes/cache/index/bab1c74a….facts.ndjson`): 21 definitions in
+  `crypto.rs`'s second `mod aead` arm, 0 in the first; all 44 contradicted rows are compiled code calling
+  the twin, drawn to first-arm lines. Premise held. **Also found:** 40 lane B references inside the first
+  arm, 17 carrying a name their token does not spell (15 on `self`/`super`), resolved against the compiled
+  arm's scope. C-182 said "lane B indexes only the compiled arm"; 23 `semantic` `uses` edges rested on them.
+- **Built** (ADR-165's second amendment): `rustsource.compiled_arms` + `RustFile.cfg_gates`; the node moves
+  to the one defined arm; lane B references in the widest uncompiled gated region are refused before the
+  join and counted in `rust-cfg-twins`. Tests: `TestTheCompiledArm` (8; red with the wiring disabled: node at
+  12, expected 17) and the `lane_b` ingest's new assertion, run uncached on the host (3 s).
+- **Regrade** (`~/.hobbes/bench/c182-compiled-arm-2026-10-04/`): leaf 1,590 → 1,634, 44 → 0, recall 89.3%;
+  14 nodes moved; 45 refusals in three files, each read against its `#[cfg]` arm (Windows, openssl/no-TLS);
+  the other six Rust cells unchanged, four byte-identical in symbols and edges. Nodes graded, not only edges.
+- Records: C-182 narrowed (its "lane B indexes only the compiled arm" corrected), architecture §3.4 and
+  §3.8's Rust row, `extraction-evidence.md`, §10.49, leaf's cell record (a regrade section), workstreams,
+  `cells.meta.json` and the comparative render (`check` green, `go test ./report/` ok), `currently-open.md`
+  (C-182's route removed; the trait item marked approved and in progress).
+- pytest 2,872 passed; Go `./...` passed. Step 3's draw pre-registration and its source-only counter are
+  written (`~/.hobbes/bench/rust-provided-2026-10-04/`), calibrated on the fitted cells; nothing walked yet.
+- Image and proxy to be rebuilt at 0.2.116-beta next (two bumps since 0.2.114).

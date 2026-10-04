@@ -704,7 +704,7 @@
   "run": "contained",
   "draw": "random",
   "label": "leaf",
-  "note": "the first random Rust draw; its 44 contradicted are one cfg twin's lines (C-182): the node sits at the uncompiled openssl arm"
+  "note": "the first random Rust draw; its 44 contradicted (one cfg twin's node at the uncompiled arm, C-182) confirmed at 0.2.116-beta, when the node moved to the arm lane B compiled"
  },
  "hecs-rust": {
   "lang": "Rust",

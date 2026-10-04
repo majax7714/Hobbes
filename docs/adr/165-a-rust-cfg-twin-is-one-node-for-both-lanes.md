@@ -119,3 +119,53 @@ own after arm): memchr 919 → 919 confirmed, 0 contradicted, syntactic-confirme
 identical; 2 evidence rows removed, both lane A calls in `haystacks/code/rust-library.rs` onto the later
 def of the two-kinds `vec` (lines 7640, 9828), none outside `haystacks`. The `rust-qualnames` record counts
 174 ids, the `rust-repeats` record 147 in one file.
+
+## Second amendment — 2026-10-04: the node sits at the compiled arm; a reference in an uncompiled arm is refused (0.2.116-beta)
+
+**Status:** accepted (Max, 2026-10-04, Route 1 of the forty-third session: "the node's line follows the arm
+lane B indexed", probed first) and **built**. Step 0's probe on leaf's cached lane B facts
+(`~/.hobbes/bench/c182-compiled-arm-2026-10-04/`) confirmed the premise and found a second fact:
+
+- **Confirmed:** rust-analyzer writes a *definition* only in the arm the build compiles. leaf's `crypto.rs`
+  has 21 definitions in `mod aead`'s second arm (211–352) and none in its first (44–206); every one of the
+  44 contradicted rows is a call from compiled code onto the twin, drawn to a line in the first arm.
+- **New, and the record was wrong:** rust-analyzer still writes *references* inside the uncompiled arm,
+  resolved against the compiled arm's scope. 108 references in `crypto.rs`, 40 of them inside lines 44–206;
+  17 of those carry a name their token does not spell, 15 on a `self` or `super` keyword naming a module
+  (`self.cipher` read as `aead`). C-182's
+  "lane B indexes only the compiled arm" was false, and 23 `semantic` `uses` edges were drawn from code the
+  build does not compile. The MIR key grades calls, so no grade could see them: an unnamed limit
+  (precedent 1).
+
+1. **The compiled arm** (`rustsource.compiled_arms`): an arm of a twin holding a lane B definition line is
+   compiled. Where exactly one arm is, the node's `line`/`end_line` move to it before the other arms are
+   read, so the node is the code the build runs. Lane B silent on the file, or two arms defined, names none:
+   the node stays at its first arm, as before. Ids do not change.
+2. **The uncompiled region:** for each other arm of such a twin, the widest `#[cfg]`-gated item around it
+   (its attributes included; `RustFile.cfg_gates` records the chain) that holds no lane B definition, else
+   the arm itself. leaf's is the whole first `mod aead`, its `impl` headers included.
+3. **Refused, before the join:** every lane B reference written inside such a region. It reaches no edge or
+   row; lane A's facts there stay `syntactic` (C-182: lane A files every arm's calls under the node). The
+   `rust-cfg-twins` record counts the twins placed at their compiled arm and the references refused, by file.
+
+**Alternatives considered.** *Keep the references and tier them `syntactic`*: they are rust-analyzer's
+answers in the wrong scope, not a syntactic read, so the tier would lie about what proves them. *Refuse only
+the module-kind targets* (`self` → `aead`): the others resolve in the same wrong scope and are right only
+when the two arms happen to name alike. *Read the build's features* stays the prevention (C-182).
+
+**Built** (0.2.116-beta): `extract/rustsource.py` (the walk's `gates` chain, `RustFile.cfg_gates`,
+`compiled_arms`), `extract/__init__.py` (lane B's definition lines in twin files, the refusal before the
+join, the node's move before the twin arms are read, `_cfg_twin_record`'s two counts). Tests:
+`test_shared_qualnames.py::TestTheCompiledArm` (gate spans, leaf's shape in small, the near misses, a live
+`mod` around a dead `fn`, the fixture's ingest with lane B's facts hand-built both ways) and the `lane_b`
+ingest on the host, uncached (`cow.width`'s node at the `not(alloc)` arm).
+
+**Regrade** (`~/.hobbes/bench/c182-compiled-arm-2026-10-04/`: `regrade3.sh`, `cells.tsv`, `before-graphs/`,
+`after/`; before is each cell's last standing report): **leaf 1,590 → 1,634 confirmed, 44 → 0
+contradicted**, recall 86.9% → 89.3%, poison clean; 14 nodes moved, none added or removed; 45 references
+refused in three files, each read against its arm (`crypto.rs`'s first `mod aead`, `proxy/mod.rs`'s
+`#[cfg(windows)]` arm, `app/dns/client.rs`'s openssl and no-TLS arms), which took 23 `uses` edges' evidence
+and split one `calls` pair at `proxy/mod.rs:348` to lane A's `syntactic` edge. memchr 921, dagger `sdk/rust`
+3,595, rust_proj 17, sea-query 5,601, hecs 1,379, reshape 1,315: unchanged, 0 contradicted; memchr's,
+sea-query's, hecs' and reshape's symbols and edges byte-identical (memchr's 3 and sea-query's 2 placed twins
+already sat at their compiled arm).

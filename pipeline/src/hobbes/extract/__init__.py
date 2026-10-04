@@ -44,6 +44,7 @@ from hobbes.extract import (
     pystatic,
     pyunion,
     reexport,
+    rustsource,
     scipsource,
     staging,
     tail,
@@ -755,9 +756,17 @@ def _rust_repeat_record(repeats: dict[str, dict[str, list[tuple[int, int]]]]) ->
     }
 
 
-def _cfg_twin_record(twins: dict[str, dict[str, list[tuple[int, int]]]]) -> dict:
+def _cfg_twin_record(
+    twins: dict[str, dict[str, list[tuple[int, int]]]],
+    compiled: dict[str, tuple[int, int]] | None = None,
+    refused: Counter | None = None,
+) -> dict:
     """The one degradation record ADR-165 writes per ingest with a Rust
-    cfg twin (C-182): how many, and examples with their def lines."""
+    cfg twin (C-182): how many, and examples with their def lines; since
+    its second amendment, how many sit at the arm lane B compiled and how
+    many lane B references written in an uncompiled arm were refused."""
+    compiled = compiled or {}
+    refused = refused or Counter()
     ids = sorted(
         (symbol_id, spans) for by_id in twins.values() for symbol_id, spans in by_id.items()
     )
@@ -771,10 +780,14 @@ def _cfg_twin_record(twins: dict[str, dict[str, list[tuple[int, int]]]]) -> dict
         "message": (
             f"{len(ids)} Rust symbol id(s) are cfg twins: one item written two or more "
             "times in one file, each def under a `#[cfg(…)]` with the same header and "
-            "kind; each is one node at its first def, whichever arm the build compiles, "
-            "lane A files every arm's calls under it, lane B indexes only the compiled "
-            f"arm, and a call lane B resolves onto any arm draws to the node (ADR-165, "
-            f"C-182). Twins: {examples}"
+            f"kind. Each is one node: {len(compiled)} sit at the one arm lane B defined "
+            "(the arm the build compiled), the rest at their first def, whichever arm "
+            "the build compiles. Lane A files every arm's calls under the node "
+            "(`syntactic`), and a call lane B resolves onto any arm draws to it. "
+            f"{sum(refused.values())} lane B reference(s) written inside an arm the build "
+            f"did not compile were refused ({len(refused)} file(s)): rust-analyzer "
+            "resolves them against the compiled arm's scope, so they are not evidence "
+            f"of the build (ADR-165, C-182). Twins: {examples}"
         ),
     }
 
@@ -912,6 +925,10 @@ def _build_symbol_layer(
     )
     ts_definitions: list[dict] = []
     lane_b_ran = False
+    # ADR-165's second amendment: the lines lane B defined something at, in
+    # the files that hold a Rust cfg twin, to say which arm was compiled.
+    rust_twin_files = set(rust.get("cfg_twins") or {}) if rust else set()
+    rust_defined: dict[str, set[int]] = {}
     # ADR-154: the platform and version scip-python read Python under, set
     # only where lane B ran for Python.
     python_reading: dict | None = None
@@ -937,6 +954,9 @@ def _build_symbol_layer(
             lane_b_definitions += [
                 row for row in facts.get("definitions") or [] if row["file"] in lane_a_c_files
             ]
+        for row in facts.get("definitions") or [] if rust_twin_files else []:
+            if row["file"] in rust_twin_files:
+                rust_defined.setdefault(row["file"], set()).add(row["line"])
         if ts_files:
             ts_definitions += [
                 row for row in facts.get("definitions") or [] if row["file"] in ts_files
@@ -1000,6 +1020,25 @@ def _build_symbol_layer(
         refusal = reexport.record(refused_rows)
         if refusal is not None:
             degraded.append(refusal)
+
+    # ADR-165's second amendment (C-182), before the join: the arm of each
+    # Rust cfg twin lane B defined is the compiled one, and a reference lane
+    # B wrote inside an arm it did not compile was resolved against the
+    # compiled arm's scope — it is refused and counted. Lane A's facts there
+    # stay `syntactic`. Without lane B for the file nothing is named (P6).
+    rust_compiled: dict[str, tuple[int, int]] = {}
+    rust_dead_refused: Counter = Counter()
+    if rust_defined:
+        rust_compiled, dead = rustsource.compiled_arms(rust["files"], rust_defined)
+        if dead:
+            kept = []
+            for site in resolutions:
+                regions = dead.get(site.file)
+                if regions and any(start <= site.line <= end for start, end in regions):
+                    rust_dead_refused[site.file] += 1
+                else:
+                    kept.append(site)
+            resolutions = kept
 
     withhold = frozenset(cpp_withheld_files)
     # ADR-131: lane A's operator tokens, read by the join alone and only
@@ -1135,6 +1174,14 @@ def _build_symbol_layer(
         if rust
         else {}
     )
+    # ADR-165's second amendment: a twin whose compiled arm lane B named
+    # sits there, so its line is the code the build runs; its other arms,
+    # read next, include the first.
+    if rust_compiled:
+        for symbol in graph["symbols"]:
+            arm = rust_compiled.get(symbol["id"])
+            if arm is not None:
+                symbol["line"], symbol["end_line"] = arm
     # ADR-165 (C-182): a cfg twin's other arms, read off the settled
     # symbols the same way; they are the node's own code.
     twin_arms = (
@@ -1471,7 +1518,7 @@ def _build_symbol_layer(
     if shared_later:
         degraded.append(_shared_qualname_record(shared_later, projected["shared_qualname"]))
     if rust and rust.get("cfg_twins"):
-        degraded.append(_cfg_twin_record(rust["cfg_twins"]))
+        degraded.append(_cfg_twin_record(rust["cfg_twins"], rust_compiled, rust_dead_refused))
     if rust and rust.get("same_header_repeats"):
         degraded.append(_rust_repeat_record(rust["same_header_repeats"]))
     if go_inits:

@@ -337,6 +337,128 @@ class TestMemchrsResolutionByHand:
         assert edge["tier"] == SEMANTIC
 
 
+LEAF_SHAPE = """\
+pub trait Cipher {}
+#[cfg(feature = "openssl-aead")]
+pub mod aead {
+    use super::*;
+    pub struct AeadCipher;
+    impl AeadCipher {
+        pub fn new() -> Self {
+            AeadCipher
+        }
+    }
+}
+#[cfg(not(feature = "openssl-aead"))]
+pub mod aead {
+    use super::*;
+    pub struct AeadCipher;
+    impl AeadCipher {
+        pub fn new() -> Self {
+            AeadCipher
+        }
+    }
+}
+"""
+
+
+class TestTheCompiledArm:
+    """ADR-165's second amendment (C-182): lane B's definitions say which arm
+    the build compiled. leaf's `crypto.rs` in small: `mod aead` twice, the
+    gate on the `mod`; rust-analyzer defines items only in the second."""
+
+    def test_each_def_carries_its_gates_outermost_first(self):
+        parsed = rustsource._parse_file("x.rs", LEAF_SHAPE.encode())
+        # The gate is the `mod`, its attribute line included.
+        assert parsed.cfg_gates[("aead.AeadCipher.new", 7)] == ((2, 11),)
+        assert parsed.cfg_gates[("aead.AeadCipher.new", 17)] == ((12, 21),)
+        assert ("Cipher", 1) not in parsed.cfg_gates
+
+    def test_the_arm_lane_b_defined_is_compiled_and_the_other_mod_is_dead(self):
+        parsed = rustsource._parse_file("x.rs", LEAF_SHAPE.encode())
+        compiled, dead = rustsource.compiled_arms([parsed], {"x.rs": {1, 13, 15, 17}})
+        assert compiled == {"x.aead.AeadCipher": (15, 15), "x.aead.AeadCipher.new": (17, 19)}
+        # The whole first `mod`, not only the arms: its `impl` header is in it.
+        assert dead == {"x.rs": [(2, 11)]}
+
+    @pytest.mark.parametrize(
+        "defined",
+        [
+            {},  # lane B silent on the file
+            {"x.rs": {1}},  # neither arm defined
+            {"x.rs": {1, 5, 7, 15, 17}},  # both arms defined: nothing to choose
+        ],
+    )
+    def test_no_single_defined_arm_names_nothing(self, defined):
+        parsed = rustsource._parse_file("x.rs", LEAF_SHAPE.encode())
+        assert rustsource.compiled_arms([parsed], defined) == ({}, {})
+
+    def test_a_gate_holding_a_definition_is_not_dead_the_arm_is(self):
+        # The `mod` is live (lane B defines `g` in it); only `f`'s own gate died.
+        source = (
+            "mod m {\n    pub fn g() {}\n"
+            "    #[cfg(a)]\n    pub fn f() {}\n"
+            "    #[cfg(not(a))]\n    pub fn f() {}\n}\n"
+        )
+        parsed = rustsource._parse_file("x.rs", source.encode())
+        compiled, dead = rustsource.compiled_arms([parsed], {"x.rs": {2, 6}})
+        assert compiled == {"x.m.f": (6, 6)}
+        assert dead == {"x.rs": [(3, 4)]}
+
+    def _graph(self, monkeypatch, definitions, references):
+        facts = {
+            "language": "rust",
+            "definitions": [{"file": "src/cow.rs", "line": line, "kind": "function"} for line in definitions],
+            "references": references,
+            "external_refs": [],
+            "degraded": [],
+        }
+        monkeypatch.setattr(extract, "_lane_b_facts", lambda *a, **k: iter([facts]))
+        return extract_repo(FIXTURE).graph
+
+    def _resolution(self, file, line, name, def_file, def_line):
+        return ev.Site(
+            provider=ev.SCIP, kind=ev.RESOLUTION, file=file, line=line,
+            col=_site_col(file.removeprefix("src/"), line, name), name=name,
+            def_file=def_file, def_line=def_line,
+        )
+
+    def test_the_node_sits_at_the_compiled_arm_and_a_dead_arm_reference_is_refused(self, monkeypatch):
+        count = _line_of("cow.rs", "fn count(bytes: &[u8]) -> usize {")
+        imp_struct = _line_of("cow.rs", "pub struct Imp")
+        graph = self._graph(
+            monkeypatch,
+            [imp_struct, WIDTH_NO_ALLOC, count],
+            [
+                # leaf's shape: a token in the arm the build left out,
+                # resolved against the compiled arm's scope.
+                self._resolution("src/cow.rs", WIDTH_ALLOC + 1, "bytes", "src/cow.rs", count),
+                self._resolution("src/cow.rs", COUNT_CALL, "count", "src/cow.rs", count),
+                self._resolution("src/lib.rs", WIDTH_CALL, "width", "src/cow.rs", WIDTH_NO_ALLOC),
+            ],
+        )
+        lines = {s["id"]: (s["line"], s["end_line"]) for s in graph["symbols"]}
+        assert lines["src/cow.width"] == (WIDTH_NO_ALLOC, WIDTH_NO_ALLOC + 2)
+        assert lines["src/cow.Imp"][0] == imp_struct
+        drawn = calls(graph)
+        assert [r["line"] for r in drawn[("src/cow.width", "src/cow.count")]["evidence"]] == [COUNT_CALL]
+        assert drawn[("src/lib.measure", "src/cow.width")]["tier"] == SEMANTIC
+        assert WIDTH_ALLOC + 1 not in lines_in(graph, "src/cow.rs")
+        [record] = [e for e in graph["extraction_errors"] if e["stage"] == "rust-cfg-twins"]
+        assert "2 sit at the one arm lane B defined" in record["message"]
+        assert "1 lane B reference(s) written inside an arm the build did not compile were refused (1 file(s))" in record["message"]
+
+    def test_without_lane_b_definitions_the_node_stays_at_its_first_arm(self, monkeypatch):
+        graph = self._graph(
+            monkeypatch,
+            [],
+            [self._resolution("src/lib.rs", WIDTH_CALL, "width", "src/cow.rs", WIDTH_NO_ALLOC)],
+        )
+        assert {s["id"]: s["line"] for s in graph["symbols"]}["src/cow.width"] == WIDTH_ALLOC
+        [record] = [e for e in graph["extraction_errors"] if e["stage"] == "rust-cfg-twins"]
+        assert "0 sit at the one arm lane B defined" in record["message"]
+
+
 class TestTheProjection:
     """`project` itself: the refusal is by line, for any lane, and the
     module edge the fact raises stays."""
@@ -430,3 +552,7 @@ def test_with_the_index_every_def_is_its_own_node():
     rows = graph["lane_agreement"]["site_disagreements"]
     assert [r["shape"] for r in rows if r["name"] == "width"] == ["cfg-twin"], rows
     assert all(r["shape"] for r in rows), rows
+    # ADR-165's second amendment: rust-analyzer, `alloc` off, defines only
+    # the `not(alloc)` arm, so the node is there.
+    lines = {s["id"]: s["line"] for s in graph["symbols"]}
+    assert lines["src/cow.width"] == WIDTH_NO_ALLOC, err

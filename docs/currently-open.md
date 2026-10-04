@@ -26,20 +26,12 @@ key no implicit call, so a rule's rows could not be graded.
 **Rust** (the first random draw, `oracle/oracle-grading.md` §10.49; draw and pre-registrations in
 `~/.hobbes/bench/rust-heldout-2026-10-03/`; no repo in `draw.json`'s order is ingested but positions 0, 1, 5
 and 85, so the next held-out cells can come from the same draw under a new pre-registered shape condition):
-- **Trait provided methods are below the symbol floor.** Lane A's symbol walk does not enter a `trait`
-  body, so a provided method's body has no node and lane B's call onto it tails `below-floor`, cited as
-  C-58's "interface method". sea-query 669 of 1,088 misses (recall 83.8% → about 93.8% if all drawn), leaf
-  11, four other cells 0. Routes: (1, recommended) mint a provided method (a body) as a `method` node under
-  the trait's qualname, measured on a newly drawn held-out cell (sea-query is fitted); a required method
-  stays off the floor, as TS and Java interface members do; (2) name it as its own tail class and register
-  it, no node; (3) leave it. Either way the tail text should not call a body-bearing method an interface
-  member.
-- **C-182's node line** (leaf 97.3%): 44 `semantic` edges lane B resolved onto a cfg twin's compiled arm
-  draw to the node at the uncompiled first arm (ADR-165, "map to the node"). Routes: (1, recommended) the
-  node's line follows the arm lane B indexed when lane B defines the twin at exactly one arm, first arm
-  otherwise; lane A's calls from the uncompiled arm stay filed under it (C-182's residual); (2) leave it
-  registered; (3) refuse lane B's answer onto another arm (ADR-165 rejected it). Probe (1) first: that the
-  SCIP definition occurrence sits on the compiled arm alone.
+- **Trait provided methods are below the symbol floor — route 1 approved (Max, 2026-10-04), in progress.**
+  Lane A's symbol walk does not enter a `trait` body, so a provided method's body has no node and lane B's
+  call onto it tails `below-floor`. sea-query 669 of 1,088 misses, leaf 11 (both fitted). The tail text
+  names C-9's floor since 0.2.115-beta. Next: walk the draw for a held-out cell
+  (`~/.hobbes/bench/rust-provided-2026-10-04/PREREG-draw.md`), write the rule's predictions, then mint a
+  provided method (a body) as a `method` node under the trait's qualname; a required method stays off.
 - **Item 5, operators, `Deref`, `Index` (C-174), ADR-131's shape.** Lane B already draws `uses` at the
   token; rustc's MIR key holds these as Call terminators. **Re-ask before building:** hecs keys 82 sites
   onto repo `Deref` (60), `PartialEq` (14), `DerefMut` (6) and `Mul` (2) methods, but it is fitted; draw

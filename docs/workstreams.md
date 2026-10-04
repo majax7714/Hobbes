@@ -473,8 +473,8 @@ run; GPU-hours stated first).*
   MIR, and since then javac for Java (ADR-096) and clang's front end
   for C (ADR-110). At phases 1 and 2 every semantic tier graded was
   100%; today every compiler-graded cell is at 100% but quic-go (a
-  99.6% lower bound, the oracle's grain) and leaf (97.3%, a C-182 cfg
-  twin's 44 rows, Hobbes', registered; 2026-10-03). At phase 2 the syntactic
+  99.6% lower bound, the oracle's grain); leaf read 97.3% on 2026-10-03
+  (a C-182 cfg twin's 44 rows, Hobbes') and 100% since 0.2.116-beta. At phase 2 the syntactic
   fallback was priced (C-7: 0/3 Go, 6/6 Python executed, 12/30 Rust);
   the misses are C-58 on every language (closures 70–80%) plus Rust's
   generated-code class. **W1 from phase 2 — done the same day (ADR-090):** the

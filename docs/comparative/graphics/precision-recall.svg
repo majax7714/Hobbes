@@ -766,7 +766,7 @@ misses by class: static→method 65, macro→function 57, static→function 53, 
 misses are macro bodies (unsafe_ifunc!, define_*_quickcheck!)</title>
 <circle cx="301.5" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="309.5" y="524.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr</text>
+<text x="309.5" y="504.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr</text>
 <g>
 <title>rust_proj — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-28
 precision-against-oracle 17/17 = 100.0%
@@ -775,7 +775,7 @@ misses by class: macro→function 4
 tiny crate; misses are criterion_group! bodies</title>
 <circle cx="303.0" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="311.0" y="544.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >rust_proj</text>
+<text x="311.0" y="524.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >rust_proj</text>
 <g>
 <title>sea-query — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-10-03
 precision-against-oracle 5,601/5,601 = 100.0%
@@ -787,13 +787,13 @@ misses by class: static→method 840, static→generated 118, macro→generated 
 <text x="303.4" y="504.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sea-query</text>
 <g>
 <title>leaf — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-10-03
-precision-against-oracle 1,590/1,634 = 97.3%
-recall 1,627/1,872 = 86.9% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 103, static→generated 83, static→function 53, static→closure 6
-the first random Rust draw; its 44 contradicted are one cfg twin's lines (C-182): the node sits at the uncompiled openssl arm</title>
-<circle cx="320.7" cy="500.25" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+precision-against-oracle 1,634/1,634 = 100.0%
+recall 1,671/1,872 = 89.3% over every resolved site (resolution oracle: no roots)
+misses by class: static→generated 83, static→method 59, static→function 53, static→closure 6
+the first random Rust draw; its 44 contradicted (one cfg twin's node at the uncompiled arm, C-182) confirmed at 0.2.116-beta, when the node moved to the arm lane B compiled</title>
+<circle cx="327.9" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="328.7" y="504.25" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >leaf</text>
+<text x="335.9" y="544.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >leaf</text>
 <g>
 <title>hecs — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-10-03
 precision-against-oracle 1,379/1,379 = 100.0%
@@ -802,7 +802,7 @@ misses by class: static→method 76, static→generated 55, macro→generated 12
 fitted for the turbofish rule (0.2.113-beta): recall 83.0% to 90.6%; item 5's crate (82 operator-trait sites)</title>
 <circle cx="331.8" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="323.8" y="564.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hecs</text>
+<text x="323.8" y="544.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hecs</text>
 <g>
 <title>dagger sdk/rust — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-25
 precision-against-oracle 3,363/3,363 = 100.0%
@@ -811,7 +811,7 @@ misses by class: static→method 258, static→generated 25, static→function 1
 misses are code macros and derives wrote; contained from the 2026-09-10 regrade</title>
 <circle cx="335.7" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="327.7" y="584.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >dagger sdk/rust</text>
+<text x="327.7" y="564.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >dagger sdk/rust</text>
 <g>
 <title>reshape — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-10-03
 precision-against-oracle 1,315/1,315 = 100.0%
@@ -820,7 +820,7 @@ misses by class: static→generated 48, static→closure 3, static→function 1
 held out for the turbofish rule; its in-macro turbofish callees are external</title>
 <circle cx="348.9" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="340.9" y="604.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >reshape</text>
+<text x="340.9" y="584.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >reshape</text>
 <text x="400" y="470" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Java — javac (compiler-graded)</text>
 <rect x="400" y="480" width="300" height="300" fill="none" stroke="#d9d8d2"/>
 <line x1="400.0" y1="480" x2="400.0" y2="780" stroke="#d9d8d2" stroke-dasharray="2 3"/>

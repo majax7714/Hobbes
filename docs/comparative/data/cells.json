@@ -3177,10 +3177,10 @@
    "run": "contained",
    "draw": "random",
    "label": "leaf",
-   "note": "the first random Rust draw; its 44 contradicted are one cfg twin's lines (C-182): the node sits at the uncompiled openssl arm",
+   "note": "the first random Rust draw; its 44 contradicted (one cfg twin's node at the uncompiled arm, C-182) confirmed at 0.2.116-beta, when the node moved to the arm lane B compiled",
    "edges": 1692,
-   "confirmed": 1590,
-   "contradicted": 44,
+   "confirmed": 1634,
+   "contradicted": 0,
    "abstract": 0,
    "silent": 58,
    "suspect": 0,
@@ -3190,13 +3190,13 @@
     "unreachable": 29
    },
    "precision": {
-    "pct": 97.3,
-    "num": 1590,
+    "pct": 100.0,
+    "num": 1634,
     "den": 1634
    },
    "recall": {
-    "pct": 86.9,
-    "hits": 1627,
+    "pct": 89.3,
+    "hits": 1671,
     "pairs": 1872,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -3205,7 +3205,7 @@
     "static→closure": 6,
     "static→function": 53,
     "static→generated": 83,
-    "static→method": 103
+    "static→method": 59
    },
    "poison": {
     "passed": true,

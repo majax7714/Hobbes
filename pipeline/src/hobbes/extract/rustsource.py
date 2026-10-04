@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import re
 import tomllib
+from bisect import bisect_left
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
@@ -82,6 +83,11 @@ class RustFile:
     #: item itself or on an enclosing ``mod`` or ``impl``. Read by
     #: :func:`cfg_twins` alone (ADR-165, C-182).
     cfg_gated: set[tuple[str, int]] = field(default_factory=set)
+    #: The same defs' gates as ``(first line, last line)`` spans, outermost
+    #: first: each enclosing ``mod``/``impl`` or the item itself that
+    #: carries a ``#[cfg(…)]``, its attributes included. Read by
+    #: :func:`compiled_arms` alone (ADR-165's second amendment).
+    cfg_gates: dict[tuple[str, int], tuple[tuple[int, int], ...]] = field(default_factory=dict)
 
 
 def has_rust_files(repo_root: Path) -> bool:
@@ -217,8 +223,10 @@ def _parse_file(rel: str, source: bytes) -> RustFile:
         parsed.defs.setdefault(symbol["qualname"], []).append(
             (symbol["line"], symbol["end_line"], symbol.pop("impl", ""))
         )
-        if symbol.pop("cfg", False):
+        gates = symbol.pop("cfg", ())
+        if gates:
             parsed.cfg_gated.add((symbol["qualname"], symbol["line"]))
+            parsed.cfg_gates[(symbol["qualname"], symbol["line"])] = gates
         if symbol.pop("is_test", False):
             parsed.tests.append(
                 {
@@ -240,7 +248,7 @@ def _walk_items(
     prefix: str,
     in_impl: bool = False,
     header: str = "",
-    gated: bool = False,
+    gates: tuple[tuple[int, int], ...] = (),
 ):
     """Collect declarations, recursing into mod and impl bodies only.
 
@@ -250,9 +258,10 @@ def _walk_items(
     top level would make both invisible. *prefix* carries the dotted
     qualname path (``tests.test_add``, ``Counter.incr``). *header* is the
     enclosing ``impl`` block's header text, kept on each symbol for
-    :func:`shared_qualnames` (ADR-163). *gated* says an enclosing ``mod``
-    or ``impl`` carries a ``#[cfg(…)]``, kept for :func:`cfg_twins`
-    (ADR-165).
+    :func:`shared_qualnames` (ADR-163). *gates* are the spans of the
+    enclosing ``mod`` and ``impl`` items that carry a ``#[cfg(…)]``,
+    outermost first, kept for :func:`cfg_twins` (ADR-165) and
+    :func:`compiled_arms` (its second amendment).
     """
     pending_attrs: list[Node] = []
     for node in container.children:
@@ -260,7 +269,11 @@ def _walk_items(
             pending_attrs.append(node)
             continue
         attrs, pending_attrs = pending_attrs, []
-        own = gated or _is_cfg_attr(attrs)
+        own = (
+            gates + (((attrs or [node])[0].start_point.row + 1, node.end_point.row + 1),)
+            if _is_cfg_attr(attrs)
+            else gates
+        )
         start = len(parsed.symbols)
 
         if node.type == "use_declaration":
@@ -279,7 +292,7 @@ def _walk_items(
                     }
                 )
             else:
-                _walk_items(body, parsed, _dotted(prefix, name), gated=own)
+                _walk_items(body, parsed, _dotted(prefix, name), gates=own)
         elif node.type == "impl_item":
             type_name = _impl_type(node)
             body = _child_of_type(node, "declaration_list")
@@ -290,7 +303,7 @@ def _walk_items(
                     _dotted(prefix, type_name) if type_name else prefix,
                     in_impl=True,
                     header=_impl_header(node, body),
-                    gated=own,
+                    gates=own,
                 )
         elif node.type == "function_item":
             name = _child_text(node, "identifier")
@@ -918,6 +931,65 @@ def cfg_twins(files: list[RustFile]) -> dict[str, dict[str, list[tuple[int, int]
                     (line, end) for line, end, _ in defs
                 )
     return out
+
+
+def compiled_arms(
+    files: list[RustFile], defined: dict[str, set[int]]
+) -> tuple[dict[str, tuple[int, int]], dict[str, list[tuple[int, int]]]]:
+    """Which arm of each cfg twin the build compiled, read off lane B's
+    definition lines (ADR-165's second amendment, C-182).
+
+    *defined* is ``{path: lines}``, every line lane B wrote a definition
+    at in a file. rust-analyzer defines items only in the code the build
+    compiles, so an arm holding one of those lines is compiled and an arm
+    holding none is not. Returns ``(compiled, dead)``:
+
+    - *compiled* maps a twin's id to its compiled arm's ``(line,
+      end_line)``, only where exactly one arm holds a definition. Lane B
+      silent on the file, or two arms both defined, names none: the node
+      stays at its first arm, as before.
+    - *dead* maps a path to the regions the build did not compile: for
+      each other arm of such a twin, the widest ``#[cfg]``-gated item
+      around it (the arm's own gate included) that holds no lane B
+      definition, else the arm itself. rust-analyzer still reports
+      references inside such a region, resolved against the compiled
+      arm's scope (leaf's `self.cipher` read as the module `aead`); no
+      reference there is evidence of the build.
+    """
+    compiled: dict[str, tuple[int, int]] = {}
+    dead: dict[str, list[tuple[int, int]]] = {}
+    for parsed in files:
+        by_id = cfg_twins([parsed]).get(parsed.path)
+        lines = sorted(defined.get(parsed.path, ()))
+        if not by_id or not lines:
+            continue
+
+        def holds(start: int, end: int) -> bool:
+            at = bisect_left(lines, start)
+            return at < len(lines) and lines[at] <= end
+
+        mid = module_id(parsed.path)
+        regions: set[tuple[int, int]] = set()
+        for symbol_id, spans in by_id.items():
+            live = [span for span in spans if holds(*span)]
+            if len(live) != 1:
+                continue
+            compiled[symbol_id] = live[0]
+            qualname = symbol_id[len(mid) + 1 :]
+            for span in spans:
+                if span == live[0]:
+                    continue
+                gates = parsed.cfg_gates.get((qualname, span[0]), ())
+                regions.add(next((gate for gate in gates if not holds(*gate)), span))
+        # A region inside another is the other's.
+        kept = [
+            region
+            for region in sorted(regions)
+            if not any(o != region and o[0] <= region[0] and region[1] <= o[1] for o in regions)
+        ]
+        if kept:
+            dead[parsed.path] = kept
+    return compiled, dead
 
 
 def _mod_tree(files: list[RustFile], known_files: set[str]) -> dict[tuple[str, str], str]:
