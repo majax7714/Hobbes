@@ -24,20 +24,18 @@ key no implicit call, so a rule's rows could not be graded.
 ### Routes waiting on Max
 
 **TypeScript / JavaScript** (each moves the TS symbol set):
-- **Lifting C-176's floor** (ADR-158's amendment approved 2026-10-04; it did not move the symbol set).
-  The floor: an object literal's method, an unnamed class, a property-assigned function, a namespace.
-  Route 1b (approved 2026-10-04: an object literal's members bound to a top-level name) measured at step 0
-  (`~/.hobbes/bench/ts-floor-2026-10-04/RESULTS-1b-step0.md`), and the premise moved: the caller side is
-  ~515 rows (ajv 449, tileserver 43, hono 8, xmpp 6, cue 7, kbet 2), a scope read from syntax alone; the
-  callee side is ~48 key rows, and cue's 39 are cross-file calls to shorthand members, which scip-typescript
-  writes as locals (no cross-file name), so an edge there is lane A's alone, `syntactic`. **Re-asked; not
-  built.** Then the new held-out JS cell (DRAW-RULE-2, positions 42–80).
+- **ADR-179 (C-176's floor, route 1b (a), scope only): built on branch `adr179` (`af7d030`), not merged.**
+  The pre-registered held-out draw (DRAW-RULE-2, 42–80) took no cell (71 vacuous, 75/78 thin, 76
+  refused). On the 13 fitted cells Q1–Q5, Q7 held; Q6 missed as worded (more callers re-filed than
+  predicted: callbacks inside a member). Routes for Max in `RESULTS-1b.md`'s record and the handoff: merge on
+  the fitted cells, or draw again under a new pre-registered window. Then 2a route (i).
 - **Class-property functions**, measured (2a, 2026-10-04; zod's cell record, last section). The 1,029 pairs
   are mostly an alias chain: zod 1,230 of 1,274 rows reach `ZodX.create` through `z.object` → `export *` →
   `export { objectType as object }` → `const objectType = ZodObject.create`, and the index writes nothing at
   the token. Sized routes, for Max: (i) a function-literal field of a top-level named class is a `method`
   symbol, drawn where lane B names it at the token, `semantic` (zod 42, hono 81 rows); (ii) leave the alias
-  registered (a multi-hop `syntactic` read held by one cell). Not built.
+  registered (a multi-hop `syntactic` read held by one cell). Max approved (i) after 1b, (ii) the
+  alias stays registered (2026-10-04). Not built.
 - **The gate's map reason for `attr-call`** (0.2.119-beta left it): `gate.py` files the class under
   `dynamic-dispatch`; a re-exported alias site (zod 1,232) is not dispatch. The closed vocabulary is
   `MAP_REASONS`; changing it is Max's.

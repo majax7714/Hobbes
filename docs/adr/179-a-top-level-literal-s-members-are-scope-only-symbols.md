@@ -1,7 +1,9 @@
 # ADR-179 — A member of a literal bound at top level is a scope-only symbol
 
 **Date:** 2026-10-04 · **Status:** accepted (Max, 2026-10-04: "recommended is approved", route 1b (a) "scope
-only"); pre-registered before the build (`~/.hobbes/bench/ts-floor-2026-10-04/PREREG-1b.md`) · **Owner:** Max
+only"); pre-registered before the build (`~/.hobbes/bench/ts-floor-2026-10-04/PREREG-1b.md`); **built on
+branch `adr179` (`af7d030`), not merged**: the held-out draw took no cell (`RESULTS-1b.md`), so shipping is
+Max's call · **Owner:** Max
 · **Source:** C-176's floor; ADR-158 (whose amendment Max approved the same day); the step 0 in
 `~/.hobbes/bench/ts-floor-2026-10-04/RESULTS-1b-step0.md`.
 
@@ -69,6 +71,20 @@ identical, with only `from` changing, and only to a scope-only symbol; test reac
 identical; no edge's `to` is scope-only; `below-floor` counts identical. On the probe: `wrong` and `dangling`
 stay 0, and `lost-caller` falls by step 0's covered count. A held-out JS cell is drawn first (DRAW-RULE-2,
 positions 42–80) and must hold at least 20 covered rows, or it is recorded as vacuous and the next is taken.
+
+## Measured (2026-10-04; `RESULTS-1b.md`)
+
+- **The held-out draw took no cell.** DRAW-RULE-2's walk from 42 to 80 met four candidates: flatlogic/
+  react-material-admin (71) was taken by DRAW-RULE-2 and is vacuous here (2 `lost-caller` rows, both in a
+  minified bundle); 75 and 78 thin or under-resolved; 76's install refused.
+- **On the 13 fitted cells** Q1–Q5 and Q7 held: grades, the `(type, to, path, line)` rows, test reach,
+  value-only modules, floored counts and every existing symbol identical; 171 scope-only symbols added;
+  rows re-filed from the module to a member: ajv 628, tileserver-gl 59, hono 13, zod 11, cue 7, xmpp.js 6,
+  kbet 2.
+- **Q6 missed as worded.** `wrong` and `dangling` 0, and `lost-caller` fell by exactly step 0's count; but
+  `agree`+`encloser` rose more than predicted (ajv +557 against 449, tileserver-gl +59 against 43): calls in an
+  anonymous callback inside a member (`module-anon`) are now the member's (`encloser`), which the prediction
+  did not count. None reads wrong.
 
 ## Not done
 

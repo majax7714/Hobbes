@@ -31,7 +31,7 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
-## 2026-10-04 — the TS/JS routes: 2a and 1b's step 0 measured (0.2.118-beta)
+## 2026-10-04 — the TS/JS routes: 2a, 1b's step 0 and ADR-179 measured (0.2.118–0.2.119-beta)
 
 - `ts-floor-2026-10-04/`: `run.sh <arm>` over `cells.tsv` (the 13 keyed TS/JS cells, copied from
   `c177-tagged-template/`); `bucket_property.py`, `classify_targets.mjs` and `laneb_names.py` for the key's
@@ -39,6 +39,10 @@ named below was removed unless it says otherwise.
 - 1b step 0, same dir: `mini-literal/` (object-literal members, raw index); `classify_literal.mjs <report>
   <clone>` (callee side); `classify_caller.mjs <probe.json> <clone>` (`COVER=1`: rows the rule would capture)
   over `c176-ts-scope/probe.py`'s output; `probe1b/`; `RESULTS-1b-step0.md`.
+- ADR-179, same dir: `PREREG-1b.md` + `prereg-1b.sha256`; `walk-adr179.sh <start>` (DRAW-RULE-2's walk plus
+  the covered-rows criterion); `run-wt.sh <arm>` (`run.sh` against the `adr179` worktree); `score_1b.py
+  <before> <after> <cells…>` (Q1–Q5, Q7; the worktree's venv); `probe_1b.sh <cells…>` (Q6); `after/`;
+  `RESULTS-1b.md`.
 
 ## 2026-10-04 — item 5, Rust operators (0.2.118-beta)
 

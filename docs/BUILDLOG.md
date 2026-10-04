@@ -16385,3 +16385,19 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   sites and closes over `calls` from symbols (`tssource.py:540`), so reach cannot move.
 - Pre-registered `~/.hobbes/bench/ts-floor-2026-10-04/PREREG-1b.md` (Q1–Q7; amendment 0 to Q6 before
   anything ran; `prereg-1b.sha256`): the held-out cell from DRAW-RULE-2's walk at 42 with ≥20 covered rows.
+
+## 2026-10-04 (forty-fourth session, cont.) — ADR-179 built on a branch and measured; held for Max
+
+- Built in a worktree (`~/hobbes_public-adr179`, branch `adr179`, `af7d030`) because the held-out walk
+  ingests from this checkout. `literalMembers`/`literalBinding` in `extract.mjs` (facts v9); `scope_only` on
+  the symbol; `_SymbolIndex._defined` skips it; `value_only_modules` and Go's `valueOnly` do not count it;
+  `who_calls` says it has no drawn callers; the module-caller note narrowed. Tests: tsextract 50/50 (ADR-158's
+  scope test row 16 is now `o.meth`, plus one ADR-179 test), pytest 2,889, Go ok. The worktree needed
+  `scip/node_modules` copied (26 lane B tests failed until it was).
+- **Held-out draw: none.** Positions 42–80: 71 react-material-admin taken by DRAW-RULE-2, vacuous here (2
+  `lost-caller` rows in a minified bundle; the classifier stalled on its one-line file and was stopped);
+  75, 78 thin; 76 refused. Stopped at 80 as pre-registered.
+- Fitted cells (13): Q1–Q5, Q7 met. Q6 missed as worded: `lost-caller` fell exactly as step 0 said, but
+  callbacks inside a member moved `module-anon` → `encloser` (ajv 108, tileserver 16), uncounted. Not merged,
+  no bump; routes to Max. Records: ADR-179 (status, measured); `RESULTS-1b.md`; `currently-open.md`;
+  `bench-drivers.md`.
