@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (forty-first session); Hobbes 0.2.110-beta on `main`.**
+**Reviewed 2026-10-03 (forty-second session); Hobbes 0.2.114-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
-0.2.110-beta (image `75861ebfd088`), and this repo was
+0.2.114-beta (image `48072a2f56a0`), and this repo was
 ingested at HEAD after it; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
 new container from the current image, so it starts fresh.
 
@@ -24,46 +24,39 @@ session went belongs in the BUILDLOG.
   repos."
 - 2026-10-02, on rule tiering: "syntatic over semantic when not clearly
   semantic to preserve honesty".
-- 2026-10-03: the extraction order ("approved, all recommendations are
-  good"), then the Phase 1 routes ("good with recommended").
+- 2026-10-03: the extraction order approved; then (forty-second session) "if no extraction items open
+  remaining, proceed with testing and grading a weaker side of hobbes … widen tested and look for more per
+  language extraction gaps, or resolve gaps if present".
 
-**Next:** Phase 2 of [`currently-open.md`](currently-open.md) § Extraction is worked
-through: items 6, 7 and 9 are built, item 8 is closed as measured, and item 5 waits on a Rust crate
-that writes operator impls (re-ask Max before building). Item 7's Route A remainder stays open. Take
-the next extraction work to Max as routes; the C++ held-out cells chromaprint and filesystem are fitted,
-so draw again for a C++ rule.
+**Next:** take the forty-second session's two routes to Max (`currently-open.md` § Decisions): **C-182's node
+line** (leaf, 97.3%) and **Rust trait provided methods below the symbol floor** (669 of sea-query's 1,088
+misses). Item 5 now has its crate (hecs, 82 operator-trait sites; re-ask Max before building, draw a new
+held-out cell). C is the next-thinnest language (two cells); its draw would continue §10.5's order.
 
 **Waiting on Max:**
-- **The trace measuring run's click and rich cells:** the session's
-  permission classifier denied the subagent's contained `oracle py-trace`
-  command ("Security Weaken"); not retried or worked around. The command is in
+- The two routes above, and item 5's re-ask.
+- **The trace measuring run's click and rich cells** (the permission classifier denied the contained
+  `oracle py-trace` command; not retried). The command is in
   `~/.hobbes/bench/c174-counts-2026-10-03/python/trace-run/`.
-- **Whether to extend the standing trace oracle** on the flask and
-  structlog counts (implicit rows 13–15% of confirmed, mostly property
-  getters; no grade moves; recall falls by denominator).
+- **Whether to extend the standing trace oracle** on the flask and structlog counts.
 - C-181's residual, ADR-126 §3 and the rest of "Decisions open for Max".
 Don't build any of them until Max answers.
 
 ## Where the last day left things (2026-10-03; the CHANGELOG has each one)
 
-Forty-first session (Max: "go with recommended", then a route at each re-ask):
-- **0.2.109, ADR-050 amended (C-23):** dagger's re-ingest showed the npm install's cache copy holds only
-  `package.json` and the lockfile. A local-path dependency (dagger's 11 docs zones, `./sdk`) failed with
-  yarn's error about a cache path, and a workspace root installed silently partial (npm 10.9.2). Both are now
-  declined by name. dagger's Rust cell is identical; xmpp.js's lock is out of sync under npm 10 (C-165 stands).
-- **Item 8 closed as measured** (C-174): 5 of 29 fitted `__call__` misses reachable; the voluptuous draw
-  (pre-registered) about 2.
-- **0.2.110, ADR-176:** a globals-style test file is named by the one runner its manifest declares (C-13
-  narrowed; 320 of 326 on six cells, 316 run by that runner). The harness runs only an imported runner.
-  Express's un-test-named mocha suite is C-194, surfaced by a `js-tests` record.
+Forty-second session (the user: widen a weaker language): **the first random Rust draw** (`oracle-grading.md`
+§10.49), seed 20261003, four held-out cells pre-registered before each ingest — leaf 97.3% (C-182), hecs,
+sea-query, reshape 100%; poison PASS on all. Four fixes from them:
+- **0.2.111 (C-135):** a `scip-c` record whose cause a 500-character tail had cut ("the indexer's own
+  failure" for an offline `cargo build` under `make`) keeps its head now.
+- **0.2.112 (C-72's second face):** `x.f::<T>(..)` was bound by the bare name to a same-file free fn.
+- **0.2.113:** a turbofish call inside a macro argument is a call site (hecs 1,263 → 1,379); its gain rests on
+  the fitted cell only: both held-out cells' in-macro turbofish callees were external.
+- **0.2.114:** a `#[proc_macro*]` fn is minted a `macro` (sea-query 16 → 0 contradicted; no edge moves).
+- `cells.meta.json` lacked icalendar and structlog, so `go test ./report/` was red on `main`; fixed.
 
-Fortieth session: item 7's held-out C++ draw; a `#define` read as a function fixed at **0.2.107**
-(ADR-135's second amendment); item 7 built at **0.2.108** (ADR-175: a functor's `operator()` and an
-implicit conversion, `semantic`; filesystem 3,048 → 3,220, 0 contradicted on five cells).
-
-Thirty-ninth session: the extraction order's Phase 1 audits and their routes, 0.2.102–0.2.106 (Terraform's
-limits registered and its ids scoped by directory, C-164's remainder named, C-174 counted at repo scale,
-C-176 widened, Rust impl ids by ordinal). H-38 logged open.
+Forty-first session: 0.2.109 (ADR-050 amended, C-23), item 8 closed as measured, 0.2.110 (ADR-176, C-13
+narrowed, C-194). Fortieth: 0.2.107 (ADR-135's second amendment), 0.2.108 (ADR-175, C++ functors).
 
 ## Where things stand
 
@@ -73,7 +66,9 @@ C-176 widened, Rust impl ids by ordinal). H-38 logged open.
   of its own (ADR-140), two of them with their dependencies installed
   (C-165).
 - **Grading:** every compiler-graded cell is at 100% precision except
-  quic-go (99.6%; all 15 rows are the oracle's grain). Each figure carries
+  quic-go (99.6%; all 15 rows are the oracle's grain) and leaf (97.3%;
+  44 rows of one C-182 cfg twin, Hobbes', registered). Rust now stands on
+  seven cells, four drawn at random. Each figure carries
   its strict companion (ADR-124); fmt is 100%, strict 99.62%. Trace-graded
   Python cells measure recall, never precision (C-60). rich is fitted
   (ADR-160); pyparsing, icalendar and structlog are graded held out
@@ -89,7 +84,7 @@ C-176 widened, Rust impl ids by ordinal). H-38 logged open.
 - **Shanks, the harness** (ADR-107, ADR-112, ADR-152): 98 session logs, and
   the tracker reads 98 of 40 (4 areas, 4 false blocks, all closed, 0
   missed, 1 deny). Each session's state is under `~/.hobbes/sessions/<id>/`.
-- **Comparative graphics:** four graphics from 108 cells; `render.py check`
+- **Comparative graphics:** four graphics from 114 cells; `render.py check`
   is green.
 - **Atlas-0, TTT and Calvin:** held or closed. See
   [`currently-open.md`](currently-open.md) § Held.

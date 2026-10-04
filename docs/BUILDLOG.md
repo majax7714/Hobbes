@@ -16209,3 +16209,5 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   icalendar and structlog, so `render.py cells` exited and `go test ./report/` was red on `main` since their
   records landed; both added with the four Rust cells; the graphics re-rendered (114 cells, `check` green,
   `go test ./report/` ok).
+- Close: Go `./...` and the oracle lane's Go suites pass; the proxy rebuilt static and the image rebuilt at
+  0.2.114-beta (`48072a2f56a0`); this repo ingested at HEAD after the handoff commit; the handoff rewritten.
