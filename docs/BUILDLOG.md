@@ -16401,3 +16401,12 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   callbacks inside a member moved `module-anon` → `encloser` (ajv 108, tileserver 16), uncounted. Not merged,
   no bump; routes to Max. Records: ADR-179 (status, measured); `RESULTS-1b.md`; `currently-open.md`;
   `bench-drivers.md`.
+
+## 2026-10-04 (forty-fourth session, cont.) — ADR-179 merged on the fitted cells; 0.2.120-beta
+
+- Max: "good to merge fitted cells with route a". `af7d030` cherry-picked onto `main` without its own commit
+  and committed whole with the bump, CHANGELOG, architecture §3 (the TS scope list), C-176 (header, text,
+  "Was", "You find out"), the register history (C-176 and 0.2.119's C-2 note), ADR-179's status and
+  `currently-open.md` (the item deleted; 2a route (i) next).
+- On `main`: Go `./...` ok, `bench/oracle` ok, tsextract 50/50, pytest 2,889. Proxy and image rebuilt
+  (`ac9349eeceb5`, `hobbes-proxy 0.2.120-beta`). The `adr179` worktree and branch removed after.

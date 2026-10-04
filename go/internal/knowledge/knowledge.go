@@ -82,6 +82,8 @@ type graphIndex struct {
 	// The symbols lane B declared (ADR-129), the same way. Empty on every
 	// graph built before minting and on every repo without C or C++.
 	laneBDeclared map[string]bool
+	// The TS/JS scope-only symbols (ADR-179): callers, never targets.
+	scopeOnly map[string]bool
 	// Those among them whose extent was read (ADR-134): `extent: "braces"`.
 	laneBExtent map[string]bool
 	// Each symbol's language bucket (langByExt, from its module's file),
@@ -154,6 +156,11 @@ func isOperatorName(name string) bool {
 // extent on the symbol (`extent: "braces"`), because end_line alone cannot
 // tell a body of one line from a refusal.
 func (idx *graphIndex) mintedNote(symbolID string) string {
+	if idx.scopeOnly[symbolID] {
+		// ADR-179: said before the list, because it qualifies "no recorded
+		// callers" — the silence is the floor's, not the code's.
+		return "  (a member of an object literal bound at top level: a caller only — calls to it are not drawn, so no callers are listed even where it is called; its own calls are drawn from it, C-176)\n"
+	}
 	if !idx.laneBDeclared[symbolID] {
 		return ""
 	}
@@ -188,6 +195,7 @@ func indexGraph(g *graphDoc) *graphIndex {
 		cppPattern:  make(map[string]bool, len(g.CppTemplatePatterns)),
 
 		laneBDeclared: map[string]bool{},
+		scopeOnly:     map[string]bool{},
 		laneBExtent:   map[string]bool{},
 		symbolLang:    make(map[string]string, len(g.Symbols)),
 		symbolName:    make(map[string]string, len(g.Symbols)),
@@ -213,6 +221,9 @@ func indexGraph(g *graphDoc) *graphIndex {
 		idx.symbolLang[g.Symbols[i].ID] = moduleLang[g.Symbols[i].Module]
 		idx.symbolName[g.Symbols[i].ID] = g.Symbols[i].Name
 		idx.symbolKind[g.Symbols[i].ID] = g.Symbols[i].Kind
+		if g.Symbols[i].ScopeOnly {
+			idx.scopeOnly[g.Symbols[i].ID] = true
+		}
 		if g.Symbols[i].DeclaredBy == "scip" {
 			idx.laneBDeclared[g.Symbols[i].ID] = true
 			if g.Symbols[i].Extent == "braces" {
@@ -352,6 +363,10 @@ type symbol struct {
 	// "scip" on a definition lane A's parse lost and lane B's index gave
 	// back, which who_calls says out loud.
 	DeclaredBy string `json:"declared_by"`
+	// True on a TS/JS member of an object literal bound at top level
+	// (ADR-179): a symbol so the calls written inside it name it as their
+	// caller, never a target, so nothing is drawn to it. who_calls says so.
+	ScopeOnly bool `json:"scope_only"`
 }
 
 // builtBy is the pipeline's provenance stamp (ADR-094): which checkout
@@ -684,9 +699,10 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 		// a call written in an object literal's method, an unnamed
 		// class, a function assigned to a property or a namespace is
 		// filed under its module. A named class's constructor, accessors
-		// and initializers are the class's since ADR-158. No key reads a
-		// caller.
-		b.WriteString("  (a TS/JS module named as a caller may stand for an object literal's method, an unnamed class's method, a function assigned to a property or a namespace's function in that file, not top-level code: they are not graph symbols, C-176)\n")
+		// and initializers are the class's since ADR-158, and a member of a
+		// literal bound at top level is its own caller since ADR-179. No key
+		// reads a caller.
+		b.WriteString("  (a TS/JS module named as a caller may stand for the method of an object literal not bound at top level, an unnamed class's method, a function assigned to a property or a namespace's function in that file, not top-level code: they are not graph symbols, C-176)\n")
 	}
 	if classCaller {
 		// C-176: Java and Python file a class body's code that is no
@@ -890,7 +906,8 @@ func valueOnly(g *graphDoc, want map[string]bool) []string {
 	moduleOf := map[string]string{}
 	for _, sym := range g.Symbols {
 		moduleOf[sym.ID] = sym.Module
-		if callableKinds[sym.Kind] {
+		// A scope-only symbol (ADR-179) is never a target: no call reaches it.
+		if callableKinds[sym.Kind] && !sym.ScopeOnly {
 			reachable[sym.Module] = true
 		}
 	}

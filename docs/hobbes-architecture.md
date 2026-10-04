@@ -1563,8 +1563,15 @@ vocabulary:
 - **the class**, for its constructor, accessors, `static {}` blocks,
   field initializers, member decorators and computed names, as Python
   and Java file a class body's code;
+- a direct member of an object literal bound at top level (`const X =
+  {…}`, `module.exports = {…}`, `exports.y = {…}`, `export default {…}`)
+  whose value runs as a function, since ADR-179 (0.2.120-beta, facts v9):
+  a `method` symbol with `scope_only`, a caller and never a target — the
+  join's `starting_at` skips it, `declQualname` does not name it, C-156's
+  value-only test does not count it, and `who_calls` says it has no
+  drawn callers. A qualname written twice in the file is refused;
 - the module, for the class's own decorators and heritage clauses and
-  for everything below the floor (an object literal's method, an
+  for everything below the floor (any other literal's method, an
   unnamed class, a property-assigned function, a namespace).
 
 A nested function's calls are its top-level symbol's. They had named
@@ -2402,7 +2409,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.119-beta** (2026-10-04, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.119-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.120-beta** (2026-10-04, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.120-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

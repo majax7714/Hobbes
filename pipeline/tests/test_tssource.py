@@ -774,6 +774,71 @@ class TestCallerIsTheInnermostSymbol:
         assert "src/k.g" in record["reaches"]
 
 
+class TestTopLevelLiteralMembersAreScopeOnly:
+    """ADR-179 (C-176 narrowed): a direct member of an object literal bound
+    at top level is a ``method`` symbol so the calls written inside it name
+    it as their caller — and it is never a target, so nothing new is drawn
+    to it. End to end, because what moves is what ``who_calls`` reads."""
+
+    SOURCE = (
+        "function f() { return 1; }\n"
+        "function g() { return 2; }\n"
+        "const kw = {\n"
+        "  keyword: 'x',\n"
+        "  code(cxt) { return f(); },\n"
+        "  run: () => g(),\n"
+        "};\n"
+        "const pair = { get v() { return f(); }, set v(x) { g(); } };\n"
+        "const nested = { outer: { inner() { return f(); } } };\n"
+        "module.exports = { e() { function deep() { return g(); } return deep(); } };\n"
+        "kw.code(1);\n"
+    )
+
+    def extract(self, tmp_path):
+        repo = tmp_path / "app"
+        (repo / "src").mkdir(parents=True)
+        (repo / "src" / "k.js").write_text(self.SOURCE)
+        from hobbes.extract import extract_repo
+
+        return extract_repo(repo).graph
+
+    def test_the_members_own_their_calls_and_nothing_is_drawn_to_them(self, tmp_path):
+        graph = self.extract(tmp_path)
+        symbols = {s["id"]: s for s in graph["symbols"]}
+        minted = {i for i, s in symbols.items() if s.get("scope_only")}
+        assert minted == {"src/k.kw.code", "src/k.kw.run", "src/k.module.exports.e"}
+        assert {symbols[i]["kind"] for i in minted} == {"method"}
+        assert symbols["src/k.kw.code"]["line"] == 5
+        calls = {
+            (e["from"], e["to"], ev["line"])
+            for e in graph["symbol_edges"]
+            if e["type"] == "calls"
+            for ev in e["evidence"]
+        }
+        assert ("src/k.kw.code", "src/k.f", 5) in calls
+        assert ("src/k.kw.run", "src/k.g", 6) in calls
+        # A function nested in a member files under the member (ADR-158's rule).
+        assert ("src/k.module.exports.e", "src/k.g", 10) in calls
+        # Scope only: the top-level `kw.code(1)` draws nothing to the member.
+        assert not any(to in minted for _, to, _ in calls)
+        assert not any(e["to"] in minted for e in graph["symbol_edges"])
+
+    def test_a_clash_and_a_nested_literal_stay_the_modules(self, tmp_path):
+        graph = self.extract(tmp_path)
+        ids = {s["id"] for s in graph["symbols"]}
+        # A getter and its setter share a qualname: neither is minted.
+        assert "src/k.pair.v" not in ids
+        # Only a bound literal's direct members.
+        assert "src/k.nested.outer" not in ids and "src/k.nested.outer.inner" not in ids
+        calls = {
+            (e["from"], ev["line"])
+            for e in graph["symbol_edges"]
+            if e["type"] == "calls"
+            for ev in e["evidence"]
+        }
+        assert ("src/k", 8) in calls and ("src/k", 9) in calls
+
+
 class TestDeclaredTestFrameworks:
     """ADR-176 (C-13): a globals-style test file the helper reports
     `unknown` is named only from the one runner its manifest declares —

@@ -616,7 +616,8 @@ test("a call's scope is the innermost graph symbol: a class owns its constructor
       [11, "K"], [11, "K"], [11, "K.m"], [11, "K.m"], [11, "K.m"], [11, "K.m"], [11, "K.m"],
       [13, "v"],
       [14, "outer"],
-      [15, null], [16, null], [17, null], [17, null], [18, null],
+      // a member of a literal bound at top level is its own scope (ADR-179)
+      [15, null], [16, "o.meth"], [17, null], [17, null], [18, null],
     ]
   );
   // Every scope names a symbol the graph has (the amendment: a nested
@@ -1215,3 +1216,40 @@ test("origins: a binding below the modelled vocabulary is `local`", () => {
   assert.equal(inner.origin, "local");
   assert.equal(inner.callee, null);
 });
+
+test("a direct member of a literal bound at top level is a scope-only method; clashes and other literals mint nothing (ADR-179, C-176)", () => {
+  const root = makeRepo({
+    "src/e.js": [
+      "const kw = { code(cxt) { return cxt.go(); } };", // 1
+      "const pair = { get v() { return a(); }, set v(x) { b(x); } };", // 2  a clash: neither
+      "const nested = { outer: { inner() { c(); } }, top() { function deep() { d(); } return deep(); } };", // 3
+      "function a() {} function b() {} function c() {} function d() {}", // 4
+      'exports.api = { run: () => a(), ["comp" + 1]() { b(); } };', // 5  a computed name: none
+      "module.exports = { e() { return a(); } };", // 6
+      "const notTop = () => ({ f() { return a(); } });", // 7  a returned literal: none
+      "export default { g() { return a(); } };", // 8
+    ].join("\n"),
+  });
+  const file = byPath(extractRepo(root), "src/e.js");
+  const minted = file.symbols.filter((s) => s.scope_only).map((s) => [s.qualname, s.kind, s.line]);
+  assert.deepEqual(minted, [
+    ["kw.code", "method", 1],
+    ["nested.top", "method", 3],
+    ["exports.api.run", "method", 5],
+    ["module.exports.e", "method", 6],
+    ["default.g", "method", 8],
+  ]);
+  assert.deepEqual(
+    file.calls.map((c) => [c.line, c.name, c.scope]),
+    [
+      [1, "go", "kw.code"],
+      [2, "a", null], [2, "b", null],
+      [3, "c", null], [3, "d", "nested.top"], [3, "deep", "nested.top"],
+      [5, "a", "exports.api.run"], [5, "b", null],
+      [6, "a", "module.exports.e"],
+      [7, "a", "notTop"],
+      [8, "a", "default.g"],
+    ]
+  );
+});
+

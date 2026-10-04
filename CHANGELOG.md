@@ -15,6 +15,24 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.120-beta — 2026-10-04 (a top-level literal's member is its own caller)
+
+**Patch: what the layer draws**, TS/JS. ADR-179 (Max: route 1b (a), scope only; merged on the fitted cells);
+C-176 narrowed.
+
+- A call written in a member of an object literal bound at top level (`const def = { code(cxt) { … } }`,
+  `module.exports = { e() { … } }`, `exports.y = {…}`, `export default {…}`) was filed under the module, as if
+  it ran at import time. The member is now a `method` symbol and the call's caller: ajv 628 rows re-filed
+  (its keyword definitions), tileserver-gl 59, hono 13, zod 11, cue 7, xmpp.js 6, kbet 2.
+- **Scope only.** Nothing is drawn *to* such a member: the index names a shorthand member only within its
+  file, so a call to it would be lane A's alone. The join never resolves a reference to it, C-156's value-only
+  test does not count it, and `who_calls` on it says its callers are not drawn. A qualname the file writes
+  twice (a getter and its setter) is not minted.
+- No grade moves (no key reads a caller): 13 keyed TS/JS cells identical in confirmed, contradicted, recall
+  and poison; test reach identical. The caller probe's `lost-caller` rows fall ajv 458 → 9, tileserver-gl
+  43 → 0, hono 8 → 0, with 0 wrong. The pre-registered held-out draw took no cell; Max merged on the fitted
+  cells. tsextract facts v9.
+
 ## 0.2.119-beta — 2026-10-04 (`attr-call` names both of its causes)
 
 **Patch: what the layer says.** C-2 amended (Max: "recommended is approved").

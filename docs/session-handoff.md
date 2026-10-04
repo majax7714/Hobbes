@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-04 (forty-fourth session); Hobbes 0.2.119-beta on `main`.**
+**Reviewed 2026-10-04 (forty-fourth session); Hobbes 0.2.120-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
-0.2.119-beta (image `168527701a7a`); this repo was
+0.2.120-beta (image `ac9349eeceb5`); this repo was
 ingested at 0.2.118-beta; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
 new container from the current image, so it starts fresh.
 
@@ -31,14 +31,12 @@ session went belongs in the BUILDLOG.
   new held-out cell; then item 5, route a ("good for the recommended route with item 5"). Permission for `oracle py-trace` given for future use (local allow
   rules in `.claude/settings.local.json`).
 
-**Next:** the TS/JS routes (forty-fourth session; Max: "approved recommended", then "recommended is
-approved"). Done: 1a (ADR-158's amendment approved), 2a (measured), `attr-call`'s text (0.2.119-beta).
-**ADR-179 (1b (a), scope only) is built on branch `adr179` (worktree `~/hobbes_public-adr179`, `af7d030`),
-not merged:** the held-out draw took no cell. Then 2a route (i) (class-property functions), approved.
+**Next:** the TS/JS routes (forty-fourth session). Done: 1a, 2a measured, `attr-call`'s text (0.2.119),
+**ADR-179** (0.2.120, merged on the fitted cells by Max's word). Next, approved: **2a route (i)**, a
+function-literal field of a top-level named class as a `method` symbol drawn where lane B names it at the
+token (zod 42, hono 81 rows), on a new held-out TS cell.
 
 **Waiting on Max:**
-- ADR-179: merge on the 13 fitted cells (Q1–Q5, Q7 met; Q6 missed as worded), or draw again under a new
-  pre-registered window. Don't merge or bump before he answers.
 - The gate's map reason `dynamic-dispatch` for `attr-call` (`currently-open.md`).
 - **Whether to extend the standing trace oracle:** all four cells measured (click and rich on 2026-10-04).
 - The Python routes (C-181's residual, ADR-156 and fixture values).
@@ -50,8 +48,9 @@ Forty-fourth session (Max: routes for the TS/JS items; "approved recommended", "
 - **2a:** all 13 keyed TS/JS cells regraded at `d101148` (0 contradicted, poison passed). zod's 1,274
   `static→property` rows: 42 lane B names at the token, 1,232 an alias chain the index writes nothing at.
 - **1b step 0:** caller side ~515 rows, callee side ~48; shorthand members are locals in the index.
-- **0.2.119:** `attr-call`'s text names both causes (C-2 amended). **ADR-179** written, pre-registered, built
-  on a branch; the held-out walk (42–80) took no cell; fitted cells unchanged but for callers.
+- **0.2.119:** `attr-call`'s text names both causes (C-2 amended). **0.2.120 (ADR-179):** a top-level literal's member
+  is a scope-only caller; the held-out walk (42–80) took no cell; Max merged on the fitted cells (ajv 628
+  rows re-filed, grades and reach unmoved).
 
 Forty-third session (Max: condense the open extraction items, then Route 1):
 - `currently-open.md` trimmed to what is open, grouped by language (205 → 160 lines, nothing dropped).

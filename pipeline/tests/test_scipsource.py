@@ -2210,3 +2210,27 @@ class TestThePythonReading:
     def test_no_stdlib_moniker_no_version(self, tmp_path, monkeypatch, lane_b_on):
         _, facts = self._extract(tmp_path, monkeypatch, [])
         assert facts["python_reading"] == {"platform": "linux", "version": None}
+
+
+class TestScopeOnlySymbols:
+    """ADR-179: a scope-only symbol (a TS/JS top-level literal's member) is
+    in the enclosing lookup and never answers ``starting_at``, so a lane B
+    reference whose definition starts on its line — `kw.` on a one-line
+    ``const kw = { code() {} }`` — is not claimed by it."""
+
+    def index(self):
+        nodes = [{"id": "src/k", "kind": "module", "path": "src/k.js"}]
+        symbols = [
+            {"id": "src/k.kw.code", "module": "src/k", "kind": "method", "line": 3,
+             "end_line": 3, "scope_only": True},
+            {"id": "src/k.f", "module": "src/k", "kind": "function", "line": 5, "end_line": 7},
+        ]
+        return scipsource._SymbolIndex(nodes, symbols)
+
+    def test_a_scope_only_symbol_is_a_scope(self):
+        assert self.index().enclosing("src/k", 3) == "src/k.kw.code"
+
+    def test_a_scope_only_symbol_is_never_a_target(self):
+        index = self.index()
+        assert index.starting_at("src/k", 3) is None
+        assert index.starting_at("src/k", 5) == "src/k.f"

@@ -888,7 +888,7 @@
   2026-10-01 audit (`~/.hobbes/bench/honesty-audit/`); `go/internal/knowledge` and
   `derive/manifests.py`, with their tests.
 
-### C-176 — A call's caller is the nearest enclosing symbol, so code below the symbol floor speaks as its container — in TypeScript and JavaScript, as the module — *registered 2026-10-01 (0.2.80-beta, the honesty audit); narrowed 2026-10-01 (ADR-158, 0.2.82-beta): a named class owns its constructor, accessors, static blocks, field initializers and member decorators, and a nested function's calls are its top-level symbol's; widened 2026-10-03 (0.2.104-beta): measured on Go and Java, Java's enum constant bodies and Go's package vars named, and `who_calls` says so for both*
+### C-176 — A call's caller is the nearest enclosing symbol, so code below the symbol floor speaks as its container — in TypeScript and JavaScript, as the module — *registered 2026-10-01 (0.2.80-beta, the honesty audit); narrowed 2026-10-01 (ADR-158, 0.2.82-beta): a named class owns its constructor, accessors, static blocks, field initializers and member decorators, and a nested function's calls are its top-level symbol's; widened 2026-10-03 (0.2.104-beta): measured on Go and Java, Java's enum constant bodies and Go's package vars named, and `who_calls` says so for both; narrowed 2026-10-04 (ADR-179, 0.2.120-beta): a member of an object literal bound at top level is its own caller*
 - **Cannot tell you:** which function a call is written in, where that function is not a graph
   symbol. Every lane files a call under the innermost enclosing **symbol**. So a lambda's or a
   closure's calls are filed under the def around it, and a top-level callback's under the module
@@ -898,9 +898,12 @@
   so its calls are the enum type's, and so are an anonymous class's written in a field. A Go
   **package var's initializer**, a function literal assigned to the var included, is filed under the
   var. TS/JS's symbols
-  are top-level declarations and the methods of top-level named classes, so the calls inside these
-  are filed under the **module**, as if written at top level:
-  - an object literal's method;
+  are top-level declarations, the methods of top-level named classes and, since ADR-179, the
+  members of an object literal bound at top level (scope only: never a target), so the calls inside
+  these are filed under the **module**, as if written at top level:
+  - the method of an object literal that is not bound at top level (returned, passed, nested in
+    another literal, assigned below top level), and a member whose qualname the file writes twice
+    (a getter and its setter);
   - an unnamed class's method;
   - a function assigned to a property (`res.send = function send(…)`, `X.prototype.y = function`);
   - a namespace's function.
@@ -924,6 +927,12 @@
   `TokeniserState`), its anonymous classes 93 and field initializers 68; Severed-Chains' field
   initializers 5,969 (2,231 inside lambdas); spring-data-elasticsearch 309 and spring-petclinic 3, all
   class-body code. Go's `init` and a Java lambda in a method agree with their keys.
+- **Was (to 0.2.119-beta):** a member of a literal bound at top level was filed under the module.
+  Rows re-filed to the member at 0.2.120-beta (ADR-179, the probe on the keyed cells): ajv 628
+  (`def.code` keyword methods), tileserver-gl 59, hono 13, zod 11, cue 7, xmpp.js 6, kbet 2; probe
+  `lost-caller` ajv 458 → 9, tileserver-gl 43 → 0, hono 8 → 0; grades, test reach and `wrong` unmoved.
+  Calls *to* such a member are still not drawn (ADR-179 route (b), not taken): `who_calls` on the
+  member says so.
 - **Was (to 0.2.81-beta):**
   - **The constructor, an accessor, a `static {}` block and a field initializer** of a named class
     were filed under the module, as were a member's decorators. Module-filed rows inside a class's
@@ -935,7 +944,7 @@
     145, tileserver-gl 24, seven more repos 2–8. All are 0 since ADR-158. Test reach grew (npq 139
     tests, cue 48, ajv 51) and shrank nowhere.
 - **You find out:** *partial.* `who_calls` adds a note under a caller list that names a TS/JS
-  module: the module may stand for an object literal's method, an unnamed class's method, a
+  module: the module may stand for the method of a literal not bound at top level, an unnamed class's method, a
   function assigned to a property or a namespace's function, and is not necessarily top-level code.
   Since 0.2.104-beta it adds one under a list naming a Java or Python class (code in its body that is
   no method symbol: an initializer, a block, a Java enum constant's body or an anonymous class in a

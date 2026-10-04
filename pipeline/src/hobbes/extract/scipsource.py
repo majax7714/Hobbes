@@ -732,8 +732,15 @@ class _SymbolIndex:
         for rows in self._by_module.values():
             rows.sort(key=lambda s: (s["line"], -(s.get("end_line") or s["line"])))
         # The defs alone, for `starting_at`: the node, lane B's definition
-        # and the fallback all name a qualname's first def (ADR-155).
-        self._defined = {module: list(rows) for module, rows in self._by_module.items()}
+        # and the fallback all name a qualname's first def (ADR-155). A
+        # scope-only symbol (ADR-179, a top-level literal's member) is a
+        # caller and never a target: a reference whose definition starts on
+        # its line — `kw.` on a one-line `const kw = { code() {} }` — must
+        # not be claimed by it, so it joins the enclosing lookup alone.
+        self._defined = {
+            module: [s for s in rows if not s.get("scope_only")]
+            for module, rows in self._by_module.items()
+        }
         if later_defs or twins:
             by_id = {s["id"]: s for s in symbols}
             # ADR-155's later defs join the enclosing lookup alone; ADR-165's

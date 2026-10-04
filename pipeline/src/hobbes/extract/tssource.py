@@ -51,7 +51,7 @@ TSEXTRACT_CMD_ENV = "HOBBES_TSEXTRACT_CMD"
 #: around a nested function. No field changed.
 #: v8 (C-177): a tagged template is a call site, its tag in callee
 #: position. No field changed.
-HELPER_VERSION = 8
+HELPER_VERSION = 9
 
 #: Extensions the helper extracts; used only for the cheap "does this repo
 #: have TS/JS at all" scan that decides whether the helper must run.
@@ -191,6 +191,9 @@ def join_facts(facts: dict) -> dict:
                     "qualname": sym["qualname"],
                     "line": sym["line"],
                     "end_line": sym["end_line"],
+                    # ADR-179: a top-level literal's member is a caller,
+                    # never a target; the key is absent on every other symbol.
+                    **({"scope_only": True} if sym.get("scope_only") else {}),
                 }
             )
         for route in f["routes"]:

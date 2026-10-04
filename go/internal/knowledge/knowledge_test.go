@@ -389,6 +389,54 @@ func TestWhoCallsSaysAMintedSymbolWithAnExtentIsAScope(t *testing.T) {
 	}
 }
 
+// ADR-179: a TS/JS top-level literal's member is a symbol so its own calls
+// name it, and it is never a target. who_calls on it must say why it lists
+// no callers — the silence is the floor's, not the code's — and C-156's
+// value-only test must not count it as callable.
+func TestWhoCallsSaysAScopeOnlySymbolHasNoDrawnCallers(t *testing.T) {
+	repo := fixtureRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	data, _ := os.ReadFile(path)
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	doc["nodes"] = append(doc["nodes"].([]any),
+		map[string]any{"id": "web/lit", "kind": "module", "path": "web/lit.js"})
+	doc["symbols"] = append(doc["symbols"].([]any),
+		map[string]any{"id": "web/lit.kw.code", "module": "web/lit", "name": "code",
+			"kind": "method", "line": 3, "end_line": 5, "scope_only": true})
+	out, _ := json.Marshal(doc)
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := Open(repo)
+	got, err := s.WhoCalls("web/lit.kw.code")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"a caller only", "calls to it are not drawn", "C-176"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("want %q in who_calls on a scope-only symbol:\n%s", want, got)
+		}
+	}
+	plain, err := s.WhoCalls("app.api.handler")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(plain, "a caller only") {
+		t.Errorf("an ordinary symbol gained the scope-only note:\n%s", plain)
+	}
+	g, _, err := s.loadGraph()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := valueOnly(g, map[string]bool{"web/lit": true}); len(v) != 1 || v[0] != "web/lit" {
+		t.Errorf("a module whose only callable is scope-only must stay value-only, got %v", v)
+	}
+}
+
 // An artifact built before ADR-129 carries no `declared_by`, and neither
 // does a repo without C or C++ — both must render exactly as they did.
 func TestWhoCallsWithoutDeclaredByRendersUnchanged(t *testing.T) {

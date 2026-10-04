@@ -1,9 +1,9 @@
 # ADR-179 — A member of a literal bound at top level is a scope-only symbol
 
 **Date:** 2026-10-04 · **Status:** accepted (Max, 2026-10-04: "recommended is approved", route 1b (a) "scope
-only"); pre-registered before the build (`~/.hobbes/bench/ts-floor-2026-10-04/PREREG-1b.md`); **built on
-branch `adr179` (`af7d030`), not merged**: the held-out draw took no cell (`RESULTS-1b.md`), so shipping is
-Max's call · **Owner:** Max
+only"); pre-registered before the build (`~/.hobbes/bench/ts-floor-2026-10-04/PREREG-1b.md`); **built**
+(0.2.120-beta): the held-out draw took no cell (`RESULTS-1b.md`), and Max merged it on the fitted cells
+(2026-10-04: "good to merge fitted cells with route a") · **Owner:** Max
 · **Source:** C-176's floor; ADR-158 (whose amendment Max approved the same day); the step 0 in
 `~/.hobbes/bench/ts-floor-2026-10-04/RESULTS-1b-step0.md`.
 

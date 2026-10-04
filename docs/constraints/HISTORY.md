@@ -6,6 +6,19 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-176 narrowed, 2026-10-04 (0.2.120-beta; ADR-179, Max: route 1b (a) "scope only", then "good to merge fitted cells with route a"; no entry added):
+- **C-176 narrowed (still partial).** A direct member of an object literal bound at top level is a `method`
+  symbol, a caller and never a target (`scope_only`). Calls re-filed from the module to the member: ajv 628,
+  tileserver-gl 59, hono 13, zod 11, cue 7, xmpp.js 6, kbet 2; grades and test reach unmoved on 13 keyed
+  cells. The pre-registered held-out draw took no cell; merged on the fitted cells by Max's word. What is left:
+  other literals' methods, unnamed classes, property-assigned functions, namespaces, and calls *to* the new
+  members. 194 entries, 144 active (112 surfaced), unchanged.
+
+C-2 amended, 2026-10-04 (0.2.119-beta; Max: "recommended is approved"; no entry added):
+- **C-2's `attr-call` named both causes.** The class's text said every site had a receiver no provider could
+  type; zod's 1,232 alias sites have a typed receiver whose member scip-typescript names nothing at. The text
+  now names both. The gate's map reason for the class (`dynamic-dispatch`) is open for Max.
+
 C-13 narrowed and C-194 registered, 2026-10-03 (0.2.110-beta; ADR-176, Max: "strict manifest rule", then "label, harness ignores it"):
 - **C-13 narrowed.** A globals-style test file is named by the one runner its manifest declares (vitest only
   with `globals: true`), recorded as `framework_from` and not run by the derive harness. On six cells 320 of

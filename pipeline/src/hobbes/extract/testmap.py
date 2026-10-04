@@ -292,10 +292,13 @@ def value_only_modules(graph: dict) -> set[str]:
     guarding such a module, however directly it reads its values. This is
     an observation about the graph, not a guess about the source: a TS
     ``const`` holding an arrow function counts as callable once a call
-    targets it.
+    targets it, and a TS literal's member (ADR-179, scope only) never does.
     """
+    # A scope-only symbol (ADR-179) is never a target, so no call can reach it.
     callable_modules = {
-        symbol["module"] for symbol in graph.get("symbols", []) if symbol.get("kind") in CALLABLE_KINDS
+        symbol["module"]
+        for symbol in graph.get("symbols", [])
+        if symbol.get("kind") in CALLABLE_KINDS and not symbol.get("scope_only")
     }
     symbol_module = {symbol["id"]: symbol["module"] for symbol in graph.get("symbols", [])}
     called_modules = {

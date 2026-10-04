@@ -26,7 +26,7 @@ import { Node, Project, ts } from "ts-morph";
 // v3 (C-5 surfacing): every file carries `routes_declined` — route
 // registrations seen and declined because their path is computed, so the
 // http-ts pack can report the absence instead of leaving it silent.
-export const HELPER_VERSION = 8;
+export const HELPER_VERSION = 9;
 // v4, since 2026-09-05 (C-63 surfaced): a call whose callee is itself an
 // expression — an element access, a call's result, a parenthesised
 // value — is a `calls` record named `<expr>` alone, with callee and
@@ -58,6 +58,9 @@ export const UNION_MEMBER = "union-member";
 // v8 (C-177): a tagged template is a `calls` record, its tag in callee
 // position (`` tag`x` `` as `tag(..)`, `` a.b`x` `` at `b`). No field
 // changed.
+// v9 (ADR-179, C-176): a direct member of an object literal bound at top
+// level is a `method` symbol carrying `scope_only: true` — a caller, never
+// a target — and `scope` names it for the calls written inside it.
 
 const EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 
@@ -317,9 +320,11 @@ function declQualname(decl) {
  * graph has: a nested function, a nested `const f = () => …` and a
  * method of a class declared inside a function file their calls under
  * the top-level symbol around them, never under an id with no node (until
- * 0.2.82-beta they named themselves, and the caller dangled). A namespace's
- * body, an object literal's method, an unnamed class and a function
- * assigned to a property stay the module's: below the floor.
+ * 0.2.82-beta they named themselves, and the caller dangled). A member of
+ * an object literal bound at top level is its own scope (ADR-179,
+ * `literalMembers`); a namespace's body, any other literal's method, an
+ * unnamed class and a function assigned to a property stay the module's:
+ * below the floor.
  *
  * Inside a named class, code that runs as part of the class rather than
  * as one method is the **class's**: a constructor, an accessor, a
@@ -331,6 +336,13 @@ function declQualname(decl) {
  * the module's, as a Python class decorator does. */
 function enclosingScope(node) {
   const ancestors = node.getAncestors(); // the parent first, the source file last
+  // ADR-179: a member of a literal bound at top level is a symbol, and
+  // nothing inside it is one, so the first such ancestor is the innermost.
+  const members = literalMembers(node.getSourceFile());
+  for (const a of ancestors) {
+    const qualname = members.get(a);
+    if (qualname) return qualname;
+  }
   const top = ancestors.length >= 2 ? ancestors[ancestors.length - 2] : null;
   const childOf = (parent) => ancestors.find((a) => a.getParent() === parent);
   if (!top) return null;
@@ -479,7 +491,7 @@ function declarationStart(node) {
   return overloads.length ? overloads[0].getStartLineNumber() : node.getStartLineNumber();
 }
 
-function extractSymbols(sourceFile) {
+function baseSymbols(sourceFile) {
   const symbols = [];
   const add = (name, qualname, kind, node) =>
     symbols.push({
@@ -514,6 +526,103 @@ function extractSymbols(sourceFile) {
       // (require() consts are module handles, not symbols.)
       add(decl.getName(), decl.getName(), "const", decl);
     }
+  }
+  return symbols;
+}
+
+/** The binding a top-level object literal is written under, as the prefix
+ * of its members' qualnames, or null (ADR-179): `X` for a top-level
+ * `const`/`let`/`var X = {…}`; `module.exports`, `exports.y` or
+ * `module.exports.y` for a top-level statement assigning it; `default` for
+ * `export default {…}`. `as`, `satisfies` and parentheses are looked
+ * through. Anything else — a literal returned, passed, nested in another
+ * literal, or assigned below top level — has no binding here. */
+function literalBinding(literal) {
+  let p = literal.getParent();
+  while (p && (Node.isAsExpression(p) || Node.isSatisfiesExpression(p) || Node.isParenthesizedExpression(p))) {
+    p = p.getParent();
+  }
+  if (!p) return null;
+  if (Node.isVariableDeclaration(p)) {
+    const statement = p.getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
+    const name = p.getNameNode();
+    return statement && Node.isSourceFile(statement.getParent()) && Node.isIdentifier(name)
+      ? name.getText()
+      : null;
+  }
+  if (Node.isExportAssignment(p)) return p.isExportEquals() ? null : "default";
+  if (
+    Node.isBinaryExpression(p) &&
+    p.getOperatorToken().getKind() === ts.SyntaxKind.EqualsToken &&
+    Node.isExpressionStatement(p.getParent()) &&
+    Node.isSourceFile(p.getParent().getParent())
+  ) {
+    const left = p.getLeft().getText();
+    if (left === "module.exports" || /^(module\.)?exports\.[A-Za-z_$][\w$]*$/.test(left)) return left;
+  }
+  return null;
+}
+
+/** A literal member's written name, or null for a computed one. */
+function memberName(member) {
+  const name = member.getNameNode();
+  if (Node.isIdentifier(name) || Node.isPrivateIdentifier(name)) return name.getText();
+  if (Node.isStringLiteral(name) || Node.isNoSubstitutionTemplateLiteral(name)) return name.getLiteralValue();
+  return null;
+}
+
+const literalMemberCache = new WeakMap();
+
+/** The members of object literals bound at top level that are graph
+ * symbols, mapped to their qualnames (ADR-179, C-176). A member counts
+ * when its value runs as a function: a method, a `get`/`set` accessor, or
+ * a property whose value is an arrow function or function expression;
+ * only a literal's **direct** members. Fails toward drawing less: a
+ * qualname written twice in the file (a getter and its setter, two
+ * `module.exports = {…}`) or equal to a symbol the file already has mints
+ * nothing, and those calls stay the module's. Each is **scope only**: a
+ * caller, never a target (`declQualname` does not name it, and the join's
+ * `starting_at` skips it). Shared by `extractSymbols` and `enclosingScope`
+ * so a scope always names a symbol the graph has. */
+function literalMembers(sourceFile) {
+  const cached = literalMemberCache.get(sourceFile);
+  if (cached) return cached;
+  const taken = new Set(baseSymbols(sourceFile).map((s) => s.qualname));
+  const found = [];
+  sourceFile.forEachDescendant((node) => {
+    if (!Node.isObjectLiteralExpression(node)) return;
+    const prefix = literalBinding(node);
+    if (!prefix) return;
+    for (const member of node.getProperties()) {
+      const runs =
+        Node.isMethodDeclaration(member) ||
+        Node.isGetAccessorDeclaration(member) ||
+        Node.isSetAccessorDeclaration(member) ||
+        (Node.isPropertyAssignment(member) &&
+          (Node.isArrowFunction(member.getInitializer()) ||
+            Node.isFunctionExpression(member.getInitializer())));
+      const name = runs ? memberName(member) : null;
+      if (name !== null) found.push([member, `${prefix}.${name}`]);
+    }
+  });
+  const count = new Map();
+  for (const [, q] of found) count.set(q, (count.get(q) ?? 0) + 1);
+  const members = new Map(found.filter(([, q]) => count.get(q) === 1 && !taken.has(q)));
+  literalMemberCache.set(sourceFile, members);
+  return members;
+}
+
+function extractSymbols(sourceFile) {
+  const symbols = baseSymbols(sourceFile);
+  for (const [member, qualname] of literalMembers(sourceFile)) {
+    symbols.push({
+      end_line: member.getEndLineNumber(),
+      kind: "method",
+      line: member.getStartLineNumber(),
+      name: memberName(member),
+      qualname,
+      scope_only: true,
+    });
   }
   return symbols.sort((a, b) => a.line - b.line || a.qualname.localeCompare(b.qualname));
 }

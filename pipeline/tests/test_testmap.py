@@ -389,6 +389,12 @@ class TestValueOnlyModules:
         g = self.graph([("m.arrow", "f", "const"), ("m.code", "run", "function")], calls=[("m.code.run", "m.arrow.f")])
         assert value_only_modules(g) == {"m.empty"}
 
+    def test_a_scope_only_member_is_not_callable(self):
+        # ADR-179: a TS literal's member is a caller, never a target — nothing reaches it.
+        g = self.graph([("m.lit", "X.m", "method"), ("m.code", "run", "function")])
+        g["symbols"][0]["scope_only"] = True
+        assert value_only_modules(g) == {"m.lit", "m.empty"}
+
     def test_a_uses_edge_does_not_make_a_module_callable(self):
         g = self.graph([("m.consts", "LIMIT", "const"), ("m.code", "run", "function")])
         g["symbol_edges"].append({"from": "m.code.run", "to": "m.consts.LIMIT", "type": "uses"})
