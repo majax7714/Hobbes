@@ -16436,3 +16436,11 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   577 shrank (tests that construct `Context` no longer reach its response fields' bodies).
 - The TS walk (`ts-cells/`) at position 21 of 80, nothing taken: keyed candidates hold 0 rows of the shape.
   Piik (5) annotated: its key graded nothing.
+
+## 2026-10-04 (forty-fourth session, cont.) — the TS held-out draw ended with no cell
+
+- `ts-cells/walk.py` stopped at 80: 51 screened out, 11 thin, 18 keyed and under 20 rows of the shape (16 at
+  0; flyonui 1; typescript-language-server 4). Every keyed candidate graded 0 contradicted. Piik (5) and
+  paperlib (25): the key graded nothing (annotated in `draw-log.md`; the walk's text called them vacuous).
+- ADR-180 stays on branch `adr180`; `RESULTS-180.md` R1 recorded; `currently-open.md` and the handoff carry
+  the route for Max.

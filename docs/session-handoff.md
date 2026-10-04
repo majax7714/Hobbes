@@ -32,11 +32,11 @@ session went belongs in the BUILDLOG.
   rules in `.claude/settings.local.json`).
 
 **Next:** the TS/JS routes (forty-fourth session). Done: 1a, 2a measured, `attr-call`'s text (0.2.119),
-**ADR-179** (0.2.120, merged on the fitted cells by Max's word). Next, approved: **2a route (i)**, a
-function-literal field of a top-level named class as a `method` symbol drawn where lane B names it at the
-token (zod 42, hono 81 rows), on a new held-out TS cell.
+ADR-179 (0.2.120). **ADR-180 (2a route (i)) is built on branch `adr180` (worktree `~/hobbes_public-adr180`),
+not merged:** fitted cells zod +42, hono +75; the TS held-out draw (80 positions) took no cell.
 
 **Waiting on Max:**
+- ADR-180: merge on the fitted cells or leave it on the branch. Don't merge or bump before he answers.
 - The gate's map reason `dynamic-dispatch` for `attr-call` (`currently-open.md`).
 - **Whether to extend the standing trace oracle:** all four cells measured (click and rich on 2026-10-04).
 - The Python routes (C-181's residual, ADR-156 and fixture values).

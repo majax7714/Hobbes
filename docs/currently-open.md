@@ -24,13 +24,11 @@ key no implicit call, so a rule's rows could not be graded.
 ### Routes waiting on Max
 
 **TypeScript / JavaScript** (each moves the TS symbol set):
-- **Class-property functions**, measured (2a, 2026-10-04; zod's cell record, last section). The 1,029 pairs
-  are mostly an alias chain: zod 1,230 of 1,274 rows reach `ZodX.create` through `z.object` → `export *` →
-  `export { objectType as object }` → `const objectType = ZodObject.create`, and the index writes nothing at
-  the token. Sized routes, for Max: (i) a function-literal field of a top-level named class is a `method`
-  symbol, drawn where lane B names it at the token, `semantic` (zod 42, hono 81 rows); (ii) leave the alias
-  registered (a multi-hop `syntactic` read held by one cell). Max approved (i) after 1b (ADR-179 shipped
-  at 0.2.120-beta), (ii) the alias stays registered (2026-10-04). Next; not built.
+- **ADR-180 (class-property functions, 2a route (i)): built on branch `adr180`, not merged.** Fitted cells
+  (`~/.hobbes/bench/ts-floor-2026-10-04/RESULTS-180.md`): zod +42, hono +75, folio +3, 0 contradicted; R2
+  and R6 missed as worded (folio's +3; 68 field → own-class rows). The TS held-out draw (`ts-cells/`, 80
+  positions) took no cell: 18 keyed candidates, none with 20 rows of the shape. For Max: merge on the
+  fitted cells, or leave it. zod's alias route (1,232 rows) stays registered (route (ii)).
 - **The gate's map reason for `attr-call`** (0.2.119-beta left it): `gate.py` files the class under
   `dynamic-dispatch`; a re-exported alias site (zod 1,232) is not dispatch. The closed vocabulary is
   `MAP_REASONS`; changing it is Max's.
