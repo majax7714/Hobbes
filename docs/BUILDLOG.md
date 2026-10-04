@@ -16423,3 +16423,16 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
 - Max noticed a shell still running. No process of this session was left when checked (`ps`); the likely
   one was a wait loop on `pgrep -f walk-adr179.sh`, a pattern its own command line contains (not verified).
   Four `tail -f` from earlier sessions (18 hours to 21 days old) are still running; left for Max.
+
+## 2026-10-04 (forty-fourth session, cont.) — ADR-180 built on a branch; fitted cells measured; walk running
+
+- Built in `~/hobbes_public-adr180` (branch `adr180`, 2d33f68): `functionFields` in `extract.mjs` (facts v10), the
+  symbol at the field's name, `enclosingScope` gives the function's body to the field. Tests: tsextract 51,
+  pytest 2,892 (`test_tsjs_fields.py` with the `minifields` fixture, lane B included), Go ok.
+- Fitted (13 cells, `RESULTS-180.md`): zod +42 confirmed (exactly), hono +75 (81±8), 0 contradicted, poison
+  PASS; 90 fields added, all read by the AST; no row lost. R2 missed as worded on folio (+3 confirmed); R6
+  missed as worded (68 field → own-class rows, a self-reference undrawn before). hono's 2,612 new `calls`
+  rows, 2,528 in test files the key does not load: 12 sampled by hand, all right. Test reach: hono 1,414 grew,
+  577 shrank (tests that construct `Context` no longer reach its response fields' bodies).
+- The TS walk (`ts-cells/`) at position 21 of 80, nothing taken: keyed candidates hold 0 rows of the shape.
+  Piik (5) annotated: its key graded nothing.
