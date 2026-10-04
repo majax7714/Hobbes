@@ -2828,6 +2828,53 @@
    }
   },
   {
+   "stem": "hecs-rust",
+   "record": "hecs-rust-2026-10-03.md",
+   "date": "2026-10-03",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "contained",
+   "draw": "random",
+   "label": "hecs",
+   "note": "fitted for the turbofish rule (0.2.113-beta): recall 83.0% to 90.6%; item 5's crate (82 operator-trait sites)",
+   "edges": 1569,
+   "confirmed": 1379,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 190,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "not-loaded": 143,
+    "unreachable": 47
+   },
+   "precision": {
+    "pct": 100.0,
+    "num": 1379,
+    "den": 1379
+   },
+   "recall": {
+    "pct": 90.6,
+    "hits": 1385,
+    "pairs": 1528,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "macro→generated": 12,
+    "static→generated": 55,
+    "static→method": 76
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1569,
+    "refused": 1353,
+    "unjudged": 216,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "hobbes-go",
    "record": "hobbes-go-2026-08-28.md",
    "date": "2026-08-28",
@@ -2982,6 +3029,51 @@
    }
   },
   {
+   "stem": "icalendar-py",
+   "record": "icalendar-py-2026-10-03.md",
+   "date": "2026-10-03",
+   "kind": "trace",
+   "oracle": "py-trace 3.12.13 sys.monitoring",
+   "lang": "Python",
+   "run": "contained",
+   "draw": "picked",
+   "label": "icalendar",
+   "note": "held out: trace-graded under its own suite, picked by Max for the cls(…)-in-a-classmethod unit, predictions pre-registered; its 6 wrong rows contained by ADR-168",
+   "edges": 3567,
+   "confirmed": 3489,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 22,
+   "unobserved": 56,
+   "silent_by": {
+    "line-mixed": 4,
+    "line-not-called": 50,
+    "not-loaded": 2
+   },
+   "confirmation_rate": {
+    "pct": 97.8,
+    "num": 3489,
+    "den": 3567
+   },
+   "recall": {
+    "pct": 68.9,
+    "hits": 3489,
+    "pairs": 5063,
+    "roots": null,
+    "runs": 2,
+    "basis": "recall-against-executed (coverage-limited)"
+   },
+   "misses": {
+    "observed→class": 385,
+    "observed→closure": 13,
+    "observed→function": 78,
+    "observed→lambda": 81,
+    "observed→method": 1017
+   },
+   "poison": null
+  },
+  {
    "stem": "jsoup-java",
    "record": "jsoup-java-2026-08-29.md",
    "date": "2026-08-29",
@@ -3072,6 +3164,54 @@
     "seeded": 630,
     "refused": 630,
     "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "leaf-rust",
+   "record": "leaf-rust-2026-10-03.md",
+   "date": "2026-10-03",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "contained",
+   "draw": "random",
+   "label": "leaf",
+   "note": "the first random Rust draw; its 44 contradicted are one cfg twin's lines (C-182): the node sits at the uncompiled openssl arm",
+   "edges": 1692,
+   "confirmed": 1590,
+   "contradicted": 44,
+   "abstract": 0,
+   "silent": 58,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "not-loaded": 29,
+    "unreachable": 29
+   },
+   "precision": {
+    "pct": 97.3,
+    "num": 1590,
+    "den": 1634
+   },
+   "recall": {
+    "pct": 86.9,
+    "hits": 1627,
+    "pairs": 1872,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "static→closure": 6,
+    "static→function": 53,
+    "static→generated": 83,
+    "static→method": 103
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1692,
+    "refused": 1625,
+    "unjudged": 67,
     "falsely": 0
    }
   },
@@ -4824,6 +4964,50 @@
    }
   },
   {
+   "stem": "reshape-rust",
+   "record": "reshape-rust-2026-10-03.md",
+   "date": "2026-10-03",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "contained",
+   "draw": "random",
+   "label": "reshape",
+   "note": "held out for the turbofish rule; its in-macro turbofish callees are external",
+   "edges": 1315,
+   "confirmed": 1315,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {},
+   "precision": {
+    "pct": 100.0,
+    "num": 1315,
+    "den": 1315
+   },
+   "recall": {
+    "pct": 96.3,
+    "hits": 1346,
+    "pairs": 1398,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "static→closure": 3,
+    "static→function": 1,
+    "static→generated": 48
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1315,
+    "refused": 1315,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "rich-py",
    "record": "rich-py-2026-10-01.md",
    "date": "2026-10-01",
@@ -4907,6 +5091,57 @@
     "seeded": 17,
     "refused": 17,
     "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "sea-query-rust",
+   "record": "sea-query-rust-2026-10-03.md",
+   "date": "2026-10-03",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "contained",
+   "draw": "random",
+   "label": "sea-query",
+   "note": "16 proc-macro invocations read as calls until 0.2.114-beta minted the fns as macros",
+   "edges": 5911,
+   "confirmed": 5601,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 310,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "not-loaded": 299,
+    "unreachable": 11
+   },
+   "precision": {
+    "pct": 100.0,
+    "num": 5601,
+    "den": 5601
+   },
+   "recall": {
+    "pct": 83.8,
+    "hits": 5637,
+    "pairs": 6725,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→method": 4,
+    "macro→function": 4,
+    "macro→generated": 56,
+    "static→closure": 11,
+    "static→function": 55,
+    "static→generated": 118,
+    "static→method": 840
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 5911,
+    "refused": 5462,
+    "unjudged": 449,
     "falsely": 0
    }
   },
@@ -5041,6 +5276,51 @@
     "unjudged": 18893,
     "falsely": 0
    }
+  },
+  {
+   "stem": "structlog-py",
+   "record": "structlog-py-2026-10-03.md",
+   "date": "2026-10-03",
+   "kind": "trace",
+   "oracle": "py-trace 3.12.13 sys.monitoring",
+   "lang": "Python",
+   "run": "contained",
+   "draw": "picked",
+   "label": "structlog",
+   "note": "held out: trace-graded, picked for ADR-171 (an instance's __call__) by an ast scan, predictions pre-registered",
+   "edges": 1261,
+   "confirmed": 1110,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 11,
+   "unobserved": 140,
+   "silent_by": {
+    "line-mixed": 3,
+    "line-not-called": 10,
+    "not-loaded": 127
+   },
+   "confirmation_rate": {
+    "pct": 88.0,
+    "num": 1110,
+    "den": 1261
+   },
+   "recall": {
+    "pct": 69.7,
+    "hits": 1110,
+    "pairs": 1593,
+    "roots": null,
+    "runs": 2,
+    "basis": "recall-against-executed (coverage-limited)"
+   },
+   "misses": {
+    "observed→class": 42,
+    "observed→closure": 74,
+    "observed→function": 45,
+    "observed→lambda": 25,
+    "observed→method": 297
+   },
+   "poison": null
   },
   {
    "stem": "toml-go",

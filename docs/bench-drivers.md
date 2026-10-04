@@ -31,6 +31,16 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-03 — the first random Rust draw (0.2.111–0.2.114-beta)
+
+- `rust-heldout-2026-10-03/`: `PREREG-draw.md` (the draw rule, amendments 1–3), `PREREG.md` (R1–R10),
+  `PREREG-rule.md` (the turbofish rule, amendments 4–6); `draw.json` (pool, seed 20261003, order),
+  `cheap_checks.json`, `walk-rule.json`, `walk-rule-2.json`, `walk2.py` (the per-package walk), `count_tf.py
+  [--repo-fns] <repo>…` (in-macro turbofish calls by source); `laneA/` (hecs ingested lane A alone, before and
+  after the dotted fix); `regrade-turbofish/`, `regrade-tokentree/`, `regrade-procmacro/` (`regrade3.sh` over
+  `cells*.tsv`, `after/summary.tsv`); `lanes*.txt`. Cells under `~/.hobbes/bench/oracle/{leaf,hecs,sea-query,
+  reshape}-rust/`, clones under `oracle/repos/`.
+
 ## 2026-10-03 — the open-items batch (0.2.91–0.2.96-beta) and the icalendar cell
 
 - ADR-166: `c183-go-inits/` (`before/dagger-graph.json`, `after-dagger-graph.json`, `compare.py <before>

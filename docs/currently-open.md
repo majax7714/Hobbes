@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.110-beta).
+Last reviewed: 2026-10-03 (0.2.114-beta).
 
 ## Decisions open for Max (no spend)
 
@@ -23,6 +23,22 @@ Last reviewed: 2026-10-03 (0.2.110-beta).
   the same name is also bound by a stdlib import (a patch), or leave it
   registered.
 
+- **C-182's first graded cost** (leaf, `oracle-grading.md` §10.49): 44 `semantic` edges lane B resolved
+  onto a cfg twin's compiled arm draw to the node at the uncompiled first arm (97.3%). ADR-165 chose "map to
+  the node". Routes: (1, recommended) the node's line follows the arm lane B indexed, when lane B defines
+  the twin at exactly one arm (rust-analyzer indexes only the compiled arm; a semantic fact, no id changes;
+  leaf's 44 would point at 235 etc.), first arm otherwise; lane A's calls from the uncompiled arm stay
+  filed under it (C-182's residual); (2) leave it registered, the 97.3% standing; (3) refuse lane B's
+  answer onto another arm (ADR-165 rejected this: it draws less than the index proves). Probe (1) before
+  building: that the SCIP definition occurrence sits on the compiled arm alone.
+- **Rust trait provided methods are below the symbol floor** (§10.49): lane A's symbol walk does not enter a
+  `trait` body, so a provided method's body has no node and lane B's call onto it tails `below-floor`
+  (cited as C-58's "interface method"). sea-query 669 of 1,088 misses (recall 83.8% → about 93.8% if all
+  drawn), leaf 11, four other cells 0. Routes: (1, recommended) mint a trait's provided methods (a body)
+  as `method` nodes under the trait's qualname, measured first on a newly drawn held-out cell (sea-query
+  found it, so it is fitted); a required method (no body) stays off the floor, as TS and Java interface
+  members do; (2) name it as its own tail class and register it (C-n), no node; (3) leave it as `below-floor`.
+  Either way the tail's `below-floor` text should not call a body-bearing method an interface member.
 - **ADR-158's amendment:** nested functions file under their top-level
   symbol. This was pre-registered, but it was not in the route Max named.
   C-176 keeps the floor (an object literal's method, an unnamed class, a
@@ -102,7 +118,10 @@ measured.
    terminators. **Premise changed 2026-10-03, re-ask Max before building:**
    none of the three graded crates implements an operator, `Index` or
    `PartialEq` trait, and their two `Deref` impls have no inbound edge; the
-   rule would need a new crate that writes them. Probe first: that the `uses` target is the repo impl
+   rule would need a new crate that writes them. **Since 2026-10-03 one is
+   graded:** Ralith/hecs (a random draw, §10.49) keys 82 sites onto repo
+   `Deref` (60), `PartialEq` (14), `DerefMut` (6) and `Mul` (2) methods;
+   take it as fitted and draw again for the held-out cell. Probe first: that the `uses` target is the repo impl
    method, and that MIR's `fn_span` line is the token's. No Rust cell is
    held out; pick one.
 6. ~~Rust's impl-distinct ids~~ built at 0.2.106-beta (ADR-174, ordinal

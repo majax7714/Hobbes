@@ -2835,6 +2835,59 @@ result); corrected to the rule as worded. **B1 missed on filesystem by 6**: thos
 constructor's line carrying two monikers, which ADR-132's constructor set refuses. The simulator had read a
 looser set.
 
+### 10.49 The first random Rust draw: four held-out cells, three fixes, two routes — `PREREG-draw.md`, `PREREG.md` and `PREREG-rule.md` written 2026-10-03 before each cell's ingest; graded at 0.2.110–0.2.114-beta
+
+**Why.** Rust stood on three cells and none was drawn (memchr picked, dagger's `sdk/rust` generated,
+rust_proj the owner's), and every Rust rule since ADR-131 was measured on memchr and dagger. Asked to widen
+a weaker language, the session drew Rust as C (§10.5) and C++ (§10.48) were drawn: `language:rust
+stars:300..3000 pushed:>2026-03-01`, 1,000 results by name, `random.Random(20261003)`, ≤60k lines of `.rs`.
+Drivers: `~/.hobbes/bench/rust-heldout-2026-10-03/` (`draw.json`, `cheap_checks.json`, `walk-rule*.json`,
+`count_tf.py`, the three pre-registrations with six amendments, the regrade dirs).
+
+| cell (draw position) | confirmed | contradicted | precision (strict) | recall | poison |
+|---|---:|---:|---|---:|---|
+| eycorsican/leaf (0), `leaf/` | 1,590 | **44** (C-182) | 97.3% (97.3%) | 86.9% | PASS |
+| Ralith/hecs (1), at 0.2.113-beta | 1,379 | 0 | 100% (100%) | 90.6% | PASS |
+| SeaQL/sea-query (5), at 0.2.114-beta | 5,601 | 0 (16 before the fix) | 100% (100%) | 83.8% | PASS |
+| fabianlindfors/reshape (85) | 1,315 | 0 | 100% (100%) | 96.3% | PASS |
+
+**Scored** (`PREREG.md`, R1–R10; R1–R6, R8, R9 carried to hecs and sea-query by amendment). **R1 missed on two
+cells** — the result that matters most:
+- leaf's 44 rows are one C-182 cfg twin: `crypto.rs` writes `mod aead` under `openssl-aead` and under
+  aws-lc/ring, the node sits at the first arm, and the build compiles the second. Registered and surfaced
+  (the ingest's `rust-cfg-twins` record names the defs), so a stated limit, but the first graded cell where it
+  costs precision. **The route is Max's** (`currently-open.md`).
+- sea-query's 16 rows were `raw_sql!` invocations drawn as `calls` to a `#[proc_macro]` fn minted `function`:
+  unnamed, so precedent 1. **Fixed at 0.2.114-beta** (such a fn is a `macro`; no edge moves).
+
+R2 missed on leaf (97.3%), met on hecs and sea-query; R3, R4 (55–92%), R5, R6, R8 met on the three cells
+they bind (reshape was drawn for the rule alone and carries none of them); **R7 missed** (leaf has no `macro→*` miss); **R9 missed on hecs** — three rows where lane A
+bound `world.reserve::<T>(1)` to a same-file test `fn reserve` — **fixed at 0.2.112-beta** (C-72's second
+face; `hobbes lanes` exit 0 since). R10 met: leaf keys 1 operator-trait site, so the walk took hecs, whose key
+holds **82** (`Deref` 60, `PartialEq` 14, `DerefMut` 6, `Mul` 2): item 5's premise has its crate.
+
+**The turbofish rule** (`PREREG-rule.md`, 0.2.113-beta): 177 of hecs' 259 misses sat on a line with
+`x.f::<T>(..)` inside a macro argument, which the token-tree scan did not take for a call, so the join filed
+lane B's answer as `uses`. Built and graded: hecs (fitted) +116, 0 contradicted (T5's ≥150 missed: it
+counted lines); memchr, rust_proj, leaf, dagger unchanged (T4); `hobbes lanes` clean (T7). **Its gain is
+measured on a fitted cell only (T2 not met by any held-out cell):** sea-query's 85 in-macro turbofish calls
+are all `Iterator::collect`; slumber's spread over five packages; reshape's 37 are postgres's `Row::get`.
+The shape condition counted syntax, then names, not callees the key keys in-repo: a pre-registration flaw,
+recorded in amendments 4–6.
+
+**What the misses rank next** (by site syntax over the four new cells; a heuristic, not exact):
+
+| shape | sea-query | leaf | hecs | reshape | register today |
+|---|---:|---:|---:|---:|---|
+| a call onto a trait's **provided** method (a body in the `trait`, no node) | 669 | 11 | 0 | 0 | tail `below-floor`, cited as C-58's "interface method" |
+| a derive's target (`Clone`, `Default`, `PartialEq`) | 118 | 83 | 55 | 48 | C-9, `static→generated` |
+| `Deref`/`DerefMut`/`Iterator::next` at a `*`, a field access or a `for` | — | 2 | ≈60 | — | C-174 (item 5) |
+
+The first is the largest Rust gap seen on any cell. Rust lane A's symbol walk recurses into `mod` and `impl`
+bodies but not `trait` bodies, so `ExprTrait::eq`'s default body has no node; lane B resolves the call there,
+and MIR confirms it as a static call. A provided method is not an interface member: it has a body, and it
+is what runs where no impl overrides it. Minting it moves Rust's symbol floor, so **the route is Max's**.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

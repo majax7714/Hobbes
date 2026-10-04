@@ -716,3 +716,22 @@ key, and the repo was graded once, then once more after ADR-160. Cell:
 beside it:** C-178, scip-python's naming of `pp.<name>` through pyparsing's star re-export as an unrelated
 symbol, drawn as `semantic` `uses` rows a trace key does not grade; read in the raw index in the image. As on
 every trace-graded cell, recall counts only the executed slice (C-60), never precision.
+
+## The first random Rust draw — leaf, hecs, sea-query, reshape (2026-10-03, 0.2.110–0.2.114-beta)
+
+Rust's three earlier cells were picked or generated; these four were drawn (`language:rust
+stars:300..3000 pushed:>2026-03-01`, seed 20261003) with predictions pre-registered before each ingest.
+Compiler-graded against rustc's MIR (O7), contained. Cells: [`leaf`](oracle/cells/leaf-rust-2026-10-03.md),
+[`hecs`](oracle/cells/hecs-rust-2026-10-03.md), [`sea-query`](oracle/cells/sea-query-rust-2026-10-03.md),
+[`reshape`](oracle/cells/reshape-rust-2026-10-03.md); the draw, the scoring and the ranking are
+`oracle-grading.md` §10.49.
+
+| Date | Numbers |
+|---|---|
+| 2026-10-03 | **leaf** 1,590 confirmed, **44 contradicted** (97.3%, strict 97.3%; one C-182 cfg twin, the node at the uncompiled arm), recall 86.9%. **hecs** 1,263/1,263, recall 83.0%; **1,379/1,379, 90.6% at 0.2.113-beta** (the turbofish rule, fitted here). **sea-query** 5,601 confirmed, 16 contradicted (proc-macro invocations as calls) → **5,601/5,601 at 0.2.114-beta**, recall 83.8%. **reshape** 1,315/1,315, recall 96.3%. Poison PASS on all four, 0 falsely confirmed |
+
+**Verified:** every contradicted row, read against the source. **Fixed from these cells:** the `scip-c`
+record's cause (0.2.111-beta, leaf), a turbofish method call bound to a free fn (0.2.112-beta, hecs), a
+turbofish call inside a macro argument not taken for a call (0.2.113-beta, hecs), a proc-macro fn minted a
+function (0.2.114-beta, sea-query). **Found and taken to Max:** C-182's first graded cost (leaf), and calls
+onto a trait's provided method, which has no node (669 of sea-query's 1,088 misses).

@@ -684,5 +684,47 @@
   "draw": "picked",
   "label": "pyparsing",
   "note": "held out: trace-graded under its own suite (tox's paths), no rule fitted on it, predictions pre-registered; picked in rich's place when ADR-160 was measured on rich; 66 suspects, 0 Hobbes-wrong calls (55 C-60, 5 a call through a property's value, 4 a decorator's wrapper, 1 a call after a raise, 1 one node for two defs); C-178's uses rows are outside what a trace key grades"
+ },
+ "icalendar-py": {
+  "lang": "Python",
+  "run": "contained",
+  "draw": "picked",
+  "label": "icalendar",
+  "note": "held out: trace-graded under its own suite, picked by Max for the cls(…)-in-a-classmethod unit, predictions pre-registered; its 6 wrong rows contained by ADR-168"
+ },
+ "structlog-py": {
+  "lang": "Python",
+  "run": "contained",
+  "draw": "picked",
+  "label": "structlog",
+  "note": "held out: trace-graded, picked for ADR-171 (an instance's __call__) by an ast scan, predictions pre-registered"
+ },
+ "leaf-rust": {
+  "lang": "Rust",
+  "run": "contained",
+  "draw": "random",
+  "label": "leaf",
+  "note": "the first random Rust draw; its 44 contradicted are one cfg twin's lines (C-182): the node sits at the uncompiled openssl arm"
+ },
+ "hecs-rust": {
+  "lang": "Rust",
+  "run": "contained",
+  "draw": "random",
+  "label": "hecs",
+  "note": "fitted for the turbofish rule (0.2.113-beta): recall 83.0% to 90.6%; item 5's crate (82 operator-trait sites)"
+ },
+ "sea-query-rust": {
+  "lang": "Rust",
+  "run": "contained",
+  "draw": "random",
+  "label": "sea-query",
+  "note": "16 proc-macro invocations read as calls until 0.2.114-beta minted the fns as macros"
+ },
+ "reshape-rust": {
+  "lang": "Rust",
+  "run": "contained",
+  "draw": "random",
+  "label": "reshape",
+  "note": "held out for the turbofish rule; its in-macro turbofish callees are external"
  }
 }

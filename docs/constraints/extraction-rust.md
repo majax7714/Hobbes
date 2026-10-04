@@ -159,7 +159,13 @@
   Measured 2026-10-03: memchr 9 twins (4 in `haystacks`; std's own
   `cfg(test)` pairs), none of whose later arms is a lane B answer, so its
   graph is byte-identical; dagger `sdk/rust` and rust_proj 0; this repo 2
-  (`minirustimpl`).
+  (`minirustimpl`). **First graded cost, 2026-10-03 (eycorsican/leaf, a random
+  draw, `oracle-grading.md` §10.49):** `crypto.rs` writes `mod aead` under
+  `openssl-aead` and under aws-lc/ring; the build compiles the second arm,
+  the node sits at the first, and 44 `semantic` call edges lane B resolved
+  onto the compiled arm point at uncompiled lines (`AeadCipher.new` 65,
+  compiled 235). The key contradicts all 44: 97.3% where every other Rust
+  cell reads 100%. The edges name the right item; their line is wrong.
 - **You find out:** surfaced — every ingest with a twin writes one
   `rust-cfg-twins` degradation record (the count, examples with their def
   lines, this entry), shown by `list_blind_spots` and the ingest summary;

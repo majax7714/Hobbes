@@ -16201,3 +16201,11 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   drawn as `calls` to the `#[proc_macro]` fn, an unnamed limit. **0.2.114-beta** mints such a fn a `macro`
   (kind only; no edge moves): 16 → 0. reshape (position 85): 1,315/1,315, recall 96.3%, poison PASS.
   pytest 2,864.
+- **Records** (docs only): four cell records, `oracle-grading.md` §10.49 (the draw, R1–R10 and T1–T7 scored,
+  the miss ranking), `extraction-evidence.md`'s section, §3.8's Rust row, C-182's first graded cost,
+  `currently-open.md` (two routes for Max: C-182's node line; Rust trait provided methods below the floor —
+  669 of sea-query's 1,088 misses; and item 5's crate, hecs). The "every compiler-graded cell at 100% but
+  quic-go" claim amended where it stood (architecture, workstreams). `cells.meta.json` had no entries for
+  icalendar and structlog, so `render.py cells` exited and `go test ./report/` was red on `main` since their
+  records landed; both added with the four Rust cells; the graphics re-rendered (114 cells, `check` green,
+  `go test ./report/` ok).
