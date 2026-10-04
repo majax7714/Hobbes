@@ -11,134 +11,75 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.114-beta).
+Last reviewed: 2026-10-04 (0.2.114-beta). Extraction trimmed to what is open.
 
-## Decisions open for Max (no spend)
+## Extraction (no spend; each rule measured on a held-out cell picked first)
 
-- **C-181's residual** (ADR-164): a name that a stdlib import binds, and
-  that an `except ImportError:` branch rebinds to a repo function, keeps
-  lane A's `syntactic` edge to the repo function. Lane B's local answer
-  cannot veto it (ADR-111). No graded cell writes this shape; the
-  `ministdlib` fixture pins it. Proposed: refuse lane A's fallback where
-  the same name is also bound by a stdlib import (a patch), or leave it
-  registered.
+Max's 2026-10-03 order is worked through: the Phase 1 audits (Terraform/HCL, C-174's counts, Go's and
+Java's caller roll-up, C-164's remainder) and items 6–9 (Rust impl ordinals, C++ functors, Python
+`__call__`, C-13) shipped at 0.2.102–0.2.110-beta; the CHANGELOG has each. What is left is below. The
+other languages' C-174 shapes (Java, TS/JS, Go, C) get counts and registration, not rules: their oracles
+key no implicit call, so a rule's rows could not be graded.
 
-- **C-182's first graded cost** (leaf, `oracle-grading.md` §10.49): 44 `semantic` edges lane B resolved
-  onto a cfg twin's compiled arm draw to the node at the uncompiled first arm (97.3%). ADR-165 chose "map to
-  the node". Routes: (1, recommended) the node's line follows the arm lane B indexed, when lane B defines
-  the twin at exactly one arm (rust-analyzer indexes only the compiled arm; a semantic fact, no id changes;
-  leaf's 44 would point at 235 etc.), first arm otherwise; lane A's calls from the uncompiled arm stay
-  filed under it (C-182's residual); (2) leave it registered, the 97.3% standing; (3) refuse lane B's
-  answer onto another arm (ADR-165 rejected this: it draws less than the index proves). Probe (1) before
-  building: that the SCIP definition occurrence sits on the compiled arm alone.
-- **Rust trait provided methods are below the symbol floor** (§10.49): lane A's symbol walk does not enter a
-  `trait` body, so a provided method's body has no node and lane B's call onto it tails `below-floor`
-  (cited as C-58's "interface method"). sea-query 669 of 1,088 misses (recall 83.8% → about 93.8% if all
-  drawn), leaf 11, four other cells 0. Routes: (1, recommended) mint a trait's provided methods (a body)
-  as `method` nodes under the trait's qualname, measured first on a newly drawn held-out cell (sea-query
-  found it, so it is fitted); a required method (no body) stays off the floor, as TS and Java interface
-  members do; (2) name it as its own tail class and register it (C-n), no node; (3) leave it as `below-floor`.
-  Either way the tail's `below-floor` text should not call a body-bearing method an interface member.
-- **ADR-158's amendment:** nested functions file under their top-level
-  symbol. This was pre-registered, but it was not in the route Max named.
-  C-176 keeps the floor (an object literal's method, an unnamed class, a
-  property-assigned function, a namespace). Lifting it moves the symbol
-  set. The CJS literal member (cue 49, Express 46) is the same question.
-- **The TS symbol floor's class-property functions** (zod: 1,029 collapsed
-  pairs). They were set aside on 2026-09-10 until the constructor grain
-  was settled before `new`, and ADR-142 has since settled it. **Re-ask; do
-  not start.**
-- **ADR-156 and fixture values:** the `with` rule does not build on
-  ADR-145's `syntactic` fixture-value edges (40 of flask's items, `with
-  app.app_context():`). Allowing it would stack one `syntactic` rule on
+### Routes waiting on Max
+
+**Rust** (the first random draw, `oracle/oracle-grading.md` §10.49; draw and pre-registrations in
+`~/.hobbes/bench/rust-heldout-2026-10-03/`; no repo in `draw.json`'s order is ingested but positions 0, 1, 5
+and 85, so the next held-out cells can come from the same draw under a new pre-registered shape condition):
+- **Trait provided methods are below the symbol floor.** Lane A's symbol walk does not enter a `trait`
+  body, so a provided method's body has no node and lane B's call onto it tails `below-floor`, cited as
+  C-58's "interface method". sea-query 669 of 1,088 misses (recall 83.8% → about 93.8% if all drawn), leaf
+  11, four other cells 0. Routes: (1, recommended) mint a provided method (a body) as a `method` node under
+  the trait's qualname, measured on a newly drawn held-out cell (sea-query is fitted); a required method
+  stays off the floor, as TS and Java interface members do; (2) name it as its own tail class and register
+  it, no node; (3) leave it. Either way the tail text should not call a body-bearing method an interface
+  member.
+- **C-182's node line** (leaf 97.3%): 44 `semantic` edges lane B resolved onto a cfg twin's compiled arm
+  draw to the node at the uncompiled first arm (ADR-165, "map to the node"). Routes: (1, recommended) the
+  node's line follows the arm lane B indexed when lane B defines the twin at exactly one arm, first arm
+  otherwise; lane A's calls from the uncompiled arm stay filed under it (C-182's residual); (2) leave it
+  registered; (3) refuse lane B's answer onto another arm (ADR-165 rejected it). Probe (1) first: that the
+  SCIP definition occurrence sits on the compiled arm alone.
+- **Item 5, operators, `Deref`, `Index` (C-174), ADR-131's shape.** Lane B already draws `uses` at the
+  token; rustc's MIR key holds these as Call terminators. **Re-ask before building:** hecs keys 82 sites
+  onto repo `Deref` (60), `PartialEq` (14), `DerefMut` (6) and `Mul` (2) methods, but it is fitted; draw
+  a held-out cell. Probe first: that the `uses` target is the repo impl method, and that MIR's `fn_span`
+  line is the token's.
+
+**TypeScript / JavaScript** (each moves the TS symbol set):
+- **ADR-158's amendment:** nested functions file under their top-level symbol. Pre-registered, not in the
+  route Max named. C-176 keeps the floor (an object literal's method, an unnamed class, a
+  property-assigned function, a namespace); the CJS literal member (cue 49, Express 46) is the same
+  question.
+- **Class-property functions** (zod: 1,029 collapsed pairs). Set aside 2026-09-10 until the constructor
+  grain was settled; ADR-142 settled it. **Re-ask; do not start.**
+
+**Python:**
+- **The trace oracle (C-174), measured on flask and structlog**
+  (`~/.hobbes/bench/c174-counts-2026-10-03/python/trace-run/`): 208 and 191 implicit rows (13.4%, 15.4%
+  of confirmed), mostly property getters; no Hobbes edge changes grade; recall falls by denominator only
+  (55.7% → 51.8%, 77.8% → 69.5%). Open: run click and rich (the permission classifier denied the
+  contained `oracle py-trace` command; not retried), and whether to extend the standing oracle.
+- **C-181's residual** (ADR-164): a name a stdlib import binds that an `except ImportError:` branch rebinds
+  to a repo function keeps lane A's `syntactic` edge; lane B's local answer cannot veto it (ADR-111). No
+  graded cell writes it; `ministdlib` pins it. Routes: refuse lane A's fallback where a stdlib import also
+  binds the name (a patch), or leave it registered.
+- **ADR-156 and fixture values:** the `with` rule does not build on ADR-145's `syntactic` fixture-value
+  edges (40 of flask's items, `with app.app_context():`). Allowing it would stack one `syntactic` rule on
   another.
-- **flask's PEP 420 `sansio/` naming** (route 2 of the 2026-10-03 re-ask,
-  not taken): lane A and scip-python both name the modules `app`,
-  `scaffold`, `blueprints`, not `flask.sansio.*`; references join. Register
-  it if it ever bites (two namespace directories each holding `app.py`
-  would collide, C-28). The missing `Flask → App` is C-185's (ADR-169).
-- **`npm ci` refused three of four lockfile-bearing JS repos** (counted
-  under C-23 in C-165). Open: whether "pinned or declined" falls back to
-  anything. Nothing is proposed.
-- **ADR-050's amendment, prevention** (C-23): a local-path dependency and a workspace root are
-  declined by name because the install sees only a cache copy of `package.json` and the lockfile.
-  Staging the members or the local targets into the install is not decided: a member's link
-  would then point at a cache copy, not at the repo's sources that `workspace_link_targets`
-  mounts. No graded cell meets either shape (dagger's `./sdk` is absent from the checkout;
-  xmpp.js's lock is refused under npm 10). Nothing is proposed until one does.
-- **Calvin's findings, proposed and not registered:** G-diff coverage. The
-  driver never puts inf/NaN in `b` alone and never mixes inf kinds, so
-  one-sided masks pass. The fix is `inf_b`/`nan_b`/mixed specials, then a
-  zero-spend regrade of the stored rows. Also G-hsr's macro-arity misfile
-  and the ISA-split golds.
-- **Parked by Max:** C-150's remainder ("fine for now"). §3.8's paragraphs
-  stay in the architecture ("dont split for now"). Constructions inside a
-  template stay `uses`. repowise's cells stay on 0.49.0 (0.53.0 is out).
-  On 2026-10-03: ADR-126 §3's "may reach through dispatch" section stays
-  parked (no key confirms reach; click's 79 override misses stay C-58's);
-  C-178's residue (pyparsing's star re-exports, 1,377 held-out misses) is
-  held, since any rule would be fitted to pyparsing.
 
-## Extraction, in order (no spend; each measured first)
+### Open, nothing proposed (opens when a cell shows it)
 
-Max approved this order on 2026-10-03 ("approved, all recommendations are
-good"). Honesty audits come first (precedent 1), then the rules a key can
-grade. Each rule is measured on a held-out cell picked before it is
-measured.
-
-**Phase 1, audits (an unnamed limit outranks recall):**
-1. ~~Terraform/HCL~~ done at 0.2.102-beta (ADR-173, C-187 to C-193); its
-   prevention was decided below.
-2. ~~C-174's repo-scale counts~~ recorded at 0.2.104-beta (C-174's "Bites at";
-   `~/.hobbes/bench/c174-counts-2026-10-03/`). Taken to Max for the
-   trace-oracle decision.
-3. ~~Go's and Java's caller roll-up~~ measured at 0.2.104-beta: C-176
-   widened (Java enum constant bodies, Go package vars), `who_calls` names
-   both (`~/.hobbes/bench/c176-go-java-2026-10-03/`).
-4. ~~C-164's remainder~~ named at 0.2.103-beta (ADR-135's amendment);
-   swallowing extents without an index stay unnamed (C-164, partial).
-
-**Max, 2026-10-03, on the Phase 1 routes ("good with recommended"):**
-- **The Python trace oracle: measure first.** Run 2026-10-03, contained,
-  on flask and structlog (`~/.hobbes/bench/c174-counts-2026-10-03/python/trace-run/`):
-  208 and 191 implicit rows (13.4%, 15.4% of confirmed), mostly property
-  getters (116, 105); operator, iteration and truth 7 and 14; no Hobbes
-  edge changes grade; recall falls by denominator only (55.7% → 51.8%,
-  77.8% → 69.5%). click and rich not run: the session's permission
-  classifier denied the command. **Back with Max:** run click and rich,
-  and the extension itself.
-- ~~C-187's prevention~~ built at 0.2.105-beta: ids scoped by directory,
-  C-187 lifted.
-- **Item 5 deferred** until a graded Rust crate writes operator impls;
-  items 6 and 7 go next.
-
-**Phase 2, rules a key grades:**
-5. **Rust operators, `Deref`, `Index` (C-174),** ADR-131's shape: lane B
-   already draws `uses` at the token; rustc's MIR key holds these as Call
-   terminators. **Premise changed 2026-10-03, re-ask Max before building:**
-   none of the three graded crates implements an operator, `Index` or
-   `PartialEq` trait, and their two `Deref` impls have no inbound edge; the
-   rule would need a new crate that writes them. **Since 2026-10-03 one is
-   graded:** Ralith/hecs (a random draw, §10.49) keys 82 sites onto repo
-   `Deref` (60), `PartialEq` (14), `DerefMut` (6) and `Mul` (2) methods;
-   take it as fitted and draw again for the held-out cell. Probe first: that the `uses` target is the repo impl
-   method, and that MIR's `fn_span` line is the token's. No Rust cell is
-   held out; pick one.
-6. ~~Rust's impl-distinct ids~~ built at 0.2.106-beta (ADR-174, ordinal
-   `~n`); C-180 lifted.
-7. ~~C++ functors and implicit conversions~~ built at 0.2.108-beta (ADR-175; C-146,
-   C-162 narrowed; held-out chromaprint and gulrak/filesystem, §10.48). **Still open beside
-   it:** Route A's remainder (C-145, C-164; no key reads a caller). dagger's snippet zones were
-   re-ingested at 0.2.109-beta: `corepack` runs, and they are declined by name (ADR-050's amendment).
-8. ~~Python `__call__` on an instance held in an attribute~~ closed as measured, 2026-10-03
-   (5 of 29 fitted misses reachable; C-174 records it).
-9. ~~C-13~~ built at 0.2.110-beta (ADR-176; C-194 registered for Express's un-inventoried mocha suite).
-   Open beside it: whether to read a runner's own globs (C-13's residue, 8 of 320 files) or
-   inventory a suite that is not test-named (C-194); nothing is proposed.
-
-The other languages' C-174 shapes (Java, TS/JS, Go, C) get counts and
-registration, not rules: their oracles key no implicit call, so a rule's
-rows could not be graded.
+- **flask's PEP 420 `sansio/` naming:** lane A and scip-python both name the modules `app`, `scaffold`,
+  `blueprints`; references join. Register it if it bites (two namespace directories each holding
+  `app.py` would collide, C-28). The missing `Flask → App` is C-185's.
+- **`npm ci` refused three of four lockfile-bearing JS repos** (C-23 in C-165): whether "pinned or
+  declined" falls back to anything.
+- **ADR-050's amendment, prevention** (C-23): staging a local-path dependency or a workspace's members
+  into the install. No graded cell meets either shape.
+- **C++ Route A's remainder** (C-145, C-164): no key reads a caller.
+- **C-13's residue and C-194:** reading a runner's own globs (8 of 320 files), or inventorying a suite
+  that is not test-named.
 
 ### Registered and gated (closed as work until the trigger)
 
@@ -158,6 +99,21 @@ rows could not be graded.
   two-pass `java-build`, a bytecode RTA oracle, Kotlin lane A); C-67's
   Gradle leftovers (a late `compilerArgs`, Kotlin under the plugin,
   external symbol names); a `bench-rust` pack; `hobbes cache` hygiene.
+- **Parked by Max:** C-150's remainder ("fine for now"). §3.8's paragraphs
+  stay in the architecture ("dont split for now"). Constructions inside a
+  template stay `uses`. repowise's cells stay on 0.49.0 (0.53.0 is out).
+  On 2026-10-03: ADR-126 §3's "may reach through dispatch" section stays
+  parked (no key confirms reach; click's 79 override misses stay C-58's);
+  C-178's residue (pyparsing's star re-exports, 1,377 held-out misses) is
+  held, since any rule would be fitted to pyparsing.
+
+## Decisions open for Max (no spend, not extraction)
+
+- **Calvin's findings, proposed and not registered:** G-diff coverage. The
+  driver never puts inf/NaN in `b` alone and never mixes inf kinds, so
+  one-sided masks pass. The fix is `inf_b`/`nan_b`/mixed specials, then a
+  zero-spend regrade of the stored rows. Also G-hsr's macro-arity misfile
+  and the ISA-split golds.
 
 ## Other no-spend work
 

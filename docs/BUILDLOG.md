@@ -16211,3 +16211,17 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   `go test ./report/` ok).
 - Close: Go `./...` and the oracle lane's Go suites pass; the proxy rebuilt static and the image rebuilt at
   0.2.114-beta (`48072a2f56a0`); this repo ingested at HEAD after the handoff commit; the handoff rewritten.
+
+## 2026-10-04 (forty-third session) — `currently-open.md`'s extraction items trimmed to what is open
+
+- The user asked to condense the open extraction items. Each was checked against its record before it
+  stayed (the constraint headers for C-13, C-23, C-58, C-145, C-164, C-174, C-176, C-178, C-181, C-182,
+  C-185, C-194; ADR-158 and ADR-176 present; `~/.hobbes/bench/rust-heldout-2026-10-03/draw.json`'s order).
+  None had been closed silently.
+- `currently-open.md`: the struck-through Phase 1 audits and items 6–9 collapse into one sentence pointing at
+  the CHANGELOG; the extraction decisions that sat under "Decisions open for Max" move under § Extraction,
+  grouped by language (Rust: trait provided methods, C-182's node line, item 5; TS/JS: ADR-158's amendment,
+  class-property functions; Python: the trace oracle's click and rich run, C-181's residual, ADR-156 and
+  fixture values); the notes with nothing proposed get their own list; "Parked by Max" joins the gated list.
+  205 → 160 lines. No item was decided or dropped. The pointers in the handoff and `workstreams.md` follow
+  the moved section.

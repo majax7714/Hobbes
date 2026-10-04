@@ -314,7 +314,7 @@ back to.
   class whose constructor answers, the base class for an inherited one)~~
   — **settled 2026-09-19 (ADR-142; C-168 narrowed 2026-09-20):** a construction is a call
   where the index names the constructor. The class-property functions
-  are to be re-asked, not started (`currently-open.md` § Decisions).
+  are to be re-asked, not started (`currently-open.md` § Extraction).
 - **Cross-language module-id namespacing** — the live parked gap
   (`future_additions.md`, C-15): a colliding `widget.py`/`widget.ts`
   drops a file by pipeline-order accident. Deserves its own ADR;

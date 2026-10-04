@@ -28,7 +28,7 @@ session went belongs in the BUILDLOG.
   remaining, proceed with testing and grading a weaker side of hobbes … widen tested and look for more per
   language extraction gaps, or resolve gaps if present".
 
-**Next:** take the forty-second session's two routes to Max (`currently-open.md` § Decisions): **C-182's node
+**Next:** take the forty-second session's two routes to Max (`currently-open.md` § Extraction): **C-182's node
 line** (leaf, 97.3%) and **Rust trait provided methods below the symbol floor** (669 of sea-query's 1,088
 misses). Item 5 now has its crate (hecs, 82 operator-trait sites; re-ask Max before building, draw a new
 held-out cell). C is the next-thinnest language (two cells); its draw would continue §10.5's order.
@@ -39,7 +39,7 @@ held-out cell). C is the next-thinnest language (two cells); its draw would cont
   `oracle py-trace` command; not retried). The command is in
   `~/.hobbes/bench/c174-counts-2026-10-03/python/trace-run/`.
 - **Whether to extend the standing trace oracle** on the flask and structlog counts.
-- C-181's residual, ADR-126 §3 and the rest of "Decisions open for Max".
+- C-181's residual and the rest of `currently-open.md` § Extraction's routes.
 Don't build any of them until Max answers.
 
 ## Where the last day left things (2026-10-03; the CHANGELOG has each one)
