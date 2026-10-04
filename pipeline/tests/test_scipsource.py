@@ -639,6 +639,99 @@ class TestProvisionNodeModules:
         assert tree is None and "drift" in why
 
 
+class TestTheCacheCopyGapIsDeclinedByName:
+    """The install runs on a cache copy of package.json and the lockfile
+    alone (ADR-050's amendment). A local-path dependency failed there with
+    yarn's error about a cache path (dagger's docs snippets, `./sdk`); a
+    workspace root exited 0 with its members' links and their dependencies
+    dropped and read as provisioned (npm 10.9.2). Both are declined by
+    name, before any install and before a complete cache is reused."""
+
+    def repo(self, tmp_path, monkeypatch, manifest):
+        (tmp_path / "package.json").write_text(json.dumps(manifest))
+        (tmp_path / "package-lock.json").write_text("{}")
+        monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
+        monkeypatch.setattr(
+            containment, "run",
+            lambda *a, **k: (_ for _ in ()).throw(AssertionError("installed")),
+        )
+        return tmp_path
+
+    def test_a_local_path_absent_from_the_checkout_is_named(
+        self, tmp_path, monkeypatch
+    ):
+        repo = self.repo(tmp_path, monkeypatch, {
+            "dependencies": {"@dagger.io/dagger": "./sdk", "typescript": "^5.5.4"},
+        })
+        tree, why = scipsource.provision_node_modules(repo, "")
+        assert tree is None
+        assert "`@dagger.io/dagger` → `./sdk`, absent from the checkout" in why
+        assert "cache copy" in why and "declined" in why
+
+    def test_a_present_local_path_is_declined_without_absent(
+        self, tmp_path, monkeypatch
+    ):
+        repo = self.repo(tmp_path, monkeypatch, {
+            "devDependencies": {"a": "file:../a", "b": "link:./b"},
+        })
+        (tmp_path / "b").mkdir()
+        (tmp_path.parent / "a").mkdir(exist_ok=True)
+        tree, why = scipsource.provision_node_modules(repo, "")
+        assert tree is None and "`a` → `file:../a`" in why
+        assert "absent" not in why and "and 1 more" in why
+
+    def test_registry_specs_are_not_local(self):
+        for spec in ("^1.2.0", "latest", "npm:foo@1", "github:a/b", "1.x"):
+            assert not scipsource._LOCAL_SPEC.match(spec)
+
+    def test_a_workspace_root_is_declined_even_with_a_complete_cache(
+        self, tmp_path, monkeypatch
+    ):
+        import hashlib
+        repo = self.repo(tmp_path, monkeypatch, {"workspaces": ["packages/*"]})
+        digest = hashlib.sha256(
+            (repo / "package.json").read_bytes()
+            + (repo / "package-lock.json").read_bytes()
+        ).hexdigest()[:16]
+        cache = tmp_path / "cache" / "npm" / digest
+        (cache / "node_modules").mkdir(parents=True)
+        (cache / ".complete").write_text("")
+        tree, why = scipsource.provision_node_modules(repo, "")
+        assert tree is None and "a workspace root (`packages/*`)" in why
+
+    def test_yarns_workspace_object_form(self, tmp_path, monkeypatch):
+        repo = self.repo(tmp_path, monkeypatch, {
+            "workspaces": {"packages": ["a", "b", "c", "d"]},
+        })
+        tree, why = scipsource.provision_node_modules(repo, "")
+        assert tree is None and "`a`, `b`, `c` and 1 more" in why
+
+    def test_a_member_names_the_workspace_root_above_it(
+        self, tmp_path, monkeypatch
+    ):
+        repo = self.repo(tmp_path, monkeypatch, {"workspaces": ["packages/*"]})
+        member = tmp_path / "packages" / "a"
+        member.mkdir(parents=True)
+        (member / "package.json").write_text('{"name": "@w/a"}')
+        tree, why = scipsource.provision_node_modules(repo, "packages/a")
+        assert tree is None
+        assert "workspace root `.` above holds one" in why
+
+    def test_no_workspace_above_keeps_the_drift_reason(
+        self, tmp_path, monkeypatch
+    ):
+        repo = self.repo(tmp_path, monkeypatch, {"name": "root"})
+        member = tmp_path / "sub"
+        member.mkdir()
+        (member / "package.json").write_text("{}")
+        tree, why = scipsource.provision_node_modules(repo, "sub")
+        assert tree is None and "drift" in why
+
+    def test_an_unparsable_manifest_is_left_to_the_installer(self, tmp_path):
+        (tmp_path / "package.json").write_text("{not json")
+        assert scipsource._cache_copy_gap(tmp_path) is None
+
+
 class TestYarn1NamesCorepackWhereItRuns:
     """A v1 yarn install resolves corepack where the argv will run: by
     name on the image's PATH when contained, by the host's absolute path

@@ -24,7 +24,7 @@
   invalidate it and the tests are what would catch it.
 - **Source:** ADR-032.
 
-### C-23 — TypeScript semantics need an installed dependency tree — *narrowed 2026-08-18*
+### C-23 — TypeScript semantics need an installed dependency tree — *narrowed 2026-08-18; the cache copy's two gaps named 2026-10-03 (0.2.109-beta)*
 - **Cannot tell you:** where a call goes when its receiver's type comes
   from a package that is not installed **and cannot be provisioned**.
   Measured on kbet with no `node_modules`: **19% of internal references
@@ -40,8 +40,24 @@
   stage. What remains of this entry: pnpm, Yarn Berry, and
   lockfile-less repos (each declined by name in a per-zone degradation
   record), plus the offline case, which is C-34's subject.
-- **Bites at:** TS repos on pnpm/Berry or without a lockfile, ingested
-  without `npm install` having been run — and partially-installed
+- **The cache copy's gaps (ADR-050's amendment, 0.2.109-beta).** The
+  install runs on a copy of `package.json` and the lockfile alone, so a
+  manifest that points into the repo is declined by name too: **a
+  local-path dependency** (`./`, `../`, `file:`, `link:`, `portal:`; the
+  reason names it and whether the path is absent from the checkout) and
+  **a workspace root** (`workspaces`; the reason names its patterns). A
+  zone below a workspace root that holds a lockfile names that root
+  instead of "no lockfile". **Was, until 0.2.109-beta:** a local-path
+  dependency failed with the package manager's error about a Hobbes cache
+  path (dagger's 11 docs-snippet zones, `"@dagger.io/dagger": "./sdk"`,
+  a generated and gitignored path), and a workspace root's `npm ci`
+  exited 0 with the members' links and their dependencies dropped (npm
+  10.9.2, the image's), so the zone read as provisioned on a partial
+  tree. Staging the members or local targets into the install is not
+  built (Max's call, `currently-open.md`).
+- **Bites at:** TS repos on pnpm/Berry, without a lockfile, with a
+  local-path dependency, or rooted in a workspace, ingested without
+  `npm install` having been run — and partially-installed
   environments everywhere.
 - **You find out:** **surfaced** — `dependency_coverage: {declared,
   resolved, missing[]}` is reported on every run, plus an

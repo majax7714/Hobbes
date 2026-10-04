@@ -16105,3 +16105,34 @@ went to the Rust collision.
 - Host: pytest 2,844, `lane_b` 28 of 28.
 - Proxy and image rebuilt at 0.2.108-beta (`1a04763f50bd`), Go suites pass; this repo ingested at `05d6bd6`.
   The old knowledge-server container was stopped; reconnect `hobbes-knowledge` with `/mcp`.
+
+## 2026-10-03 (forty-first session) — dagger's snippet zones re-ingested; the cache copy's gaps declined by name at 0.2.109-beta (ADR-050 amended)
+
+Max: "go with recommended" (item 7's dagger re-ingest first, then items 8 and 9), then route 1 of the re-ask
+below ("decline by name").
+- **The handoff's note was stale in part.** dagger was re-ingested at 0.2.106 (ADR-174's regrade) and its
+  `corepack` now runs. Its 11 yarn-v1 docs-snippet zones failed for a new reason: `"@dagger.io/dagger":
+  "./sdk"`, a generated, gitignored path. The install runs on a cache copy of `package.json` and the
+  lockfile alone, so yarn reported a missing `~/.hobbes/cache/npm/<hash>/sdk`, and that was the zone's reason.
+- **The same gap, wider (probed, `~/.hobbes/bench/adr050-cache-copy-2026-10-03/` and the scratch probes):**
+  a workspace root's copy installs without its members. On the host's npm 11.16, xmpp.js's copy installed
+  1,089 entries against the full checkout's 1,132, with all 35 `@xmpp/*` links missing. In the image's npm
+  10.9.2 on a two-file fixture, `npm ci` exited 0 with the root's dependency only and no member link. A
+  control on xmpp.js's full checkout under npm 10 refuses as out of sync, the same as the copy, so the
+  September refusal was the repo's and C-165 stands. Of 115 lockfiles at depth ≤ 6 in the bench clones, none
+  has a local-path dependency; seven are workspace roots (xmpp.js's copies and an example under
+  cypress-io/github-action, which is not its zone's manifest).
+- **Built (0.2.109-beta):** `_cache_copy_gap` declines a local-path dependency or a workspace root before the
+  install and before a complete cache is reused; a member below a workspace root with a lockfile names it.
+  ADR-050 amended first; C-23's list and HISTORY; architecture §3.2 and §3.8's xmpp.js sentence.
+- **dagger re-ingested:** 11 zones name the dependency and "absent from the checkout"; 457 warnings as
+  before; the Rust cell regrades identical (3,595, 0 contradicted, poison PASS, 3,601 export edges the same).
+- Host: pytest 2,852, Go `./...` pass.
+- **Items 8 and 9 measured; both premises changed (back with Max).** Item 8: of the 29 `__call__` misses
+  still open on the fitted cells (rich 21, click 7, flask 1, ADR-171's after arm), 13 are `self.x(…)`, and
+  5 (all rich) are an attribute assigned once by a bare construction. The held-out draw was pre-registered
+  (`attr-call-step0-2026-10-03/DRAW.md`, sha256 `6b34dbeb…`): voluptuous 8 written sites, marshmallow 2,
+  toolz 0, tenacity 0. voluptuous is drawn, but 6 of its 8 are bound by a method or a factory. ADR-171 refused
+  the shape as cross-method inference. Item 9: the `unknown` test files are mocha (ajv 68, hack-chat 36),
+  jest (npq 47, xmpp.js 15) and vitest-declared (hono 110, preact 40), not jest alone. hono has a `bun:test`
+  file that a manifest-runner rule would mislabel, and Express's mocha `test/*.js` is not inventoried at all.

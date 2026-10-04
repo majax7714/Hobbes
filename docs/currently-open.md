@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.108-beta).
+Last reviewed: 2026-10-03 (0.2.109-beta).
 
 ## Decisions open for Max (no spend)
 
@@ -44,6 +44,12 @@ Last reviewed: 2026-10-03 (0.2.108-beta).
 - **`npm ci` refused three of four lockfile-bearing JS repos** (counted
   under C-23 in C-165). Open: whether "pinned or declined" falls back to
   anything. Nothing is proposed.
+- **ADR-050's amendment, prevention** (C-23): a local-path dependency and a workspace root are
+  declined by name because the install sees only a cache copy of `package.json` and the lockfile.
+  Staging the members or the local targets into the install is not decided: a member's link
+  would then point at a cache copy, not at the repo's sources that `workspace_link_targets`
+  mounts. No graded cell meets either shape (dagger's `./sdk` is absent from the checkout;
+  xmpp.js's lock is refused under npm 10). Nothing is proposed until one does.
 - **Calvin's findings, proposed and not registered:** G-diff coverage. The
   driver never puts inf/NaN in `b` alone and never mixes inf kinds, so
   one-sided masks pass. The fix is `inf_b`/`nan_b`/mixed specials, then a
@@ -103,8 +109,8 @@ measured.
    `~n`); C-180 lifted.
 7. ~~C++ functors and implicit conversions~~ built at 0.2.108-beta (ADR-175; C-146,
    C-162 narrowed; held-out chromaprint and gulrak/filesystem, §10.48). **Still open beside
-   it:** Route A's remainder (C-145, C-164; no key reads a caller) and dagger's docs snippet
-   zones, not re-ingested since the `corepack` fix.
+   it:** Route A's remainder (C-145, C-164; no key reads a caller). dagger's snippet zones were
+   re-ingested at 0.2.109-beta: `corepack` runs, and they are declined by name (ADR-050's amendment).
 8. **Python `__call__` on an instance held in an attribute** (C-174;
    rich's `self.highlighter(…)`; 35 misses on fitted cells, ADR-171).
    Optional and small; held out on voluptuous, marshmallow, toolz or

@@ -6,6 +6,14 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-23's cache-copy gaps named, 2026-10-03 (0.2.109-beta; ADR-050's amendment, Max: route 1, "decline by name"; no entry added):
+- **An unnamed limit, precedent 1.** Found re-ingesting dagger after the `corepack` fix: the install runs on a
+  cache copy of `package.json` and the lockfile alone. A local-path dependency failed with yarn's error about a
+  Hobbes cache path (dagger's 11 docs-snippet zones, `./sdk`, also absent from the checkout); a workspace root
+  exited 0 with its members' links and their dependencies dropped (npm 10.9.2, probed on a fixture) and read as
+  provisioned. Both are now declined by name before the install, and C-23's list names them. Tally unmoved:
+  193 entries.
+
 C-146 and C-162 narrowed, 2026-10-03 (0.2.108-beta; ADR-175, Max: "good to go with both semantic"):
 - **A functor's `operator()`** at a call's `(` (C-146) and **an implicit conversion** the index names in a
   body expression (C-162) are drawn `semantic`, measured on two held-out C++ cells drawn for them

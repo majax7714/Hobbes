@@ -81,3 +81,40 @@ each load-bearing:
   future_additions alongside the Rust target/ idea).
 - Measured effects on hobbes, kbet, and dagger are in
   `docs/extraction-evidence.md` and the BUILDLOG entry.
+
+## Amendment — 2026-10-03: what the cache copy cannot hold is declined by name (0.2.109-beta)
+
+**Status:** accepted (Max, 2026-10-03, route 1: "decline by name"). Precedent 1:
+an unnamed limit, found when dagger was re-ingested after the `corepack` fix
+(0.2.60-beta).
+
+**The limit.** §2's install runs on a cache copy of `package.json` and the
+lockfile alone, so a manifest that points into the repo installs without
+what it points at:
+- **A local-path dependency** (`./`, `../`, `/`, `~/`, `file:`, `link:`,
+  `portal:`). dagger's 11 docs-snippet zones name `"@dagger.io/dagger":
+  "./sdk"`. The install failed, and the zone's reason was yarn's raw error
+  naming a Hobbes cache path. `./sdk` is also absent from the checkout (it
+  is generated and gitignored), so no edge was lost there.
+- **A workspace root** (`workspaces`). Probed in the image's npm 10.9.2 on a
+  two-file fixture: `npm ci` exits 0 having installed the root's own
+  dependencies only. The members' links (`@w/a -> packages/a`) and the
+  members' dependencies are dropped, and the zone read as provisioned. On
+  the host's npm 11.16 xmpp.js's copy installed 1,089 entries against the
+  full checkout's 1,132, with all 35 `@xmpp/*` links missing. (In the image
+  xmpp.js is refused either way: its lock is out of sync with its manifest
+  under npm 10, re-checked on the full checkout. C-165 stands.)
+
+**Decision.** Before the install, and before a complete cache is reused,
+`provision_node_modules` declines such a manifest by name: the
+dependencies and paths (and whether a path is absent from the checkout),
+or the workspace's patterns. A zone whose nearest manifest has no lockfile
+but sits below a workspace root holding one says so, instead of "no
+lockfile". The rule fails toward drawing less: a workspace root's partial
+tree is not installed. C-23's "declined by name" list gains both shapes in
+the same commit.
+
+**Not decided (Max's, in `currently-open.md`):** prevention, i.e. staging
+the members or the local targets into the install. A member's link would
+then point at a cache copy, not at the repo's sources, which
+`workspace_link_targets` mounts. That is a design question, not a patch.

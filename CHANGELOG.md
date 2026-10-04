@@ -11,9 +11,32 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.108-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.109-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.109-beta — 2026-10-03 (what a dependency install's cache copy cannot hold is declined by name; ADR-050 amended, C-23)
+
+**Patch: what the layer refuses and says**, TypeScript/JavaScript lane B. Precedent 1 (an unnamed limit);
+Max: route 1, "decline by name".
+
+- **The limit.** A zone's `node_modules` is installed from a cache copy of `package.json` and the lockfile
+  alone (ADR-050), so whatever the manifest points at inside the repo is not there. A **local-path
+  dependency** (`./`, `../`, `file:`, `link:`, `portal:`) failed with the package manager's error about a
+  Hobbes cache path: dagger's 11 docs-snippet zones, `"@dagger.io/dagger": "./sdk"`. A **workspace root**
+  exited 0 with its members' links and their dependencies silently dropped (the image's npm 10.9.2, probed on
+  a fixture), and the zone read as provisioned.
+- **Now** both are declined before the install, and before a complete cache is reused. The reason names the
+  dependency and path (and says whether the path is absent from the checkout), or the workspace's patterns.
+  A zone whose nearest manifest has no lockfile but sits below a workspace root holding one names that root
+  instead of "no lockfile". C-23's "declined by name" list gains both shapes.
+- **Measured on dagger** (re-ingested at this version, `~/.hobbes/bench/adr050-cache-copy-2026-10-03/`):
+  the 11 zones that read yarn's error now name `@dagger.io/dagger` → `./sdk`, absent from the checkout; the
+  other 446 warnings are unchanged (457 in all, as at 0.2.106). The zones were not provisioned before either,
+  so no edge can move there; the Rust cell regrades identical (3,595 confirmed, 0 contradicted, poison PASS,
+  its 3,601 exported edges the same). No graded cell provisions a workspace root: xmpp.js's lock is refused as
+  out of sync under the image's npm 10.9.2, re-checked on its full checkout, so C-165 stands.
+- Not built: staging the members or local targets into the install (Max's call, `currently-open.md`).
 
 ## 0.2.108-beta — 2026-10-03 (a C++ functor call and an implicit conversion drawn where the index names them; ADR-175, C-146 and C-162 narrowed)
 

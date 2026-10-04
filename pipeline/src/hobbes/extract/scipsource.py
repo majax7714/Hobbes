@@ -1415,7 +1415,9 @@ def provision_node_modules(
     re-ingests reuse it; it runs with ``--ignore-scripts`` always — a
     dependency's lifecycle script is arbitrary code, and unlike C-29
     there is no analyzer requiring it — and it needs a fetchable npm
-    registry (C-34, the npm sibling of C-30).
+    registry (C-34, the npm sibling of C-30). The install sees only
+    those two files, so a manifest that points into the repo is
+    declined by name first (:func:`_cache_copy_gap`).
     """
     import hashlib
     import shutil as _shutil
@@ -1423,10 +1425,20 @@ def provision_node_modules(
     manifest_dir = repo_root / manifest_dir_rel if manifest_dir_rel else repo_root
     installer, lockfile = detect_installer(manifest_dir)
     if installer is None:
+        root = _workspace_root_above(repo_root, manifest_dir_rel)
+        if root is not None and lockfile.startswith("no lockfile"):
+            return None, (
+                f"no lockfile here; the workspace root `{root or '.'}` above "
+                "holds one, and a workspace's install is declined: its "
+                "members are not in the cache copy (ADR-050's amendment)"
+            )
         return None, lockfile
     package_json = manifest_dir / "package.json"
     if not package_json.is_file():
         return None, "no package.json beside the lockfile"
+    gap = _cache_copy_gap(manifest_dir)
+    if gap is not None:
+        return None, gap
 
     digest = hashlib.sha256(
         package_json.read_bytes() + (manifest_dir / lockfile).read_bytes()
@@ -1454,6 +1466,102 @@ def provision_node_modules(
         return None, "install succeeded but produced no node_modules"
     (cache / ".complete").write_text("")
     return tree, None
+
+
+#: A dependency spec that names a path, not a registry version: npm's and
+#: yarn's local forms.
+_LOCAL_SPEC = re.compile(r"^(?:\.{1,2}/|/|~/|file:|link:|portal:)")
+
+
+def _read_manifest(manifest_dir: Path) -> dict | None:
+    try:
+        data = json.loads((manifest_dir / "package.json").read_text())
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _workspace_patterns(manifest: dict) -> list[str]:
+    """npm's ``workspaces: [...]`` or yarn's ``{packages: [...]}``."""
+    spaces = manifest.get("workspaces")
+    if isinstance(spaces, dict):
+        spaces = spaces.get("packages")
+    if not isinstance(spaces, list):
+        return []
+    return [p for p in spaces if isinstance(p, str)]
+
+
+def _cache_copy_gap(manifest_dir: Path) -> str | None:
+    """Why an install from the cache copy would be partial, or None.
+
+    The install runs on a copy of ``package.json`` and the lockfile alone
+    (:func:`provision_node_modules`), so whatever the manifest points at
+    inside the repo is not there. A local-path dependency then fails with
+    the package manager's error about a cache path; a workspace root
+    exits 0 with the members' links and their dependencies silently
+    dropped (npm 10.9.2, the image's). Both are declined by name instead
+    (ADR-050's amendment). A manifest that does not parse is left to the
+    installer, which says so.
+    """
+    manifest = _read_manifest(manifest_dir)
+    if manifest is None:
+        return None
+    patterns = _workspace_patterns(manifest)
+    if patterns:
+        shown = ", ".join(f"`{p}`" for p in patterns[:3])
+        more = f" and {len(patterns) - 3} more" if len(patterns) > 3 else ""
+        return (
+            f"a workspace root ({shown}{more}): the install runs on a cache "
+            "copy of package.json and the lockfile alone, so the members' "
+            "links and their dependencies would be missing — declined"
+        )
+    local: list[tuple[str, str]] = []
+    for section in ("dependencies", "devDependencies", "optionalDependencies"):
+        deps = manifest.get(section)
+        if not isinstance(deps, dict):
+            continue
+        for name, spec in deps.items():
+            if isinstance(spec, str) and _LOCAL_SPEC.match(spec):
+                local.append((name, spec))
+    if not local:
+        return None
+    name, spec = local[0]
+    path = re.sub(r"^(?:file:|link:|portal:)", "", spec)
+    absent = (
+        ", absent from the checkout"
+        if not path.startswith("~") and not (manifest_dir / path).exists()
+        else ""
+    )
+    more = f" and {len(local) - 1} more" if len(local) > 1 else ""
+    return (
+        f"a local-path dependency (`{name}` → `{spec}`{absent}{more}): the "
+        "install runs on a cache copy of package.json and the lockfile "
+        "alone, so the path does not resolve there — declined"
+    )
+
+
+def _workspace_root_above(repo_root: Path, manifest_dir_rel: str) -> str | None:
+    """Repo-relative directory of a workspace root strictly above
+    *manifest_dir_rel* that holds a lockfile, or None."""
+    if not manifest_dir_rel:
+        return None
+    current = PurePosixPath(manifest_dir_rel).parent
+    while True:
+        rel = "" if str(current) == "." else str(current)
+        directory = repo_root / rel if rel else repo_root
+        manifest = _read_manifest(directory)
+        if (
+            manifest is not None
+            and _workspace_patterns(manifest)
+            and any(
+                (directory / lock).is_file()
+                for lock in ("package-lock.json", "yarn.lock", "pnpm-lock.yaml")
+            )
+        ):
+            return rel
+        if not rel:
+            return None
+        current = current.parent
 
 
 def _nearest_package_manifest(repo_root: Path, zone: str) -> str | None:
