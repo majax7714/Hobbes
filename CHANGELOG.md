@@ -11,9 +11,20 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.110-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.111-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.111-beta — 2026-10-03 (a C build that derived no compile database keeps its cause in the record; C-135)
+
+**Patch: what the layer says**, C lane B. Found on the first random Rust draw (eycorsican/leaf).
+
+- leaf's root Makefile runs `cargo build`, which failed offline on a git dependency, so bear over make
+  recorded no compile database entry. The helper refused with that cause, but the `scip-c` record kept
+  only the stderr's last 500 characters and called it "the indexer's own failure": the cause was cut off
+  and a wrong one stated. The record now keeps the helper's first words and the build's last, says only
+  that the index step stopped (the helper ran), and the empty-database refusal cites C-135.
+- No edge moves.
 
 ## 0.2.110-beta — 2026-10-03 (a globals-style test file's framework named from its manifest; ADR-176, C-13 narrowed, C-194 registered)
 

@@ -349,7 +349,7 @@ function compdbCheck(compdb, what, stage) {
     }
     if (!Array.isArray(entries) || entries.length === 0) {
       const said = String(previous?.stderr || previous?.stdout || '').trim().slice(-600)
-      throw buildRefusal(`${what} produced no compile database entries, so scip-clang has nothing to index: ${said}`)
+      throw buildRefusal(`${what} produced no compile database entries, so scip-clang has nothing to index (C-135): ${said}`)
     }
     const root = resolve(stage)
     const outside = entries

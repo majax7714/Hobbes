@@ -52,7 +52,10 @@ SCIP_ENABLE_ENV = "HOBBES_SCIP"
 #: The helper's exit code when the *indexer* it drove exited non-zero
 #: (`scip/index.mjs` ``INDEXER_EXIT``): the helper ran, the indexer did not
 #: — a different failure from a helper that could not start, and it is
-#: recorded as one (C-85, C-74: the record used to blame the helper).
+#: recorded as one (C-85, C-74: the record used to blame the helper). The
+#: helper also exits with it when the build that derives a C compile
+#: database leaves nothing to index (C-135), so the record names neither
+#: as the cause: the helper's own first words do.
 INDEXER_EXIT = 3
 HELPER_VERSION = 5
 
@@ -440,6 +443,18 @@ def run_helper(
         facts_path.unlink(missing_ok=True)
 
 
+def _head_and_tail(text: str, head: int = 300, tail: int = 400) -> str:
+    """*text* whole when it is short, else its first *head* characters and
+    its last *tail*. The helper's first words name the cause (an indexer's
+    exit, or a build that derived no compile database, C-135) and the
+    tail is the build's or the indexer's own last words; a tail alone cut
+    the cause off (eycorsican/leaf, 2026-10-03: `make`'s offline cargo
+    error filled it, and the record read as the indexer's failure)."""
+    if len(text) <= head + tail:
+        return text
+    return f"{text[:head]} … {text[-tail:]}"
+
+
 def _cache_key(config: dict, ro, env) -> indexcache.Key | None:
     """The unit's index-cache key, or ``None`` when nothing may be
     cached: the cache is off, the run would not be contained, or the
@@ -477,11 +492,10 @@ def _run_helper(config, config_path, facts_path, timeout, ro, env, root, key=Non
         config_path.unlink(missing_ok=True)
     proc = outcome.proc
     if proc.returncode == INDEXER_EXIT:
-        detail = (proc.stderr or proc.stdout).strip()[-500:]
+        detail = _head_and_tail((proc.stderr or proc.stdout).strip())
         raise ScipError(
-            f"the {config['language']} indexer exited inside the container "
-            f"(the helper ran; this is the indexer's own failure, not a "
-            f"missing helper): {detail}"
+            f"the {config['language']} index step stopped inside the container "
+            f"(the helper ran, so this is not a missing helper): {detail}"
         )
     if proc.returncode != 0 and any(m in (proc.stderr or "") for m in _HEAP_EXHAUSTED):
         # The helper ran and Node's heap gave out decoding the index: not a

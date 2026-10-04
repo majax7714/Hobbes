@@ -1857,9 +1857,36 @@ class TestHelperExitClassification:
         (tmp_path / "stage").mkdir()
         with pytest.raises(scipsource.ScipError) as caught:
             scipsource.run_helper({"stage": str(tmp_path / "stage"), "language": "python"})
-        assert "python indexer exited inside the container" in str(caught.value)
+        assert "python index step stopped inside the container" in str(caught.value)
+        assert "scip-python exited 1" in str(caught.value)
         assert "main-impl.ts:47" in str(caught.value)
         assert "unusable" not in str(caught.value)
+
+    def test_a_build_refusal_keeps_its_cause_past_a_long_build_log(self, tmp_path, monkeypatch):
+        # eycorsican/leaf (2026-10-03): its Makefile's default target runs
+        # `cargo build`, which failed offline on a git dependency. The helper
+        # refused (C-135: no compile database entries), but a 500-character
+        # tail kept only cargo's words and the record called it the
+        # indexer's own failure.
+        cargo = (
+            "error: failed to get `netstack-smoltcp` as a dependency of package `leaf`\n"
+            + "Caused by:\n  failed to load source for dependency `netstack-smoltcp`\n" * 6
+            + "Caused by:\n  failed to resolve address for github.com: Temporary failure in name resolution\n"
+            + "make: *** [Makefile:9: cli] Error 101"
+        )
+        refusal = (
+            "bear over make produced no compile database entries, so scip-clang has nothing to index: " + cargo
+        )
+        assert len(refusal) > 700
+        self._run_returning(monkeypatch, scipsource.INDEXER_EXIT, refusal)
+        (tmp_path / "stage").mkdir()
+        with pytest.raises(scipsource.ScipError) as caught:
+            scipsource.run_helper({"stage": str(tmp_path / "stage"), "language": "c"})
+        message = str(caught.value)
+        assert "bear over make produced no compile database entries" in message
+        assert "make: *** [Makefile:9: cli] Error 101" in message
+        assert "indexer's own failure" not in message
+        assert "unusable" not in message
 
     def test_a_helper_that_ran_out_of_memory_says_so_not_install_node(self, tmp_path, monkeypatch):
         # ScummVM (5,958 units): the whole-database decode needed ~9 GB and

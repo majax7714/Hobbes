@@ -230,6 +230,15 @@
       a dependency crate's C under cargo's registry, none under the
       root. **Read 2026-09-14 and written down** (the narrowing above):
       the root now draws a `scip-c` record with the cause.
+  - **The cause was cut off when the build said much** (eycorsican/leaf,
+    `5e8d9475`, 2026-10-03, the Rust draw's first cell): its root
+    Makefile's default target runs `cargo build`, which failed offline
+    on a git dependency, so bear recorded 0 entries. The helper refused
+    with the cause, but the record kept the stderr's last 500
+    characters (cargo's error alone) under "the indexer's own
+    failure". **Fixed at 0.2.111-beta:** the record keeps the helper's
+    first words and the build's last, attributes the stop to neither,
+    and the empty-database refusal cites this id.
   - What stays: a root whose database has entries under it and whose
     index still emits no document surfaces only as the generic
     `scip-index` record (not yet seen); a dependency's build the image

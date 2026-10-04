@@ -343,7 +343,7 @@ test("an empty compile database stops the plan before scip-clang, in the build's
   const plan = cPlan({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'make' })
   cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), '[]')
   assert.throws(() => plan.steps[1].check({ stderr: 'make: *** No rule to make target' }),
-    (err) => /bear over make produced no compile database entries.*No rule to make target/.test(err.message)
+    (err) => /bear over make produced no compile database entries, so scip-clang has nothing to index \(C-135\): .*No rule to make target/.test(err.message)
       && exitCodeFor(err) === INDEXER_EXIT)
   cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify([{ directory: dir, file: 'a.c', arguments: ['cc', 'a.c'] }]))
   plan.steps[1].check({})

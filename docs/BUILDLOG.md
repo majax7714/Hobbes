@@ -16165,3 +16165,18 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
 - Host: pytest 2,860.
 - Proxy and image rebuilt at 0.2.110-beta (`75861ebfd088`), Go suites pass; the handoff rewritten; this repo
   ingested at HEAD after this commit.
+
+## 2026-10-03 (forty-second session) — a weaker language widened: the first random Rust draw
+
+- **Why** (the user: test and grade a weaker side of Hobbes, a less-covered language on fewer repos;
+  no extraction item was open without Max). Rust had three cells and none drawn: memchr was picked,
+  dagger's `sdk/rust` is generated, rust_proj is the owner's.
+- **The draw, pre-registered** (`~/.hobbes/bench/rust-heldout-2026-10-03/PREREG-draw.md`, sha256 at amendment 2
+  `ad91c6d4d628…`; predictions `PREREG.md` `af45c65407cf…`, written before any ingest): the C draw's rule with
+  Rust's build file, `language:rust stars:300..3000 pushed:>2026-03-01`, seed 20261003, ≤60k lines of `.rs`.
+  Taken: **eycorsican/leaf** (position 0, module `leaf/`, a virtual workspace: amendment 1) and, for item 5's
+  count, **Ralith/hecs** (position 1; amendment 2 carried R1–R6, R8, R9 to it).
+- **0.2.111-beta (C-135):** leaf's ingest drew a `scip-c` record that called the stop "the indexer's own
+  failure" and kept only cargo's offline git error; the helper's cause ("bear over make produced no compile
+  database entries") had been cut by a 500-character tail. The record keeps head and tail now; leaf
+  re-ingested shows the cause. pytest 2,861 passed; the helper's 97 pass.
