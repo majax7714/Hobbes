@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-04 (forty-third session); Hobbes 0.2.117-beta on `main`.**
+**Reviewed 2026-10-04 (forty-third session); Hobbes 0.2.118-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
-0.2.117-beta (image `109e9bba666f`), and this repo was
+0.2.118-beta (image `65bd07c9f2a4`), and this repo was
 ingested at HEAD after it; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
 new container from the current image, so it starts fresh.
 
@@ -28,17 +28,16 @@ session went belongs in the BUILDLOG.
   remaining, proceed with testing and grading a weaker side of hobbes … widen tested and look for more per
   language extraction gaps, or resolve gaps if present".
 - 2026-10-04: Route 1 ("good to go with route 1"): C-182's node line, the trait-provided-method rule on a
-  new held-out cell, item 5's re-ask. Permission for `oracle py-trace` given for future use (local allow
+  new held-out cell; then item 5, route a ("good for the recommended route with item 5"). Permission for `oracle py-trace` given for future use (local allow
   rules in `.claude/settings.local.json`).
 
-**Next:** take **item 5's re-ask** to Max (`currently-open.md` § Extraction): fitted hecs (82 operator-trait
-sites), held out cyme (30, drawn 2026-10-04, its rows for the shape unread). Then the TS and Python routes
-there. C is the next-thinnest language (two cells); its draw would continue §10.5's order.
+**Next:** Route 1 (Rust) is done. Take the TS and Python routes in `currently-open.md` § Extraction to Max
+(ADR-158's amendment, zod's class-property functions, C-181's residual, ADR-156 and fixture values). C is
+the next-thinnest language (two cells); its draw would continue §10.5's order.
 
 **Waiting on Max:**
-- Item 5's re-ask (above).
 - **Whether to extend the standing trace oracle:** all four cells measured (click and rich on 2026-10-04).
-- C-181's residual and the rest of `currently-open.md` § Extraction's routes.
+- The TS and Python routes above.
 Don't build any of them until Max answers.
 
 ## Where the last day left things (2026-10-04; the CHANGELOG has each one)
@@ -54,6 +53,9 @@ Forty-third session (Max: condense the open extraction items, then Route 1):
   uncompiled arm; 45 on leaf are now refused (23 `semantic` `uses` edges had rested on them).
 - **0.2.117 (ADR-177):** a trait's provided method is a node. Held out **cyme** (drawn, pre-registered):
   2,708 → 2,754, 46 of 46; sea-query (fitted) 5,601 → 6,263, recall 93.7%. P4's wording gap recorded.
+- **0.2.118 (ADR-178, item 5):** a Rust operator applied to a repo impl is a call at its token. cyme was
+  vacuous (all `PartialEq` at `==`, unreachable); held out **ureq**: 1,257 → 1,274, 17 drawn, 0
+  contradicted; hecs (fitted) 1,379 → 1,440. Q2 missed as written (the counter's flaws), recorded.
 
 Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. Forty-first: 0.2.109–0.2.110.
 
@@ -66,7 +68,7 @@ Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. F
   (C-165).
 - **Grading:** every compiler-graded cell is at 100% precision except
   quic-go (99.6%; all 15 rows are the oracle's grain); leaf reads 100%
-  since 0.2.116-beta. Rust now stands on eight cells, five drawn at
+  since 0.2.116-beta. Rust now stands on nine cells, six drawn at
   random. Each figure carries
   its strict companion (ADR-124); fmt is 100%, strict 99.62%. Trace-graded
   Python cells measure recall, never precision (C-60). rich is fitted
@@ -83,7 +85,7 @@ Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. F
 - **Shanks, the harness** (ADR-107, ADR-112, ADR-152): 98 session logs, and
   the tracker reads 98 of 40 (4 areas, 4 false blocks, all closed, 0
   missed, 1 deny). Each session's state is under `~/.hobbes/sessions/<id>/`.
-- **Comparative graphics:** four graphics from 115 cells; `render.py check`
+- **Comparative graphics:** four graphics from 116 cells; `render.py check`
   is green.
 - **Atlas-0, TTT and Calvin:** held or closed. See
   [`currently-open.md`](currently-open.md) § Held.
