@@ -16334,3 +16334,18 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   alone would recover few of the 1,029 pairs. 2a measures it.
 - Records: ADR-158's status; `currently-open.md` (the amendment item is now "lifting C-176's floor"; the
   class-property item carries 2a). Docs only; no bump.
+
+## 2026-10-04 (forty-fourth session, cont.) — 2a: the class-property functions measured; no build
+
+- Regraded all 13 keyed TS/JS cells at `d101148` (`~/.hobbes/bench/ts-floor-2026-10-04/run.sh before`,
+  detached): every cell 0 contradicted, poison passed; zod 9,885 confirmed (as at 0.2.83). This arm is 1b's
+  before arm too.
+- The key's `static→property` misses: zod 1,274 rows / 36 targets, hono 93 / 24, the rest 0. AST read: every
+  zod target a function-literal field of a top-level named class; hono 82 such rows, 11 typed fields.
+- Lane B names the field at the site: zod 42 (all among the 44 written `X.prop(`), hono 92. Silent at zod's
+  1,232 alias rows; a raw fixture index (`mini-alias/`) has no occurrence at `z.string`'s member token.
+- So route (i) — a function-literal field as a `method` symbol, `semantic` — reaches ~123 rows (zod 42, hono
+  81), not 1,029. The alias is a multi-hop `syntactic` read held by zod alone. Both sized for Max.
+- Found: the alias sites sit in tail `attr-call`, whose text names an untypable receiver; the receiver is
+  typed. Recorded in `currently-open.md` for Max; nothing changed.
+- Records: zod's cell record (new section); `currently-open.md`; `bench-drivers.md`. Docs only; no bump.

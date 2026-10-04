@@ -194,3 +194,21 @@ poison check: PASS — 9934 seeded wrong edges: 8731 refused, 1203 unjudged (ora
 - **Recall:** 45.8% → 45.8% (10,034 → 10,047 of 21,931).
 - **Rows lost:** 0. Nodes and symbols identical; test reach unchanged.
 - **Poison:** PASS, 9,934 seeded: 8,731 refused, 1,203 unjudged, 0 falsely confirmed.
+
+## The class-property functions, re-bucketed at 0.2.118-beta (2026-10-04, route 2a; no build)
+
+Regraded at `d101148` (`~/.hobbes/bench/ts-floor-2026-10-04/`, `RESULTS-2a.md`): 9,885 confirmed, 0
+contradicted, poison PASS — the 0.2.83 figures. The key's `static→property` misses are **1,274 rows on 36
+targets**, every one a field of a top-level named class with a function-literal initializer (1,263 `static`,
+read with ts-morph). By the site's spelling and lane B:
+- **44 rows written `X.prop(`** (22 targets); lane B names the field at 42 of them. A field symbol drawn where
+  lane B names it would be `semantic`.
+- **1,230 rows written another way** (`z.object(..)`): the alias chain `import * as z` → `export *` →
+  `export { objectType as object }` → `const objectType = ZodObject.create`. A raw index of a ten-line fixture
+  (`mini-alias/`) has no occurrence at the member token; lane B is silent at 1,232 rows. Any rule would be a
+  multi-hop lane A read, `syntactic`, on a shape no other keyed cell holds.
+
+So the 1,029 collapsed pairs this record priced in W1 are mostly the alias, not the field. The alias sites
+are counted `unresolved`, tail `attr-call`, whose text names an untypable receiver; here the receiver is
+typed. That wording is open in `currently-open.md`.
+

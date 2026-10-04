@@ -29,10 +29,16 @@ key no implicit call, so a rule's rows could not be graded.
   Approved 2026-10-04 as route 1b, after 2a below: the methods of an object literal bound to a top-level
   name first (ajv 338 caller rows; cue 49 callee misses), pre-registered on a new held-out JS cell
   (DRAW-RULE-2, positions 42–80). Property-assigned functions (Preact 247, Express 46) wait for it.
-- **Class-property functions** (zod: 1,029 collapsed pairs). Approved 2026-10-04 as route 2a: measure
-  first, no build. A line read put ~1,230 of zod's 1,274 rows behind `const stringType = ZodString.create`
-  (a const lane A does not model), not `X.create(..)`; re-bucket by site syntax at HEAD, read what
-  scip-typescript names at `z.string()`, size hono's 93, and check which `C-n` names the limit.
+- **Class-property functions**, measured (2a, 2026-10-04; zod's cell record, last section). The 1,029 pairs
+  are mostly an alias chain: zod 1,230 of 1,274 rows reach `ZodX.create` through `z.object` → `export *` →
+  `export { objectType as object }` → `const objectType = ZodObject.create`, and the index writes nothing at
+  the token. Sized routes, for Max: (i) a function-literal field of a top-level named class is a `method`
+  symbol, drawn where lane B names it at the token, `semantic` (zod 42, hono 81 rows); (ii) leave the alias
+  registered (a multi-hop `syntactic` read held by one cell). Not built.
+- **`attr-call`'s stated reason** (found by 2a): the tail text reads "receiver no static provider could type
+  (C-2)"; at zod's 1,232 alias sites the receiver is typed and the index does not follow a re-exported alias.
+  The site is counted and surfaced; the reason given is wrong for this shape. Whether to split the class or
+  widen its text is Max's.
 
 **Python:**
 - **Whether to extend the standing trace oracle (C-174).** Measured on all four keyed cells, contained

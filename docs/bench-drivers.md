@@ -31,6 +31,12 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-04 — the TS/JS routes: 2a measured (0.2.118-beta)
+
+- `ts-floor-2026-10-04/`: `run.sh <arm>` over `cells.tsv` (the 13 keyed TS/JS cells, copied from
+  `c177-tagged-template/`); `bucket_property.py`, `classify_targets.mjs` and `laneb_names.py` for the key's
+  `static→property` rows; `mini-alias/` a raw scip-typescript fixture with `dump.mjs`; `RESULTS-2a.md`.
+
 ## 2026-10-04 — item 5, Rust operators (0.2.118-beta)
 
 - `rust-ops-2026-10-04/`: `PREREG-rule.md` (Q1–Q7, amendments 1–2), `prereg.sha256`; `opprobe.py <facts>
