@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-03 (0.2.109-beta).
+Last reviewed: 2026-10-03 (0.2.110-beta).
 
 ## Decisions open for Max (no spend)
 
@@ -113,8 +113,9 @@ measured.
    re-ingested at 0.2.109-beta: `corepack` runs, and they are declined by name (ADR-050's amendment).
 8. ~~Python `__call__` on an instance held in an attribute~~ closed as measured, 2026-10-03
    (5 of 29 fitted misses reachable; C-174 records it).
-9. **C-13:** detect jest globals in a TS/JS test file with no framework
-   import. Small; only the `framework` field moves.
+9. ~~C-13~~ built at 0.2.110-beta (ADR-176; C-194 registered for Express's un-inventoried mocha suite).
+   Open beside it: whether to read a runner's own globs (C-13's residue, 8 of 320 files) or
+   inventory a suite that is not test-named (C-194); nothing is proposed.
 
 The other languages' C-174 shapes (Java, TS/JS, Go, C) get counts and
 registration, not rules: their oracles key no implicit call, so a rule's

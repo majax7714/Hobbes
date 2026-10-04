@@ -70,7 +70,12 @@ from hobbes.extract.schema import (
 )
 from hobbes.extract.testmap import collect_tests, runner_excluded_trees
 from hobbes.extract.timings import Timings
-from hobbes.extract.tssource import collect_ts_tests, extract_ts
+from hobbes.extract.tssource import (
+    collect_ts_tests,
+    declared_test_frameworks,
+    extract_ts,
+    uninventoried_runner_manifests,
+)
 from hobbes.extract.verification import verification_base
 
 #: v2 (M3): "language" became "languages" when the infra layer joined
@@ -278,7 +283,11 @@ def extract_repo(
     timings_tests.__enter__()
     tests = collect_tests(modules, parsed, graph["symbol_edges"], injections=injections)
     if ts:
+        declared_test_frameworks(repo_root, ts["files"])
         tests += collect_ts_tests(ts["files"], ts["symbols"], graph["symbol_edges"])
+        uninventoried = uninventoried_runner_manifests(repo_root, ts["files"])
+        if uninventoried:
+            degraded.append(_uninventoried_suite_record(uninventoried))
     if go:
         tests += collect_go_tests(go["files"], graph["symbol_edges"])
     if rust:
@@ -682,6 +691,22 @@ def _cpp_macro_name_record(named: list[dict]) -> dict:
             "constructor's first member initialiser (`C(int x) : size_(x) {`). The function's "
             "calls are drawn from the misnamed symbol, and no index ran there to remove it "
             f"(ADR-135, C-164). {examples}{' …' if len(named) > 5 else ''}"
+        ),
+    }
+
+
+def _uninventoried_suite_record(manifests: list[tuple[str, str]]) -> dict:
+    """The one degradation record C-194 writes per ingest: packages that
+    declare a test runner while no file under them is test-named."""
+    examples = "; ".join(f"{path} ({runner})" for path, runner in manifests[:5])
+    return {
+        "path": ".",
+        "stage": "js-tests",
+        "message": (
+            f"{len(manifests)} package(s) declare a test runner but no file under them is "
+            "test-named (`*.test.*`, `*.spec.*`, `__tests__/`), so their suites are not "
+            "inventoried and `tests_guarding` answers nothing there (C-194). "
+            f"{examples}{' …' if len(manifests) > 5 else ''}"
         ),
     }
 

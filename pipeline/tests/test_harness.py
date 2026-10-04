@@ -234,6 +234,12 @@ def test_commands_per_framework(repo):
     assert by["node:test"].cwd == "web" and by["node:test"].argv == ["node", "--test", "--test-reporter=tap", "lib.test.mjs"]
     assert by["vitest"].cwd == "web" and by["vitest"].argv[:3] == ["./node_modules/.bin/vitest", "run", "--no-cache"] and by["vitest"].argv[-1] == "lib.spec.ts"
     assert "--no-cache" in by["vitest"].argv, "vitest's cache must not land in the read-only node_modules"
+    # a runner the manifest declares (ADR-176) is named, never run: its config's globs are not read
+    for t in s.tests:
+        if t["framework"] == "vitest":
+            t["framework_from"] = "web/package.json"
+    by = {c.framework: c for c in H.commands(s, root, env, root / "reports")}
+    assert "vitest" not in by and by["vitest (declared)"].argv == [] and by["vitest (declared)"].cwd == ""
     # a touched test file runs whole: the file, not the ids
     s2 = H.select_tests(L, diffs(root)["testfile"])
     c = H.commands(s2, root, env, root / "reports")[0]

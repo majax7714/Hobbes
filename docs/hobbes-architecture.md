@@ -343,6 +343,15 @@ helper), `gosource` (Go, V2.M5), `rustsource` (Rust, V2.M7),
 it since ADR-109), and the HCL walk inside the Terraform pack. Each answers the same question — where are
 the call sites, and what encloses them — and none of them resolves anything.
 
+A TS/JS test file is found by its name (`*.test.*`, `*.spec.*`,
+`__tests__/`). Its framework is the one it imports; for a globals-style
+suite that imports none, it is the one runner (jest, vitest, mocha,
+jasmine) its nearest declaring `package.json` names, vitest only with
+`globals: true`, recorded with `framework_from` and never run by the
+derive harness (ADR-176); otherwise `unknown` (C-13). A package that
+declares a runner and holds no test-named file is named once per
+ingest (`js-tests`, C-194).
+
 The TS provider places an overloaded function or method at its first
 signature, where the semantic lane places it (C-89), so one symbol has
 one line in both lanes. A zone's stage carries every config its
@@ -2366,7 +2375,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.109-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.109-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.110-beta** (2026-10-03, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.110-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

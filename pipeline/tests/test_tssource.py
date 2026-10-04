@@ -19,7 +19,9 @@ from hobbes.extract import SCHEMA_VERSION
 from hobbes.extract.tssource import (
     HELPER_VERSION,
     collect_ts_tests,
+    declared_test_frameworks,
     TsExtractError,
+    uninventoried_runner_manifests,
     extract_ts,
     has_ts_files,
     join_facts,
@@ -770,3 +772,98 @@ class TestCallerIsTheInnermostSymbol:
         (record,) = [t for t in extraction.tests["tests"] if t["id"].endswith("::outer")]
         # The nested function's call is outer's, so a test of outer reaches g.
         assert "src/k.g" in record["reaches"]
+
+
+class TestDeclaredTestFrameworks:
+    """ADR-176 (C-13): a globals-style test file the helper reports
+    `unknown` is named only from the one runner its manifest declares —
+    never from the calls, never past another runner's import, and vitest
+    only with its globals on. The six cells' measurement is in the ADR."""
+
+    def repo(self, tmp_path, manifests, configs=None):
+        for rel, manifest in manifests.items():
+            (tmp_path / rel).mkdir(parents=True, exist_ok=True)
+            (tmp_path / rel / "package.json").write_text(json.dumps(manifest))
+        for rel, text in (configs or {}).items():
+            (tmp_path / rel).write_text(text)
+        return tmp_path
+
+    def file(self, path, *specifiers, framework="unknown"):
+        return {"path": path, "test_framework": framework,
+                "imports": [{"specifier": s} for s in specifiers]}
+
+    def test_the_one_declared_runner_names_the_file(self, tmp_path):
+        repo = self.repo(tmp_path, {".": {"devDependencies": {"mocha": "^10"}}})
+        f = self.file("test/a.test.js", "assert", "../lib/a.js")
+        assert declared_test_frameworks(repo, [f]) == 1
+        assert f["test_framework"] == "mocha" and f["framework_from"] == "package.json"
+
+    def test_the_nearest_declaring_manifest_wins(self, tmp_path):
+        repo = self.repo(tmp_path, {
+            ".": {"devDependencies": {"jest": "^30"}},
+            "packages/a": {"name": "@w/a"},  # declares no runner: walk on up
+            "packages/b": {"devDependencies": {"mocha": "^10"}},
+        })
+        a, b = self.file("packages/a/x.test.js"), self.file("packages/b/test/y.test.js")
+        declared_test_frameworks(repo, [a, b])
+        assert (a["test_framework"], a["framework_from"]) == ("jest", "package.json")
+        assert (b["test_framework"], b["framework_from"]) == ("mocha", "packages/b/package.json")
+
+    def test_two_runners_or_none_stay_unknown(self, tmp_path):
+        repo = self.repo(tmp_path, {
+            ".": {"devDependencies": {"jest": "^30", "mocha": "^10"}},
+            "other": {"dependencies": {"left-pad": "1"}},
+        })
+        two = self.file("a.test.js")
+        assert declared_test_frameworks(repo, [two]) == 0 and two["test_framework"] == "unknown"
+        assert "framework_from" not in two
+
+    def test_vitest_needs_its_globals_on(self, tmp_path):
+        repo = self.repo(tmp_path, {".": {"devDependencies": {"vitest": "^4"}}},
+                         {"vitest.config.ts": "export default { test: { environment: 'node' } }"})
+        f = self.file("src/a.test.ts")
+        assert declared_test_frameworks(repo, [f]) == 0 and f["test_framework"] == "unknown"
+        (repo / "vitest.config.ts").write_text("export default { test: { globals: true } }")
+        f = self.file("src/a.test.ts")
+        assert declared_test_frameworks(repo, [f]) == 1 and f["test_framework"] == "vitest"
+
+    def test_another_runners_import_stays_unknown(self, tmp_path):
+        repo = self.repo(tmp_path, {".": {"devDependencies": {"vitest": "^4"}}},
+                         {"vite.config.mts": "test: { globals: true }"})
+        for spec in ("bun:test", "@playwright/test", "ava", "jsr:@std/testing/bdd", "@xmpp/test"):
+            f = self.file("runtime/a.test.ts", spec)
+            assert declared_test_frameworks(repo, [f]) == 0, spec
+        # an assertion or testing library is not a runner
+        f = self.file("src/a.test.ts", "chai", "@testing-library/react")
+        assert declared_test_frameworks(repo, [f]) == 1
+
+    def test_only_unknown_files_are_read(self, tmp_path):
+        repo = self.repo(tmp_path, {".": {"devDependencies": {"mocha": "^10"}}})
+        f = self.file("a.test.js", "vitest", framework="vitest")
+        assert declared_test_frameworks(repo, [f]) == 0 and "framework_from" not in f
+
+    def test_the_record_carries_framework_from(self, tmp_path):
+        repo = self.repo(tmp_path, {".": {"devDependencies": {"jest": "^30"}}})
+        f = self.file("a.test.js")
+        f["tests"] = [{"qualname": "adds", "line": 1, "end_line": 3}]
+        declared_test_frameworks(repo, [f])
+        rec, = collect_ts_tests([f], [], [])
+        assert rec["framework"] == "jest" and rec["framework_from"] == "package.json"
+
+
+def test_a_runner_with_no_test_named_file_is_named(tmp_path):
+    """C-194: Express's mocha suite is `test/*.js`, not test-named, so it is
+    not inventoried; the package that declares the runner is named."""
+    (tmp_path / "package.json").write_text('{"devDependencies": {"mocha": "^11"}}')
+    (tmp_path / "web").mkdir()
+    (tmp_path / "web" / "package.json").write_text('{"devDependencies": {"vitest": "^4"}}')
+    files = [
+        {"path": "lib/app.js", "test_framework": None},
+        {"path": "test/app.js", "test_framework": None},
+        {"path": "web/a.test.ts", "test_framework": "vitest"},
+    ]
+    assert uninventoried_runner_manifests(tmp_path, files) == []  # the root holds web's tests
+    files[2]["test_framework"] = None
+    assert uninventoried_runner_manifests(tmp_path, files) == [
+        ("package.json", "mocha"), ("web/package.json", "vitest"),
+    ]

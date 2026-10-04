@@ -11,9 +11,27 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.109-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.110-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.110-beta — 2026-10-03 (a globals-style test file's framework named from its manifest; ADR-176, C-13 narrowed, C-194 registered)
+
+**Patch: what the layer says**, TS/JS tests. Max: "strict manifest rule", then "label, harness ignores it".
+
+- **C-13 narrowed.** A test-named file that calls `describe`/`it`/`test` as globals and imports no framework
+  read `framework: "unknown"`. It is now named by the one runner (jest, vitest, mocha, jasmine) its nearest
+  declaring `package.json` names, vitest only where a config beside it sets `globals: true`. A file importing
+  another runner (`bun:test`, `@playwright/test`, a `/test` specifier) stays `unknown`, as does a manifest
+  declaring none or two. The row carries `framework_from`, and the derive harness does not run a declared
+  label: such rows read `unsupported`, as before.
+- **Measured on six cells** (`~/.hobbes/bench/c13-globals-2026-10-03/`): 320 of 326 `unknown` files named
+  (mocha 104, jest 57, vitest 149); the declared runner's own config runs 316. The 8 it does not are C-13's
+  residue (the rule reads no include glob). Built on local clones, the field equals the simulation on all 326.
+- **C-194 registered, surfaced:** a suite whose files are not test-named is not inventoried (Express's
+  mocha `test/*.js`). One `js-tests` degradation record per ingest names each `package.json` that declares a
+  runner with no test-named file under it.
+- No edge moves.
 
 ## 0.2.109-beta — 2026-10-03 (what a dependency install's cache copy cannot hold is declined by name; ADR-050 amended, C-23)
 

@@ -31,17 +31,40 @@
 - **Source:** M6, `future_additions.md` → per-package tsconfigs;
   narrowed and surfaced by ADR-041 (2026-08-16).
 
-### C-13 — Test files using injected globals report framework `unknown`
-- **Cannot tell you:** whether a test file with no framework import is
-  jest or vitest.
-- **Because:** framework detection reads imports, and globals-style suites
-  import nothing.
-- **Bites at:** the per-test `framework` field only; the tests are still
-  inventoried.
-- **You find out:** **surfaced** — the field literally says `"unknown"`
-  rather than guessing.
-- **Source:** ADR-021, M6.
+### C-13 — Test files using injected globals report framework `unknown` — *narrowed 2026-10-03 (ADR-176, 0.2.110-beta)*
+- **Narrowed 2026-10-03 (ADR-176, 0.2.110-beta).** A globals-style file that imports no other test
+  runner is named by the one runner (jest, vitest, mocha, jasmine) its nearest declaring `package.json`
+  names, vitest only where a config beside it sets `globals: true`. The row carries `framework_from`,
+  and the derive harness does not run it. On six cells 320 of 326 `unknown` files were named, and the
+  declared runner's own config runs 316 of them.
+- **Cannot tell you:** the framework of a globals-style file that imports another runner (`bun:test`,
+  `@playwright/test`; a specifier ending `/test`, such as xmpp.js's `@xmpp/test` helper, is refused the
+  same way: 5 files), or whose manifests declare no runner or two; and whether the declared runner
+  actually runs a named file. The rule reads no include or exclude glob and no workspace project:
+  preact's 3 `test/ts/*.test.tsx` (type tests outside vitest's `*.test.js?(x)`), hono's excluded
+  `common.case.test.tsx` and 4 xmpp.js files no jest config matches are named all the same.
+- **Because:** framework detection reads imports, globals-style suites import nothing, and a runner's
+  config is code.
+- **Bites at:** the per-test `framework` field only. The tests are inventoried either way, and the
+  harness runs only an imported `vitest` or `node:test`.
+- **You find out:** **surfaced**. The field says `"unknown"` rather than guessing, and a declared name
+  carries `framework_from`.
+- **Source:** ADR-021, M6; narrowed by ADR-176 (`~/.hobbes/bench/c13-globals-2026-10-03/RESULTS.md`).
 
+---
+
+### C-194 — A JS/TS test suite whose files are not test-named is not inventoried — *registered 2026-10-03 (0.2.110-beta, ADR-176)*
+- **Cannot tell you:** the tests in a suite whose files are named neither `*.test.*` nor `*.spec.*` nor
+  under `__tests__/`, such as Express's mocha `test/*.js` (70 files, 440 `describe` calls). The suite
+  has no row in `tests.json`, and `tests_guarding` answers nothing for the code it guards.
+- **Because:** a test file is found by its name. A runner's own globs live in its config or its test
+  script, which is code, and the layer does not read them.
+- **Bites at:** a JavaScript repo on mocha's default `test/` layout or any other unsuffixed layout.
+  Express is the graded one.
+- **You find out:** **surfaced**. One `js-tests` degradation record per ingest names each `package.json`
+  that declares a runner (jest, vitest, mocha, jasmine) while no file under it is test-named, and
+  `list_blind_spots` shows it.
+- **Source:** item 9's measurement (ADR-176), 2026-10-03.
 ---
 
 ### C-63 — A call through an element access (`obj[key]()`) draws no edge — *surfaced 2026-09-05*

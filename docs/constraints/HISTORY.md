@@ -6,6 +6,15 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-13 narrowed and C-194 registered, 2026-10-03 (0.2.110-beta; ADR-176, Max: "strict manifest rule", then "label, harness ignores it"):
+- **C-13 narrowed.** A globals-style test file is named by the one runner its manifest declares (vitest only
+  with `globals: true`), recorded as `framework_from` and not run by the derive harness. On six cells 320 of
+  326 `unknown` files were named; the declared runner's config runs 316, and the 8 it does not are C-13's
+  residue.
+- **C-194 registered (surfaced).** Express's mocha suite (`test/*.js`) is not test-named and so not
+  inventoried; a `js-tests` record now names a package that declares a runner with no test-named file under
+  it. Tally: 194 entries, 144 active (112 surfaced).
+
 C-23's cache-copy gaps named, 2026-10-03 (0.2.109-beta; ADR-050's amendment, Max: route 1, "decline by name"; no entry added):
 - **An unnamed limit, precedent 1.** Found re-ingesting dagger after the `corepack` fix: the install runs on a
   cache copy of `package.json` and the lockfile alone. A local-path dependency failed with yarn's error about a

@@ -16143,3 +16143,23 @@ Max: item 8 "close as measured", item 9 "strict manifest rule", both the recomme
 recorded in the entry above. C-174 records item 8's count, and the item leaves the extraction order with no
 rule and no version move. Item 9 goes to an ADR first. The proxy and image were rebuilt at 0.2.109-beta
 (`ba450ab00334`).
+
+## 2026-10-03 (forty-first session) — item 9 built at 0.2.110-beta (ADR-176; C-13 narrowed, C-194 registered)
+
+- **ADR-176 written first (proposed), then measured** (`~/.hobbes/bench/c13-globals-2026-10-03/`): `sim.py`
+  ran the rule as worded over six cells' `unknown` files, and each named file was checked against the globs of
+  the runner its repo's own test script runs. 320 of 326 were named: mocha 104 of 104 run, jest 53 of 57,
+  vitest 145 of 149. The vitest misses were preact's 3 `test/ts/*.test.tsx` type tests and hono's excluded
+  `common.case.test.tsx`. The derive harness runs every `vitest` row, so that went back to Max. Route: label,
+  and the harness runs only an imported runner.
+- **Premise checked against the code first:** the helper's `testFramework` (`tsextract/extract.mjs`) knows
+  only `node:test`, `vitest` and `@jest/globals`, and has no manifest. The rule went into
+  `tssource.declared_test_frameworks`, run before `collect_ts_tests`. The harness groups a row with
+  `framework_from` as `<runner> (declared)`, with no command.
+- **Express:** 70 `test/*.js` files, 440 `describe` calls, none test-named, so no row. Registered as C-194 and
+  surfaced by a `js-tests` record (`uninventoried_runner_manifests`).
+- **Real cells:** local clones at each cell's HEAD, lane A only (`real.sh`; the standing clones' graded graphs
+  were not overwritten). The built field equals the simulation on 326 of 326 files, and Express's ingest
+  writes the record. The first `real.sh` pass straddled a code edit, so it was re-run whole on the final
+  code.
+- Host: pytest 2,860.

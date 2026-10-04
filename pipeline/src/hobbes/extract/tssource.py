@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import subprocess
 from collections import defaultdict
@@ -338,6 +339,141 @@ def _edge_list(edges: dict[tuple, list]) -> list[dict]:
     ]
 
 
+#: The runners whose suites call `describe`/`it`/`test` as globals.
+_GLOBALS_RUNNERS = ("jest", "vitest", "mocha", "jasmine")
+#: A test module that is not one of them: a file importing it stays `unknown`.
+_OTHER_TEST_MODULES = frozenset(
+    {"bun:test", "@playwright/test", "mocha", "jasmine", "ava", "tap", "uvu", "@japa/runner"}
+)
+
+
+def _imports_another_runner(specifier: str) -> bool:
+    return (
+        specifier in _OTHER_TEST_MODULES
+        or specifier.endswith((":test", "/test"))
+        or "@std/testing" in specifier
+    )
+
+
+def declared_test_frameworks(repo_root: Path, files: list[dict]) -> int:
+    """Name the framework of a globals-style test file from its manifest
+    (ADR-176); returns how many files were named.
+
+    The helper reports ``unknown`` for a test-named file that calls the
+    globals and imports no framework (C-13). Such a file is named only
+    when it imports no other test runner, the first ``package.json`` at or
+    above it that declares any of :data:`_GLOBALS_RUNNERS` declares exactly
+    one, and, for vitest, a ``vitest.config.*``/``vite.config.*`` beside it
+    sets ``globals: true``. Anything else stays ``unknown``. The named file
+    carries ``framework_from``, the manifest's path: the runner is
+    declared, not imported, and the derive harness does not run it.
+    """
+    repo_root = Path(repo_root)
+    decided: dict[str, tuple[str, str] | None] = {}
+
+    def runner_for(directory: PurePosixPath) -> tuple[str, str] | None:
+        key = str(directory)
+        if key in decided:
+            return decided[key]
+        here = repo_root if key == "." else repo_root / key
+        answer: tuple[str, str] | None
+        manifest = None
+        try:
+            manifest = json.loads((here / "package.json").read_text())
+        except (OSError, ValueError):
+            pass
+        found = []
+        if isinstance(manifest, dict):
+            deps = {}
+            for section in ("dependencies", "devDependencies"):
+                if isinstance(manifest.get(section), dict):
+                    deps.update(manifest[section])
+            found = [r for r in _GLOBALS_RUNNERS if r in deps]
+        if found:
+            rel = "package.json" if key == "." else f"{key}/package.json"
+            if len(found) > 1:
+                answer = None
+            elif found[0] == "vitest" and not _vitest_globals_on(here):
+                answer = None
+            else:
+                answer = (found[0], rel)
+        elif key == ".":
+            answer = None
+        else:
+            answer = runner_for(directory.parent)
+        decided[key] = answer
+        return answer
+
+    named = 0
+    for f in files:
+        if f.get("test_framework") != "unknown":
+            continue
+        if any(_imports_another_runner(i.get("specifier") or "") for i in f.get("imports", ())):
+            continue
+        answer = runner_for(PurePosixPath(f["path"]).parent)
+        if answer is None:
+            continue
+        f["test_framework"], f["framework_from"] = answer
+        named += 1
+    return named
+
+
+def uninventoried_runner_manifests(repo_root: Path, files: list[dict]) -> list[tuple[str, str]]:
+    """``(manifest path, runner)`` for each ``package.json`` above a TS/JS
+    file that declares a globals runner while no file under it is
+    inventoried as a test (C-194).
+
+    A test file is found by its name (``*.test.*``, ``*.spec.*``,
+    ``__tests__/``), so a suite named any other way, such as Express's
+    mocha ``test/*.js``, is not inventoried, and ``tests_guarding``
+    answers nothing there. This names it; it does not guess the files.
+    """
+    repo_root = Path(repo_root)
+    dirs: set[str] = set()
+    tested: set[str] = set()
+    for f in files:
+        parent = PurePosixPath(f["path"]).parent
+        chain = [str(parent)] + [str(p) for p in parent.parents]
+        dirs.update(chain)
+        if f.get("test_framework"):
+            tested.update(chain)
+    out = []
+    for key in sorted(dirs):
+        if key in tested:
+            continue
+        here = repo_root if key == "." else repo_root / key
+        try:
+            manifest = json.loads((here / "package.json").read_text())
+        except (OSError, ValueError):
+            continue
+        if not isinstance(manifest, dict):
+            continue
+        deps = {}
+        for section in ("dependencies", "devDependencies"):
+            if isinstance(manifest.get(section), dict):
+                deps.update(manifest[section])
+        found = [r for r in _GLOBALS_RUNNERS if r in deps]
+        if found:
+            out.append(("package.json" if key == "." else f"{key}/package.json", "/".join(found)))
+    return out
+
+
+def _vitest_globals_on(directory: Path) -> bool:
+    """A vitest or vite config in *directory* that sets ``globals: true``."""
+    try:
+        entries = sorted(directory.iterdir())
+    except OSError:
+        return False
+    for entry in entries:
+        if re.fullmatch(r"(?:vitest|vite)\.config\.[cm]?[jt]s", entry.name):
+            try:
+                if re.search(r"\bglobals\s*:\s*true\b", entry.read_text(errors="replace")):
+                    return True
+            except OSError:
+                continue
+    return False
+
+
 def collect_ts_tests(
     files: list[dict], symbols: list[dict], symbol_edges: list[dict]
 ) -> list[dict]:
@@ -447,6 +583,11 @@ def collect_ts_tests(
                     "reaches_modules": sorted(
                         {symbol_module[s] for s in reached if s in symbol_module}
                         | imported_modules
+                    ),
+                    **(
+                        {"framework_from": f["framework_from"]}
+                        if f.get("framework_from")
+                        else {}
                     ),
                 }
             )

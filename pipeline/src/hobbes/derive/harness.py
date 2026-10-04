@@ -372,7 +372,10 @@ def select_tests(L: T.Ledger, diff: str) -> Selection:
             grain, origin = "package", "guard"
         if grain and t["id"] not in seen:
             seen.add(t["id"])
-            tests.append({"id": t["id"], "file": t["file"], "framework": t["framework"], "origin": origin, "grain": grain})
+            row = {"id": t["id"], "file": t["file"], "framework": t["framework"], "origin": origin, "grain": grain}
+            if t.get("framework_from"):
+                row["framework_from"] = t["framework_from"]
+            tests.append(row)
     return Selection(sorted(ranges), sorted(created), sorted(symbols), sorted(modules), tests, touched)
 
 
@@ -426,6 +429,10 @@ def commands(sel: Selection, worktree: Path, env: Environment, reports: Path) ->
     reports = Path(reports)
     groups: dict[tuple[str, str], list[dict]] = collections.defaultdict(list)
     for t in sel.tests:
+        if t.get("framework_from"):
+            # a runner the manifest declares, not one the file imports (ADR-176): named, never run
+            groups[(f"{t['framework']} (declared)", "")].append(t)
+            continue
         if t["framework"] == "pytest":
             root = nearest(worktree, t["file"], ("pyproject.toml", "setup.cfg", "pytest.ini", "tox.ini", "setup.py"))
         elif t["framework"] == "go-test":
