@@ -16163,3 +16163,5 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   writes the record. The first `real.sh` pass straddled a code edit, so it was re-run whole on the final
   code.
 - Host: pytest 2,860.
+- Proxy and image rebuilt at 0.2.110-beta (`75861ebfd088`), Go suites pass; the handoff rewritten; this repo
+  ingested at HEAD after this commit.

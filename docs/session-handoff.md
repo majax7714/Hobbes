@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-03 (fortieth session); Hobbes 0.2.108-beta on `main`.**
+**Reviewed 2026-10-03 (forty-first session); Hobbes 0.2.110-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
-0.2.108-beta (image `1a04763f50bd`), and this repo was
+0.2.110-beta (image `75861ebfd088`), and this repo was
 ingested at HEAD after it; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
 new container from the current image, so it starts fresh.
 
@@ -27,11 +27,11 @@ session went belongs in the BUILDLOG.
 - 2026-10-03: the extraction order ("approved, all recommendations are
   good"), then the Phase 1 routes ("good with recommended").
 
-**Next:** [`currently-open.md`](currently-open.md) § Extraction. Item 7 is built
-(0.2.108-beta, ADR-175); its Route A remainder and dagger's snippet zones stay open beside it.
-Then items 8 (Python `__call__` held in an attribute, held out on voluptuous, marshmallow,
-toolz or tenacity) and 9 (C-13, jest globals). The C++ held-out cells chromaprint and
-filesystem are now fitted to ADR-175: draw again for the next C++ rule.
+**Next:** Phase 2 of [`currently-open.md`](currently-open.md) § Extraction is worked
+through: items 6, 7 and 9 are built, item 8 is closed as measured, and item 5 waits on a Rust crate
+that writes operator impls (re-ask Max before building). Item 7's Route A remainder stays open. Take
+the next extraction work to Max as routes; the C++ held-out cells chromaprint and filesystem are fitted,
+so draw again for a C++ rule.
 
 **Waiting on Max:**
 - **The trace measuring run's click and rich cells:** the session's
@@ -46,32 +46,24 @@ Don't build any of them until Max answers.
 
 ## Where the last day left things (2026-10-03; the CHANGELOG has each one)
 
-Fortieth session: item 7's held-out C++ draw; filesystem's one contradicted row was a
-`#define` read as a function, fixed at **0.2.107** (ADR-135's second amendment, C-164
-narrowed); item 7 measured, then built at **0.2.108** on Max's route 1 (ADR-175: a functor's
-`operator()` and an implicit conversion, both `semantic`; filesystem 3,048 → 3,220, all
-confirmed, 0 contradicted on five cells).
+Forty-first session (Max: "go with recommended", then a route at each re-ask):
+- **0.2.109, ADR-050 amended (C-23):** dagger's re-ingest showed the npm install's cache copy holds only
+  `package.json` and the lockfile. A local-path dependency (dagger's 11 docs zones, `./sdk`) failed with
+  yarn's error about a cache path, and a workspace root installed silently partial (npm 10.9.2). Both are now
+  declined by name. dagger's Rust cell is identical; xmpp.js's lock is out of sync under npm 10 (C-165 stands).
+- **Item 8 closed as measured** (C-174): 5 of 29 fitted `__call__` misses reachable; the voluptuous draw
+  (pre-registered) about 2.
+- **0.2.110, ADR-176:** a globals-style test file is named by the one runner its manifest declares (C-13
+  narrowed; 320 of 326 on six cells, 316 run by that runner). The harness runs only an imported runner.
+  Express's un-test-named mocha suite is C-194, surfaced by a `js-tests` record.
 
-Thirty-ninth session: Max approved the extraction order, then the Phase 1
-routes; each unit its own commit, regraded where it could move a cell:
-- **0.2.102, ADR-173, C-187–C-193:** the Terraform layer had no `C-n`; an
-  HCL fixture found the address merge and a cross-directory reference
-  drawn. The latter refused; all limits named per ingest (`hcl-layer`,
-  `hcl-parse`); `list_blind_spots` serves an infra-only scope.
-- **0.2.103, ADR-135 amended:** C-164's remainder named (`cpp-macro-names`;
-  fmt lane A alone 18 = the register's count, with lane B 1, args 0).
-- **0.2.104:** C-174 counted at repo scale (upper bounds; Rust's graded
-  crates write no operator impl, so item 5 is deferred); C-176 measured on Go
-  and Java (jsoup's enum constant bodies 1,691 rows, Go package vars),
-  widened, and `who_calls` names both.
-- **0.2.105, ADR-173 amended:** Terraform ids `tf:<dir>:<address>`; C-187
-  lifted (terraform-aws-eks 287 blocks, 287 nodes).
-- **0.2.106, ADR-174:** Rust impl ids by ordinal (`T.distance~2`), Max's
-  scheme; C-180 lifted (memchr 919 → 921, dagger 3,363 → 3,595, 0
-  contradicted, poison PASS).
-- **H-38 logged open** (the tracer's `getattr` runs a repo's `__getattr__`).
-- Slip, fixed and in the BUILDLOG: 0.2.103's bump pinned the architecture's
-  §8 header by line number after an insertion moved it; replace by content.
+Fortieth session: item 7's held-out C++ draw; a `#define` read as a function fixed at **0.2.107**
+(ADR-135's second amendment); item 7 built at **0.2.108** (ADR-175: a functor's `operator()` and an
+implicit conversion, `semantic`; filesystem 3,048 → 3,220, 0 contradicted on five cells).
+
+Thirty-ninth session: the extraction order's Phase 1 audits and their routes, 0.2.102–0.2.106 (Terraform's
+limits registered and its ids scoped by directory, C-164's remainder named, C-174 counted at repo scale,
+C-176 widened, Rust impl ids by ordinal). H-38 logged open.
 
 ## Where things stand
 
