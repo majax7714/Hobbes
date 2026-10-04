@@ -16410,3 +16410,15 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   `currently-open.md` (the item deleted; 2a route (i) next).
 - On `main`: Go `./...` ok, `bench/oracle` ok, tsextract 50/50, pytest 2,889. Proxy and image rebuilt
   (`ac9349eeceb5`, `hobbes-proxy 0.2.120-beta`). The `adr179` worktree and branch removed after.
+
+## 2026-10-04 (forty-fourth session, cont.) — ADR-180 written; a TS draw rule; pre-registered
+
+- Max: "good to proceed with 2a" (route (i)). A held-out TS cell had no pool: `~/.hobbes/bench/ts-cells/
+  DRAW-RULE.md` written and hashed before the pool was fetched (GitHub search `language:typescript
+  stars:300..3000 pushed:>2026-03-01`, 1,000 repos, `Random(20261004)`; ≥300 `calls`, keyed, ≥20 rows of the
+  shape; stop at 80). `walk.py` running detached from this checkout, so ADR-180 is built in a worktree.
+- ADR-180: a function-literal field of a top-level named class is a `method` symbol at its name's line; lane
+  B's references draw to it (`semantic`), lane A's `declQualname` does not; its body is its scope.
+  `PREREG-180.md` (R1–R7) hashed before any rule code.
+- Also found: the earlier wait loop on `walk-adr179.sh` matched its own `pgrep -f` pattern; Max noticed a
+  shell still running. It had exited by the time it was checked.
