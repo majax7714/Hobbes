@@ -16322,3 +16322,15 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   nine Rust repos), `verification.py`; cell records (ureq new, hecs regrade); `cells.meta.json` + render (116
   cells); `extraction-evidence.md`; §10.51; `bench-drivers.md`; `lessons.md`; `currently-open.md` (the Rust
   routes done); CLAUDE.md/AGENTS.md (the last ADR is 178). pytest 2,884; `lane_b` Rust uncached; Go both.
+
+## 2026-10-04 (forty-fourth session) — the TS/JS routes: ADR-158's amendment approved
+
+- Max: "approved recommended" on the three routes proposed: **1a** approve ADR-158's amendment as built
+  (0.2.82-beta; every pre-registered prediction held, the symbol set unmoved) and split the open item;
+  **2a** measure the class-property-function shape before any build; **1b** then lift C-176's floor for an
+  object literal's methods bound to a top-level name, pre-registered on a new held-out JS cell.
+- Found while proposing: a line read puts ~1,230 of zod's 1,274 `static→property` rows behind
+  `const stringType = ZodString.create` (`types.ts:5046`), not `X.create(..)`, so a property-symbol rule
+  alone would recover few of the 1,029 pairs. 2a measures it.
+- Records: ADR-158's status; `currently-open.md` (the amendment item is now "lifting C-176's floor"; the
+  class-property item carries 2a). Docs only; no bump.

@@ -2,7 +2,8 @@
 
 **Date:** 2026-10-01 · **Status:** **built** (0.2.82-beta). This is route 2 of the honesty audit (Max,
 2026-10-01: "leave 176 177 for next session"; the handoff's next task, measured first). The amendment
-(§2) was found while reading the code and pre-registered before either arm ran; it is for Max's review.
+(§2) was found while reading the code and pre-registered before either arm ran; **Max approved it as built
+on 2026-10-04** ("approved recommended", route 1a).
 · **Owner:** Max · **Source:** C-176 (registered at 0.2.80-beta by the honesty audit). Pre-registered and
 measured: `~/.hobbes/bench/c176-ts-scope/` (`PREREG.md`, `run.sh`, `probe.py`, `compare.py`,
 `RESULTS.md`).

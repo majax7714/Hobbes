@@ -24,12 +24,15 @@ key no implicit call, so a rule's rows could not be graded.
 ### Routes waiting on Max
 
 **TypeScript / JavaScript** (each moves the TS symbol set):
-- **ADR-158's amendment:** nested functions file under their top-level symbol. Pre-registered, not in the
-  route Max named. C-176 keeps the floor (an object literal's method, an unnamed class, a
-  property-assigned function, a namespace); the CJS literal member (cue 49, Express 46) is the same
-  question.
-- **Class-property functions** (zod: 1,029 collapsed pairs). Set aside 2026-09-10 until the constructor
-  grain was settled; ADR-142 settled it. **Re-ask; do not start.**
+- **Lifting C-176's floor** (ADR-158's amendment approved 2026-10-04; it did not move the symbol set).
+  The floor: an object literal's method, an unnamed class, a property-assigned function, a namespace.
+  Approved 2026-10-04 as route 1b, after 2a below: the methods of an object literal bound to a top-level
+  name first (ajv 338 caller rows; cue 49 callee misses), pre-registered on a new held-out JS cell
+  (DRAW-RULE-2, positions 42–80). Property-assigned functions (Preact 247, Express 46) wait for it.
+- **Class-property functions** (zod: 1,029 collapsed pairs). Approved 2026-10-04 as route 2a: measure
+  first, no build. A line read put ~1,230 of zod's 1,274 rows behind `const stringType = ZodString.create`
+  (a const lane A does not model), not `X.create(..)`; re-bucket by site syntax at HEAD, read what
+  scip-typescript names at `z.string()`, size hono's 93, and check which `C-n` names the limit.
 
 **Python:**
 - **Whether to extend the standing trace oracle (C-174).** Measured on all four keyed cells, contained
