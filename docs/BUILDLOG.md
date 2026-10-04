@@ -16375,3 +16375,13 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
 - Left for Max: the gate's map reason `dynamic-dispatch` for the class (`currently-open.md`).
 - Go `./...` ok; pytest 2,884 passed (lane_b not re-run: nothing it reads moved). Proxy and image rebuilt
   (`168527701a7a`, `hobbes-proxy 0.2.119-beta`).
+
+## 2026-10-04 (forty-fourth session, cont.) — ADR-179 written and pre-registered (1b, route (a))
+
+- ADR-179: a direct member of a literal bound at top level is a `method` symbol, `scope_only` — a caller,
+  never a target (out of `starting_at`, `declQualname` and C-156's callable count; `who_calls` says so).
+  Read first: `starting_at` claims by line alone (`scipsource.py:808`), so a member on a one-line literal's
+  line would have caught lane B's references to the literal's own name; TS reach seeds from the case's call
+  sites and closes over `calls` from symbols (`tssource.py:540`), so reach cannot move.
+- Pre-registered `~/.hobbes/bench/ts-floor-2026-10-04/PREREG-1b.md` (Q1–Q7; amendment 0 to Q6 before
+  anything ran; `prereg-1b.sha256`): the held-out cell from DRAW-RULE-2's walk at 42 with ≥20 covered rows.
