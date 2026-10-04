@@ -16420,5 +16420,6 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
 - ADR-180: a function-literal field of a top-level named class is a `method` symbol at its name's line; lane
   B's references draw to it (`semantic`), lane A's `declQualname` does not; its body is its scope.
   `PREREG-180.md` (R1–R7) hashed before any rule code.
-- Also found: the earlier wait loop on `walk-adr179.sh` matched its own `pgrep -f` pattern; Max noticed a
-  shell still running. It had exited by the time it was checked.
+- Max noticed a shell still running. No process of this session was left when checked (`ps`); the likely
+  one was a wait loop on `pgrep -f walk-adr179.sh`, a pattern its own command line contains (not verified).
+  Four `tail -f` from earlier sessions (18 hours to 21 days old) are still running; left for Max.
