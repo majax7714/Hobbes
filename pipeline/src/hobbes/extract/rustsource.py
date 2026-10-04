@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import re
 import tomllib
+from array import array
 from bisect import bisect_left
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -88,6 +89,10 @@ class RustFile:
     #: carries a ``#[cfg(…)]``, its attributes included. Read by
     #: :func:`compiled_arms` alone (ADR-165's second amendment).
     cfg_gates: dict[tuple[str, int], tuple[tuple[int, int], ...]] = field(default_factory=dict)
+    #: Every operator token the file writes, in an expression or a macro's
+    #: token tree, packed and sorted as ADR-131's C++ tokens are. Read by
+    #: the join alone, and only where lane B ran (ADR-178).
+    operators: array = field(default_factory=lambda: array("Q"))
 
 
 def has_rust_files(repo_root: Path) -> bool:
@@ -239,7 +244,49 @@ def _parse_file(rel: str, source: bytes) -> RustFile:
             )
 
     parsed.calls = _calls(root, parsed.symbols)
+    parsed.operators = _operator_tokens(root)
     return parsed
+
+
+#: The spellings :func:`_operator_tokens` records: each a leaf token
+#: tree-sitter-rust writes for an operator, in an expression or a token
+#: tree. ``[`` is recorded as ``[]``, the spelling ADR-131's packing gives
+#: a subscript.
+_OPERATOR_SPELLINGS = frozenset({
+    "*", "+", "-", "/", "%", "!", "&", "|", "^", "<<", ">>",
+    "==", "!=", "<", ">", "<=", ">=",
+    "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", "[",
+})
+
+
+def _operator_tokens(root: Node) -> array:
+    """Every operator token the file writes, packed and sorted (ADR-178).
+
+    Unlike C++'s walk this needs no expression context: a token is only
+    ever matched against a lane B reference named for that operator's
+    method at exactly its position, so a ``*`` in a pointer type or a glob
+    import meets nothing. A macro's token tree is read too — hecs writes
+    most of its dereferences inside ``assert_eq!``. A token under an ERROR
+    node is dropped, as C++'s is, and so is one past the column limit.
+    """
+    from hobbes.extract.cppsource import COLUMN_LIMIT, pack_operator
+
+    packed: set[int] = set()
+    cursor = root.walk()
+    while True:
+        node = cursor.node
+        if node.child_count == 0 and not node.is_named and node.type in _OPERATOR_SPELLINGS:
+            column = node.start_point.column
+            if column < COLUMN_LIMIT and (node.parent is None or node.parent.type != "ERROR"):
+                spelling = "[]" if node.type == "[" else node.type
+                packed.add(pack_operator(node.start_point.row + 1, column, spelling, False))
+        if cursor.goto_first_child() or cursor.goto_next_sibling():
+            continue
+        while cursor.goto_parent():
+            if cursor.goto_next_sibling():
+                break
+        else:
+            return array("Q", sorted(packed))
 
 
 def _walk_items(
@@ -856,6 +903,7 @@ def _join(files: list[RustFile], crates: dict[str, str]) -> dict:
         "call_fallback": _call_fallback(files, crates, mod_map),
         "shared_qualnames": shared_qualnames(files),
         "cfg_twins": cfg_twins(files),
+        "operators": {parsed.path: parsed.operators for parsed in files if parsed.operators},
         "same_header_repeats": same_header_repeats(files),
         "files": files,
         "tests": sorted(

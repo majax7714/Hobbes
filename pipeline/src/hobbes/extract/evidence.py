@@ -253,6 +253,43 @@ def _implicit_construction(
     return body_expression(packed, hit.line, hit.col)
 
 
+#: ADR-178: each Rust operator trait method, and the token spellings that
+#: apply it — the name rust-analyzer gives the reference it writes at the
+#: token. ``[]`` is the subscript's ``[`` (ADR-131's packing).
+RUST_OPERATOR_METHODS: dict[str, tuple[str, ...]] = {
+    "deref": ("*",), "deref_mut": ("*",),
+    "neg": ("-",), "not": ("!",),
+    "add": ("+",), "sub": ("-",), "mul": ("*",), "div": ("/",), "rem": ("%",),
+    "bitand": ("&",), "bitor": ("|",), "bitxor": ("^",), "shl": ("<<",), "shr": (">>",),
+    "add_assign": ("+=",), "sub_assign": ("-=",), "mul_assign": ("*=",),
+    "div_assign": ("/=",), "rem_assign": ("%=",), "bitand_assign": ("&=",),
+    "bitor_assign": ("|=",), "bitxor_assign": ("^=",), "shl_assign": ("<<=",),
+    "shr_assign": (">>=",),
+    "eq": ("==", "!="), "ne": ("!=",),
+    "lt": ("<",), "le": ("<=",), "gt": (">",), "ge": (">=",),
+    "partial_cmp": ("<", "<=", ">", ">="),
+    "index": ("[]",), "index_mut": ("[]",),
+}
+
+
+def _rust_operator_call(hit: Site, operators: Mapping) -> bool:
+    """Whether *hit* is a Rust operator applied to a repo impl (ADR-178):
+    a reference named for an operator trait's method at exactly a token
+    lane A recorded with a spelling that method answers. Exact, as
+    ADR-131's rule is: one column off — rust-analyzer also writes a `mul`
+    reference on the spaces beside a binary `*` — or another spelling is
+    False, and the reference stays the ``uses`` fact it is today."""
+    spellings = RUST_OPERATOR_METHODS.get(hit.name)
+    if spellings is None or hit.col < 0:
+        return False
+    packed = operators.get(hit.file)
+    if not packed:
+        return False
+    from hobbes.extract.cppsource import operator_token
+
+    return any(operator_token(packed, hit.line, hit.col, spelling) is not None for spelling in spellings)
+
+
 def _operator_call(hit: Site, operators: Mapping) -> bool | None:
     """Whether *hit* is a C++ operator the source applied **by symbol** at
     a token lane A recorded, and if so whether that token sits inside a
@@ -358,6 +395,7 @@ def join(
     ts_construction_counts: dict | None = None,
     bodies: Mapping[str, array] | None = None,
     macros: frozenset[tuple[str, int]] | None = None,
+    rust_operators: Mapping[str, array] | None = None,
 ) -> list[Resolved]:
     """Join syntax sites against semantic resolutions (ADR-029's table).
 
@@ -420,6 +458,14 @@ def join(
     the repo is never also counted withheld. Import sites are untouched:
     a C++ include is lane A's fact about the source, which lane B neither
     contradicts nor replaces.
+
+    *rust_operators* is the same per Rust file (ADR-178): a resolution no
+    call site claimed, named for an operator trait's method (``deref``,
+    ``mul``, ``index`` …, :data:`RUST_OPERATOR_METHODS`), at exactly a
+    recorded token of a spelling that method answers, is a ``calls`` fact;
+    rust-analyzer writes it at the token, onto the impl method. Rust has
+    no template bit, and ``==`` meets nothing: rust-analyzer writes no
+    reference there.
 
     *operators* is lane A's packed operator tokens per C++ file (ADR-131,
     :func:`~hobbes.extract.cppsource.pack_operator`). A resolution no call
@@ -600,6 +646,15 @@ def join(
             if (hit.file, hit.line, hit.name) in claimed_by_name:
                 continue  # a columnless site claimed the name here
             in_template = _operator_call(hit, operators) if operators else None
+            if in_template is None and rust_operators and _rust_operator_call(hit, rust_operators):
+                # ADR-178: ADR-131's step 3 for Rust, which has no template
+                # bit. Counted apart from C++'s.
+                if counts is not None:
+                    counts["rust_drawn"] = counts.get("rust_drawn", 0) + 1
+                in_template = False
+                counts_rust = True
+            else:
+                counts_rust = False
             if in_template is False:
                 # ADR-131: an operator applied by symbol, outside a
                 # template. No syntax site could claim it — `a + b` names
@@ -607,7 +662,7 @@ def join(
                 # which is the join's own case. No scope: `project` names
                 # the caller by the enclosing symbol, as it does for every
                 # unscoped fact.
-                if counts is not None:
+                if counts is not None and not counts_rust:
                     counts["drawn"] = counts.get("drawn", 0) + 1
                 out.append(
                     Resolved(

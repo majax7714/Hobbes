@@ -2917,6 +2917,24 @@ P1, P2 (46 of 46), P3, P5 (+662), P6 (every added node read or sampled: a `fn` w
 the trait's `type` node to the provided method (P8's effect), which the wording did not separate. Strict
 precision equals the standing figure on every cell.
 
+### 10.51 Item 5: a Rust operator applied to a repo impl, held out on ureq — `PREREG-rule.md` written 2026-10-04 before the build, two amendments; graded at 0.2.117–0.2.118-beta
+
+**Probe (hecs, fitted):** rust-analyzer writes a reference named for the operator trait's method at the
+operator token, onto the repo impl; 59 of the unary-`*` ones confirmed by the key at that line, 0
+contradicting. `==` gets none; auto-deref through `.` has no token. **Rule (ADR-178):** lane A's operator
+tokens meet a method-named reference at exactly the token → `calls`.
+
+| cell | 0.2.117-beta | 0.2.118-beta | drawn | poison |
+|---|---:|---:|---:|---|
+| **algesten/ureq (3), held out** | 1,257/1,257 | **1,274/1,274** | 17 | PASS |
+| Ralith/hecs (1), fitted | 1,379/1,379 | **1,440/1,440** | 68 | PASS |
+| tuna-f1sh/cyme (30), held out, vacuous | 2,754/2,754 | 2,754/2,754 | 0 | PASS |
+| the other six Rust cells | unchanged | unchanged | 0 | PASS |
+
+cyme was vacuous (all 30 operator sites `PartialEq` at `==`): the take condition counted every operator
+trait (amendment 1). Q1, Q3–Q7 met; **Q2 missed as written** (8 of the 17 `Deref` sites the counter saw,
+47%; the counter missed `Add<…>`'s generics — 17 of 26 with them — and counted 9 tokenless auto-derefs).
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

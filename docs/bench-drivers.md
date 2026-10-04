@@ -31,6 +31,15 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-04 — item 5, Rust operators (0.2.118-beta)
+
+- `rust-ops-2026-10-04/`: `PREREG-rule.md` (Q1–Q7, amendments 1–2), `prereg.sha256`; `opprobe.py <facts>
+  <repo> <oracle.json>` (operator-named references by token and key confirmation); `count_impls.py <repo>`
+  (reachable impls per package, source only); `count_reach.py <oracle.json>` (reachable key sites; its regex
+  misses generic trait names such as `Add<Duration>`); `walk-0.json`; `regrade/` (`cells.tsv`,
+  `cells-ureq.tsv`, `before-graphs/`, `after/`, `score.py [cells file]`, `score.json`, `score-ureq.json`).
+  Cell under `~/.hobbes/bench/oracle/ureq-rust/`, clone `oracle/repos/ureq`.
+
 ## 2026-10-04 — C-182's compiled arm and the provided-method rule (0.2.116–0.2.117-beta)
 
 - `c182-compiled-arm-2026-10-04/`: `regrade3.sh` over `cells.tsv` (seven Rust cells), `before-graphs/`,

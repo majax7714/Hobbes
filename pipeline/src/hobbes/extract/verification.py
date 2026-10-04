@@ -72,9 +72,9 @@ VERIFICATION_BASE: dict[str, dict] = {
         # Compiler-graded on both since the oracle lane's phase 2 (ADR-089,
         # O7, 2026-08-25); ADR-040's hand-check is superseded.
         # Four held-out cells drawn at random, 2026-10-03 (§10.49), and
-        # a fifth, 2026-10-04 (ADR-177's held-out cell).
-        "repos": 8,
-        "on": 'rust_proj (one small crate, re-earned under containment 2026-08-28); dagger — its sdk/rust workspace (O7); BurntSushi/memchr (2026-08-27/28); eycorsican/leaf, Ralith/hecs, SeaQL/sea-query, fabianlindfors/reshape — drawn at random, held out (2026-10-03); tuna-f1sh/cyme — drawn at random, held out (2026-10-04)',
+        # a fifth and sixth, 2026-10-04 (ADR-177's and ADR-178's held-out cells).
+        "repos": 9,
+        "on": 'rust_proj (one small crate, re-earned under containment 2026-08-28); dagger — its sdk/rust workspace (O7); BurntSushi/memchr (2026-08-27/28); eycorsican/leaf, Ralith/hecs, SeaQL/sea-query, fabianlindfors/reshape — drawn at random, held out (2026-10-03); tuna-f1sh/cyme, algesten/ureq — drawn at random, held out (2026-10-04)',
         "depth": "multi-repo",
     },
     "java": {

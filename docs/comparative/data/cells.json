@@ -2886,26 +2886,26 @@
    "run": "contained",
    "draw": "random",
    "label": "hecs",
-   "note": "fitted for the turbofish rule (0.2.113-beta): recall 83.0% to 90.6%; item 5's crate (82 operator-trait sites)",
-   "edges": 1569,
-   "confirmed": 1379,
+   "note": "fitted for the turbofish rule (0.2.113-beta): recall 83.0% to 90.6%; fitted for the operator rule (ADR-178, 0.2.118-beta): 1,379 to 1,440",
+   "edges": 1639,
+   "confirmed": 1440,
    "contradicted": 0,
-   "abstract": 0,
-   "silent": 190,
+   "abstract": 2,
+   "silent": 197,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
     "not-loaded": 143,
-    "unreachable": 47
+    "unreachable": 54
    },
    "precision": {
     "pct": 100.0,
-    "num": 1379,
-    "den": 1379
+    "num": 1440,
+    "den": 1440
    },
    "recall": {
-    "pct": 90.6,
-    "hits": 1385,
+    "pct": 94.6,
+    "hits": 1446,
     "pairs": 1528,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -2913,13 +2913,13 @@
    "misses": {
     "macro→generated": 12,
     "static→generated": 55,
-    "static→method": 76
+    "static→method": 15
    },
    "poison": {
     "passed": true,
-    "seeded": 1569,
-    "refused": 1353,
-    "unjudged": 216,
+    "seeded": 1639,
+    "refused": 1412,
+    "unjudged": 227,
     "falsely": 0
    }
   },
@@ -5415,6 +5415,55 @@
     "seeded": 1047,
     "refused": 1039,
     "unjudged": 8,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "ureq-rust",
+   "record": "ureq-rust-2026-10-04.md",
+   "date": "2026-10-04",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "contained",
+   "draw": "random",
+   "label": "ureq",
+   "note": "held out for the Rust operator rule (ADR-178, 0.2.118-beta): 1,257 to 1,274, 17 operator calls drawn",
+   "edges": 1427,
+   "confirmed": 1274,
+   "contradicted": 0,
+   "abstract": 9,
+   "silent": 144,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "not-loaded": 91,
+    "unreachable": 53
+   },
+   "precision": {
+    "pct": 100.0,
+    "num": 1274,
+    "den": 1274
+   },
+   "recall": {
+    "pct": 85.8,
+    "hits": 1282,
+    "pairs": 1495,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "macro→generated": 29,
+    "static→closure": 9,
+    "static→function": 84,
+    "static→generated": 73,
+    "static→method": 18
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1427,
+    "refused": 1247,
+    "unjudged": 180,
     "falsely": 0
    }
   },

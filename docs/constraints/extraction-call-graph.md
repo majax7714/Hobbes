@@ -743,7 +743,7 @@
   `parse`, naming C-171), which `list_blind_spots` reports as a degraded extraction.
 - **Source:** `pipeline/tests/test_deep_files.py`; the E3 draw's record.
 
-### C-174 — A call the language makes with no call token is not a site — *narrowed 2026-10-01 (ADR-156, 0.2.79-beta): a sync `with` item whose own call is drawn `semantic` to a class, or to a def whose return annotation the index resolves to one, has its `__enter__`/`__exit__` drawn; narrowed 2026-10-03 (ADR-171, 0.2.100-beta): a call of an instance constructed at the call (`C(…)(…)`) or bound once from a construction (`x = C(…)`; `x(…)`) has its class's `__call__` drawn*
+### C-174 — A call the language makes with no call token is not a site — *narrowed 2026-10-01 (ADR-156, 0.2.79-beta): a sync `with` item whose own call is drawn `semantic` to a class, or to a def whose return annotation the index resolves to one, has its `__enter__`/`__exit__` drawn; narrowed 2026-10-03 (ADR-171, 0.2.100-beta): a call of an instance constructed at the call (`C(…)(…)`) or bound once from a construction (`x = C(…)`; `x(…)`) has its class's `__call__` drawn; narrowed 2026-10-04 (ADR-178, 0.2.118-beta): a Rust operator applied to a repo impl is drawn as a call where rust-analyzer names the impl's method at the token*
 - **Narrowed 2026-10-03 (ADR-171, 0.2.100-beta).** Where the callee of a call is a construction the index
   draws `semantic` to a repo class, either written in place (`C(…)(…)`) or as a local the function binds
   exactly once by `N = C(…)` (ADR-160's refusals), that class's `__call__` (its own, or up a chain of single
@@ -798,8 +798,11 @@
     - a metaclass's `__call__`, and `__init_subclass__`.
   - **Rust:**
     - `Drop::drop` at scope end, and also through an explicit `drop(x)`;
-    - `Deref::deref` (*uses* at `*x`);
-    - `Add`, `AddAssign`, `Neg`, `Index`, `IndexMut` and `PartialEq` (*uses* at the operator);
+    - `Deref::deref` at `*x`, and `Add`, `AddAssign`, `Neg`, `Index`, `IndexMut` at the operator: **drawn
+      as `calls` since 0.2.118-beta (ADR-178)** where the impl is the repo's and rust-analyzer names its
+      method at exactly the token (hecs 68, ureq 17). Still not drawn: `PartialEq` at `==` (rust-analyzer
+      writes no reference there; hecs 14, cyme 30), and a `Deref` the compiler applies with no token —
+      auto-deref through `.` (`timeout.after.is_zero()`) or a deref coercion (`&q`; ureq 9);
     - `PartialOrd::partial_cmp` at `<`;
     - a `for` loop's `into_iter`/`next`;
     - `Display::fmt` under `format!`;

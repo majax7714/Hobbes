@@ -713,12 +713,19 @@
   "label": "cyme",
   "note": "held out for the trait-provided-method rule (ADR-177, 0.2.117-beta): 46 of 46 closed, 2,708 to 2,754; item 5's held-out cell"
  },
+ "ureq-rust": {
+  "lang": "Rust",
+  "run": "contained",
+  "draw": "random",
+  "label": "ureq",
+  "note": "held out for the Rust operator rule (ADR-178, 0.2.118-beta): 1,257 to 1,274, 17 operator calls drawn"
+ },
  "hecs-rust": {
   "lang": "Rust",
   "run": "contained",
   "draw": "random",
   "label": "hecs",
-  "note": "fitted for the turbofish rule (0.2.113-beta): recall 83.0% to 90.6%; item 5's crate (82 operator-trait sites)"
+  "note": "fitted for the turbofish rule (0.2.113-beta): recall 83.0% to 90.6%; fitted for the operator rule (ADR-178, 0.2.118-beta): 1,379 to 1,440"
  },
  "sea-query-rust": {
   "lang": "Rust",

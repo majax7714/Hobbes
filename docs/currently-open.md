@@ -11,7 +11,7 @@ CHANGELOG and the BUILDLOG. Nothing here is built until it's named: a
 decision is Max's, and spend needs his word for a named run and its
 ceiling.
 
-Last reviewed: 2026-10-04 (0.2.114-beta). Extraction trimmed to what is open.
+Last reviewed: 2026-10-04 (0.2.118-beta). Extraction trimmed to what is open; Route 1 (Rust) done.
 
 ## Extraction (no spend; each rule measured on a held-out cell picked first)
 
@@ -22,16 +22,6 @@ other languages' C-174 shapes (Java, TS/JS, Go, C) get counts and registration, 
 key no implicit call, so a rule's rows could not be graded.
 
 ### Routes waiting on Max
-
-**Rust** (the first random draw, `oracle/oracle-grading.md` §10.49; draw and pre-registrations in
-`~/.hobbes/bench/rust-heldout-2026-10-03/`; no repo in `draw.json`'s order is ingested but positions 0, 1, 5
-and 85, so the next held-out cells can come from the same draw under a new pre-registered shape condition):
-- **Item 5, operators, `Deref`, `Index` (C-174), ADR-131's shape.** Lane B already draws `uses` at the
-  token; rustc's MIR key holds these as Call terminators. **Re-ask before building.** Fitted: hecs (82 key
-  sites onto repo `Deref` 60, `PartialEq` 14, `DerefMut` 6, `Mul` 2). **Held out, drawn 2026-10-04:** cyme
-  (30 key sites; `~/.hobbes/bench/rust-provided-2026-10-04/PREREG-draw.md`), whose standing grade is
-  recorded and none of whose rows for this shape was read. Probe first: that the `uses` target is the repo
-  impl method, and that MIR's `fn_span` line is the token's.
 
 **TypeScript / JavaScript** (each moves the TS symbol set):
 - **ADR-158's amendment:** nested functions file under their top-level symbol. Pre-registered, not in the

@@ -16298,3 +16298,27 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   `lessons.md` (two); `currently-open.md` (the trait item done; item 5 now has cyme held out); CLAUDE.md and
   AGENTS.md (the last ADR is 177; it said 175 since ADR-176).
 - pytest 2,875; `lane_b` Rust tests uncached on the host; Go `./...` and `bench/oracle` `./...` pass.
+
+## 2026-10-04 (forty-third session, cont.) — item 5: a Rust operator applied to a repo impl is a call; 0.2.118-beta
+
+- Max: "good for the recommended route with item 5" (route a: probe, pre-register, measure held out).
+- **Probe** (hecs' cached facts, `opprobe.py`): rust-analyzer writes `deref`/`deref_mut`/`mul` references at
+  the operator token onto the repo impl method; unary `*` 66, 59 key-confirmed at the line, 7 on lines the
+  key is silent on, 0 contradicting; `==` none; auto-deref through `.` no token.
+- **Pre-registered** (`~/.hobbes/bench/rust-ops-2026-10-04/PREREG-rule.md`, Q1–Q7) before the build.
+  **Built** (ADR-178): `rustsource._operator_tokens` (leaf tokens, expressions and token trees, ADR-131's
+  packing), `evidence.RUST_OPERATOR_METHODS` and `_rust_operator_call`, the join's `rust_operators`,
+  `operators.rust_drawn`, the CLI line. Tests: `test_rust_operators.py` (9).
+- **After arm, eight cells:** hecs +61 (68 drawn), the rest unchanged, cyme 0. cyme was **vacuous**: its 30
+  operator sites are all `PartialEq` at `==`. Amendment 1 (tightened to reachable traits, `count_impls.py`
+  pre-filter, `count_reach.py`); the walk took **ureq** (position 3; standing 1,257/1,257 with the four rule
+  files set aside to HEAD, pycache cleared; amendment 2). ureq after: 1,274 (+17: `Duration.deref` 8,
+  `Instant.add` 9), 0 contradicted, all 17 read at their token.
+- **Scored:** Q1, Q3, Q4, Q5 (both identities), Q6, Q7 met; **Q2 missed as written** (8 of 17, 47%):
+  `count_reach.py`'s regex missed `Add<Duration>` (17 of 26 with it) and counted 9 tokenless auto-derefs.
+  Recorded in ADR-178, §10.51 and `lessons.md`; shipped on the turbofish precedent (missed predictions
+  recorded) because every precision guard held on the held-out cell.
+- Records: ADR-178; C-174 narrowed (residues `==` and tokenless `Deref`); architecture §3.4 and §3.8 (ureq,
+  nine Rust repos), `verification.py`; cell records (ureq new, hecs regrade); `cells.meta.json` + render (116
+  cells); `extraction-evidence.md`; §10.51; `bench-drivers.md`; `lessons.md`; `currently-open.md` (the Rust
+  routes done); CLAUDE.md/AGENTS.md (the last ADR is 178). pytest 2,884; `lane_b` Rust uncached; Go both.

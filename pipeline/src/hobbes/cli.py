@@ -218,11 +218,18 @@ def _print_operators(counts: dict | None) -> None:
     """
     if not counts:
         return
-    print(
-        f"    operators: {counts.get('drawn', 0)} drawn as calls where the index "
-        f"names one at the token; {counts.get('in_template', 0)} inside a template "
-        "withheld, neither a call nor a uses (ADR-131, C-153)"
-    )
+    if counts.get("drawn") or counts.get("in_template"):
+        print(
+            f"    operators: {counts.get('drawn', 0)} drawn as calls where the index "
+            f"names one at the token; {counts.get('in_template', 0)} inside a template "
+            "withheld, neither a call nor a uses (ADR-131, C-153)"
+        )
+    # ADR-178: Rust's, a separate count; Rust has no template to withhold.
+    if counts.get("rust_drawn"):
+        print(
+            f"    rust operators: {counts['rust_drawn']} drawn as calls where rust-analyzer "
+            "names a repo impl's method at the token (ADR-178)"
+        )
 
 
 def _print_constructions(counts: dict | None) -> None:

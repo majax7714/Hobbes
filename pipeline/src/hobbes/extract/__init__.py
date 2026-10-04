@@ -1088,8 +1088,10 @@ def _build_symbol_layer(
             ts_construction_counts=ts_construction_counts,
             bodies=cpp["bodies"] if cpp and lane_b_ran else None,
             macros=macro_definitions,
+            # ADR-178: Rust's operator tokens, on lane B's condition (P6).
+            rust_operators=rust["operators"] if rust and lane_b_ran else None,
         )
-    if operator_counts["drawn"] or operator_counts["in_template"]:
+    if operator_counts["drawn"] or operator_counts["in_template"] or operator_counts.get("rust_drawn"):
         # Additive, and absent on a repo with nothing to say — a C++
         # operator drawn as a call is a new thing in the graph, and the
         # one inside a template that was not is the cost beside it.

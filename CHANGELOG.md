@@ -15,6 +15,23 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.118-beta — 2026-10-04 (a Rust operator applied to a repo impl is a call)
+
+**Patch: what the layer draws**, Rust. ADR-178 (Max: item 5, route a); C-174 narrowed.
+
+- `*r` on a type with a repo `Deref` impl, `a * b`, `t + d`, `v[i]` and the compound forms run the repo's
+  impl method, and rustc's MIR keys each as a call; Hobbes drew a `uses` edge at most. rust-analyzer writes a
+  reference named for the method at the operator token, and lane A now records the file's operator tokens
+  (in expressions and macro token trees): where the two meet at exactly one position, the edge is a `calls`
+  at `semantic` tier. Counted as `operators.rust_drawn`.
+- **Held out, algesten/ureq** (drawn, pre-registered): 1,257 → **1,274** confirmed, 17 drawn, all read at
+  their token, 0 contradicted. Fitted: hecs 1,379 → **1,440** (recall 94.6%). The other seven Rust cells are
+  unchanged; poison PASS on all nine. The first held-out cell, cyme, was vacuous (its 30 operator sites are
+  all `PartialEq` at `==`).
+- Not drawn, and registered in C-174: `==` (rust-analyzer writes no reference there) and a `Deref` applied
+  with no token (auto-deref through `.`, a deref coercion; ureq 9).
+- Rust is verified on nine repos.
+
 ## 0.2.117-beta — 2026-10-04 (a Rust trait's provided method is a node)
 
 **Patch: what the layer draws**, Rust. ADR-177 (Max: Route 1); measured on a newly drawn held-out cell.

@@ -71,6 +71,11 @@ writing a brief, a probe or a pre-registration. The resume point is
   rust-analyzer *defines* only in the compiled arm also showed it still *references* in the uncompiled
   one; read both row kinds of the facts file, not only the one the route needs.
 
+- **Count the shape the rule reaches, not the family it belongs to** (ADR-178). The take condition counted
+  every operator trait; cyme's 30 were all `PartialEq` at `==`, which the probe had already shown
+  unreachable, and ureq's `Deref` count held 9 tokenless auto-derefs. Count by the probe's reachable
+  shape, and test the counter's regex on generic names (`ops::Add<Duration>>`) before trusting it.
+
 ## Briefs and dispatched units
 
 - **Read a brief's premises in the tree before dispatch** (ADR-134's
