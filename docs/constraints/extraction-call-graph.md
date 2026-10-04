@@ -753,7 +753,14 @@
   (`self.highlighter(…)`, most of the fitted cells' `__call__` misses), a factory's result, a name bound
   more than once or at module level, a class writing `def __new__` on its in-repo chain, and a metaclass
   or out-of-repo base whose `__new__` or `__call__` returns another type (the rule cannot see it). The
-  ingest counts each abstention in `graph.json`'s `instance_calls` block.
+  ingest counts each abstention in `graph.json`'s `instance_calls` block. **The attribute-held shape,
+  measured 2026-10-03 and closed without a rule (Max: "close as measured"):** of the 29 `__call__` misses
+  still open on the fitted cells at ADR-171's after arm (rich 21, click 7, flask 1), 13 are written
+  `self.x(…)`, and 5 of those (all rich) name an attribute the class assigns once by a bare construction.
+  The rest are `x or C()`, an injected parameter, a factory, or a test's monkeypatch, which no static read
+  of the class can type. The pre-registered held-out draw (voluptuous) writes about 2 gradable sites.
+  Reading an attribute's type across methods stays out of this layer (ADR-171)
+  (`~/.hobbes/bench/attr-call-step0-2026-10-03/`).
 - **Narrowed 2026-10-01 (ADR-156, 0.2.79-beta).** Where a sync `with` item is a call drawn `semantic` to a
   repo class, or to a repo def whose return annotation the index resolves to a repo class, that class's
   `__enter__` and `__exit__` (its own or up a single named base chain) are drawn as `syntactic` `calls` at

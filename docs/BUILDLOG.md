@@ -16136,3 +16136,10 @@ below ("decline by name").
   the shape as cross-method inference. Item 9: the `unknown` test files are mocha (ajv 68, hack-chat 36),
   jest (npq 47, xmpp.js 15) and vitest-declared (hono 110, preact 40), not jest alone. hono has a `bun:test`
   file that a manifest-runner rule would mislabel, and Express's mocha `test/*.js` is not inventoried at all.
+
+## 2026-10-03 (forty-first session) — item 8 closed as measured; item 9's strict route chosen
+
+Max: item 8 "close as measured", item 9 "strict manifest rule", both the recommended routes of the re-ask
+recorded in the entry above. C-174 records item 8's count, and the item leaves the extraction order with no
+rule and no version move. Item 9 goes to an ADR first. The proxy and image were rebuilt at 0.2.109-beta
+(`ba450ab00334`).

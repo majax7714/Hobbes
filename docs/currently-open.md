@@ -111,10 +111,8 @@ measured.
    C-162 narrowed; held-out chromaprint and gulrak/filesystem, §10.48). **Still open beside
    it:** Route A's remainder (C-145, C-164; no key reads a caller). dagger's snippet zones were
    re-ingested at 0.2.109-beta: `corepack` runs, and they are declined by name (ADR-050's amendment).
-8. **Python `__call__` on an instance held in an attribute** (C-174;
-   rich's `self.highlighter(…)`; 35 misses on fitted cells, ADR-171).
-   Optional and small; held out on voluptuous, marshmallow, toolz or
-   tenacity.
+8. ~~Python `__call__` on an instance held in an attribute~~ closed as measured, 2026-10-03
+   (5 of 29 fitted misses reachable; C-174 records it).
 9. **C-13:** detect jest globals in a TS/JS test file with no framework
    import. Small; only the `framework` field moves.
 
