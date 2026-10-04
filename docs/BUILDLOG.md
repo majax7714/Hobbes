@@ -16274,3 +16274,27 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
 - pytest 2,872 passed; Go `./...` passed. Step 3's draw pre-registration and its source-only counter are
   written (`~/.hobbes/bench/rust-provided-2026-10-04/`), calibrated on the fitted cells; nothing walked yet.
 - Image and proxy to be rebuilt at 0.2.116-beta next (two bumps since 0.2.114).
+
+## 2026-10-04 (forty-third session, cont.) — Route 1 steps 3–4: a held-out draw and a trait's provided method as a node; 0.2.117-beta
+
+- **Draw** (`~/.hobbes/bench/rust-provided-2026-10-04/`, pre-registered before any walk; three amendments,
+  hashes in `prereg.sha256`): the 2026-10-03 order from position 2; a source count per package (bar 50,
+  `count_provided.py`, calibrated to over-count: hecs 12 sites, 0 key misses), then the key's pairs onto
+  provided bodies (bar 20, `count_key.py`, which reproduces sea-query 669, leaf 11, hecs 82 operator sites).
+  voicevox_core (8): ingested, but `cargo check` fails in the contained key (`open_jtalk-sys`'s CMake), passed
+  over. **cyme (30)**: standing 2,708/2,708 at 0.2.116-beta with the rule set aside (file restored to HEAD,
+  pycache cleared); 46 pairs (taken), 30 operator sites (item 5's held-out cell).
+- **Rule** (ADR-177, written as `PREREG-rule.md` before the ingest): `trait` bodies walked with
+  `provided_only`; header `trait <Name>`. Tests: `TestProvidedMethods` (3).
+- **Regrade** (`regrade/`, `score.py`): cyme 2,754 (+46 of 46), sea-query 6,263 (+662), leaf 1,645 (+11),
+  five cells unchanged; 0 contradicted, poison PASS everywhere; 243 nodes added over the cells, every one on
+  cyme read (21) and 50 of sea-query's 202 drawn and read: all provided methods. P4 as worded missed by edge
+  key: 63 confirmed rows changed caller (trait type → provided method), same site and target; recorded in
+  ADR-177 and `lessons.md`, not re-scored. `hobbes lanes`: no Rust row unexplained (dagger's 131 are docs,
+  TS and Go, pre-existing).
+- Records: ADR-177; architecture §3.4, §3.8 (cyme, eight Rust repos), `verification.py`; C-72's residual
+  note, C-157; `extraction-evidence.md`; `oracle-grading.md` §10.50; cell records (cyme new; sea-query and
+  leaf regrade sections); `cells.meta.json` + render (115 cells, `check` green); `bench-drivers.md`;
+  `lessons.md` (two); `currently-open.md` (the trait item done; item 5 now has cyme held out); CLAUDE.md and
+  AGENTS.md (the last ADR is 177; it said 175 since ADR-176).
+- pytest 2,875; `lane_b` Rust tests uncached on the host; Go `./...` and `bench/oracle` `./...` pass.

@@ -99,7 +99,10 @@
   method of an `impl Trait for T` block overrides which trait method.
   No `implements` edge is drawn for Rust (ADR-120), and `who_calls` on
   a trait method lists no implementor under "implemented or overridden
-  by" — the heading every other lane B language answers.
+  by" — the heading every other lane B language answers. Since
+  0.2.117-beta a trait's provided method is a node (ADR-177): `who_calls`
+  on it lists the calls that reach its body, and no impl that overrides
+  it.
 - **Because:** rust-analyzer's `scip` command writes no
   `SymbolInformation.relationships` at all — measured 2026-09-16 on
   this repo's three cargo roots (202 symbol informations, 0
@@ -265,8 +268,10 @@ new active entry and the two cross-reference. Field key: `README.md`,
   and still does, only for a unique qualname); a trait declared in
   another file is not in this file's `traits`, so `other::Trait::m(..)`
   walks the path and abstains at the trait's file only if the walk
-  reaches it. The trait declaration's own method signatures are not
-  symbols (C-9), so nothing can bind to them either way. `impl
+  reaches it. A trait's required method signatures are not symbols
+  (C-9), so nothing can bind to them either way; its provided methods
+  are nodes since 0.2.117-beta (ADR-177), and rule 3 still leaves a
+  trait-headed path to lane B. `impl
   Deserialize for ()` still puts its method under a bare qualname
   (C-9's floor for a type with no name); rule (2) keeps bare calls off
   it, and a path never reaches `()`.

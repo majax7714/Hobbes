@@ -706,6 +706,13 @@
   "label": "leaf",
   "note": "the first random Rust draw; its 44 contradicted (one cfg twin's node at the uncompiled arm, C-182) confirmed at 0.2.116-beta, when the node moved to the arm lane B compiled"
  },
+ "cyme-rust": {
+  "lang": "Rust",
+  "run": "contained",
+  "draw": "random",
+  "label": "cyme",
+  "note": "held out for the trait-provided-method rule (ADR-177, 0.2.117-beta): 46 of 46 closed, 2,708 to 2,754; item 5's held-out cell"
+ },
  "hecs-rust": {
   "lang": "Rust",
   "run": "contained",

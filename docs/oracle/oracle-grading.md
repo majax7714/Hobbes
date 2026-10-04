@@ -2888,6 +2888,35 @@ bodies but not `trait` bodies, so `ExprTrait::eq`'s default body has no node; la
 and MIR confirms it as a static call. A provided method is not an interface member: it has a body, and it
 is what runs where no impl overrides it. Minting it moves Rust's symbol floor, so **the route is Max's**.
 
+### 10.50 The Rust draw walked again: C-182's node line, and a trait's provided method as a node (cyme held out) — `PREREG-draw.md` and `PREREG-rule.md` written 2026-10-04 before any held-out ingest; graded at 0.2.116–0.2.117-beta
+
+**Why.** Route 1 of the forty-third session (Max, 2026-10-04): §10.49's two routes. Drivers:
+`~/.hobbes/bench/c182-compiled-arm-2026-10-04/` and `~/.hobbes/bench/rust-provided-2026-10-04/`.
+
+**C-182 (ADR-165's second amendment, 0.2.116-beta).** Probed on leaf's cached lane B facts first:
+rust-analyzer defines items only in the compiled arm (21 in `mod aead`'s second arm, 0 in its first), and
+still writes references inside the uncompiled one, resolved against the compiled arm's scope (40, 15 of
+them on a `self`/`super` keyword naming the module). The node now sits at the defined arm and those
+references are refused: leaf 1,590 → 1,634 confirmed, 44 → 0 contradicted; the other six cells unchanged.
+
+**The draw.** §10.49's order from position 2, per package: a source-only count of call sites onto the
+package's provided methods (bar 50; `count_provided.py`, calibrated to over-count), then the key's in-repo
+pairs onto provided bodies (bar 20; `count_key.py` reproduces sea-query's 669, leaf's 11 and hecs' 82
+operator sites). voicevox_core (8) failed check 5 (`open_jtalk-sys`'s CMake configure in the contained
+check); **tuna-f1sh/cyme** (30) taken: 46 pairs (a), 30 operator sites (item 5's held-out cell).
+
+| cell | 0.2.116-beta | 0.2.117-beta (ADR-177) | recall | poison |
+|---|---:|---:|---|---|
+| **tuna-f1sh/cyme (30), held out** | 2,708/2,708 | **2,754/2,754** | 90.5% → 92.1% | PASS |
+| SeaQL/sea-query (5), fitted | 5,601/5,601 | **6,263/6,263** | 83.8% → 93.7% | PASS |
+| eycorsican/leaf (0), fitted | 1,634/1,634 | 1,645/1,645 | 89.3% → 89.9% | PASS |
+| memchr, hecs, reshape, dagger `sdk/rust`, rust_proj | unchanged | unchanged | unchanged | PASS |
+
+P1, P2 (46 of 46), P3, P5 (+662), P6 (every added node read or sampled: a `fn` with a body in a
+`trait` body), P7, P8 met. P4 met by site and target; by edge key 63 confirmed rows changed caller from
+the trait's `type` node to the provided method (P8's effect), which the wording did not separate. Strict
+precision equals the standing figure on every cell.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

@@ -31,6 +31,17 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-04 — C-182's compiled arm and the provided-method rule (0.2.116–0.2.117-beta)
+
+- `c182-compiled-arm-2026-10-04/`: `regrade3.sh` over `cells.tsv` (seven Rust cells), `before-graphs/`,
+  `after/summary.tsv`. The probe read leaf's cached lane B facts (`~/.hobbes/cache/index/bab1c74a….facts.ndjson`).
+- `rust-provided-2026-10-04/`: `PREREG-draw.md` (amendments 1–3), `PREREG-rule.md` (P1–P8), `prereg.sha256`;
+  `count_provided.py <repo>` (source-only sites onto a package's provided methods), `count_key.py <repo>
+  <oracle.json>` (the key's pairs onto provided bodies and its operator-trait sites); `walk.py [start]` and
+  `walk-0.json`/`walk-1.json`; `regrade/` (`cells.tsv` with cyme, `before-graphs/`, `after/`, `score.py`,
+  `score.json`). Cell under `~/.hobbes/bench/oracle/cyme-rust/`, clone `oracle/repos/cyme`; voicevox_core's
+  failed key run `oracle/voicevox_core-rust.log`.
+
 ## 2026-10-03 — the first random Rust draw (0.2.111–0.2.114-beta)
 
 - `rust-heldout-2026-10-03/`: `PREREG-draw.md` (the draw rule, amendments 1–3), `PREREG.md` (R1–R10),

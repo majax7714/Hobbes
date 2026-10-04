@@ -249,6 +249,7 @@ def _walk_items(
     in_impl: bool = False,
     header: str = "",
     gates: tuple[tuple[int, int], ...] = (),
+    provided_only: bool = False,
 ):
     """Collect declarations, recursing into mod and impl bodies only.
 
@@ -261,7 +262,11 @@ def _walk_items(
     :func:`shared_qualnames` (ADR-163). *gates* are the spans of the
     enclosing ``mod`` and ``impl`` items that carry a ``#[cfg(…)]``,
     outermost first, kept for :func:`cfg_twins` (ADR-165) and
-    :func:`compiled_arms` (its second amendment).
+    :func:`compiled_arms` (its second amendment). *provided_only* walks a
+    ``trait`` body: only a ``function_item`` (a provided method, with a
+    body) is minted there — a required method is a
+    ``function_signature_item``, and an associated ``const`` or ``type``
+    is no symbol (the provided-method rule, ``trait <Name>`` as header).
     """
     pending_attrs: list[Node] = []
     for node in container.children:
@@ -269,6 +274,8 @@ def _walk_items(
             pending_attrs.append(node)
             continue
         attrs, pending_attrs = pending_attrs, []
+        if provided_only and node.type != "function_item":
+            continue
         own = (
             gates + (((attrs or [node])[0].start_point.row + 1, node.end_point.row + 1),)
             if _is_cfg_attr(attrs)
@@ -324,6 +331,19 @@ def _walk_items(
                 )
                 if node.type == "trait_item":
                     parsed.traits.append(name)
+                    # A provided method has a body and is called statically
+                    # where no impl overrides it: a node, under the trait.
+                    body = _child_of_type(node, "declaration_list")
+                    if body is not None:
+                        _walk_items(
+                            body,
+                            parsed,
+                            _dotted(prefix, name),
+                            in_impl=True,
+                            header=f"trait {name}",
+                            gates=own,
+                            provided_only=True,
+                        )
         elif node.type == "type_item":
             name = _child_text(node, "type_identifier")
             if name:

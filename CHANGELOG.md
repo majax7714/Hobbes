@@ -15,6 +15,22 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.117-beta — 2026-10-04 (a Rust trait's provided method is a node)
+
+**Patch: what the layer draws**, Rust. ADR-177 (Max: Route 1); measured on a newly drawn held-out cell.
+
+- Lane A's symbol walk did not enter a `trait` body, so a provided method (a `fn` with a body there) had
+  no node, and a call onto it — a static call, rustc's MIR keys it — drew nothing and was tailed
+  `below-floor`. It is now a `method` node under the trait. A required method, an associated `const` or
+  `type` stays off the floor, as interface members do in TS and Java. A call written inside a provided body
+  is filed under it, not under the trait.
+- **Held out, tuna-f1sh/cyme** (drawn 2026-10-04, pre-registered): 2,708 → **2,754** confirmed, 0
+  contradicted, 46 of 46 misses onto provided bodies closed, recall 90.5% → 92.1%. Fitted: sea-query 5,601
+  → **6,263** (recall 83.8% → 93.7%), leaf 1,634 → 1,645. memchr, hecs, reshape, dagger `sdk/rust` and
+  rust_proj unchanged; 0 contradicted and poison PASS on all eight cells. Every node added on cyme (21) was
+  read: each a provided method.
+- Rust is now verified on eight repos (`verification base`).
+
 ## 0.2.116-beta — 2026-10-04 (a Rust cfg twin's node sits at the arm the build compiles; references in an uncompiled arm are refused)
 
 **Patch: what the layer draws**, Rust. ADR-165's second amendment (Max: Route 1, "the node's line follows

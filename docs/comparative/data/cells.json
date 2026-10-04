@@ -1766,6 +1766,55 @@
    }
   },
   {
+   "stem": "cyme-rust",
+   "record": "cyme-rust-2026-10-04.md",
+   "date": "2026-10-04",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "contained",
+   "draw": "random",
+   "label": "cyme",
+   "note": "held out for the trait-provided-method rule (ADR-177, 0.2.117-beta): 46 of 46 closed, 2,708 to 2,754; item 5's held-out cell",
+   "edges": 2808,
+   "confirmed": 2754,
+   "contradicted": 0,
+   "abstract": 13,
+   "silent": 41,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "not-loaded": 24,
+    "unreachable": 17
+   },
+   "precision": {
+    "pct": 100.0,
+    "num": 2754,
+    "den": 2754
+   },
+   "recall": {
+    "pct": 92.1,
+    "hits": 2756,
+    "pairs": 2994,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "macro→function": 6,
+    "macro→generated": 19,
+    "static→closure": 25,
+    "static→function": 85,
+    "static→generated": 103
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2808,
+    "refused": 2744,
+    "unjudged": 64,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "dagger-go",
    "record": "dagger-go-2026-08-25.md",
    "date": "2026-08-25",
@@ -3178,10 +3227,10 @@
    "draw": "random",
    "label": "leaf",
    "note": "the first random Rust draw; its 44 contradicted (one cfg twin's node at the uncompiled arm, C-182) confirmed at 0.2.116-beta, when the node moved to the arm lane B compiled",
-   "edges": 1692,
-   "confirmed": 1634,
+   "edges": 1704,
+   "confirmed": 1645,
    "contradicted": 0,
-   "abstract": 0,
+   "abstract": 1,
    "silent": 58,
    "suspect": 0,
    "unobserved": 0,
@@ -3191,12 +3240,12 @@
    },
    "precision": {
     "pct": 100.0,
-    "num": 1634,
-    "den": 1634
+    "num": 1645,
+    "den": 1645
    },
    "recall": {
-    "pct": 89.3,
-    "hits": 1671,
+    "pct": 89.9,
+    "hits": 1682,
     "pairs": 1872,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -3205,13 +3254,13 @@
     "static→closure": 6,
     "static→function": 53,
     "static→generated": 83,
-    "static→method": 59
+    "static→method": 48
    },
    "poison": {
     "passed": true,
-    "seeded": 1692,
-    "refused": 1625,
-    "unjudged": 67,
+    "seeded": 1704,
+    "refused": 1636,
+    "unjudged": 68,
     "falsely": 0
    }
   },
@@ -5105,25 +5154,25 @@
    "draw": "random",
    "label": "sea-query",
    "note": "16 proc-macro invocations read as calls until 0.2.114-beta minted the fns as macros",
-   "edges": 5911,
-   "confirmed": 5601,
+   "edges": 6885,
+   "confirmed": 6263,
    "contradicted": 0,
-   "abstract": 0,
-   "silent": 310,
+   "abstract": 298,
+   "silent": 324,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "not-loaded": 299,
+    "not-loaded": 313,
     "unreachable": 11
    },
    "precision": {
     "pct": 100.0,
-    "num": 5601,
-    "den": 5601
+    "num": 6263,
+    "den": 6263
    },
    "recall": {
-    "pct": 83.8,
-    "hits": 5637,
+    "pct": 93.7,
+    "hits": 6302,
     "pairs": 6725,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -5135,13 +5184,13 @@
     "static→closure": 11,
     "static→function": 55,
     "static→generated": 118,
-    "static→method": 840
+    "static→method": 175
    },
    "poison": {
     "passed": true,
-    "seeded": 5911,
-    "refused": 5462,
-    "unjudged": 449,
+    "seeded": 6885,
+    "refused": 6123,
+    "unjudged": 762,
     "falsely": 0
    }
   },

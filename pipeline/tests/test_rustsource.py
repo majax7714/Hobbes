@@ -530,3 +530,61 @@ class TestPathQualifiedCallsBindByTheirHead:
         # only the bare one resolves — keyed by (file, line, name), the
         # fallback holds one entry for the line, and it must be the bare site's
         assert ("src/lib.rs", 2, "deserialize") in layer["call_fallback"]
+
+
+class TestProvidedMethods:
+    """A trait's provided method — a `fn` with a body in a `trait` body —
+    is a `method` node under the trait (sea-query: 669 of 1,088 misses were
+    calls onto one, tailed `below-floor`). A required method, an associated
+    const or type is not; C-72's fallback rules are unchanged."""
+
+    SOURCE = (
+        "pub trait Shape {\n"  # 1
+        "    const SIDES: u32 = 3;\n"  # 2
+        "    type Out;\n"  # 3
+        "    fn area(&self) -> f64;\n"  # 4
+        "    fn describe(&self) -> String {\n"  # 5
+        "        helper(self.area())\n"  # 6
+        "    }\n"  # 7
+        "    #[cfg(feature = \"x\")]\n"  # 8
+        "    fn extra(&self) {}\n"  # 9
+        "}\n"  # 10
+        "pub fn helper(a: f64) -> String { String::new() }\n"  # 11
+        "impl dyn Shape { fn describe(&self) -> String { String::new() } }\n"  # 12
+        "pub fn go(s: &dyn Shape) { Shape::describe(s); describe(); }\n"  # 13
+    )
+
+    def _crate(self, tmp_path):
+        (tmp_path / "Cargo.toml").write_text('[package]\nname = "m"\nversion = "0.1.0"\n')
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "lib.rs").write_text(self.SOURCE)
+        return extract_rust(tmp_path)
+
+    def test_a_provided_method_is_a_node_and_a_required_one_is_not(self, tmp_path):
+        layer = self._crate(tmp_path)
+        symbols = {s["id"]: (s["kind"], s["line"], s["end_line"]) for s in layer["symbols"]}
+        assert symbols["src/lib.Shape.describe"] == ("method", 5, 7)
+        assert symbols["src/lib.Shape.extra"] == ("method", 9, 9)
+        assert "src/lib.Shape.area" not in symbols
+        assert "src/lib.Shape.SIDES" not in symbols and "src/lib.Shape.Out" not in symbols
+        # `impl dyn Shape` writes another header: its own id (ADR-174).
+        assert symbols["src/lib.Shape.describe~2"] == ("method", 12, 12)
+        # A provided method under a `#[cfg]` is gated like any def.
+        assert layer["files"][0].cfg_gates[("Shape.extra", 9)] == ((8, 9),)
+
+    def test_c72s_rules_still_hold_around_it(self, tmp_path):
+        fallback = self._crate(tmp_path)["call_fallback"]
+        # A trait-headed path is dispatch, left to lane B (rule 3) ...
+        assert ("src/lib.rs", 13, "describe") not in fallback
+        # ... and a body's bare call still binds to the free fn.
+        assert fallback[("src/lib.rs", 6, "helper")] == ("src/lib.rs", 11)
+
+    def test_a_call_in_the_body_is_filed_under_the_method(self, tmp_path, monkeypatch):
+        from hobbes.extract import extract_repo
+
+        self._crate(tmp_path)
+        monkeypatch.setenv("HOBBES_SCIP", "0")
+        graph = extract_repo(tmp_path).graph
+        pairs = {(e["from"], e["to"]) for e in graph["symbol_edges"] if e["type"] == "calls"}
+        assert ("src/lib.Shape.describe", "src/lib.helper") in pairs
+        assert ("src/lib.Shape", "src/lib.helper") not in pairs

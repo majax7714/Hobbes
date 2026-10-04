@@ -64,6 +64,13 @@ writing a brief, a probe or a pre-registration. The resume point is
   it. C-165 named an edge that is never drawn; checking the TS cells for
   a `node_modules` target caught it.
 
+- **Name the identity a "nothing lost" prediction counts** (ADR-177). P4 said "no confirmed edge lost";
+  63 rows kept their site and target and changed caller, which another prediction (P8) intended. Say
+  "by site and target" or "by edge key" before the run.
+- **A probe of one lane fact can turn up its opposite** (ADR-165's second amendment). Checking that
+  rust-analyzer *defines* only in the compiled arm also showed it still *references* in the uncompiled
+  one; read both row kinds of the facts file, not only the one the route needs.
+
 ## Briefs and dispatched units
 
 - **Read a brief's premises in the tree before dispatch** (ADR-134's

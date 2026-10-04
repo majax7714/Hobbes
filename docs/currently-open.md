@@ -26,17 +26,12 @@ key no implicit call, so a rule's rows could not be graded.
 **Rust** (the first random draw, `oracle/oracle-grading.md` §10.49; draw and pre-registrations in
 `~/.hobbes/bench/rust-heldout-2026-10-03/`; no repo in `draw.json`'s order is ingested but positions 0, 1, 5
 and 85, so the next held-out cells can come from the same draw under a new pre-registered shape condition):
-- **Trait provided methods are below the symbol floor — route 1 approved (Max, 2026-10-04), in progress.**
-  Lane A's symbol walk does not enter a `trait` body, so a provided method's body has no node and lane B's
-  call onto it tails `below-floor`. sea-query 669 of 1,088 misses, leaf 11 (both fitted). The tail text
-  names C-9's floor since 0.2.115-beta. Next: walk the draw for a held-out cell
-  (`~/.hobbes/bench/rust-provided-2026-10-04/PREREG-draw.md`), write the rule's predictions, then mint a
-  provided method (a body) as a `method` node under the trait's qualname; a required method stays off.
 - **Item 5, operators, `Deref`, `Index` (C-174), ADR-131's shape.** Lane B already draws `uses` at the
-  token; rustc's MIR key holds these as Call terminators. **Re-ask before building:** hecs keys 82 sites
-  onto repo `Deref` (60), `PartialEq` (14), `DerefMut` (6) and `Mul` (2) methods, but it is fitted; draw
-  a held-out cell. Probe first: that the `uses` target is the repo impl method, and that MIR's `fn_span`
-  line is the token's.
+  token; rustc's MIR key holds these as Call terminators. **Re-ask before building.** Fitted: hecs (82 key
+  sites onto repo `Deref` 60, `PartialEq` 14, `DerefMut` 6, `Mul` 2). **Held out, drawn 2026-10-04:** cyme
+  (30 key sites; `~/.hobbes/bench/rust-provided-2026-10-04/PREREG-draw.md`), whose standing grade is
+  recorded and none of whose rows for this shape was read. Probe first: that the `uses` target is the repo
+  impl method, and that MIR's `fn_span` line is the token's.
 
 **TypeScript / JavaScript** (each moves the TS symbol set):
 - **ADR-158's amendment:** nested functions file under their top-level symbol. Pre-registered, not in the
