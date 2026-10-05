@@ -16467,3 +16467,5 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   with what was verified; never push to `main` or merge your own PR. The handoff (item 6), `workstreams.md`
   and architecture §9's standing discipline say the same. The dispatch sandbox's `git push*` deny is a
   doer's policy, not this rule, and is unchanged. This change is the first to land by PR.
+- Max, on the PR: Claude reviews (`/code-review`, findings as PR comments) and merges only on his explicit
+  word, with `--merge`, never squash. §7 reworded; branch protection on `main` left for later.

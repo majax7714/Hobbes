@@ -218,8 +218,10 @@ green; CI runs them all (ADR-095).
   `main`, named by its scope (`feat/…`, `fix/…`, `docs/…`). Push only
   that branch, then `gh pr create --base main` with what changed, what
   you verified (with the test output) and what you skipped. **Never push
-  to `main`, never merge your own PR, and never force-push a branch
-  someone else is on.** Max reviews and merges. Test the escalation queue
-  only with read-only commands: an approved escalation really runs.
+  to `main`, and never force-push a branch someone else is on.** Review a
+  PR with `/code-review` and post findings as comments; **merge only on
+  Max's explicit word**, with `gh pr merge N --merge` (never squash). Test
+  the escalation queue only with read-only commands: an approved
+  escalation really runs.
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling. Experiments are parked. The full policy is in the handoff.
