@@ -126,4 +126,5 @@ Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. F
    structural; a minor is for
    a feature (0.3.0 is the dev environment, which is not being worked on).
    Ask before a minor.
-6. **Work happens on `main`. Never `git push`;** publishing is Max's.
+6. **Work happens on a branch and lands by a PR Max merges** (CLAUDE.md §7).
+   Never push to `main`.

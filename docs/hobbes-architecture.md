@@ -2483,7 +2483,8 @@ implementing; an ADR for every decision this document doesn't make; **a
 information (P8, ADR-030), naming the provider when the concession is
 inherited (P9, ADR-034)**; docs updated, a BUILDLOG entry and a commit at
 the close of every unit of work (CLAUDE.md §2); tests with the code they test; conventional commits; never read
-`.tfstate`, never commit `derived/`, never `git push`. Milestone exits stop
+`.tfstate`, never commit `derived/`, never push to `main` (work lands by a PR
+Max merges). Milestone exits stop
 and hand the wheel to the human — spot-checks and walkthroughs are theirs to
 run.
 

@@ -596,5 +596,5 @@ of by luck.*
 non-negotiables for new contributors): one ADR per decision; every
 concession a surfaced `C-n` in the same commit; tests with the code
 they test; the running architecture amended in the same commit as the
-code that moves it; append-only BUILDLOG; commit to `main`, never
-`git push` (Max publishes); milestone exits stop for Max's review.
+code that moves it; append-only BUILDLOG; work on a branch and open a
+PR, never push to `main` (Max merges); milestone exits stop for Max's review.
