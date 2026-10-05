@@ -1,7 +1,8 @@
 # ADR-180 — A class field holding a function literal is a method symbol
 
 **Date:** 2026-10-04 · **Status:** accepted (Max, 2026-10-04: 2a route (i), "recommended is approved", then
-"good to proceed with 2a"); pre-registered before the build
+"good to proceed with 2a") and **built** (0.2.121-beta, merged on the fitted cells: "good to go with
+recommended", 2026-10-05, after the held-out draw took no cell); pre-registered before the build
 (`~/.hobbes/bench/ts-floor-2026-10-04/PREREG-180.md`), its held-out cell drawn first
 (`~/.hobbes/bench/ts-cells/DRAW-RULE.md`) · **Owner:** Max · **Source:** 2a's measurement
 (`~/.hobbes/bench/ts-floor-2026-10-04/RESULTS-2a.md`; zod's cell record, last section).
@@ -47,6 +48,18 @@ poison passes; every added symbol is a field at its name's line (read one by one
 other symbol moves. Test reach may shrink where a test reached a field's body only by constructing its class,
 and grow where a test calls the field; both are counted and read. New `uses` and `implements` edges where
 lane B references a field as a value or as an interface member's implementation are counted and read.
+
+## Measured (`RESULTS-180.md`)
+
+- **No held-out cell.** The TS draw (`~/.hobbes/bench/ts-cells/`, 80 positions) keyed 18 candidates; none
+  held 20 rows of the shape (16 at 0, one at 1, one at 4). Merged on the fitted cells by Max's word.
+- **Fitted:** zod +42 confirmed (as predicted), hono +75 (81±8), 0 contradicted and poison PASS on all 13
+  keyed cells; 90 fields added, every one read by the AST; no row lost. Missed as worded: folio-2025 +3
+  confirmed (predicted unchanged), and 68 new rows from a field to its own class (a self-reference undrawn
+  while the body was the class's). hono's 2,612 new `calls` rows are mostly in test files its key does not
+  load; a sample of 12 read by hand, all right.
+- **Test reach:** hono 1,414 tests grew and 577 shrank; a test that constructs `Context` no longer reaches
+  the bodies of the response fields it never calls.
 
 ## Not done
 

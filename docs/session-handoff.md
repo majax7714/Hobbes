@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-04 (forty-fourth session); Hobbes 0.2.120-beta on `main`.**
+**Reviewed 2026-10-05 (forty-fourth session); Hobbes 0.2.121-beta on `main`.**
 Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
 by the commits since then; they are unpushed. The image and the proxy are at
-0.2.120-beta (image `ac9349eeceb5`); this repo was
+0.2.121-beta (image `ac3e75df8c15`); this repo was
 ingested at HEAD (`1a16ff4`) after it; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
 new container from the current image, so it starts fresh.
 
@@ -31,12 +31,12 @@ session went belongs in the BUILDLOG.
   new held-out cell; then item 5, route a ("good for the recommended route with item 5"). Permission for `oracle py-trace` given for future use (local allow
   rules in `.claude/settings.local.json`).
 
-**Next:** the TS/JS routes (forty-fourth session). Done: 1a, 2a measured, `attr-call`'s text (0.2.119),
-ADR-179 (0.2.120). **ADR-180 (2a route (i)) is built on branch `adr180` (worktree `~/hobbes_public-adr180`),
-not merged:** fitted cells zod +42, hono +75; the TS held-out draw (80 positions) took no cell.
+**Next:** the TS/JS routes are done (forty-fourth session): 1a, 2a, `attr-call`'s text (0.2.119), ADR-179
+(0.2.120), ADR-180 (0.2.121); both rules merged on the fitted cells, their held-out draws having taken no
+cell. Open from them: the gate's map reason for `attr-call`, and ADR-179's route (b) (calls *to* a literal's
+member), neither proposed. C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- ADR-180: merge on the fitted cells or leave it on the branch. Don't merge or bump before he answers.
 - The gate's map reason `dynamic-dispatch` for `attr-call` (`currently-open.md`).
 - **Whether to extend the standing trace oracle:** all four cells measured (click and rich on 2026-10-04).
 - The Python routes (C-181's residual, ADR-156 and fixture values).
@@ -51,6 +51,10 @@ Forty-fourth session (Max: routes for the TS/JS items; "approved recommended", "
 - **0.2.119:** `attr-call`'s text names both causes (C-2 amended). **0.2.120 (ADR-179):** a top-level literal's member
   is a scope-only caller; the held-out walk (42–80) took no cell; Max merged on the fitted cells (ajv 628
   rows re-filed, grades and reach unmoved).
+- **0.2.121 (ADR-180):** a function-literal class field is a method symbol: zod 9,927 (+42), hono 910 (+75),
+  folio +3, 0 contradicted; the TS draw (`~/.hobbes/bench/ts-cells/`, 80 positions) took no cell.
+- A 20-hour wait loop (`until ! pgrep -f walk-adr179.sh`) matched itself; Max caught it twice. Killed; the
+  memory on detached launches carries it.
 
 Forty-third session (Max: condense the open extraction items, then Route 1):
 - `currently-open.md` trimmed to what is open, grouped by language (205 → 160 lines, nothing dropped).

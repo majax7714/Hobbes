@@ -726,21 +726,21 @@
 <rect x="481.4" y="871" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>hono (tsconfig.build.json) — hobbes: precision-against-oracle 835/835 = 100.0%</title>
+<title>hono (tsconfig.build.json) — hobbes: precision-against-oracle 910/910 = 100.0%</title>
 <circle cx="550.0" cy="876" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>hono (tsconfig.build.json) — repowise: precision-against-oracle 743/793 = 93.7% · strict 743/795 (93.5%)</title>
 <polygon points="531.1,869.5 537.6,876 531.1,882.5 524.6,876" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="741.1" y1="876" x2="789.4" y2="876" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="741.1" y1="876" x2="805.3" y2="876" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>hono (tsconfig.build.json) — codegraphcontext: recall 613/1,403 = 43.7% over every resolved site (resolution oracle: no roots)</title>
 <rect x="736.1" y="871" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>hono (tsconfig.build.json) — hobbes: recall 842/1,408 = 59.8% over every resolved site (resolution oracle: no roots)</title>
-<circle cx="789.4" cy="876" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>hono (tsconfig.build.json) — hobbes: recall 917/1,408 = 65.1% over every resolved site (resolution oracle: no roots)</title>
+<circle cx="805.3" cy="876" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>hono (tsconfig.build.json) — repowise: recall 749/1,403 = 53.4% over every resolved site (resolution oracle: no roots)</title>
@@ -757,10 +757,10 @@
 <polygon points="533.8,891.5 540.3,898 533.8,904.5 527.3,898" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>zod — hobbes: precision-against-oracle 9,885/9,885 = 100.0%</title>
+<title>zod — hobbes: precision-against-oracle 9,927/9,927 = 100.0%</title>
 <circle cx="550.0" cy="898" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="629.8" y1="898" x2="747.4" y2="898" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="629.8" y1="898" x2="748.0" y2="898" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>zod — codegraphcontext: recall 1,443/21,931 = 6.6% over every resolved site (resolution oracle: no roots)</title>
 <rect x="624.8" y="893" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
@@ -770,8 +770,8 @@
 <polygon points="710.8,891.5 717.3,898 710.8,904.5 704.3,898" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>zod — hobbes: recall 10,047/21,931 = 45.8% over every resolved site (resolution oracle: no roots)</title>
-<circle cx="747.4" cy="898" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>zod — hobbes: recall 10,089/21,931 = 46.0% over every resolved site (resolution oracle: no roots)</title>
+<circle cx="748.0" cy="898" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <line x1="24" y1="924" x2="926" y2="924" stroke="#d9d8d2"/>
 <text x="24" y="944" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Read across a row, never down a column: each cell's recall is over its own roots or resolved sites (C-62), and a precision is a lower bound (contradictions mostly triage to</text>

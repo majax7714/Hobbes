@@ -738,3 +738,18 @@ record's cause (0.2.111-beta, leaf), a turbofish method call bound to a free fn 
 turbofish call inside a macro argument not taken for a call (0.2.113-beta, hecs), a proc-macro fn minted a
 function (0.2.114-beta, sea-query). **Found and taken to Max:** C-182's first graded cost (leaf; built as route 1 at 0.2.116-beta), and calls
 onto a trait's provided method, which has no node (669 of sea-query's 1,088 misses).
+
+## TypeScript/JavaScript — ADR-179 and ADR-180 on the keyed cells (2026-10-04/05, no held-out cell)
+
+Both arms on the 13 keyed TS/JS cells, contained (`~/.hobbes/bench/ts-floor-2026-10-04/`: `RESULTS-1b.md`,
+`RESULTS-180.md`). Each rule's held-out draw took no cell (DRAW-RULE-2 42–80 for ADR-179; a new TS draw,
+`~/.hobbes/bench/ts-cells/`, 80 positions, for ADR-180); Max merged both on the fitted cells.
+
+| Date | Numbers |
+|---|---|
+| 2026-10-04 | **ADR-179** (0.2.120-beta, a top-level literal's member is a scope-only caller): no grade moved on any cell; calls re-filed from the module to the member ajv 628, tileserver-gl 59, hono 13, zod 11, cue 7, xmpp.js 6, kbet 2; the caller probe's `lost-caller` ajv 458 → 9, tileserver-gl 43 → 0, `wrong` 0. |
+| 2026-10-05 | **ADR-180** (0.2.121-beta, a function-literal class field is a method symbol): **zod 9,927/9,927** (+42), recall 45.8% → 46.0%; **hono 910/910** (+75), recall 59.8% → 65.1%; folio-2025 +3; 0 contradicted, poison PASS on all 13; 90 fields added, all read by the AST. |
+
+**Verified:** every added symbol mechanically against the AST; hono's unjudged new rows by a hand sample (12
+of 2,612, all right). **Left:** zod's 1,232 calls through a re-exported alias (C-2's `attr-call`), and
+calls *to* a literal's member (ADR-179's route (b)).

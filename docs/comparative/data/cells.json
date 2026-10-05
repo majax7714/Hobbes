@@ -3032,24 +3032,24 @@
    "draw": "repowise-bench's draw (its corpus.lock pin)",
    "label": "hono (tsconfig.build.json)",
    "note": "a draw of repowise's G4 experiment on our key; 7 static→union-member rows before ADR-104, 1 after — a site lane A could not type under hono's solution-style root tsconfig (C-98) — and 0 once C-98 was lifted (2026-09-10, 768/768)",
-   "edges": 5441,
-   "confirmed": 835,
+   "edges": 8053,
+   "confirmed": 910,
    "contradicted": 0,
    "abstract": 0,
-   "silent": 4606,
+   "silent": 7143,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "not-loaded": 4606
+    "not-loaded": 7143
    },
    "precision": {
     "pct": 100.0,
-    "num": 835,
-    "den": 835
+    "num": 910,
+    "den": 910
    },
    "recall": {
-    "pct": 59.8,
-    "hits": 842,
+    "pct": 65.1,
+    "hits": 917,
     "pairs": 1408,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -3065,15 +3065,15 @@
     "static→closure": 89,
     "static→function": 5,
     "static→method": 90,
-    "static→property": 93,
+    "static→property": 18,
     "static→type-member": 20,
     "static→variable": 5
    },
    "poison": {
     "passed": true,
-    "seeded": 5441,
-    "refused": 832,
-    "unjudged": 4609,
+    "seeded": 8053,
+    "refused": 907,
+    "unjudged": 7146,
     "falsely": 0
    }
   },
@@ -5524,8 +5524,8 @@
    "draw": "repowise-bench's draw (its corpus.lock pin)",
    "label": "zod",
    "note": "a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)",
-   "edges": 9934,
-   "confirmed": 9885,
+   "edges": 9976,
+   "confirmed": 9927,
    "contradicted": 0,
    "abstract": 0,
    "silent": 49,
@@ -5536,12 +5536,12 @@
    },
    "precision": {
     "pct": 100.0,
-    "num": 9885,
-    "den": 9885
+    "num": 9927,
+    "den": 9927
    },
    "recall": {
-    "pct": 45.8,
-    "hits": 10047,
+    "pct": 46.0,
+    "hits": 10089,
     "pairs": 21931,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -5556,15 +5556,15 @@
     "static→closure": 207,
     "static→function": 4220,
     "static→method": 531,
-    "static→property": 1274,
+    "static→property": 1232,
     "static→type-member": 4955,
     "static→variable": 238
    },
    "poison": {
     "passed": true,
-    "seeded": 9934,
-    "refused": 8731,
-    "unjudged": 1203,
+    "seeded": 9976,
+    "refused": 8771,
+    "unjudged": 1205,
     "falsely": 0
    }
   }

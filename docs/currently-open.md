@@ -24,11 +24,6 @@ key no implicit call, so a rule's rows could not be graded.
 ### Routes waiting on Max
 
 **TypeScript / JavaScript** (each moves the TS symbol set):
-- **ADR-180 (class-property functions, 2a route (i)): built on branch `adr180`, not merged.** Fitted cells
-  (`~/.hobbes/bench/ts-floor-2026-10-04/RESULTS-180.md`): zod +42, hono +75, folio +3, 0 contradicted; R2
-  and R6 missed as worded (folio's +3; 68 field → own-class rows). The TS held-out draw (`ts-cells/`, 80
-  positions) took no cell: 18 keyed candidates, none with 20 rows of the shape. For Max: merge on the
-  fitted cells, or leave it. zod's alias route (1,232 rows) stays registered (route (ii)).
 - **The gate's map reason for `attr-call`** (0.2.119-beta left it): `gate.py` files the class under
   `dynamic-dispatch`; a re-exported alias site (zod 1,232) is not dispatch. The closed vocabulary is
   `MAP_REASONS`; changing it is Max's.

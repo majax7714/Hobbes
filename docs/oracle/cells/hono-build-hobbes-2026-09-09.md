@@ -344,3 +344,27 @@ poison check: PASS — 5441 seeded wrong edges: 832 refused, 4609 unjudged (orac
 - **Recall:** 59.7% → 59.8% (840 → 842 of 1,408).
 - **Rows lost:** 0. Nodes and symbols identical; test reach grew (28 tests), shrank nowhere.
 - **Poison:** PASS, 5,441 seeded: 832 refused, 4,609 unjudged, 0 falsely confirmed.
+
+## Regrade, Hobbes 0.2.121-beta (ADR-180: a class field holding a function literal is a method symbol)
+
+**Pre-registered** (`~/.hobbes/bench/ts-floor-2026-10-04/PREREG-180.md`, before any rule code). Both arms ingested contained against this clone: before at 0.2.120-beta (`cc7f739`, `before180/`), after on the `adr180` worktree (`after180/`). No held-out cell was found (`ts-cells/`, 80 positions); merged on the fitted cells by Max's word (2026-10-05).
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha 97c6fe1f
+hobbes edges 8053: confirmed 910  contradicted 0  abstract 0  silent 7143 map[not-loaded:7143]
+precision-against-oracle 100.0% (910/910)
+recall 65.1% (917/1408 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 2117; misses map[func-value→local-binding:61 func-value→parameter:140 func-value→variable:4 interface→type-member:30 static→anonymous-function:1 static→anonymous-signature:15 static→class:13 static→closure:89 static→function:5 static→method:90 static→property:18 static→type-member:20 static→variable:5]
+recall-collapsed 69.6% (910/1308 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  tier semantic   confirmed 910  contradicted 0  abstract 0  silent 7058
+  tier syntactic  confirmed 0  contradicted 0  abstract 0  silent 85
+poison check: PASS — 8053 seeded wrong edges: 907 refused, 7146 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+**Direction of fix (signed):**
+- **Confirmed:** 835 → **910** (+75), every one `semantic`. Contradicted 0 → 0.
+- **Recall:** 59.8% → 65.1%.
+- **What moved:** calls to 25 function-literal fields (`Context.json`, `.text`, `.header`, `Hono.request`, `.fetch`, …), lane B's at the token. 2,612 new `calls` rows in all; 2,528 are in test files outside `tsconfig.build.json`'s program (not loaded 4,606 → 7,143), unjudged; 12 sampled by hand, all right.
+- **Not moved:** 11 rows to typed fields given a value elsewhere (`errorHandler`, `#renderer`, `getPath`).
+- **Test reach:** 1,414 tests reach more; 577 reach less — a test that builds a `Context` no longer reaches the bodies of response fields it never calls.
+- **Rows lost:** 0; no symbol removed or changed.
+- **Poison:** PASS.

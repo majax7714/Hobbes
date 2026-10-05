@@ -500,13 +500,13 @@ misses by class: static→function 1,972, func-value→local-binding 1,070, stat
 <text x="543.3" y="170.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cheerio</text>
 <g>
 <title>zod — TypeScript, tsc 5.9.3 (harness) (resolution), contained, 2026-09-09
-precision-against-oracle 9,885/9,885 = 100.0%
-recall 10,047/21,931 = 45.8% over every resolved site (resolution oracle: no roots)
-misses by class: static→type-member 4,955, static→function 4,220, static→property 1,274, static→method 531, static→variable 238, static→closure 207, func-value→parameter 117, func-value→variable 105, interface→type-member 88, static→class 77, func-value→local-binding 59, static→anonymous-signature 13
+precision-against-oracle 9,927/9,927 = 100.0%
+recall 10,089/21,931 = 46.0% over every resolved site (resolution oracle: no roots)
+misses by class: static→type-member 4,955, static→function 4,220, static→property 1,232, static→method 531, static→variable 238, static→closure 207, func-value→parameter 117, func-value→variable 105, interface→type-member 88, static→class 77, func-value→local-binding 59, static→anonymous-signature 13
 a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)</title>
-<circle cx="537.4" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="538.0" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="545.4" y="120.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >zod</text>
+<text x="546.0" y="120.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >zod</text>
 <g>
 <title>ajv — codegraphcontext — TypeScript, tsc 5.3.3 (the zone's own) (resolution), host-run, 2026-09-09
 precision-against-oracle 1,114/1,193 = 93.4%
@@ -527,13 +527,13 @@ repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); 
 <text x="552.2" y="203.625" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hono (tsconfig.build.json) ·rw</text>
 <g>
 <title>hono (tsconfig.build.json) — TypeScript, tsc 5.9.3 (harness) (resolution), contained, 2026-09-09
-precision-against-oracle 835/835 = 100.0%
-recall 842/1,408 = 59.8% over every resolved site (resolution oracle: no roots)
-misses by class: func-value→parameter 140, static→property 93, static→method 90, static→closure 89, func-value→local-binding 61, interface→type-member 30, static→type-member 20, static→anonymous-signature 15, static→class 13, static→function 5, static→variable 5, func-value→variable 4, static→anonymous-function 1
+precision-against-oracle 910/910 = 100.0%
+recall 917/1,408 = 65.1% over every resolved site (resolution oracle: no roots)
+misses by class: func-value→parameter 140, static→method 90, static→closure 89, func-value→local-binding 61, interface→type-member 30, static→type-member 20, static→property 18, static→anonymous-signature 15, static→class 13, static→function 5, static→variable 5, func-value→variable 4, static→anonymous-function 1
 a draw of repowise's G4 experiment on our key; 7 static→union-member rows before ADR-104, 1 after — a site lane A could not type under hono's solution-style root tsconfig (C-98) — and 0 once C-98 was lifted (2026-09-10, 768/768)</title>
-<circle cx="579.4" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="595.3" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="571.4" y="220.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hono (tsconfig.build.json)</text>
+<text x="587.3" y="220.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hono (tsconfig.build.json)</text>
 <g>
 <title>ajv — TypeScript, tsc 5.3.3 (the zone's own) (resolution), contained, 2026-08-27
 precision-against-oracle 1,902/1,902 = 100.0%

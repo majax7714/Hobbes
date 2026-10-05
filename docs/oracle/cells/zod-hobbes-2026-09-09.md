@@ -212,3 +212,26 @@ So the 1,029 collapsed pairs this record priced in W1 are mostly the alias, not 
 are counted `unresolved`, tail `attr-call`, whose text names an untypable receiver; here the receiver is
 typed. That wording is open in `currently-open.md`.
 
+## Regrade, Hobbes 0.2.121-beta (ADR-180: a class field holding a function literal is a method symbol)
+
+**Pre-registered** (`~/.hobbes/bench/ts-floor-2026-10-04/PREREG-180.md`, before any rule code). Both arms ingested contained against this clone: before at 0.2.120-beta (`cc7f739`, `before180/`), after on the `adr180` worktree (`after180/`). No held-out cell was found (`ts-cells/`, 80 positions); merged on the fitted cells by Max's word (2026-10-05).
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha bbc68f99
+hobbes edges 9976: confirmed 9927  contradicted 0  abstract 0  silent 49 map[not-loaded:49]
+precision-against-oracle 100.0% (9927/9927)
+recall 46.0% (10089/21931 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 3239; misses map[func-value→local-binding:59 func-value→parameter:117 func-value→variable:105 interface→type-member:88 static→anonymous-signature:13 static→class:77 static→closure:207 static→function:4220 static→method:531 static→property:1232 static→type-member:4955 static→variable:238]
+recall-collapsed 59.7% (9925/16634 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  tier semantic   confirmed 8870  contradicted 0  abstract 0  silent 38
+  tier syntactic  confirmed 1057  contradicted 0  abstract 0  silent 11
+poison check: PASS — 9976 seeded wrong edges: 8771 refused, 1205 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+**Direction of fix (signed):**
+- **Confirmed:** 9,885 → **9,927** (+42), every one `semantic`. Contradicted 0 → 0.
+- **Recall:** 45.8% → 46.0%.
+- **What moved:** 42 calls to 22 function-literal fields written `X.prop(` (`Mocker.pick`, `ZodString.create`, …), lane B's at the token; 37 fields became symbols. 66 new `uses` rows run from a field to its own class (`: ZodAny`, `new ZodAny(…)` in `create`), a self-reference undrawn while the body was the class's.
+- **Not moved:** the 1,232 `static→property` rows through `z.object(..)`'s re-exported alias (the index writes nothing at the member; C-2's `attr-call`).
+- **Test reach:** 216 tests reach more, none less.
+- **Rows lost:** 0; no symbol removed or changed.
+- **Poison:** PASS.

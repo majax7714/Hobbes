@@ -375,7 +375,7 @@
 - **Source:** architecture §3.2/P6, ADR-029. Registered at V2.M3, when
   demoting lane A's resolver made the floor explicit rather than incidental.
 
-### C-9 — Only five descriptor kinds become graph symbols — *narrowed 2026-10-02 (ADR-160, 0.2.85-beta): a call through a local alias whose right-hand side the index names is drawn, `syntactic`; and 2026-10-03 (ADR-170, 0.2.99-beta): `cls(…)` in a classmethod*
+### C-9 — Only five descriptor kinds become graph symbols — *narrowed 2026-10-02 (ADR-160, 0.2.85-beta): a call through a local alias whose right-hand side the index names is drawn, `syntactic`; and 2026-10-03 (ADR-170, 0.2.99-beta): `cls(…)` in a classmethod; and 2026-10-05 (ADR-180, 0.2.121-beta): a TS/JS class field holding a function literal is a method symbol*
 - **Cannot tell you:** about parameters, locals, or meta symbols; roughly
   **86%** of what a Python or TS indexer defines is dropped (**72%** for
   Go — 27.9% of `scip-go`'s definitions are graph-worthy, ADR-037).
@@ -399,6 +399,12 @@
   draws nothing: a parameter holding a callable, a value a call returned,
   a name bound twice, a module-level or class-level alias, and a call from
   a nested def.
+- **Narrowed 2026-10-05 (ADR-180, 0.2.121-beta).** A field of a top-level named TS/JS class holding an
+  arrow or function expression (`static create = (…) => …`, hono's `c.json`) is a `method` symbol at its
+  name, drawn to where lane B names it (`semantic`; lane A's own resolution does not name it), and its
+  function's body is its scope. zod +42 confirmed, hono +75, folio-2025 +3, 0 contradicted. Still below
+  the floor: a typed field given a value elsewhere (hono 11 rows), and zod's 1,232 calls through a
+  re-exported alias of `create`, where the index writes nothing at the member (C-2's `attr-call`).
 - **You find out:** **partial.** The filter is stated in ADR-027 and the
   omission is uniform, so it does not mislead about *specific* code — but
   nothing in the artifact declares the modelled vocabulary.

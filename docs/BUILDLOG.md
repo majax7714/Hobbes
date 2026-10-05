@@ -16444,3 +16444,18 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   paperlib (25): the key graded nothing (annotated in `draw-log.md`; the walk's text called them vacuous).
 - ADR-180 stays on branch `adr180`; `RESULTS-180.md` R1 recorded; `currently-open.md` and the handoff carry
   the route for Max.
+
+## 2026-10-05 (forty-fourth session, cont.) — ADR-180 merged on the fitted cells; 0.2.121-beta; a stray shell
+
+- Max: "good to go with recommended. one thing to note you have a shell still running". The shell was this
+  session's `until ! pgrep -f walk-adr179.sh` wait loop, 20 hours old: its command line holds the pattern, so
+  it never ended. The 2026-10-04 note that nothing of this session was running was wrong: `ps | grep`
+  truncated the long `bash -c` line. Killed, with the last watch's orphaned `tail`; checked with
+  `ps --cols 2000`. The memory on detached launches carries it (the third time).
+- `2d33f68` cherry-picked onto `main` and committed whole: the bump, CHANGELOG, architecture §3 (the TS scope
+  list) and §3.8 (zod 9,927/9,927, hono 910/910), C-9 narrowed, the register history, ADR-180's status and
+  measurement, zod's and hono's cell records (0.2.121 regrade sections), `cells.json` and the graphics
+  re-rendered (`check` green, 116 cells), `extraction-evidence.md` (a TS section for ADR-179 and ADR-180),
+  `currently-open.md` (the item deleted), `build-and-test.md`.
+- On `main`: Go `./...`, `bench/oracle`, tsextract 51/51, pytest 2,892. Proxy and image rebuilt
+  (`ac3e75df8c15`, `hobbes-proxy 0.2.121-beta`). The `adr180` worktree and branch removed after.

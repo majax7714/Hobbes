@@ -51,7 +51,7 @@ TSEXTRACT_CMD_ENV = "HOBBES_TSEXTRACT_CMD"
 #: around a nested function. No field changed.
 #: v8 (C-177): a tagged template is a call site, its tag in callee
 #: position. No field changed.
-HELPER_VERSION = 9
+HELPER_VERSION = 10
 
 #: Extensions the helper extracts; used only for the cheap "does this repo
 #: have TS/JS at all" scan that decides whether the helper must run.

@@ -15,6 +15,24 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.121-beta — 2026-10-05 (a class field holding a function is a method)
+
+**Patch: what the layer draws**, TS/JS. ADR-180 (Max: 2a route (i); merged on the fitted cells); C-9
+narrowed.
+
+- A class field whose value is an arrow function or a function expression (`static create = (…) => new
+  ZodString(…)`, hono's `c.json`, `c.text`, `app.request`) is called like a method, and the tsc key names it
+  as a call target, but Hobbes kept no symbol for it: the call counted `below-floor`. It is now a `method`
+  symbol at the field's name, and a call is drawn where scip-typescript names the field at the token
+  (`semantic`); lane A's own resolution draws nothing to it. Calls written inside the function are the
+  field's, no longer the class's.
+- zod 9,885 → **9,927** confirmed, hono 835 → **910**, folio-2025 1,091 → 1,094; 0 contradicted and poison
+  PASS on all 13 keyed TS/JS cells. hono also gains 2,612 call rows in test files its key does not load.
+- Test reach: in hono 1,414 tests reach more and 577 less — a test that builds a `Context` no longer counts
+  as guarding the bodies of response fields it never calls.
+- No held-out cell: a TS draw of 80 positions found none with the shape. zod's 1,232 calls through a
+  re-exported alias (`z.object(..)`) stay below the floor. tsextract facts v10.
+
 ## 0.2.120-beta — 2026-10-04 (a top-level literal's member is its own caller)
 
 **Patch: what the layer draws**, TS/JS. ADR-179 (Max: route 1b (a), scope only; merged on the fitted cells);

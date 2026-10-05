@@ -1253,3 +1253,34 @@ test("a direct member of a literal bound at top level is a scope-only method; cl
   );
 });
 
+
+test("a function-literal field of a top-level named class is a method at its name; its body is its scope (ADR-180, C-9)", () => {
+  const root = makeRepo({
+    "src/b.ts": [
+      "function f(): number { return 1; }", // 1
+      "export class Box {", // 2
+      "  static create = (n: number): Box => { f(); return new Box(); };", // 3
+      "  @dec", // 4
+      "  pick = (a: number): number => f() + a;", // 5  the name's line, not the decorator's
+      "  #hidden = function () { return f(); };", // 6
+      "  plain = f();", // 7  a value: the class's
+      "  dup = () => 1;", // 8  a static and an instance field of one name: neither
+      "  static dup = () => 2;", // 9
+      "  [f()] = () => 3;", // 10  a computed name: none
+      "}", // 11
+      "function dec(..._a: unknown[]) {}", // 12
+      "const Anon = class { g = () => f(); };", // 13  not a top-level named class
+    ].join("\n"),
+  });
+  const file = byPath(extractRepo(root), "src/b.ts");
+  const fields = file.symbols.filter((s) => s.qualname.startsWith("Box.")).map((s) => [s.qualname, s.kind, s.line]);
+  assert.deepEqual(fields, [
+    ["Box.create", "method", 3],
+    ["Box.pick", "method", 5],
+    ["Box.#hidden", "method", 6],
+  ]);
+  assert.deepEqual(
+    file.calls.filter((c) => c.name === "f").map((c) => [c.line, c.scope]),
+    [[3, "Box.create"], [5, "Box.pick"], [6, "Box.#hidden"], [7, "Box"], [10, "Box"], [13, null]]
+  );
+});

@@ -26,7 +26,7 @@ import { Node, Project, ts } from "ts-morph";
 // v3 (C-5 surfacing): every file carries `routes_declined` — route
 // registrations seen and declined because their path is computed, so the
 // http-ts pack can report the absence instead of leaving it silent.
-export const HELPER_VERSION = 9;
+export const HELPER_VERSION = 10;
 // v4, since 2026-09-05 (C-63 surfaced): a call whose callee is itself an
 // expression — an element access, a call's result, a parenthesised
 // value — is a `calls` record named `<expr>` alone, with callee and
@@ -61,6 +61,9 @@ export const UNION_MEMBER = "union-member";
 // v9 (ADR-179, C-176): a direct member of an object literal bound at top
 // level is a `method` symbol carrying `scope_only: true` — a caller, never
 // a target — and `scope` names it for the calls written inside it.
+// v10 (ADR-180, C-9): a field of a top-level named class holding an arrow
+// function or function expression is a `method` symbol at its name's line,
+// and `scope` names it for the calls written inside the function.
 
 const EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 
@@ -366,6 +369,12 @@ function enclosingScope(node) {
       inMember.some((a) => Node.isDecorator(a)) || childOf(member) === member.getNameNode();
     if (!atDefinition) return `${top.getName()}.${member.getName()}`;
   }
+  // ADR-180: a function-literal field's body runs when the field is called,
+  // not when the class is built, so it is the field's, as a method's is.
+  if (Node.isPropertyDeclaration(member) && ancestors.includes(member.getInitializer())) {
+    const field = functionFields(top).get(member);
+    if (field) return field;
+  }
   return top.getName();
 }
 
@@ -510,6 +519,17 @@ function baseSymbols(sourceFile) {
     for (const method of cls.getMethods()) {
       add(method.getName(), `${cls.getName()}.${method.getName()}`, "method", method);
     }
+    for (const [field, qualname] of functionFields(cls)) {
+      // At the name's line, where scip-typescript defines it and the tsc key
+      // places the target — not at a decorator above it.
+      symbols.push({
+        end_line: field.getEndLineNumber(),
+        kind: "method",
+        line: field.getNameNode().getStartLineNumber(),
+        name: field.getName(),
+        qualname,
+      });
+    }
   }
   for (const decl of sourceFile.getVariableDeclarations()) {
     const init = decl.getInitializer();
@@ -529,6 +549,42 @@ function baseSymbols(sourceFile) {
   }
   return symbols;
 }
+
+/** A top-level named class's fields that hold an arrow function or a
+ * function expression, mapped to their qualnames (ADR-180, C-9): called like
+ * methods, keyed by the tsc oracle as call targets, and defined by
+ * scip-typescript at the name. Fails toward drawing less: a qualname the
+ * class writes twice (a `static` and an instance field of one name) or one
+ * a method of the class already has mints nothing. A computed name mints
+ * nothing. `declQualname` does not name these, so only lane B's reference
+ * draws to them. */
+function functionFields(cls) {
+  const cached = functionFieldCache.get(cls);
+  if (cached) return cached;
+  const fields = new Map();
+  const cname = cls.getName();
+  if (cname && Node.isSourceFile(cls.getParent())) {
+    const methods = new Set(cls.getMethods().map((m) => m.getName()));
+    const found = cls.getProperties().filter((p) => {
+      const init = p.getInitializer();
+      const name = p.getNameNode();
+      return (
+        init &&
+        (Node.isArrowFunction(init) || Node.isFunctionExpression(init)) &&
+        (Node.isIdentifier(name) || Node.isPrivateIdentifier(name))
+      );
+    });
+    const count = new Map();
+    for (const p of found) count.set(p.getName(), (count.get(p.getName()) ?? 0) + 1);
+    for (const p of found) {
+      if (count.get(p.getName()) === 1 && !methods.has(p.getName())) fields.set(p, `${cname}.${p.getName()}`);
+    }
+  }
+  functionFieldCache.set(cls, fields);
+  return fields;
+}
+
+const functionFieldCache = new WeakMap();
 
 /** The binding a top-level object literal is written under, as the prefix
  * of its members' qualnames, or null (ADR-179): `X` for a top-level

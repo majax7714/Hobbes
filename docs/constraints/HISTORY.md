@@ -6,6 +6,12 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-9 narrowed, 2026-10-05 (0.2.121-beta; ADR-180, Max: 2a route (i), then "good to go with recommended"; no entry added):
+- **C-9 narrowed (still partial).** A TS/JS class field holding an arrow or function expression is a `method`
+  symbol; lane B's references draw to it. zod +42, hono +75, folio-2025 +3, 0 contradicted on 13 keyed cells.
+  The held-out TS draw took no cell; merged on the fitted cells. Left: typed fields valued elsewhere, and zod's
+  re-exported-alias calls (C-2's `attr-call`). 194 entries, 144 active (112 surfaced), unchanged.
+
 C-176 narrowed, 2026-10-04 (0.2.120-beta; ADR-179, Max: route 1b (a) "scope only", then "good to merge fitted cells with route a"; no entry added):
 - **C-176 narrowed (still partial).** A direct member of an object literal bound at top level is a `method`
   symbol, a caller and never a target (`scope_only`). Calls re-filed from the module to the member: ajv 628,
