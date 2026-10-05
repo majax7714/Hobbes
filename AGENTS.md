@@ -92,7 +92,7 @@ live and `lane_b` tests skip in the sandbox, so run them on the host.
 **Close every piece of work the same way.** When a unit of work is done:
 1. update every doc the work moved, each in its home (§5);
 2. append to the BUILDLOG;
-3. commit.
+3. commit on your branch, push the branch, and open a PR for Max (§7).
 
 Commit small and often, but commit whole. Each commit is the smallest
 *complete* unit: green, with its tests, its `C-n`, its architecture
@@ -214,8 +214,13 @@ green; CI runs them all (ADR-095).
   never squash it.
 - **Never read or write `.tfstate`. Never commit `.hobbes/derived/`.**
   Target repos gitignore `.hobbes/` (ADR-012).
-- **Commit to `main`** unless directed otherwise, and say so plainly if
-  you worked on another branch. **Never `git push`;** Max publishes. Test
+- **Work on a branch; Max merges by PR.** Branch from an up-to-date
+  `main`, named by its scope (`feat/…`, `fix/…`, `docs/…`). Push only
+  that branch, then `gh pr create --base main` with what changed, what
+  you verified (with the test output) and what you skipped. **Never push
+  to `main`, and never force-push a branch someone else is on.** Review a
+  PR with `/code-review` and post findings as comments; **merge only on
+  Max's explicit word**, with `gh pr merge N --merge` (never squash). Test
   the escalation queue only with read-only commands: an approved
   escalation really runs.
 - **Spend:** API and Modal spend only when Max names a run and its

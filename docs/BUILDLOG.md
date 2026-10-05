@@ -16459,3 +16459,13 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   `currently-open.md` (the item deleted), `build-and-test.md`.
 - On `main`: Go `./...`, `bench/oracle`, tsextract 51/51, pytest 2,892. Proxy and image rebuilt
   (`ac3e75df8c15`, `hobbes-proxy 0.2.121-beta`). The `adr180` worktree and branch removed after.
+
+## 2026-10-05 (forty-fifth session) — work moves to branches and PRs
+
+- Max: group work starts today; commit to a branch and open a PR for him to approve the merge. CLAUDE.md
+  (and `AGENTS.md`) §2's close and §7's rule now say: branch from `main`, push only that branch, open a PR
+  with what was verified; never push to `main` or merge your own PR. The handoff (item 6), `workstreams.md`
+  and architecture §9's standing discipline say the same. The dispatch sandbox's `git push*` deny is a
+  doer's policy, not this rule, and is unchanged. This change is the first to land by PR.
+- Max, on the PR: Claude reviews (`/code-review`, findings as PR comments) and merges only on his explicit
+  word, with `--merge`, never squash. §7 reworded; branch protection on `main` left for later.
