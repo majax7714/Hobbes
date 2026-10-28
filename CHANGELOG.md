@@ -15,6 +15,15 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.3.2-beta — 2026-10-28
+
+**Patch: the summary says more.** ADR-119, amended (route 1 of the speed and memory review).
+
+- **The ingest's timings carry memory.** Each step records this process's peak resident set and its largest
+  host child's as it ends, in the summary (a `peak memory` line and an MB column) and in the timings log
+  (`peak_rss_mb`, `child_peak_rss_mb`). A contained step's indexer runs under podman's monitor and is not
+  measured; the summary says so. Nothing enters an artifact.
+
 ## 0.3.1-beta — 2026-10-28
 
 **Patch: a constraint fix.** ADR-183 (Max: "good to go with the first 3", route 1 of the speed and memory

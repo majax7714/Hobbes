@@ -16553,3 +16553,6 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   `~/.hobbes/bench/`.
 - pytest 3,369 (17 new in `test_caps.py`), `lane_b` 29/29 on the host, scip node 102 (5 new), tsextract 51;
   register 197 entries, 145 active, 35 lifted.
+- **0.3.2-beta (ADR-119 amended):** each timed step also records this process's peak RSS and its largest
+  host child's (`RUSAGE_SELF`, `RUSAGE_CHILDREN`); contained indexers are podman's, not measured, and the
+  summary says so. One test; pytest 3,370.

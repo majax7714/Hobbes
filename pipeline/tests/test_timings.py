@@ -105,3 +105,24 @@ def test_a_test_ingest_never_logs_to_the_real_cache(tmp_path, monkeypatch):
     path = record(root, "0" * 40, None, Timings())
     assert not path.is_relative_to(real)
     assert path.exists()
+
+
+def test_every_step_records_the_peaks_as_it_ends():
+    # Peaks only rise, so the step a peak first appears at is the step
+    # that set it (ADR-119, amended).
+    timings = Timings()
+    with timings.step("small"):
+        pass
+    with timings.step("grow"):
+        # Whether this raises the peak depends on what the test process
+        # held before it, so only the order is asserted, not the delta.
+        ballast = bytearray(64 * 1024 * 1024)
+    with timings.step("child"):
+        subprocess.run(["python3", "-c", "b = bytearray(96 * 1024 * 1024); b[::4096] = b'x' * len(b[::4096])"], check=True)
+    small, grow, child = timings.steps
+    assert small["peak_rss_mb"] <= grow["peak_rss_mb"] <= child["peak_rss_mb"]
+    assert child["child_peak_rss_mb"] >= 64, "a host child's peak is its own figure"
+    rendered = timings.render()
+    assert "a contained step's indexer is not measured here" in rendered[1]
+    assert rendered[2].startswith("    small") and rendered[2].endswith(" MB")
+    del ballast

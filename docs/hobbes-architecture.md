@@ -1268,7 +1268,10 @@ lane B index run, the join, the projection, the lane agreement, the
 tail, the test map, the write — is timed in run order
 (`extract/timings.py`); the summary prints the total and every step,
 and `hobbes ingest` appends one JSON line per run under the Hobbes
-cache (`timings/<key>.jsonl`, keyed by the repo's path). Nothing enters
+cache (`timings/<key>.jsonl`, keyed by the repo's path). Since 0.3.2-beta
+each step also records this process's peak resident set and its largest
+host child's as it ends (ADR-119's amendment); a contained step's indexer
+runs under podman's monitor and is not measured. Nothing enters
 an artifact: two ingests of one commit stay byte-identical (P1). The
 caches above are measured against this record, or they are guesses.
 
@@ -2445,7 +2448,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.3.1-beta** (2026-10-28, ADR-103; the dev environment, ADR-181; every wall-clock cap named, ADR-183; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.1-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.3.2-beta** (2026-10-28, ADR-103; the dev environment, ADR-181; every wall-clock cap named, ADR-183; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.2-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this
