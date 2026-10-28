@@ -785,6 +785,15 @@ class ParsedFile:
 
 def parse_source(source: bytes) -> ParsedFile:
     """Walk one file's source and collect its raw facts."""
+    global _OWN_BODIES
+    outer, _OWN_BODIES = _OWN_BODIES, {}
+    try:
+        return _parse_source(source)
+    finally:
+        _OWN_BODIES = outer
+
+
+def _parse_source(source: bytes) -> ParsedFile:
     parsed = ParsedFile()
     root = _PARSER.parse(source).root_node
     parsed.shadows_callable = _binds_callable(root, source)
@@ -1851,7 +1860,15 @@ def _parameters(node: Node) -> tuple[tuple[str, int], ...]:
     return tuple(out)
 
 
-def _own_body(node: Node):
+#: :func:`_own_body`'s answers within one :func:`parse_source`, keyed by
+#: the definition's node (a node compares by its tree and its id); ``None``
+#: outside one, where each call walks. About a dozen readers ask for one
+#: definition's body, and each walked it afresh: 12.0 million calls for
+#: this repo's 447 files (ADR-184 lever 1).
+_OWN_BODIES: dict | None = None
+
+
+def _own_body(node: Node) -> tuple[Node, ...]:
     """Every node inside a definition's own body, stopping at a nested
     ``def``, ``class`` or ``lambda`` (ADR-145).
 
@@ -1859,8 +1876,21 @@ def _own_body(node: Node):
     in a nested function is that function's, and an assignment written
     there binds in that function's scope. The same containment question
     :func:`_collect_local_bindings` answers per binding, asked once per
-    definition.
+    definition. Walked once per parse (:data:`_OWN_BODIES`), in the order
+    the walk always yielded.
     """
+    cache = _OWN_BODIES
+    if cache is not None:
+        cached = cache.get(node)
+        if cached is not None:
+            return cached
+    found = tuple(_walk_own_body(node))
+    if cache is not None:
+        cache[node] = found
+    return found
+
+
+def _walk_own_body(node: Node):
     body = node.child_by_field_name("body")
     if body is None:
         return

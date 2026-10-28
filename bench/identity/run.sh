@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# ADR-184's gate: a speed change leaves every artifact byte-identical.
+#
+#   run.sh <out> <before-checkout> <after-checkout> <cells.txt> [extra env, e.g. HOBBES_TS_JOBS=1]
+#
+# Each cell (one path per line of cells.txt; `#` comments) is ingested by
+# the before checkout and then the after one, one pass at a time, with the
+# index cache off in both: a fresh index is what a version bump sees. The
+# three artifacts are copied out after each pass and compared by
+# compare.py, which ignores `built_by` alone. Each pass's wall time and
+# peak RSS (GNU time) and its timings summary are kept beside them.
+# A checkout needs its scip/ and tsextract/ node_modules *copied*, not
+# linked (a linked node_modules breaks lane B in the container).
+set -u
+OUT=${1:?out dir}; BEFORE=${2:?before checkout}; AFTER=${3:?after checkout}; CELLS=${4:?cells.txt}
+shift 4
+mkdir -p "$OUT"; OUT=$(cd "$OUT" && pwd)
+HERE=$(cd "$(dirname "$0")" && pwd)
+SUM=$OUT/summary.tsv
+printf 'cell\tarm\texit\twall_s\tpeak_rss_mb\n' > "$SUM"
+while IFS= read -r cell; do
+  case "$cell" in ''|'#'*) continue;; esac
+  cell=${cell/#\~/$HOME}
+  name=$(basename "$cell")
+  for arm in before after; do
+    root=$BEFORE; [ "$arm" = after ] && root=$AFTER
+    dir=$OUT/$name/$arm; mkdir -p "$dir"
+    (cd "$root/pipeline" && env HOBBES_INDEX_CACHE=0 "$@" /usr/bin/time -v -o "$dir/time.txt" \
+      uv run hobbes ingest --repo "$cell") > "$dir/ingest.log" 2>&1
+    code=$?
+    for f in graph tests interfaces; do cp "$cell/.hobbes/derived/$f.json" "$dir/" 2>/dev/null; done
+    wall=$(awk -F': ' '/Elapsed \(wall clock\)/{print $2}' "$dir/time.txt" | awk -F: '{ if (NF==3) print $1*3600+$2*60+$3; else print $1*60+$2 }')
+    rss=$(awk -F': ' '/Maximum resident/{printf "%d", $2/1024}' "$dir/time.txt")
+    printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$arm" "$code" "$wall" "$rss" >> "$SUM"
+    echo "$name $arm exit=$code ${wall}s ${rss}MB"
+  done
+  python3 -I "$HERE/compare.py" "$OUT/$name/before" "$OUT/$name/after" | tee "$OUT/$name/compare.txt"
+done < "$CELLS"
+echo ALL-DONE
