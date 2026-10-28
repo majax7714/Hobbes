@@ -1,11 +1,10 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-05 (forty-fourth session); Hobbes 0.2.121-beta on `main`.**
-Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
-by the commits since then; they are unpushed. The image and the proxy are at
-0.2.121-beta (image `ac3e75df8c15`); this repo was
-ingested at HEAD (`53d19ed`) after it; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
-new container from the current image, so it starts fresh.
+**Reviewed 2026-10-28 (forty-sixth session); Hobbes 0.2.122-beta on branch
+`fix/function-local-import-scope` (PR for Max), 0.2.121-beta on `main`.** `origin/main` is at `2089e22`.
+The dev environment's fold (ADR-181, 0.3.0-beta) is its own PR, `feat/watterson-fold`; it merges `main`
+after this one lands. The image is not rebuilt at 0.2.122-beta: rebuild it after the merges (C-65), and
+ingest at HEAD again.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
 file; don't append to it. Anything open but not done goes in
@@ -41,7 +40,11 @@ member), neither proposed. C is the next-thinnest language (two cells).
 - **Whether to extend the standing trace oracle:** all four cells measured (click and rich on 2026-10-04).
 - The Python routes (C-181's residual, ADR-156 and fixture values).
 
-## Where the last day left things (2026-10-04; the CHANGELOG has each one)
+## Where the last day left things (2026-10-28; the CHANGELOG has each one)
+
+Forty-sixth session (2026-10-28): the dev environment folded in (ADR-181, PR `feat/watterson-fold`); its
+CI run found a lane A defect, fixed here (**0.2.122, ADR-182, C-195 lifted**): a function's import binds
+its name in that function only. 3 sites moved over 22 repos, all to Python's binding (cachetools held out).
 
 Forty-fourth session (Max: routes for the TS/JS items; "approved recommended", "recommended is approved"):
 - **1a:** ADR-158's amendment approved as built (0.2.82-beta); the open item is now C-176's floor alone.
@@ -89,8 +92,8 @@ Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. F
   (ADR-160); pyparsing, icalendar and structlog are graded held out
   (icalendar 70.2%, its 6 wrong rows contained by ADR-168; structlog 77.8%
   at 0.2.100-beta).
-- **Register:** 194 entries: 144 active (112 surfaced, 28 partial, 3
-  unsurfaced — C-19, C-20, C-112 — 1 n/a), 33 lifted, 11 superseded,
+- **Register:** 195 entries: 144 active (112 surfaced, 28 partial, 3
+  unsurfaced — C-19, C-20, C-112 — 1 n/a), 34 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
 - **Oracle defect log: H-38 open** (2026-10-03): the trace oracle's
   `getattr` reads run a repo's `__getattr__`; not met on a standing cell.

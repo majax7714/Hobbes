@@ -31,6 +31,14 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-28 — a function's import scoped to the function (ADR-182, 0.2.122-beta)
+
+- `local-import-scope-2026-10-28/`: `probe.py` (lane A's `resolve_call_sites` per repo) over `repos.txt`
+  (22 Python-bearing repos) into `before/` and `after/`; `grade.py` (each moved site beside Python's binding,
+  by `ast`); `e2e.sh` + `compare_e2e.py` (a lane A ingest of copies, both arms); `probe_fixtures.py`
+  (`symbol_imports`); `count_residual.py` (class-body imports, names imported twice in a scope);
+  `RESULTS.md`. `hobbes-main/` and `copies/` are removable.
+
 ## 2026-10-04 — the TS/JS routes: 2a, 1b's step 0 and ADR-179 measured (0.2.118–0.2.119-beta)
 
 - `ts-floor-2026-10-04/`: `run.sh <arm>` over `cells.tsv` (the 13 keyed TS/JS cells, copied from

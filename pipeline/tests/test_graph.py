@@ -280,6 +280,111 @@ class TestAFunctionLocalImportShadowsTheFallback:
         assert fb[("mod.py", 3, "f")] == ("impl.py", 1)
 
 
+class TestAFunctionsImportIsScopedToTheFunction:
+    """ADR-182: an import inside a function binds its name in that function
+    only. Lane A once kept one module-wide table, last import winning, so
+    two functions that each import ``exit_code`` from two modules both
+    resolved to the later one (watterson's CLI, ``_cmd_freshness``)."""
+
+    def _fallback(self, tmp_path, source):
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "scoped"\n')
+        (tmp_path / "fresh.py").write_text("def exit_code(check):\n    return 0\n")
+        (tmp_path / "stale.py").write_text("def exit_code(checks):\n    return 1\n")
+        (tmp_path / "mod.py").write_text(source)
+        modules = discover_modules(tmp_path)
+        parsed = {m.id: parse_source((tmp_path / m.path).read_bytes()) for m in modules}
+        return resolve_call_sites(modules, parsed)
+
+    def test_each_function_gets_its_own_import(self, tmp_path):
+        fb = self._fallback(tmp_path, (
+            "def freshness():\n"
+            "    from fresh import exit_code\n"
+            "    return exit_code(1)\n"
+            "\n"
+            "def staleness():\n"
+            "    from stale import exit_code\n"
+            "    return exit_code(2)\n"
+        ))
+        assert fb[("mod.py", 3, "exit_code")] == ("fresh.py", 1)
+        assert fb[("mod.py", 7, "exit_code")] == ("stale.py", 1)
+
+    def test_a_functions_import_is_not_seen_by_a_sibling(self, tmp_path):
+        fb = self._fallback(tmp_path, (
+            "def one():\n"
+            "    from fresh import exit_code\n"
+            "    return exit_code(1)\n"
+            "\n"
+            "def two():\n"
+            "    return exit_code(2)\n"
+        ))
+        assert ("mod.py", 6, "exit_code") not in fb
+
+    def test_the_module_binding_holds_outside_and_yields_inside(self, tmp_path):
+        fb = self._fallback(tmp_path, (
+            "from fresh import exit_code\n"
+            "\n"
+            "def outer():\n"
+            "    return exit_code(1)\n"
+            "\n"
+            "def inner():\n"
+            "    from stale import exit_code\n"
+            "    return exit_code(2)\n"
+        ))
+        assert fb[("mod.py", 4, "exit_code")] == ("fresh.py", 1)
+        assert fb[("mod.py", 8, "exit_code")] == ("stale.py", 1)
+
+    def test_an_import_lane_a_cannot_place_still_shadows(self, tmp_path):
+        # Inside `inner`, exit_code is os's (not in the repo): nothing is
+        # drawn, rather than the module's fresh.exit_code.
+        fb = self._fallback(tmp_path, (
+            "from fresh import exit_code\n"
+            "\n"
+            "def inner():\n"
+            "    from os import exit_code\n"
+            "    return exit_code(2)\n"
+        ))
+        assert ("mod.py", 5, "exit_code") not in fb
+
+    def test_a_nested_function_sees_its_enclosing_functions_import(self, tmp_path):
+        fb = self._fallback(tmp_path, (
+            "def outer():\n"
+            "    from stale import exit_code\n"
+            "    def nested():\n"
+            "        return exit_code(3)\n"
+            "    return nested\n"
+        ))
+        assert fb[("mod.py", 4, "exit_code")] == ("stale.py", 1)
+
+    def test_a_module_bound_head_is_scoped_too(self, tmp_path):
+        fb = self._fallback(tmp_path, (
+            "import fresh as m\n"
+            "\n"
+            "def outer():\n"
+            "    return m.exit_code(1)\n"
+            "\n"
+            "def inner():\n"
+            "    import stale as m\n"
+            "    return m.exit_code(2)\n"
+        ))
+        assert fb[("mod.py", 4, "exit_code")] == ("fresh.py", 1)
+        assert fb[("mod.py", 8, "exit_code")] == ("stale.py", 1)
+
+    def test_a_functions_import_binds_no_module_global_for_pytest(self, tmp_path):
+        from hobbes.extract.graph import symbol_imports
+
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "scoped"\n')
+        (tmp_path / "fresh.py").write_text("def exit_code(check):\n    return 0\n")
+        (tmp_path / "mod.py").write_text(
+            "from fresh import exit_code as top\n"
+            "\n"
+            "def inner():\n"
+            "    from fresh import exit_code as local\n"
+        )
+        modules = discover_modules(tmp_path)
+        parsed = {m.id: parse_source((tmp_path / m.path).read_bytes()) for m in modules}
+        assert symbol_imports(modules, parsed)["mod"] == {"top": ("fresh", "exit_code")}
+
+
 class TestTheOneDefItsOwnFunctionWrites:
     """ADR-153: a bare call to the one ``def`` the calling function's own
     body writes resolves to that ``def``, ahead of the module-level rule

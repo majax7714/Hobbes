@@ -1044,6 +1044,28 @@ quietly survives. When a residual case turns out to bite, it becomes a
 new active entry and the two cross-reference. Field key: `README.md`,
 "How to read a lifted entry".
 
+### C-195 — A function's own import was bound module-wide, so another function's call could take it — *lifted 2026-10-28, the day it was registered (ADR-182, 0.2.122-beta)*
+- **Was:** lane A's import table (`graph._NameEnv`) was one dictionary per module, filled from every
+  import in the file in source order; the last import of a name won for every call. Python binds a name a
+  function imports in that function only. Two functions that each import one name from two modules both
+  resolved to the later one: watterson's `_cmd_freshness` (`from hobbes.freshness import exit_code`) was
+  drawn to `providers.staleness.exit_code`. Lane B named the right one and `hobbes lanes` counted it
+  `unexplained`; where lane B is absent the wrong `syntactic` edge was drawn. ADR-154 step 6 covered a
+  function's import shadowing the module's own def, not another import. In no entry until the dev
+  environment's fold (ADR-181) ran CI's `graph` job.
+- **Lifted by — the technique:** a function's own imports are kept with the innermost function's extent
+  (pysource's `local_imports`) and asked first for a call inside it (`_NameEnv.binding_at`), for a bare
+  name and for a module-bound dotted head. One lane A cannot place (outside the repo, `import a.b`) still
+  shadows: nothing is drawn. pytest's fixture lookup reads module-level bindings only. Over 22 repos
+  (`~/.hobbes/bench/local-import-scope-2026-10-28/`): 3 sites moved, each to the import Python binds there
+  (watterson 1; cachetools 2, held out); end to end, one `calls` edge each in those two repos, `tests.json`
+  unchanged on all 22.
+- **Residual edge cases, by design:** an import in a **class body** is still bound module-wide (Python puts
+  it in the class namespace, which methods do not see): 32 in the 22 repos, 0 lane A sites through them. A
+  name imported **twice in one scope** keeps the last (Python's answer depends on flow): 81 names, 32 resolved
+  sites, 31 one symbol either way; the other is C-181's `try`/`except ImportError` shape.
+- **Source:** registered and lifted 2026-10-28 (ADR-182). `graph._NameEnv`.
+
 ### C-59 — A function's call to itself was not an edge — *lifted 2026-08-25, the same day it was registered*
 - **Was:** the projection dropped any fact whose caller and callee were
   the same symbol (`scipsource.project`), and the Python fallback did

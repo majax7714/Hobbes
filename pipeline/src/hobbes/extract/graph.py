@@ -173,8 +173,9 @@ def symbol_imports(
     :class:`_NameEnv` resolves these already, for the call fallback; this is
     that read exposed rather than derived a second time (ADR-137). pytest's
     fixture lookup counts a name imported into a file as the file's own, and
-    the import rules it needs are exactly ADR-007's. A module that binds no
-    such name is left out.
+    the import rules it needs are exactly ADR-007's. A function's own import
+    binds a function local, not a module global, so it is not one (ADR-182).
+    A module that binds no such name is left out.
     """
     index = _Index(modules)
     out: dict[str, dict[str, tuple[str, str]]] = {}
@@ -296,14 +297,30 @@ class _SymbolTable:
 
 
 class _NameEnv:
-    """One module's import bindings, resolved (ADR-007 rules 2 and 3)."""
+    """One module's import bindings, resolved (ADR-007 rules 2 and 3).
+
+    An import inside a function binds its name in that function only, as
+    Python scopes it (ADR-182): it is kept with the function's extent in
+    :attr:`scoped`, never in the module's :attr:`bindings`, and
+    :meth:`binding_at` answers for a call's line. Two functions that each
+    import one name from two modules each get their own.
+    """
 
     def __init__(self, module: ModuleInfo, facts: ParsedFile, index: _Index):
         self.module = module
         #: bound name → ("module", ModuleInfo) | ("symbol", ModuleInfo, name)
         self.bindings: dict[str, tuple] = {}
+        #: (start, end, bound name, binding or None): a function's own
+        #: imports, with that function's extent. None is an import lane A
+        #: cannot place (outside the repo, or a plain ``import a.b``): it
+        #: still shadows the module's name inside the function.
+        self.scoped: list[tuple[int, int, str, tuple | None]] = []
         self.resolved_imports: list[tuple] = []  # (import record, ModuleInfo)
         self.external_imports: list[tuple] = []  # (import record, top-level name)
+        #: name → the extents of the functions whose own imports bind it
+        self._local: dict[str, list[tuple[int, int]]] = defaultdict(list)
+        for b in facts.local_imports:
+            self._local[b.name].append((b.start, b.end))
 
         for imp in facts.imports:
             if isinstance(imp, PlainImport):
@@ -311,25 +328,56 @@ class _NameEnv:
             elif isinstance(imp, FromImport):
                 self._from(imp, index)
 
+    def _extent(self, bound: str, line: int) -> tuple[int, int] | None:
+        """The innermost function whose own import at *line* binds *bound*,
+        or None for an import at module level (or in a class body)."""
+        spans = [(s, e) for s, e in self._local.get(bound, ()) if s <= line <= e]
+        return min(spans, key=lambda span: span[1] - span[0]) if spans else None
+
+    def _bind(self, bound: str, binding: tuple | None, line: int) -> None:
+        """Record what an import at *line* binds *bound* to, in its scope."""
+        extent = self._extent(bound, line)
+        if extent is not None:
+            self.scoped.append((extent[0], extent[1], bound, binding))
+        elif binding is not None:
+            self.bindings[bound] = binding
+
+    def binding_at(self, name: str, line: int) -> tuple | None:
+        """What *name* is bound to at *line*: the innermost function's own
+        import spanning the line, else the module's (ADR-182)."""
+        spans = [(e - s, b) for s, e, n, b in self.scoped if n == name and s <= line <= e]
+        if spans:
+            return min(spans, key=lambda span: span[0])[1]
+        return self.bindings.get(name)
+
     def _plain(self, imp: PlainImport, index: _Index) -> None:
         resolved = index.resolve_prefix(self.module, imp.module)
+        bound = imp.alias or imp.module.split(".")[0]
         if resolved is None:
             self.external_imports.append((imp, imp.module.split(".")[0]))
+            self._bind(bound, None, imp.line)
             return
         self.resolved_imports.append((imp, resolved))
         if imp.alias:
             # `import a.b as c` binds c to the module a.b (or its best prefix).
-            self.bindings[imp.alias] = ("module", resolved)
-        # `import a.b` binds only `a`; dotted callees like a.b.f() are
-        # resolved by full-path lookup in _resolve_call, no binding needed.
+            self._bind(imp.alias, ("module", resolved), imp.line)
+        else:
+            # `import a.b` binds only `a`; dotted callees like a.b.f() are
+            # resolved by full-path lookup in _resolve_call, no binding
+            # needed. Inside a function it still shadows a module-level `a`.
+            self._bind(bound, None, imp.line)
 
     def _from(self, imp: FromImport, index: _Index) -> None:
         base = self._absolute_base(imp)
         if base is None:
+            for name, bound in imp.names:
+                self._bind(bound, None, imp.line)
             return
         base_resolved = index.resolve_prefix(self.module, base) if base else None
         if base and base_resolved is None and imp.level == 0:
             self.external_imports.append((imp, base.split(".")[0]))
+            for name, bound in imp.names:
+                self._bind(bound, None, imp.line)
             return
         for name, bound in imp.names:
             if name == "*":
@@ -339,10 +387,12 @@ class _NameEnv:
             submodule = index.lookup(self.module, f"{base}.{name}" if base else name)
             if submodule is not None:
                 self.resolved_imports.append((imp, submodule))
-                self.bindings[bound] = ("module", submodule)
+                self._bind(bound, ("module", submodule), imp.line)
             elif base_resolved is not None:
                 self.resolved_imports.append((imp, base_resolved))
-                self.bindings[bound] = ("symbol", base_resolved, name)
+                self._bind(bound, ("symbol", base_resolved, name), imp.line)
+            else:
+                self._bind(bound, None, imp.line)
 
     def _absolute_base(self, imp: FromImport) -> str | None:
         """Absolute dotted base of a from-import; None if it escapes the tree."""
@@ -413,7 +463,7 @@ def _resolve_call(
         quals = table.quals(module.id)
         if head in quals:
             return f"{module.id}.{head}"
-        binding = env.bindings.get(head)
+        binding = env.binding_at(head, call.line)
         if binding is not None and binding[0] == "symbol":
             _, target_module, name = binding
             if name in table.quals(target_module.id):
@@ -423,7 +473,7 @@ def _resolve_call(
     # Rule 3: dotted path through a repo module. Expand a module-bound head
     # (import alias or from-imported submodule), then split the dotted text
     # into (module import name, symbol qualname) at every point.
-    binding = env.bindings.get(head)
+    binding = env.binding_at(head, call.line)
     if binding is not None and binding[0] == "module":
         parts = binding[1].import_name.split(".") + parts[1:]
     for i in range(len(parts) - 1, 0, -1):
