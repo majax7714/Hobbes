@@ -214,18 +214,44 @@ function cUnitsDir(c) {
 export const PER_UNIT_MAX = 400
 
 /** The index step's shell: one scip-clang run per one-entry database the
- * check wrote, `$1` their directory and `$2` how many may run at once.
- * `-j 1` because the parallelism is here, one process per unit. `exit 0`
- * because xargs exits 123 when any child failed, and a unit that fails
- * must not stop the others — the merge counts what is missing. When the
- * check wrote `whole.json` instead (a database over `PER_UNIT_MAX`), one
- * scip-clang run indexes it at scip-clang's own parallelism. */
+ * check wrote, `$1` their directory, `$2` how many may run at once and `$3`
+ * how long scip-clang waits for a unit's worker (ADR-183's `clang-unit`
+ * cap). `-j 1` because the parallelism is here, one process per unit.
+ * `exit 0` because xargs exits 123 when any child failed, and a unit that
+ * fails must not stop the others — the merge counts what is missing. Each
+ * unit's output is kept beside its index (`NNNN.log`) and passed on: a
+ * unit scip-clang timed out or errored on still exits 0 with a
+ * well-formed, empty index, and only its summary line says so (C-197).
+ * When the check wrote `whole.json` instead (a database over
+ * `PER_UNIT_MAX`), one scip-clang run indexes it at scip-clang's own
+ * parallelism, and its summary is read off the step's output. */
 const PER_UNIT_INDEX =
   'if [ -f "$1/whole.json" ]; then ' +
-  'scip-clang --compdb-path="$1/whole.json" --index-output-path="$1/whole.scip"; exit 0; fi; ' +
+  'scip-clang --receive-timeout-seconds="$3" --compdb-path="$1/whole.json" --index-output-path="$1/whole.scip"; exit 0; fi; ' +
   'ls "$1" | sed -n \'s/\\.json$//p\' | ' +
-  'xargs -P "$2" -I@ scip-clang -j 1 --compdb-path="$1/@.json" --index-output-path="$1/@.scip"; ' +
+  'xargs -P "$2" -I@ sh -c \'' +
+  'scip-clang -j 1 --receive-timeout-seconds="$2" --compdb-path="$1/$0.json" --index-output-path="$1/$0.scip" > "$1/$0.log" 2>&1; ' +
+  's=$?; cat "$1/$0.log" >&2; exit $s\' @ "$1" "$3"; ' +
   'exit 0'
+
+/** scip-clang's own wait for one unit's worker when the config names none:
+ * its default, which ADR-183's `clang-unit` cap is at scale 1. */
+export const DEFAULT_CLANG_UNIT_TIMEOUT_SECONDS = 300
+
+/** What one scip-clang run's output says of its units (C-197): whether it
+ * finished (its `Finished indexing … num errored TUs: K` line), how many
+ * it errored on, and how many workers it stopped for its wait. The exit
+ * code says none of it: scip-clang exits 0 either way. */
+export function clangRunOutcome(text) {
+  const said = String(text || '')
+  const summaries = [...said.matchAll(/num errored TUs: (\d+)/g)]
+  const last = summaries.at(-1)
+  return {
+    finished: last !== undefined,
+    errored: last === undefined ? null : Number(last[1]),
+    timedOut: (said.match(/due to worker timeout/g) || []).length,
+  }
+}
 
 /** One one-entry compile database per entry of *entries*, named by the
  * entry's zero-padded position in the database, so the units decode in
@@ -281,7 +307,10 @@ export function cPlan(c) {
   const split = splitStep(compdb, unitsDir)
   const index = {
     bin: 'sh', onPath: true, install: 'a POSIX shell (the image has one)', cwd: c.stage,
-    args: ['-c', PER_UNIT_INDEX, 'sh', unitsDir, String(availableParallelism())],
+    args: [
+      '-c', PER_UNIT_INDEX, 'sh', unitsDir, String(availableParallelism()),
+      String(c.clangUnitTimeoutSeconds ?? DEFAULT_CLANG_UNIT_TIMEOUT_SECONDS),
+    ],
   }
   // Both hooks on one step: C-135 judges the whole database, then it is
   // split. A database the check refuses is never split.
@@ -1529,11 +1558,24 @@ export function degradations(index, decoded, config) {
     })
   }
   if (decoded.units_failed) {
+    const timedOut = decoded.units_timed_out
+      ? ` (${decoded.units_timed_out} stopped at scip-clang's wait for its worker, the ` +
+        "clang-unit cap: C-196; HOBBES_TIMEOUT_SCALE raises every cap)"
+      : ''
     out.push({
       stage: 'scip-decode',
       message:
-        `${decoded.units_failed} of ${decoded.units} translation unit(s) failed to index; ` +
-        "the others stand, and the failed units' sites fall to lane A's fallback (ADR-109)",
+        `${decoded.units_failed} of ${decoded.units} translation unit(s) failed to index${timedOut}; ` +
+        "the others stand, and the failed units' sites fall to lane A's fallback (ADR-109, C-197)",
+    })
+  }
+  if (decoded.units_uncounted) {
+    out.push({
+      stage: 'scip-decode',
+      message:
+        `scip-clang wrote no summary for this root's ${decoded.units_uncounted} translation unit(s), ` +
+        'so how many of them indexed cannot be read; a unit it did not index has no lane B ' +
+        "answer, and its sites fall to lane A's fallback (C-197)",
     })
   }
   if (decoded.whole_database) {
@@ -1658,7 +1700,7 @@ function runIndexer(config) {
     if (plan.prepare) plan.prepare()
     for (const step of plan.steps) {
       if (step.check) step.check(proc)
-      proc = runStep(step)
+      proc = runStep(step, config.stepTimeoutSeconds)
     }
     if (plan.resolved) resolved = plan.resolved()
   } finally {
@@ -1667,7 +1709,24 @@ function runIndexer(config) {
   return { proc, resolved, unitsDir: plan.unitsDir }
 }
 
-function runStep(step) {
+/** A step's cap when its config names none: the one the helper used
+ * before the caps were one table (ADR-183). */
+export const DEFAULT_STEP_TIMEOUT_SECONDS = 600
+
+/** The words a step that outran its cap stops with (ADR-183): what ran
+ * out of time, the cap, the register entry and the knob, as the Python
+ * side's `caps.timed_out` says them. It carries `indexerExit`, so the
+ * ingest records the indexer's failure, never a missing helper. */
+export function stepTimedOut(step, seconds) {
+  const err = new Error(
+    `${step.bin} ${step.args[0] ?? ''}`.trim() +
+      ` did not finish within its ${seconds} s cap (C-196; HOBBES_TIMEOUT_SCALE raises every cap)`,
+  )
+  err.indexerExit = null
+  return err
+}
+
+function runStep(step, timeoutSeconds = DEFAULT_STEP_TIMEOUT_SECONDS) {
   // Two install shapes, because indexers are not all npm packages: the
   // Python and TypeScript ones are pinned devDependencies here, scip-go
   // is a Go binary the user installs (`go install`). Resolving the wrong
@@ -1676,7 +1735,7 @@ function runStep(step) {
   const proc = spawnSync(bin, step.args, {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
-    timeout: 600_000,
+    timeout: timeoutSeconds * 1000,
     ...(step.cwd ? { cwd: step.cwd } : {}),
   })
   if (proc.error && proc.error.code === 'ENOENT') {
@@ -1686,6 +1745,9 @@ function runStep(step) {
         : `${step.bin} is not installed — run \`npm install\` in the hobbes repo's scip/`,
     )
   }
+  // spawnSync stops a step past its timeout with SIGTERM and reports
+  // ETIMEDOUT; its status is then null, which read as "exited null".
+  if (proc.error && proc.error.code === 'ETIMEDOUT') throw stepTimedOut(step, timeoutSeconds)
   if (proc.status !== 0) {
     const detail = String(proc.stderr || proc.stdout || '').trim().slice(-500)
     const err = new Error(`${step.bin} ${step.args[0]} exited ${proc.status}: ${detail}`)
@@ -1777,7 +1839,7 @@ export function mergeUnitIndexes(indexes) {
  * wrote nothing usable. The others stand. A database over `PER_UNIT_MAX`
  * left one `whole.json` and one index; `whole` then carries its unit count.
  * The indexes are named, not read: `indexStage` streams them (ADR-115). */
-function readUnitIndexes(unitsDir) {
+export function readUnitIndexes(unitsDir, proc = null) {
   const names = existsSync(unitsDir)
     ? readdirSync(unitsDir).filter((f) => f.endsWith('.json')).sort()
     : []
@@ -1785,17 +1847,37 @@ function readUnitIndexes(unitsDir) {
   if (names.length === 1 && names[0] === 'whole.json') {
     const units = JSON.parse(readFileSync(join(unitsDir, 'whole.json'), 'utf8')).length
     const whole = join(unitsDir, 'whole.scip')
-    return readable(whole)
-      ? { units, units_failed: 0, files: [whole], whole: units }
-      : { units, units_failed: units, files: [], whole: units }
+    if (!readable(whole)) return { units, units_failed: units, units_timed_out: 0, units_uncounted: 0, files: [], whole: units }
+    // One run for every unit: its summary is the only count there is
+    // (C-197). Without one, how many indexed cannot be read, and the record
+    // says that rather than a number.
+    const outcome = clangRunOutcome(`${proc?.stdout ?? ''}\n${proc?.stderr ?? ''}`)
+    return {
+      units,
+      units_failed: outcome.finished ? Math.min(outcome.errored, units) : 0,
+      units_timed_out: Math.min(outcome.timedOut, units),
+      units_uncounted: outcome.finished ? 0 : units,
+      files: [whole],
+      whole: units,
+    }
   }
   const files = []
+  let failed = 0
+  let timedOut = 0
   for (const name of names) {
-    const out = join(unitsDir, `${name.slice(0, -'.json'.length)}.scip`)
-    // Missing or unreadable: that unit did not index. Counted below.
+    const stem = name.slice(0, -'.json'.length)
+    const out = join(unitsDir, `${stem}.scip`)
+    const log = join(unitsDir, `${stem}.log`)
+    const outcome = clangRunOutcome(existsSync(log) ? readFileSync(log, 'utf8') : '')
+    if (outcome.timedOut > 0) timedOut += 1
+    // A unit counts as indexed only when scip-clang said so: its index is
+    // well-formed even when it timed out or errored (C-197). The index is
+    // decoded either way — a failed unit's holds no document — so the
+    // count moves and nothing drawn does.
+    if (!readable(out) || !outcome.finished || outcome.errored > 0) failed += 1
     if (readable(out)) files.push(out)
   }
-  return { units: names.length, units_failed: names.length - files.length, files }
+  return { units: names.length, units_failed: failed, units_timed_out: timedOut, units_uncounted: 0, files }
 }
 
 /** Every one of a root's translation units failed, so there is no index to
@@ -1825,7 +1907,7 @@ export function indexStage(config) {
   let decoded
   try {
     if (unitsDir) {
-      unitRuns = readUnitIndexes(unitsDir)
+      unitRuns = readUnitIndexes(unitsDir, proc)
       if (unitRuns.units > 0 && unitRuns.files.length === 0) throw noUnitIndexed(unitRuns.units, proc)
       index = indexFiles(unitRuns.files)
     } else {
@@ -1850,6 +1932,8 @@ export function indexStage(config) {
   if (unitRuns) {
     decoded.units = unitRuns.units
     decoded.units_failed = unitRuns.units_failed
+    decoded.units_timed_out = unitRuns.units_timed_out
+    decoded.units_uncounted = unitRuns.units_uncounted
     decoded.whole_database = unitRuns.whole ?? 0
   }
   return {

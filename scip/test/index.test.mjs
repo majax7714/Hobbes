@@ -37,6 +37,11 @@ import { INDEXER_EXIT,
   HELPER_VERSION,
   factsLines,
   writeFacts,
+  clangRunOutcome,
+  readUnitIndexes,
+  stepTimedOut,
+  indexStage,
+  DEFAULT_CLANG_UNIT_TIMEOUT_SECONDS,
 } from '../index.mjs'
 
 // Real monikers, pasted from scip-python 0.6.6 and scip-typescript 0.4.0
@@ -263,11 +268,13 @@ test('terminalName reads the bare name a syntax provider would have seen', () =>
 function assertPerUnitIndexStep(step) {
   assert.equal(step.bin, 'sh', 'the units are driven from a shell, as bear over make is')
   assert.equal(step.cwd, '/s/cjson', 'scip-clang reports documents relative to its cwd, the root')
-  assert.match(step.args[1], /xargs -P "\$2" -I@ scip-clang -j 1 /, 'one unit per run, the parallelism outside it')
-  assert.match(step.args[1], /--compdb-path="\$1\/@\.json" --index-output-path="\$1\/@\.scip"/)
+  assert.match(step.args[1], /xargs -P "\$2" -I@ sh -c 'scip-clang -j 1 /, 'one unit per run, the parallelism outside it')
+  assert.match(step.args[1], /--compdb-path="\$1\/\$0\.json" --index-output-path="\$1\/\$0\.scip" > "\$1\/\$0\.log" 2>&1/,
+    "each unit's words are kept beside its index (C-197)")
   assert.match(step.args[1], /exit 0$/, 'a unit that fails does not stop the others')
   assert.equal(step.args[3], '/s/o.scip.units', 'the unit databases sit beside the output, never in the stage')
   assert.ok(Number(step.args[4]) >= 1, "at most the box's parallelism at a time")
+  assert.equal(step.args[5], String(DEFAULT_CLANG_UNIT_TIMEOUT_SECONDS), "scip-clang's wait, from the config or its own default (ADR-183)")
   assert.equal(typeof step.check, 'function', 'the database is checked, then split, before any indexing')
 }
 
@@ -972,7 +979,7 @@ test('a translation unit that failed to index is counted, and nothing is said wh
   assert.equal(record.stage, 'scip-decode')
   assert.equal(record.message,
     "1 of 5 translation unit(s) failed to index; the others stand, and the failed units' " +
-    "sites fall to lane A's fallback (ADR-109)")
+    "sites fall to lane A's fallback (ADR-109, C-197)")
   assert.deepEqual(failed(0), [], 'a run whose every unit indexed says nothing')
 })
 
@@ -1877,4 +1884,120 @@ describe('a shorthand property is an alias of what it names (ADR-144)', () => {
     assert.equal(out.external[0].in_repo, undefined)
     assert.equal(out.shorthand_refs, 0)
   })
+})
+
+// scip-clang 0.4.0's own words, from the 2026-10-28 probe in the image
+// (ADR-183): two units, `--receive-timeout-seconds=0`. It exits 0 and
+// writes a well-formed index holding no document either way.
+const CLANG_TIMED_OUT = [
+  "[22:54:45 warning] driver    : terminating worker 0 (was running job (compdb index: 0, subtask: semantic analysis)) due to worker timeout",
+  "[22:54:45 info] driver    : the worker was running semantic analysis for '/w/a.c'",
+  'Finished indexing 0 translation units in 0.1s (indexing: 0.1s, merging: 0.0s, num errored TUs: 1).',
+].join('\n')
+const CLANG_INDEXED = [
+  '[1/1] Indexed /w/b.c',
+  '[1/1] Merged partial index for /w/b.c',
+  'Finished indexing 1 translation units in 0.1s (indexing: 0.1s, merging: 0.0s, num errored TUs: 0).',
+].join('\n')
+
+test("scip-clang's summary line, not its exit, says whether a unit indexed (C-197)", () => {
+  assert.deepEqual(clangRunOutcome(CLANG_TIMED_OUT), { finished: true, errored: 1, timedOut: 1 })
+  assert.deepEqual(clangRunOutcome(CLANG_INDEXED), { finished: true, errored: 0, timedOut: 0 })
+  assert.deepEqual(clangRunOutcome(''), { finished: false, errored: null, timedOut: 0 },
+    'a run that wrote no summary did not finish, and its count cannot be read')
+})
+
+test('a unit scip-clang timed out on is counted failed, though its index is well-formed (C-197)', async () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-units-'))
+  for (const [name, log] of [['0000', CLANG_INDEXED], ['0001', CLANG_TIMED_OUT], ['0002', null]]) {
+    cfs.writeFileSync(cpath.join(dir, `${name}.json`), '[]')
+    cfs.writeFileSync(cpath.join(dir, `${name}.scip`), await writtenIndex([[`${name}.c`, [(w) => { w.writeString(2, 'x') }]]]))
+    if (log !== null) cfs.writeFileSync(cpath.join(dir, `${name}.log`), log)
+  }
+  const runs = readUnitIndexes(dir)
+  assert.equal(runs.units, 3)
+  assert.equal(runs.units_failed, 2, 'the timed-out unit, and the one that left no summary')
+  assert.equal(runs.units_timed_out, 1)
+  assert.equal(runs.files.length, 3, 'every readable index is still decoded: a failed one holds nothing to draw')
+  const said = degradations(fakeIndex([{ relative_path: 'a.c', occurrences: [] }]),
+    { ...decode(fakeIndex([])), units: 3, units_failed: 2, units_timed_out: 1 }, { language: 'c' })
+    .map((r) => r.message).filter((m) => /translation unit\(s\) failed/.test(m))
+  assert.deepEqual(said, [
+    "2 of 3 translation unit(s) failed to index (1 stopped at scip-clang's wait for its worker, the clang-unit " +
+    "cap: C-196; HOBBES_TIMEOUT_SCALE raises every cap); the others stand, and the failed units' sites fall to " +
+    "lane A's fallback (ADR-109, C-197)",
+  ])
+})
+
+test("a whole-database run's count is read off its own summary, or said to be unreadable (C-197)", async () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-units-'))
+  cfs.writeFileSync(cpath.join(dir, 'whole.json'), JSON.stringify([{}, {}, {}]))
+  cfs.writeFileSync(cpath.join(dir, 'whole.scip'), await writtenIndex([['a.c', [(w) => { w.writeString(2, 'x') }]]]))
+  const runs = readUnitIndexes(dir, { stdout: 'Finished indexing 2 translation units (num errored TUs: 1).', stderr: 'x due to worker timeout' })
+  assert.equal(runs.units_failed, 1)
+  assert.equal(runs.units_timed_out, 1)
+  assert.equal(runs.units_uncounted, 0)
+  const unread = readUnitIndexes(dir, { stdout: '', stderr: '' })
+  assert.equal(unread.units_failed, 0)
+  assert.equal(unread.units_uncounted, 3)
+  const said = degradations(fakeIndex([{ relative_path: 'a.c', occurrences: [] }]),
+    { ...decode(fakeIndex([])), units: 3, units_failed: 0, units_uncounted: 3 }, { language: 'c' })
+    .map((r) => r.message).filter((m) => /no summary/.test(m))
+  assert.equal(said.length, 1)
+  assert.match(said[0], /how many of them indexed cannot be read/)
+})
+
+test("the per-unit shell passes the clang-unit cap and keeps each unit's words (ADR-183, C-197)", () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  const bin = cpath.join(dir, 'bin')
+  cfs.mkdirSync(bin)
+  cfs.writeFileSync(cpath.join(bin, 'scip-clang'), [
+    '#!/bin/sh',
+    'for a in "$@"; do case "$a" in',
+    '  --receive-timeout-seconds=*) wait=${a#--receive-timeout-seconds=};;',
+    '  --index-output-path=*) out=${a#--index-output-path=};;',
+    'esac; done',
+    'echo "waited $wait" > "$out"',
+    'echo "Finished indexing 1 translation units (num errored TUs: 0)."',
+    'echo "said on stderr" >&2',
+  ].join('\n') + '\n', { mode: 0o755 })
+  cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify(
+    ['a.c', 'b.c'].map((file) => ({ directory: dir, file, arguments: ['cc', '-c', file] }))))
+  const config = { language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'repo', compdb: cpath.join(dir, 'compile_commands.json') }
+  const run = (plan) => {
+    const step = plan.steps[0]
+    step.check({})
+    return spawnSync('sh', step.args, { cwd: step.cwd, encoding: 'utf8', env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } })
+  }
+  const plan = cPlan({ ...config, clangUnitTimeoutSeconds: 7 })
+  const proc = run(plan)
+  assert.equal(proc.status, 0)
+  assert.equal(cfs.readFileSync(cpath.join(plan.unitsDir, '0001.scip'), 'utf8').trim(), 'waited 7')
+  assert.match(cfs.readFileSync(cpath.join(plan.unitsDir, '0000.log'), 'utf8'), /num errored TUs: 0[\s\S]*said on stderr/)
+  assert.match(String(proc.stderr), /said on stderr/, "the units' words still reach the facts")
+  const unset = cPlan(config)
+  run(unset)
+  assert.equal(cfs.readFileSync(cpath.join(unset.unitsDir, '0000.scip'), 'utf8').trim(), `waited ${DEFAULT_CLANG_UNIT_TIMEOUT_SECONDS}`,
+    "no cap in the config is scip-clang's own default")
+})
+
+test('a step past its cap stops with the cap named, as an indexer failure (ADR-183)', () => {
+  const err = stepTimedOut({ bin: 'scip-go', args: ['index'] }, 870)
+  assert.equal(err.message, 'scip-go index did not finish within its 870 s cap (C-196; HOBBES_TIMEOUT_SCALE raises every cap)')
+  assert.equal(exitCodeFor(err), INDEXER_EXIT, 'the helper ran; the indexer did not finish')
+
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-step-'))
+  const bin = cpath.join(dir, 'bin')
+  cfs.mkdirSync(bin)
+  cfs.writeFileSync(cpath.join(bin, 'scip-go'), '#!/bin/sh\nsleep 5\n', { mode: 0o755 })
+  const path = process.env.PATH
+  process.env.PATH = `${bin}:${path}`
+  try {
+    assert.throws(
+      () => indexStage({ language: 'go', stage: dir, output: cpath.join(dir, 'o.scip'), stepTimeoutSeconds: 1 }),
+      (thrown) => /^scip-go index did not finish within its 1 s cap \(C-196/.test(thrown.message) && exitCodeFor(thrown) === INDEXER_EXIT,
+    )
+  } finally {
+    process.env.PATH = path
+  }
 })

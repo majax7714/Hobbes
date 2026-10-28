@@ -320,6 +320,43 @@
   (`test_a_file_the_parse_cannot_read_at_top_level_says_its_definitions_are_lost`);
   `~/.hobbes/bench/calvin-lattice/e3/draw/hypersonic-fixture/`.
 
+## Lifted constraints in this segment
+
+A lift is a technique: each entry states the limit as it stood, the
+mechanism that now classifies it, and where the old concession survives
+(`README.md`, "How to read a lifted entry").
+
+### C-197 — A translation unit scip-clang timed out or errored on was counted as indexed — *lifted 2026-10-28, the day it was registered (ADR-183, 0.3.1-beta)*
+- **Was:** the helper counted a unit indexed when its index was
+  well-formed (`readUnitIndexes`). scip-clang 0.4.0 exits 0 and writes a
+  well-formed index holding no document when it stops a unit's worker
+  for its wait, or errors on the unit. Probed 2026-10-28 in the image:
+  two units, `--receive-timeout-seconds=0`, `num errored TUs: 2`, exit 0,
+  150 bytes. So `N of M translation unit(s) failed to index` said 0. A
+  whole-database run (over `PER_UNIT_MAX`) counted 0 failed whenever its
+  one index read. The units' sites fell to lane A's fallback all the
+  same (no document, no lane B answer), so no edge was wrong; what was
+  missing was the record that said so. In no entry before ADR-183's
+  review.
+- **Lifted by — the technique:** each per-unit run's output is kept
+  beside its index (`NNNN.log`) and passed on. `clangRunOutcome` reads
+  scip-clang's own summary line (`num errored TUs: K`) and its `due to
+  worker timeout` lines. A unit counts failed when K > 0 or when it wrote
+  no summary. A whole-database run reads the same line off its output; one
+  with no summary says its count cannot be read. The `scip-decode` record
+  names how many failed units timed out, with C-196. The index is decoded
+  as before, so nothing drawn moves. Checked with the real binary in the
+  image: at a 0 s wait, 2 of 2 units counted failed and timed out; at 5 s,
+  0 of 2.
+- **Residual edge cases, by design:** the count rests on scip-clang's
+  summary line, whose wording is 0.4.0's. A future version that changes
+  it reads as "no summary": every unit counts failed (per unit) or the
+  count is said to be unreadable (whole database). That fails toward
+  saying less, never toward a count it did not read.
+- **Provider (P9):** scip-clang **0.4.0**.
+- **Source:** registered and lifted 2026-10-28 (ADR-183).
+  `scip/index.mjs` `readUnitIndexes`, `clangRunOutcome`.
+
 ## Folded entries in this segment
 
 An entry that concedes the same information as another, folded into it

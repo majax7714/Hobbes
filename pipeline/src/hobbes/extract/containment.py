@@ -78,7 +78,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from hobbes.extract import staging
+from hobbes.extract import caps, staging
 
 #: The one image (§7). Overridable for a box that tags it differently.
 IMAGE_ENV = "HOBBES_SANDBOX_IMAGE"
@@ -109,6 +109,12 @@ class ContainmentError(RuntimeError):
     """A container could not be launched for a reason that is not the
     guarantee — the plan was fine, podman failed. Degrades like any other
     lane B failure."""
+
+
+class ContainmentTimeout(ContainmentError):
+    """A step outran its cap (ADR-183, C-196). A :class:`ContainmentError`,
+    so every catch that degrades on one still does; its own type lets a
+    caller that would otherwise drop the cause say it."""
 
 
 class ContainmentRefusal(RuntimeError):
@@ -573,8 +579,8 @@ def run(p: Plan, *, timeout: int) -> Outcome:
         except FileNotFoundError as exc:
             raise ContainmentError(f"podman vanished mid-ingest: {exc}") from exc
         except subprocess.TimeoutExpired as exc:
-            raise ContainmentError(
-                f"{p.profile.step} timed out after {timeout}s in its container"
+            raise ContainmentTimeout(
+                caps.timed_out(f"{p.profile.step}, in its container,", timeout)
             ) from exc
         if proc.returncode == 125:
             # podman's own failure code (image, mounts, runtime) — not the
@@ -603,7 +609,7 @@ def run(p: Plan, *, timeout: int) -> Outcome:
     except FileNotFoundError:
         raise  # the caller names how its tool is installed
     except subprocess.TimeoutExpired as exc:
-        raise ContainmentError(f"{p.profile.step} timed out after {timeout}s") from exc
+        raise ContainmentTimeout(caps.timed_out(f"{p.profile.step}, on the host,", timeout)) from exc
     LEDGER.append({"step": p.profile.step, "contained": False, "reason": reason})
     return Outcome(proc, False, host_reason=reason)
 

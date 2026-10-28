@@ -15,6 +15,25 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.3.1-beta — 2026-10-28
+
+**Patch: a constraint fix.** ADR-183 (Max: "good to go with the first 3", route 1 of the speed and memory
+review). Registers **C-196**; registers and lifts **C-197**.
+
+- **Every wall-clock cap is named where it bites.** Lane A's TS/JS helper, each lane B unit's container
+  and the steps inside it, registry fetches, the zone map, the venv listing and scip-clang's wait for a
+  unit are in one table (`hobbes.extract.caps`). A cap that fires says what ran out of time, its seconds,
+  C-196 and `HOBBES_TIMEOUT_SCALE`, which multiplies every cap. Before, an indexer step that ran out of time
+  said `exited null`, and a venv listing that did said nothing.
+- **The helper's step cap follows its unit's** (the unit's less 30 s): 870 s, Java 1,770 s, where it was
+  600 s for every step. A unit that stopped at 600 s may now finish and draw.
+- **A C or C++ translation unit scip-clang timed out or errored on is counted as failed** (C-197).
+  scip-clang exits 0 with a well-formed, empty index either way, so the `scip-decode` record said 0 failed.
+  The count now comes from scip-clang's own summary line, and the record says how many units timed out.
+  Nothing drawn moves: those units' sites already fell to lane A's fallback.
+- On cJSON, fmt, toml and jsoup, before and after: nothing drawn moved. The index cache misses once for every
+  lane B unit, because the helper changed.
+
 ## 0.3.0-beta — 2026-10-28 (the dev environment)
 
 **Minor: a feature.** ADR-181 (Max: "approved recommended good to proceed"). The dev environment built in
