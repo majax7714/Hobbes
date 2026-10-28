@@ -9,6 +9,9 @@
 # three artifacts are copied out after each pass and compared by
 # compare.py, which ignores `built_by` alone. Each pass's wall time and
 # peak RSS (GNU time) and its timings summary are kept beside them.
+# CONTROL=1 ingests the before checkout a second time (`control`) and
+# compares it with the first: a difference the control shows too is the
+# run's (a registered nondeterminism, C-149), not the change's.
 # A checkout needs its scip/ and tsextract/ node_modules *copied*, not
 # linked (a linked node_modules breaks lane B in the container).
 set -u
@@ -22,7 +25,8 @@ while IFS= read -r cell; do
   case "$cell" in ''|'#'*) continue;; esac
   cell=${cell/#\~/$HOME}
   name=$(basename "$cell")
-  for arm in before after; do
+  arms="before after"; [ "${CONTROL:-0}" = 1 ] && arms="before control after"
+  for arm in $arms; do
     root=$BEFORE; [ "$arm" = after ] && root=$AFTER
     dir=$OUT/$name/$arm; mkdir -p "$dir"
     (cd "$root/pipeline" && env HOBBES_INDEX_CACHE=0 "$@" /usr/bin/time -v -o "$dir/time.txt" \
@@ -35,5 +39,9 @@ while IFS= read -r cell; do
     echo "$name $arm exit=$code ${wall}s ${rss}MB"
   done
   python3 -I "$HERE/compare.py" "$OUT/$name/before" "$OUT/$name/after" | tee "$OUT/$name/compare.txt"
+  if [ "${CONTROL:-0}" = 1 ]; then
+    echo "-- control (before against before):"
+    python3 -I "$HERE/compare.py" "$OUT/$name/before" "$OUT/$name/control" | tee "$OUT/$name/control.txt"
+  fi
 done < "$CELLS"
 echo ALL-DONE

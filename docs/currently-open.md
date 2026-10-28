@@ -105,6 +105,13 @@ Left by the fold (2026-10-28):
 
 ## Other no-spend work
 
+- **A flaky dev-environment test:** `test_watterson_live_session.py::TestTurnLabel::test_head_graph_clean_then_edited`
+  failed in 2 of 5 full pytest runs on 2026-10-28, each on a box loaded with ingests; it passed alone and in
+  the other 3. It works in its own temp repo. Cause not found; read its failure output before guessing.
+- **ADR-184's levers not built:** a TS lane A cache (its own ADR: a read-set key, a hit-equals-fresh test),
+  Python lane A on a process pool, tree-sitter queries in place of walks, and lane B units within one
+  language in parallel (the tool caches' concurrency first).
+
 - **H-38** (`oracle/oracle-defects.md`): read the trace oracle's
   `__code__`/`__func__`/`__wrapped__` through the type, with a fixture.
 

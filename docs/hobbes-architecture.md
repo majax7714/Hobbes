@@ -370,6 +370,15 @@ no project claims runs under the default options in both lanes and is
 reported per solution config (C-98, lifted 2026-09-10; the asymmetry
 closed later that day).
 
+Lane A runs its zones on worker threads (ADR-184, 0.3.3-beta): the main
+thread plans the zones, at most `HOBBES_TS_JOBS` run at once (the largest
+first), and their results merge in zone order with the serial loop's
+sorts, so the facts are the same bytes at any parallelism. Each zone has
+its own cap (`tsextract-zone`, 300 s); a zone past it is stopped, its
+files stay listed with no facts, and one `zone-timeout` record names them
+(C-196). On this repo at `71a28c3`, 4 at a time: 118.9 s → 48.5 s, peak
+3.7 → 6.8 GB.
+
 Discovery, in every language, walks a directory symlink whose target is
 inside the repo **once, at its target** and records the link (C-73): a
 tree reachable at two paths is one tree with one set of ids, and the
@@ -1277,7 +1286,8 @@ caches above are measured against this record, or they are guesses.
 
 **Every wall-clock cap is in one table and names itself (ADR-183,
 0.3.1-beta).** `extract/caps.py` holds each step's cap: lane A's TS/JS
-helper (300 s, the whole repo), the zone map (300 s), a lane B unit's
+helper (one zone 300 s since ADR-184; the whole run 3,600 s, a backstop),
+the zone map (300 s), a lane B unit's
 container (900 s; Java 1,800 s), a registry fetch (600 s), the venv
 listing (60 s), and scip-clang's wait for one unit's worker (300 s,
 passed as `--receive-timeout-seconds`). The helper reads its per-step cap
@@ -2448,7 +2458,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.3.2-beta** (2026-10-28, ADR-103; the dev environment, ADR-181; every wall-clock cap named, ADR-183; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.2-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.3.3-beta** (2026-10-28, ADR-103; the dev environment, ADR-181; every wall-clock cap named, ADR-183; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.3-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

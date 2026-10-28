@@ -15,6 +15,20 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.3.3-beta — 2026-10-28
+
+**Patch: one TS zone fails alone.** ADR-184 levers 1 and 2 (route 2 of the speed and memory review: same
+output, faster). C-196 narrowed.
+
+- **Lane A TS runs its tsconfig zones on worker threads**, at most `HOBBES_TS_JOBS` at once (default: half
+  the cores, at most 4). The facts are the serial run's bytes at any parallelism. This repo's helper took
+  118.9 s before and 48.5 s with 4 at a time, on a loaded box; its peak went from 3.7 GB to 6.8 GB.
+- **Each zone has its own cap** (300 s). A zone past it is stopped, its files stay listed with no facts, and
+  a `zone-timeout` record names them (C-196). Before, the helper had one 300 s cap for the whole repo, and
+  the ingest stopped. The whole run keeps a 3,600 s backstop for a hung helper.
+- **pysource walks a definition's own body once per parse** (lever 1): about a dozen readers each walked
+  it afresh. This repo's Python parse: 10.5 s → 9.1 s. Byte-identical.
+
 ## 0.3.2-beta — 2026-10-28
 
 **Patch: the summary says more.** ADR-119, amended (route 1 of the speed and memory review).

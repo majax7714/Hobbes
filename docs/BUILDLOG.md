@@ -16556,3 +16556,13 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
 - **0.3.2-beta (ADR-119 amended):** each timed step also records this process's peak RSS and its largest
   host child's (`RUSAGE_SELF`, `RUSAGE_CHILDREN`); contained indexers are podman's, not measured, and the
   summary says so. One test; pytest 3,370.
+- **ADR-184 (route 2, same output faster):** the gate is `bench/identity/` (`run.sh`, `compare.py`, 8 cells;
+  `CONTROL=1` ingests the before arm twice). Measured first on this repo at `71a28c3`: 27 TS zones, largest
+  22.7 s, sum 99.1 s; the Python parse 12.1 s of which tree-sitter is 0.51 s, `_own_body` 12.0 M calls.
+  **Lever 1** (`_own_body` once per parse): 10.54 → 9.06 s; gate: cJSON, toml identical, the hobbes cell and
+  fmt one C tail count each (`distance-avx512.c`, `printf.h`; C-149's shape — pysource cannot move a C count;
+  the control arm was added to show it). **Lever 2** (TS zones on worker threads, per-zone cap, 0.3.3-beta):
+  the helper's facts byte-identical to the original at jobs 1 and 4 on the hobbes cell; 118.9 → 48.5 s,
+  3.7 → 6.8 GB, on a loaded box. pytest 3,376, tsextract 55.
+- A flaky test, not touched here: `test_watterson_live_session.py::TestTurnLabel::test_head_graph_clean_then_edited`
+  failed in 2 of 5 full runs on a loaded box; cause not found (in `currently-open.md`).

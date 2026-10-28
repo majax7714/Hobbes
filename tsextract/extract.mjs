@@ -14,6 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { builtinModules } from "node:module";
 import { pathToFileURL } from "node:url";
+import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 
 import { Node, Project, ts } from "ts-morph";
 
@@ -1279,7 +1280,11 @@ export function zoneTsconfig(root, file, cache = new Map()) {
   return claimant(nearest);
 }
 
-export function extractRepo(repoRoot) {
+/** What `extractRepo` decides before any zone runs: the files, the zones
+ * they group into (sorted, as the serial loop ran them), and the
+ * repo-level records (unclaimed files, ignored jsconfigs), which come
+ * before every zone's in the facts. */
+function planRepo(repoRoot) {
   const root = path.resolve(repoRoot);
   const files = discoverFiles(root);
   const fileSet = new Set(files);
@@ -1308,12 +1313,7 @@ export function extractRepo(repoRoot) {
     }
   }
 
-  const out = [];
   const errors = [];
-  // ADR-142's tokens, kept out of the per-file records because they are
-  // not facts about a call: one entry per file that writes a `new`, and
-  // none at all for a file that does not.
-  const constructions = new Map();
   for (const [solution, its] of [...unclaimed.entries()].sort()) {
     // Visible, not silent (P1): the files a solution config's projects
     // leave unclaimed ran under the default options, not the repo's.
@@ -1345,7 +1345,21 @@ export function extractRepo(repoRoot) {
       stage: "jsconfig-ignored",
     });
   }
-  for (const [zone, zoneFiles] of [...zones.entries()].sort()) {
+  return { root, fileSet, packages, zones: [...zones.entries()].sort(), errors };
+}
+
+/** One zone's facts: its files' records in file order, its records, and
+ * ADR-142's construction tokens as `[file, tokens]` pairs. A zone reads
+ * nothing another zone writes (one ts-morph Project each), so zones can
+ * run apart and their results merge into the same bytes (ADR-184). */
+export function extractZone(root, zone, zoneFiles, fileSet, packages) {
+  const out = [];
+  const errors = [];
+  // ADR-142's tokens, kept out of the per-file records because they are
+  // not facts about a call: one entry per file that writes a `new`, and
+  // none at all for a file that does not.
+  const constructions = [];
+  {
     // Zone configs get safety overrides: extraction must handle files
     // the package's own build ignores (a stray service worker), and
     // checking dependency .d.ts is pure risk with no facts to gain.
@@ -1405,7 +1419,7 @@ export function extractRepo(repoRoot) {
       const tokens = attempt("constructions", [], () =>
         extractConstructions(sourceFile)
       );
-      if (tokens.length) constructions.set(file, tokens);
+      if (tokens.length) constructions.push([file, tokens]);
       out.push({
         calls: attempt("calls", [], () => extractCalls(sourceFile, root, fileSet)),
         env_reads: attempt("env_reads", [], () => extractEnvReads(sourceFile)),
@@ -1419,6 +1433,21 @@ export function extractRepo(repoRoot) {
       });
     }
   }
+  return { files: out, errors, constructions };
+}
+
+/** The repo's facts from its plan and every zone's result, in zone order:
+ * the merge the serial loop made, so the output is the same bytes however
+ * the zones ran. */
+function finishRepo(plan, results) {
+  const out = [];
+  const errors = [...plan.errors];
+  const constructions = new Map();
+  for (const result of results) {
+    out.push(...result.files);
+    errors.push(...result.errors);
+    for (const [file, tokens] of result.constructions) constructions.set(file, tokens);
+  }
   out.sort((a, b) => a.path.localeCompare(b.path));
   errors.sort((a, b) => a.path.localeCompare(b.path) || a.stage.localeCompare(b.stage));
   return {
@@ -1428,8 +1457,85 @@ export function extractRepo(repoRoot) {
     errors,
     files: out,
     helper_version: HELPER_VERSION,
-    tsconfigs: [...zones.keys()].filter(Boolean).sort(),
+    tsconfigs: plan.zones.map(([zone]) => zone).filter(Boolean).sort(),
   };
+}
+
+/** The repo's facts, every zone in this thread, one after another. */
+export function extractRepo(repoRoot) {
+  const plan = planRepo(repoRoot);
+  return finishRepo(
+    plan,
+    plan.zones.map(([zone, zoneFiles]) => extractZone(plan.root, zone, zoneFiles, plan.fileSet, plan.packages)),
+  );
+}
+
+/** A zone that outran its cap (ADR-184, C-196): its files stay listed —
+ * discovery found them — with no facts, and one record says why. */
+export function zoneTimedOut(zone, zoneFiles, seconds) {
+  const sample = zoneFiles.slice(0, 4).join(", ");
+  return {
+    files: zoneFiles.map((file) => ({
+      calls: [], env_reads: [], imports: [], path: file, routes: [], routes_declined: [],
+      symbols: [], test_framework: null, tests: [],
+    })),
+    errors: [{
+      message:
+        `the zone ${zone || "under the default compiler options"} did not finish within its ${seconds} s cap ` +
+        `(C-196; HOBBES_TIMEOUT_SCALE raises every cap): its ${zoneFiles.length} file(s) (${sample}` +
+        `${zoneFiles.length > 4 ? ", …" : ""}) are listed with no facts — no import, call, symbol, route ` +
+        "or test is drawn from them",
+      path: zone || ".",
+      stage: "zone-timeout",
+    }],
+    constructions: [],
+  };
+}
+
+/** The repo's facts with its zones on worker threads, at most *jobs* at a
+ * time, the largest first, each under its own cap (ADR-184 lever 2). The
+ * merge is `extractRepo`'s, in zone order, so a run whose every zone
+ * finishes is the same bytes as the serial one. A zone past its cap is
+ * stopped and recorded (`zoneTimedOut`); a zone whose worker fails
+ * otherwise fails the run, as it would in the serial loop. */
+export async function extractRepoParallel(repoRoot, { jobs = 1, zoneTimeoutSeconds = 300 } = {}) {
+  const plan = planRepo(repoRoot);
+  const results = new Array(plan.zones.length);
+  const order = plan.zones
+    .map((_, i) => i)
+    .sort((a, b) => plan.zones[b][1].length - plan.zones[a][1].length || a - b);
+  const runZone = (i) =>
+    new Promise((resolve, reject) => {
+      const [zone, zoneFiles] = plan.zones[i];
+      const worker = new Worker(new URL(import.meta.url), {
+        workerData: { hobbesZone: true, root: plan.root, zone, zoneFiles, fileSet: plan.fileSet, packages: plan.packages },
+      });
+      let settled = false;
+      const settle = (fn, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        fn(value);
+      };
+      const timer = setTimeout(() => {
+        settle(resolve, zoneTimedOut(zone, zoneFiles, zoneTimeoutSeconds));
+        worker.terminate();
+      }, zoneTimeoutSeconds * 1000);
+      worker.once("message", (result) => settle(resolve, result));
+      worker.once("error", (error) => settle(reject, error));
+      worker.once("exit", (code) =>
+        settle(reject, new Error(`the zone worker for ${zone || "the default options"} exited ${code} with no facts`)),
+      );
+    });
+  let next = 0;
+  const lane = async () => {
+    while (next < order.length) {
+      const i = order[next++];
+      results[i] = await runZone(i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(jobs, order.length)) }, lane));
+  return finishRepo(plan, results);
 }
 
 /** The tsconfig project each TS/JS file of the repo belongs to, by the
@@ -1449,26 +1555,43 @@ export function zoneMap(repoRoot) {
 
 // --- CLI -------------------------------------------------------------------
 
-function main(argv) {
+async function main(argv) {
   let repo = process.cwd();
   let mode = "facts";
+  let jobs = 1;
+  let zoneTimeoutSeconds = 300;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--repo" && argv[i + 1]) {
       repo = argv[++i];
     } else if (argv[i] === "--zones") {
       mode = "zones";
+    } else if (argv[i] === "--jobs" && argv[i + 1]) {
+      jobs = Math.max(1, Number.parseInt(argv[++i], 10) || 1);
+    } else if (argv[i] === "--zone-timeout" && argv[i + 1]) {
+      const seconds = Number(argv[++i]);
+      zoneTimeoutSeconds = seconds > 0 ? seconds : 300;
     } else {
       process.stderr.write(`tsextract: unknown argument ${argv[i]}\n`);
       return 2;
     }
   }
-  const out = mode === "zones" ? zoneMap(repo) : extractRepo(repo);
+  const out = mode === "zones" ? zoneMap(repo) : await extractRepoParallel(repo, { jobs, zoneTimeoutSeconds });
   process.stdout.write(JSON.stringify(out) + "\n");
   return 0;
 }
 
 // process.exitCode, never process.exit(): exiting eagerly truncates
-// stdout at the 64KB pipe buffer on large repos.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  process.exitCode = main(process.argv.slice(2));
+// stdout at the 64KB pipe buffer on large repos. A zone worker loads this
+// file too, with the same argv, so only the main thread runs the CLI.
+if (isMainThread && process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main(process.argv.slice(2)).then(
+    (code) => { process.exitCode = code; },
+    (error) => { process.stderr.write(`tsextract: ${error?.stack ?? error}\n`); process.exitCode = 1; },
+  );
+}
+
+// A zone worker (ADR-184): one zone's facts, posted back to the main thread.
+if (!isMainThread && workerData && workerData.hobbesZone) {
+  const { root, zone, zoneFiles, fileSet, packages } = workerData;
+  parentPort.postMessage(extractZone(root, zone, zoneFiles, fileSet, packages));
 }

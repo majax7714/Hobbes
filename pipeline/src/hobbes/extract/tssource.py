@@ -23,7 +23,7 @@ import subprocess
 from collections import defaultdict
 from pathlib import Path, PurePosixPath
 
-from hobbes.extract import caps
+from hobbes.extract import caps, jobs
 from hobbes.extract.discover import SKIPPED_DIR_NAMES, is_linked_copy
 from hobbes.extract.schema import tiered_edge
 
@@ -101,9 +101,16 @@ def run_helper(repo_root: Path) -> dict:
         f"${TSEXTRACT_CMD_ENV} (ADR-021)"
     )
     cap = caps.seconds("tsextract")
+    # Zones on worker threads, each under its own cap (ADR-184 lever 2):
+    # the facts are the serial loop's bytes at any --jobs.
+    argv = [
+        *cmd, "--repo", str(repo_root),
+        "--jobs", str(jobs.ts_jobs()),
+        "--zone-timeout", str(caps.seconds("tsextract-zone")),
+    ]
     try:
         proc = subprocess.run(
-            [*cmd, "--repo", str(repo_root)],
+            argv,
             capture_output=True,
             text=True,
             timeout=cap,
@@ -111,8 +118,10 @@ def run_helper(repo_root: Path) -> dict:
     except FileNotFoundError as exc:
         raise TsExtractError(f"{setup}: {exc}") from exc
     except subprocess.TimeoutExpired as exc:
-        # The ingest stops rather than drawing a graph without TS/JS; one
-        # zone failing alone needs the helper run per zone (C-196).
+        # The whole run's backstop: each zone has its own cap, and a zone
+        # past it is recorded and the others stand (C-196). Past this one
+        # the helper itself is hung, and the ingest stops rather than
+        # drawing the repo without its TS/JS.
         raise TsExtractError(
             caps.timed_out(f"the TS/JS lane A helper (tsextract) on {repo_root}", cap)
             + "; the ingest stops rather than drawing the repo without its TS/JS"

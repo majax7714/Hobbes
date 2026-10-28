@@ -7,13 +7,14 @@ import subprocess
 
 import pytest
 
-from hobbes.extract import caps, containment, scipsource, tssource
+from hobbes.extract import caps, containment, jobs, scipsource, tssource
 
 
 class TestTable:
     def test_scale_one_is_the_table(self, monkeypatch):
         monkeypatch.delenv(caps.SCALE_ENV, raising=False)
-        assert caps.seconds("tsextract") == 300
+        assert caps.seconds("tsextract") == 3600, "the whole run's backstop (ADR-184)"
+        assert caps.seconds("tsextract-zone") == 300
         assert caps.seconds("lane-b-unit") == 900
         assert caps.seconds("lane-b-java") == 1800
         assert caps.seconds("clang-unit") == 300, "scip-clang's own default, so scale 1 moves nothing"
@@ -42,6 +43,17 @@ class TestTable:
 
 
 class TestWhereTheyBite:
+    def test_the_ts_helper_is_given_its_jobs_and_its_zone_cap(self, tmp_path, monkeypatch):
+        seen = tmp_path / "argv"
+        script = tmp_path / "helper.sh"
+        script.write_text(f'#!/bin/sh\necho "$@" > {seen}\necho \'{{"helper_version": {tssource.HELPER_VERSION}, "files": []}}\'\n')
+        script.chmod(script.stat().st_mode | stat.S_IXUSR)
+        monkeypatch.setenv("HOBBES_TSEXTRACT_CMD", str(script))
+        monkeypatch.setenv(jobs.TS_JOBS_ENV, "3")
+        monkeypatch.setenv(caps.SCALE_ENV, "2")
+        tssource.run_helper(tmp_path)
+        assert seen.read_text().split()[-4:] == ["--jobs", "3", "--zone-timeout", "600"]
+
     def test_the_ts_helper_names_its_cap_and_stops_the_ingest(self, tmp_path, monkeypatch):
         script = tmp_path / "helper.sh"
         script.write_text("#!/bin/sh\nsleep 5\n")
@@ -138,3 +150,18 @@ class TestTheVenvListing:
     def test_a_timeout_is_still_a_containment_error(self):
         # Every catch that degrades on a ContainmentError still does.
         assert issubclass(containment.ContainmentTimeout, containment.ContainmentError)
+
+
+class TestJobs:
+    def test_a_default_is_a_bounded_fraction_of_the_cores(self, monkeypatch):
+        monkeypatch.delenv(jobs.TS_JOBS_ENV, raising=False)
+        monkeypatch.setattr(jobs, "_cores", lambda: 12)
+        assert jobs.ts_jobs() == 4
+        monkeypatch.setattr(jobs, "_cores", lambda: 1)
+        assert jobs.ts_jobs() == 1, "never zero"
+
+    @pytest.mark.parametrize("raw", ["0", "-2", "two", "1.5"])
+    def test_a_knob_that_is_not_a_whole_number_is_refused(self, monkeypatch, raw):
+        monkeypatch.setenv(jobs.TS_JOBS_ENV, raw)
+        with pytest.raises(ValueError, match="not a whole number"):
+            jobs.ts_jobs()
