@@ -37,6 +37,12 @@ the directories' roles, and the non-code trees.
     Shanks, the harness** (ADR-107, ADR-152).
   - Also: `agent/loop.py`, `bench/`, `ttt/`, `narrate/`, `invariants/`,
     `review.py`, `render.py`, `graphdiff.py`.
+  - `watterson/`: the dev environment (ADR-181), run by the `watterson`
+    command (`watterson/cli.py`). `providers/` (ACP and any-llm),
+    `serve/` (the TUI's server), `levels.py`, `review.py` (the HTML page,
+    not ADR-025's `hobbes review`), `dispatch.py`/`lead.py`/`roles.py`
+    (agent roles, not Shanks), and the session glue. Its tests are
+    `tests/test_watterson_*.py`.
   - Fixture repos live under `tests/fixtures/` (miniapp, minits, minigo,
     minirust, minijava, canary-rust, canary-java, goshapes, twomod, minic,
     minicpp, minifixval, minideco, mininest). They are excluded from
@@ -49,6 +55,15 @@ the directories' roles, and the non-code trees.
 - `web/` — the surface (Vite + React + TS, Cytoscape.js). `src/lib/` is
   the pure layer with the vitest cases. `npm run build` bundles into the
   Go embed dir; **rebuild `hobbes-web` after** running it.
+- `tui/` — the dev environment's TUI: `opencode/`, an opencode fork (MIT,
+  its `NOTICE.md` says what changed), built by `build.sh` into `tui/bin/`
+  (ignored) with Bun from `~/.watterson/bun`; `plugins/graph/` is the
+  graph panel. Not in CI.
+- `review/` — the review page's bundle (React Flow + ELK, DEC-019);
+  `npm run build` writes `dist/`, which `watterson review` inlines.
+- `adapters/` — the locked ACP adapters (`claude-agent-acp`, `codex-acp`)
+  that `watterson` launches. Not `bench/oracle/adapters/` (ADR-101).
+- `bin/watterson` — the launcher; with no arguments it opens the TUI.
 - `sandbox/` — the one image (`Containerfile`, about 3.3 GB) and the
   exit-check harness. The image serves both sessions *and* lane B ingest
   (ADR-092). It holds JDK 17/21/25 + Maven + scip-java, scip-clang + CMake
@@ -77,5 +92,8 @@ the directories' roles, and the non-code trees.
   - `experiments/`: the two programmes. `mapped-agents/` holds the
     benchmark, the agent mapping and TTT. `calvin/` holds the charter, the
     reassessment, the lattice, Atlas-0 and the keyed rounds.
+  - `watterson/`: the dev environment's docs, imported from
+    watterson-environment@a65b6b1 (`README.md` first; DEC-001…027 in
+    `decisions/`, its open items in `open-work.md`).
 - `.hobbes/` — dogfooding. `policies/` and `invariants/` are versioned;
   `derived/` and `plans/` are gitignored.

@@ -83,6 +83,21 @@ key no implicit call, so a rule's rows could not be graded.
   C-178's residue (pyparsing's star re-exports, 1,377 held-out misses) is
   held, since any rule would be fitted to pyparsing.
 
+## The dev environment (`watterson`, ADR-181)
+
+Its own open items stay in [`watterson/open-work.md`](watterson/open-work.md) ("Next up" first: item 11b,
+hiding what the server does not back; then the app's Hobbes start, `tui` matching `chat`, the map file).
+Left by the fold (2026-10-28):
+- **A lane A defect the fold surfaced, not registered (precedent 1).** In one module, two functions that
+  each import a different `exit_code` inside the function: lane A resolves the call in `_cmd_freshness`
+  to `providers/staleness.py`'s, lane B (correctly) to `freshness.py`'s. `hobbes lanes` counts it
+  `unexplained` and exits 1, which fails CI's `graph` job. Where lane B is absent, lane A's wrong edge is
+  what is drawn. Contain, prevent, register: its own unit, routes for Max.
+- **Live checks are Max's:** `watterson tui` (and `ask`, `chat`, `dispatch`, `job`) reach real harnesses;
+  the fold verified them with the fake agent only. Re-point `~/.local/bin/watterson` at this repo's
+  `bin/watterson`; `~/.local/bin/hobbes-proxy` points at a missing `~/hobbes/go/bin`.
+- **The TUI is not in CI** (Bun 1.4.2 is fetched by `tui/build.sh`); whether to add it is open.
+
 ## Decisions open for Max (no spend, not extraction)
 
 - **Calvin's findings, proposed and not registered:** G-diff coverage. The

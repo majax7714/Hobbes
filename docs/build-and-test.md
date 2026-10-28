@@ -16,6 +16,10 @@ Run these once:
 - `cd scip && npm install`
 - `cd bench/oracle/ts && npm install` (the oracle lane's `tsc`; its Go
   tests run it wherever node is)
+- For the dev environment (ADR-181): `cd adapters && npm ci`, `cd review &&
+  npm ci && npm run build`, and `tui/build.sh` (fetches Bun 1.4.2 into
+  `~/.watterson/bun`, writes `tui/bin/opencode`). `docs/watterson/README.md`
+  has its commands.
 - `git config core.hooksPath .githooks`. The pre-commit hook runs CI's
   gofmt step on the staged Go files. Without it, a red gofmt step hides
   both Go suites behind it.
@@ -41,6 +45,8 @@ Otherwise the knowledge tools answer with the old build (C-65).
 cd bench/oracle && go test ./...          # fixture self-test: Python via uv, Rust via the nightly driver
 cd web && npm test && npm run build
 cd pipeline && uv sync && uv run pytest   # HOBBES_SCIP=0 by default; `lane_b`-marked tests opt in
+cd review && npm test                     # the dev environment's review page
+(cd tui/opencode/packages/tui && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # the TUI; not in CI
 ```
 
 CI (`.github/workflows/ci.yml`, ADR-095) runs every suite on every push.

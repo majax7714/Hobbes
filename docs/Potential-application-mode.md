@@ -1,7 +1,11 @@
 # M9 (proposed): Hobbes as an application
 
-**Status: PARKED (2026-08-15). Not on the roadmap. No code written, and
-none to be written.**
+**Status: superseded (2026-10-28).** Unparked as the dev environment,
+folded in from watterson-environment (ADR-181, `docs/watterson/`). What
+follows is the record of the earlier assessment, unchanged.
+
+*(Earlier status: PARKED (2026-08-15). Not on the roadmap. No code written,
+and none to be written.)*
 
 Max's call, in his words: *"the application was a thought i had wanting it
 less and less but maybe one day."* **Hobbes stays local** — on the box,

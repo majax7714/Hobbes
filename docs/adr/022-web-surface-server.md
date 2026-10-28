@@ -1,7 +1,9 @@
 # ADR 022: The web surface is a Go daemon serving an embedded SPA
 
 Date: 2026-08-11
-Status: accepted
+Status: accepted. *Scope amended by ADR-181 (2026-10-28): this is `hobbes-web`'s line;
+the dev environment's server, a second surface, runs ingest and is a Python daemon, both
+recorded there.*
 
 ## Context
 

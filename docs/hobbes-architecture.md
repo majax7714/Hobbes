@@ -173,6 +173,7 @@ blind-spot-heavy unit gets a narrower sandbox and a human-first flag
 
 **Local, deliberately.** Hobbes runs on the box, against a repo on disk. It
 is not a hosted product, an application to log into, or an IDE plugin (§10).
+The dev environment (§7, ADR-181) is local too.
 
 ---
 
@@ -2402,6 +2403,20 @@ MultiEdit and NotebookEdit.
   diff last. Edge styling by tier is **built**. The
   lane-disagreement view is **not** — `hobbes lanes` is a command with no
   tab behind it, which is a known gap awaiting scope, not an oversight.
+- **The dev environment (`watterson`, ADR-181)** — `hobbes.watterson`, run
+  by its own `watterson` command; folded in from watterson-environment at
+  `a65b6b1`, its decisions DEC-001…027 in `docs/watterson/`. Model
+  providers over ACP (the locked adapters in `adapters/`) and any-llm;
+  live sessions that re-extract a snapshot between turns into a session
+  view the knowledge proxy serves (DEC-006, DEC-009); permission routes
+  and hooks of its own, not the ADR-016 queue (DEC-007, DEC-010); a TUI,
+  `tui/opencode` (an opencode fork, MIT), served by a Python server on
+  loopback behind a per-launch password; level views and a standalone
+  review page (`review/`, React Flow + ELK); agent roles with a
+  coordinator (DEC-022). Unlike `hobbes-web`, its server runs ingest (on
+  a stale graph at start, and between turns): ADR-181 records that
+  crossing and its Python daemon as an exception to D1's split. Its
+  `ingest` is `hobbes.cli`'s; its cache is `~/.watterson/cache`.
 
 Rejected alternatives, for the record: live LSP querying (stateful, slow for
 whole-repo batch; may return later for UI hover only), stack graphs (thin
@@ -2412,7 +2427,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.121-beta** (2026-10-05, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.121-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.3.0-beta** (2026-10-28, ADR-103; the dev environment, ADR-181; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.0-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this
@@ -2496,10 +2511,10 @@ Deliberately not built, and not deferred-with-intent unless said so:
   disk. No server-side product, no login, no multi-user surface. The web
   surface is loopback-only and enforced at bind (ADR-022), and that is a
   design position, not a stage on the way to hosting.
-- **Hobbes-as-an-application** — a workspace-model desktop app that opens
-  folders. Assessed in `Potential-application-mode.md` and **parked**: kept as a
-  record of the thought, not on the roadmap, and not to be started. It would
-  cross ADR-022's "the surface never runs the pipeline" line.
+- **Hobbes-as-an-application** — unparked on 2026-10-28 as the dev
+  environment (§7, ADR-181), which is local: a loopback server and a TUI on
+  the box, no login. `Potential-application-mode.md` is the record of the
+  earlier assessment.
 - **IDE plugins**; any model fine-tuning; live LSP for UI hover.
 - **Multi-repo graphs** — see §3.3 for why the preparation is thinner than
   originally claimed.

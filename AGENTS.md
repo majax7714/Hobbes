@@ -126,13 +126,16 @@ something the tree doesn't do, the file has a bug: fix it.
 
 Locked decisions (not open for relitigation): **D1** Python + Go + TS,
 split by focus; **D2** Podman rootless for session isolation; **D3**
-Cytoscape.js. **Hobbes stays local** (§10); the application mode is parked.
+Cytoscape.js for `web/`. **Hobbes stays local** (§10). The dev environment
+(`watterson`, ADR-181) is local too; its Python server is an exception to D1.
 
 **The tree** (long form: `docs/project-map.md`): `go/` (policy, proxy,
 sessions, web), `pipeline/` (the `hobbes` package; `run/dispatch.py` is
 Shanks, the harness), `tsextract/` and `scip/` (lane helpers), `web/` (the
 SPA; rebuild `hobbes-web` after `npm run build`), `sandbox/` (the one
-image), `bench/` (experiment tooling, never product).
+image), `bench/` (experiment tooling, never product). The dev environment:
+`pipeline/src/hobbes/watterson/` (the `watterson` command), `tui/` (the
+opencode fork), `review/` (the review page), `adapters/` (ACP), `bin/`.
 
 ## 4. Where to read (by task)
 
@@ -150,6 +153,7 @@ image), `bench/` (experiment tooling, never product).
 | Atlas-0 (held)                             | `docs/experiments/calvin/atlas0/atlas-0.md` + `bench/atlas0/README.md` |
 | comparing with other tools                 | `docs/comparative/README.md` (ADR-101/102) → `field.md`              |
 | bringing Hobbes up on a new repo           | `docs/first-run.md`                                                  |
+| working on the dev environment (`watterson`) | `docs/watterson/README.md` → its `open-work.md`; ADR-181           |
 | picking up a backlog item                  | `docs/workstreams.md` (W0–W5)                                        |
 | building, or checking suite sizes          | `docs/build-and-test.md`                                             |
 
@@ -164,7 +168,7 @@ everywhere else.
 | what shipped in a version                  | `CHANGELOG.md`                                        |
 | the resume point                           | `docs/session-handoff.md`: rewritten, never appended  |
 | a decision or work noted but not done      | `docs/currently-open.md`: deleted when done           |
-| a decision made                            | `docs/adr/NNN-title.md` (the last is 180; 106 is *not taken*) |
+| a decision made                            | `docs/adr/NNN-title.md` (the last is 181; 106 is *not taken*) |
 | a concession of information                | `docs/constraints/<segment>.md` (`C-n`)               |
 | how the design works                       | `docs/hobbes-architecture.md`                         |
 | a procedure                                | `docs/runbook.md`                                     |
