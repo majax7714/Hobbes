@@ -16469,3 +16469,23 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   doer's policy, not this rule, and is unchanged. This change is the first to land by PR.
 - Max, on the PR: Claude reviews (`/code-review`, findings as PR comments) and merges only on his explicit
   word, with `--merge`, never squash. §7 reworded; branch protection on `main` left for later.
+
+## 2026-10-28 (forty-sixth session, cont.) — a function's import is the function's (ADR-182, C-195, 0.2.122-beta)
+
+- Max, on the fold's CI finding: "fix is a good idea since its small"; push to `main` on his word or a new
+  branch. CLAUDE.md §7 and the auto-mode push block keep it to a branch: `fix/function-local-import-scope`
+  from `main`, a PR of its own.
+- Cause: `graph._NameEnv` filled one module-wide table from every import in source order, the last
+  winning. ADR-154 step 6's `_imported_here` covered a function's import over the module's own def only.
+  Fix: a function's imports kept with the innermost function's extent (`local_imports`, already a fact) and
+  asked first (`binding_at`) by rule 2 and rule 3; an unplaceable one still shadows; `symbol_imports`
+  module-level only. 7 tests; 6 fail on `2089e22`'s `graph.py`, 7 pass after.
+- Measured (`~/.hobbes/bench/local-import-scope-2026-10-28/`), 22 repos (6 standing Python cells, 14
+  held-out candidate clones, this repo at `2089e22`, watterson at `a65b6b1`): 3 sites moved, each to
+  Python's binding by `ast` (watterson `cli.py:1051`; cachetools `__init__.py:762`, `:764`, held out). End
+  to end (lane A ingest of copies): one `calls` edge each in those two, `tests.json` unchanged on all 22;
+  `symbol_imports` lost 625 function-local bindings, none a fixture. A first probe of this live checkout
+  showed 77 moves: the arms straddled my own `test_graph.py` edit; redone on a clean clone, 0.
+- Residuals in C-195: class-body imports (32, 0 sites through them); a name imported twice in a scope (81,
+  32 sites, all one symbol either way but C-181's registered `try`/`except` fixture).
+- pytest 2,899 (2,892 + 7); register 195 entries, 34 lifted.

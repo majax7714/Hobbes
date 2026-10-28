@@ -15,6 +15,19 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.122-beta — 2026-10-28 (a function's import is the function's)
+
+**Patch: what the layer draws**, Python. ADR-182 (Max: "fix is a good idea since its small"); C-195
+registered and lifted.
+
+- Lane A kept one import table per module, the last import of a name winning, so a function that imports
+  `exit_code` from one module and another function that imports it from a second both resolved to the
+  second. A function's own import now binds its name in that function only, as Python scopes it; an import
+  lane A cannot place still shadows the module's name there, and draws nothing. Found by the dev
+  environment's fold, where `hobbes lanes` counted the row `unexplained`.
+- Over 22 repos: 3 call sites moved, each to the import Python binds there (watterson 1; cachetools 2, held
+  out); end to end one `calls` edge each in those two repos, `tests.json` unchanged on all 22.
+
 ## 0.2.121-beta — 2026-10-05 (a class field holding a function is a method)
 
 **Patch: what the layer draws**, TS/JS. ADR-180 (Max: 2a route (i); merged on the fitted cells); C-9
