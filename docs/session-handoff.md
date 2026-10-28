@@ -1,10 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-05 (forty-fourth session); Hobbes 0.2.121-beta on `main`.**
-Max pushed through `3d1dda7` (2026-09-29). `main` is ahead of `origin/main`
-by the commits since then; they are unpushed. The image and the proxy are at
-0.2.121-beta (image `ac3e75df8c15`); this repo was
-ingested at HEAD (`53d19ed`) after it; if `main` has moved, ingest at HEAD again. A new session's knowledge server is a
+**Reviewed 2026-10-28 (forty-sixth session); Hobbes 0.3.0-beta on branch `feat/watterson-fold`
+(the PR Max merges), 0.2.121-beta on `main`.** `origin/main` is at `2089e22`. The image and proxy were
+rebuilt at 0.3.0-beta on the branch by a local run of `scripts/ci-graph.sh`; that run also ingested this
+repo at the branch's head. If `main` moves, ingest at HEAD again. A new session's knowledge server is a
 new container from the current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
@@ -31,17 +30,31 @@ session went belongs in the BUILDLOG.
   new held-out cell; then item 5, route a ("good for the recommended route with item 5"). Permission for `oracle py-trace` given for future use (local allow
   rules in `.claude/settings.local.json`).
 
-**Next:** the TS/JS routes are done (forty-fourth session): 1a, 2a, `attr-call`'s text (0.2.119), ADR-179
-(0.2.120), ADR-180 (0.2.121); both rules merged on the fitted cells, their held-out draws having taken no
-cell. Open from them: the gate's map reason for `attr-call`, and ADR-179's route (b) (calls *to* a literal's
-member), neither proposed. C is the next-thinnest language (two cells).
+**Next:** the dev environment is folded in (ADR-181, 0.3.0-beta, PR from `feat/watterson-fold`). Its CI
+`graph` job is red on two counts, both in `currently-open.md` § The dev environment: a lane A defect the
+fold surfaced (two functions each importing a different `exit_code`: `hobbes lanes` exits 1), and the
+one-time `review` delta (1,689 new modules no test reaches, mostly opencode). The extraction routes stand
+as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
+- The fold's PR: merge, then the live `watterson tui` check and the `~/.local/bin/watterson` relink;
+  routes for the lane A `exit_code` defect (precedent 1).
 - The gate's map reason `dynamic-dispatch` for `attr-call` (`currently-open.md`).
 - **Whether to extend the standing trace oracle:** all four cells measured (click and rich on 2026-10-04).
 - The Python routes (C-181's residual, ADR-156 and fixture values).
 
-## Where the last day left things (2026-10-04; the CHANGELOG has each one)
+## Where the last day left things (2026-10-28; the CHANGELOG and BUILDLOG have each one)
+
+Forty-sixth session (Max: bring watterson-environment in as a monorepo, behaving exactly as it does;
+"approved recommended good to proceed" on seven routes):
+- **ADR-181, 0.3.0-beta:** `hobbes.watterson` and its own `watterson` command; `tui/`, `review/`,
+  `adapters/`, `bin/` at the root; watterson's docs in `docs/watterson/`. The extraction was
+  byte-identical in both repos, so `hobbes` is unchanged.
+- **Parity:** every watterson pytest accounted for (3,345 here, hobbes' 2,892 unchanged); review 13/13 and
+  its bundle byte-identical; the TUI's suite 1,492 pass / 2 skip on both; `watterson` outputs compared
+  against watterson-environment@a65b6b1 on two targets (the BUILDLOG entry has the counts).
+- **Measured:** opencode adds 2,628 module nodes and ~43 s of lane A; lane B fails per opencode zone where
+  its deps are not installed (disclosed), so it adds no unexplained disagreement.
 
 Forty-fourth session (Max: routes for the TS/JS items; "approved recommended", "recommended is approved"):
 - **1a:** ADR-158's amendment approved as built (0.2.82-beta); the open item is now C-176's floor alone.
@@ -56,21 +69,7 @@ Forty-fourth session (Max: routes for the TS/JS items; "approved recommended", "
 - A 20-hour wait loop (`until ! pgrep -f walk-adr179.sh`) matched itself; Max caught it twice. Killed; the
   memory on detached launches carries it.
 
-Forty-third session (Max: condense the open extraction items, then Route 1):
-- `currently-open.md` trimmed to what is open, grouped by language (205 → 160 lines, nothing dropped).
-- **Trace oracle, click and rich** run contained: 676 and 1,308 implicit rows; recall falls by denominator
-  only (82.0% → 71.5%, 93.6% → 75.3%); nothing contradicted.
-- **0.2.115:** the `below-floor` text names C-9's floor, not only dispatch; `verification.py`'s Rust base
-  (3 repos while §3.8 named 7) left `test_verification` red on `main`; fixed.
-- **0.2.116 (ADR-165's second amendment, C-182 narrowed):** a cfg twin's node sits at the arm lane B
-  defined (leaf 44 → 0 contradicted). The probe found rust-analyzer still writes references inside an
-  uncompiled arm; 45 on leaf are now refused (23 `semantic` `uses` edges had rested on them).
-- **0.2.117 (ADR-177):** a trait's provided method is a node. Held out **cyme** (drawn, pre-registered):
-  2,708 → 2,754, 46 of 46; sea-query (fitted) 5,601 → 6,263, recall 93.7%. P4's wording gap recorded.
-- **0.2.118 (ADR-178, item 5):** a Rust operator applied to a repo impl is a call at its token. cyme was
-  vacuous (all `PartialEq` at `==`, unreachable); held out **ureq**: 1,257 → 1,274, 17 drawn, 0
-  contradicted; hecs (fitted) 1,379 → 1,440. Q2 missed as written (the counter's flaws), recorded.
-
+Forty-third session: `currently-open.md` condensed; the trace oracle on click and rich; 0.2.115–0.2.118.
 Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. Forty-first: 0.2.109–0.2.110.
 
 ## Where things stand
@@ -124,7 +123,7 @@ Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. F
    is untagged. Versions go patch by patch on 0.2.x and count on past
    nine. A language addition or a constraint fix is a patch, even when
    structural; a minor is for
-   a feature (0.3.0 is the dev environment, which is not being worked on).
+   a feature (0.3.0-beta is the dev environment, ADR-181).
    Ask before a minor.
 6. **Work happens on a branch and lands by a PR Max merges** (CLAUDE.md §7).
    Never push to `main`.

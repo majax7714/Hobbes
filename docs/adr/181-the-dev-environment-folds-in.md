@@ -48,7 +48,10 @@ directories.
    `tui/opencode` already): opencode adds 2,628 of 3,353 module nodes and about 43 s of lane A TypeScript.
    Lane B fails in every opencode zone, disclosed per zone (`@tsconfig/bun/tsconfig.json` not found: its
    dependencies are not installed), so its calls are lane A's `syntactic` tier and it adds no lane
-   disagreement. No exclude mechanism is built.
+   disagreement. Where `tui/build.sh` has installed them (this checkout, after the build), lane B indexes
+   some zones and 4 `same-line-pair` rows appear, a registered shape (C-70). No exclude mechanism is
+   built. The fold's own PR carries a one-time `hobbes review` delta: 1,689 new modules no test reaches,
+   mostly opencode's, whose Bun tests static reach does not connect.
 4. **D3 binds the web surface.** D3 (Cytoscape.js) is the renderer for `web/`. The review page is a
    standalone HTML file written by `watterson review`, drawn with React Flow and ELK (DEC-019), and stays so.
 5. **`~/.watterson/` stays the dev environment's home.** `watterson` defaults `HOBBES_CACHE_DIR` to
