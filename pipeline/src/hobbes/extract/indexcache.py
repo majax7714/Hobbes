@@ -34,6 +34,7 @@ import hashlib
 import json
 import os
 import shutil
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -216,15 +217,28 @@ def record(language: str, key: Key, hit: bool) -> None:
 
 
 _swept: set[Path] = set()
+#: Lane B's languages can look up at once (ADR-184 lever 3): one sweep per
+#: store, and no thread's lookup races another's.
+_sweep_lock = threading.Lock()
+
+
+def sweep_now() -> int:
+    """The store's once-per-process sweep, run now. Lane B calls it before
+    its languages run at once (ADR-184 lever 3): a sweep at one thread's
+    first store would remove the ``.partial`` another is still writing."""
+    if not enabled():
+        return 0
+    return _sweep_once(store_root())
 
 
 def _sweep_once(root: Path) -> int:
     """Remove entries untouched for :data:`KEEP_DAYS`, and any
     ``.partial`` a killed run left; once per process per store."""
-    if root in _swept:
-        return 0
-    _swept.add(root)
-    return sweep(root)
+    with _sweep_lock:
+        if root in _swept:
+            return 0
+        _swept.add(root)
+        return sweep(root)
 
 
 def sweep(root: Path | None = None, now: float | None = None) -> int:

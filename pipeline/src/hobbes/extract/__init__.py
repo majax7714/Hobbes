@@ -22,8 +22,10 @@ from __future__ import annotations
 
 import re
 import subprocess
+import time
 
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -38,6 +40,7 @@ from hobbes.extract import (
     indexcache,
     ingestlock,
     instcalls,
+    jobs,
     laneacache,
     minted,
     pybases,
@@ -2186,10 +2189,9 @@ def _lane_b_facts(
             )
         )
 
-    for language, run in runs:
+    for language, outcome in _run_lane_b(runs, timings):
         try:
-            with timings.step(f"lane B [{language}]"):
-                facts = run()
+            facts = outcome()
         except containment.ContainmentRefusal as exc:
             # P10 (ADR-036, ADR-092): the general catch below is a policy
             # about the unknown failure; this is the known one. Named and
@@ -2219,6 +2221,58 @@ def _lane_b_facts(
         if facts is not None:
             degraded.extend(_coverage_gap_records(language, facts))
             yield facts
+
+
+def _run_lane_b(runs, timings: Timings):
+    """Each ``(language, run)`` as ``(language, outcome)``, in *runs*'
+    order, where ``outcome()`` returns the facts or raises what the run
+    raised.
+
+    One at a time, as ever, under ``HOBBES_LANE_B_JOBS=1`` or with one
+    language. Otherwise the languages run on threads, at most
+    :func:`jobs.lane_b_jobs` at once (ADR-184 lever 3): each one's
+    containment ledger is captured on its own thread, then the ledger, the
+    timings and the outcomes are added in the serial order, so nothing the
+    artifact carries depends on which language finished first. The index
+    cache's sweep runs before any thread starts, so no thread's sweep can
+    remove another's half-written entry.
+    """
+    width = min(jobs.lane_b_jobs(), len(runs))
+    if width <= 1:
+        for language, run in runs:
+            try:
+                with timings.step(f"lane B [{language}]"):
+                    facts = run()
+            except Exception as exc:  # re-raised by the caller's outcome()
+                yield language, _raising(exc)
+            else:
+                yield language, (lambda facts=facts: facts)
+        return
+
+    indexcache.sweep_now()
+
+    def contained(run):
+        started = time.perf_counter()
+        with containment.capture() as ledger:
+            try:
+                return run(), None, ledger, time.perf_counter() - started
+            except Exception as exc:
+                return None, exc, ledger, time.perf_counter() - started
+
+    with ThreadPoolExecutor(max_workers=width, thread_name_prefix="lane-b") as pool:
+        futures = [pool.submit(contained, run) for _, run in runs]
+        done = [future.result() for future in futures]
+    for (language, _), (facts, exc, ledger, seconds) in zip(runs, done):
+        for entry in ledger:
+            containment.record(entry)
+        timings.add(f"lane B [{language}]", seconds)
+        yield language, (_raising(exc) if exc is not None else (lambda facts=facts: facts))
+
+
+def _raising(exc: BaseException):
+    def outcome():
+        raise exc
+    return outcome
 
 
 def _coverage_gap_records(language: str, facts: dict) -> list[dict]:

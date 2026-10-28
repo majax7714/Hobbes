@@ -442,7 +442,7 @@ def run_helper(
             except ScipError:
                 indexcache.discard(key)
             else:
-                containment.LEDGER.append(
+                containment.record(
                     {"step": containment.INDEX_STEP[config["language"]], "contained": True}
                 )
                 indexcache.record(config["language"], key, hit=True)

@@ -67,6 +67,18 @@ class Timings:
                 }
             )
 
+    def add(self, name: str, seconds: float) -> None:
+        """Record a step timed elsewhere — on a thread of its own (ADR-184
+        lever 3) — in the order the serial run would have."""
+        self.steps.append(
+            {
+                "step": name,
+                "seconds": round(seconds, 3),
+                "peak_rss_mb": _peak_mb(resource.RUSAGE_SELF),
+                "child_peak_rss_mb": _peak_mb(resource.RUSAGE_CHILDREN),
+            }
+        )
+
     @property
     def total(self) -> float:
         """Seconds since this record was started."""

@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 
 TS_JOBS_ENV = "HOBBES_TS_JOBS"
+LANE_B_JOBS_ENV = "HOBBES_LANE_B_JOBS"
 
 
 def _cores() -> int:
@@ -32,3 +33,10 @@ def ts_jobs() -> int:
     """Lane A TS zones at once (``HOBBES_TS_JOBS``): half the cores, at
     most 4 (this repo's 27 zones peak at 6.8 GB with 4)."""
     return _jobs(TS_JOBS_ENV, min(4, _cores() // 2))
+
+
+def lane_b_jobs() -> int:
+    """Lane B languages at once (``HOBBES_LANE_B_JOBS``): a quarter of the
+    cores, at most 3. Units within one language stay one at a time, so no
+    tool cache is written by two containers at once."""
+    return _jobs(LANE_B_JOBS_ENV, min(3, _cores() // 4))

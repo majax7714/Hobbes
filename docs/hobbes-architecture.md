@@ -1301,6 +1301,15 @@ tells two such graphs apart. scip-clang exits 0 with an empty index for a
 unit it timed out or errored on, so a unit counts as indexed only when
 its own summary line says so (C-197).
 
+**Lane B runs its languages at once (ADR-184 lever 3).** At most
+`HOBBES_LANE_B_JOBS` languages (a quarter of the cores, at most 3) index
+on threads; units within one language stay one at a time, so no tool
+cache is written by two containers at once. Each language's containment
+steps are captured on its own thread (`containment.capture`) and added to
+the ledger in the serial order with its timings and outcome, so
+`graph.json`'s `containment` cannot depend on which finished first. The
+index cache sweeps once, before any thread starts. At 1, the serial run.
+
 **Lane B reads an unchanged unit from its index cache (ADR-122,
 0.2.35-beta).** Every indexing unit passes through `run_helper`, and
 that is where the cache sits: the helper's facts file (ADR-116) is kept

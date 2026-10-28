@@ -75,8 +75,11 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import threading
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Iterator
 
 from hobbes.extract import caps, staging
 
@@ -538,9 +541,33 @@ def plan(
 #: (ADR-092 phase 3). Reset per ingest.
 LEDGER: list[dict] = []
 
+#: A thread's own ledger while lane B runs its languages at once (ADR-184
+#: lever 3): each language's steps are kept apart and added to
+#: :data:`LEDGER` in the serial order, so the artifact cannot depend on
+#: which language finished first.
+_LOCAL = threading.local()
+
 
 def reset_ledger() -> None:
     LEDGER.clear()
+
+
+def record(entry: dict) -> None:
+    """Add *entry* to this thread's ledger: its own under :func:`capture`,
+    else :data:`LEDGER`."""
+    own = getattr(_LOCAL, "ledger", None)
+    (own if own is not None else LEDGER).append(entry)
+
+
+@contextmanager
+def capture() -> Iterator[list[dict]]:
+    """Keep this thread's ledger entries apart, in the list yielded."""
+    previous = getattr(_LOCAL, "ledger", None)
+    _LOCAL.ledger = entries = []
+    try:
+        yield entries
+    finally:
+        _LOCAL.ledger = previous
 
 
 def summary() -> dict:
@@ -588,7 +615,7 @@ def run(p: Plan, *, timeout: int) -> Outcome:
             raise ContainmentError(
                 f"podman could not start {p.profile.step}: {proc.stderr.strip()[-500:]}"
             )
-        LEDGER.append({"step": p.profile.step, "contained": True})
+        record({"step": p.profile.step, "contained": True})
         return Outcome(proc, True)
 
     if p.profile.executes_repo_code and not uncontained_requested():
@@ -610,7 +637,7 @@ def run(p: Plan, *, timeout: int) -> Outcome:
         raise  # the caller names how its tool is installed
     except subprocess.TimeoutExpired as exc:
         raise ContainmentTimeout(caps.timed_out(f"{p.profile.step}, on the host,", timeout)) from exc
-    LEDGER.append({"step": p.profile.step, "contained": False, "reason": reason})
+    record({"step": p.profile.step, "contained": False, "reason": reason})
     return Outcome(proc, False, host_reason=reason)
 
 

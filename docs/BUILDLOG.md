@@ -16566,3 +16566,7 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   3.7 → 6.8 GB, on a loaded box. pytest 3,376, tsextract 55.
 - A flaky test, not touched here: `test_watterson_live_session.py::TestTurnLabel::test_head_graph_clean_then_edited`
   failed in 2 of 5 full runs on a loaded box; cause not found (in `currently-open.md`).
+- **Lever 3** (lane B languages on threads, `HOBBES_LANE_B_JOBS`): each language's containment ledger captured
+  per thread and merged in the serial order with its timings and outcome; the index cache's sweep moved before
+  the threads start (a sweep at one thread's first store could remove another's `.partial`). 6 tests;
+  pytest 3,382, `lane_b` 29/29 on the host with the indexers concurrent.
