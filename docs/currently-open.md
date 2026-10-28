@@ -88,11 +88,8 @@ key no implicit call, so a rule's rows could not be graded.
 Its own open items stay in [`watterson/open-work.md`](watterson/open-work.md) ("Next up" first: item 11b,
 hiding what the server does not back; then the app's Hobbes start, `tui` matching `chat`, the map file).
 Left by the fold (2026-10-28):
-- **A lane A defect the fold surfaced, not registered (precedent 1).** In one module, two functions that
-  each import a different `exit_code` inside the function: lane A resolves the call in `_cmd_freshness`
-  to `providers/staleness.py`'s, lane B (correctly) to `freshness.py`'s. `hobbes lanes` counts it
-  `unexplained` and exits 1, which fails CI's `graph` job. Where lane B is absent, lane A's wrong edge is
-  what is drawn. Contain, prevent, register: its own unit, routes for Max.
+- **The fold's PR carries a one-time `hobbes review` delta** (1,689 new modules no test reaches, mostly
+  opencode's, whose Bun tests static reach does not connect): CI's `graph` job is red on it; Max's call.
 - **Live checks are Max's:** `watterson tui` (and `ask`, `chat`, `dispatch`, `job`) reach real harnesses;
   the fold verified them with the fake agent only. Re-point `~/.local/bin/watterson` at this repo's
   `bin/watterson`; `~/.local/bin/hobbes-proxy` points at a missing `~/hobbes/go/bin`.

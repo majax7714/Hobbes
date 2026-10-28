@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-195 registered and lifted, 2026-10-28 (0.2.122-beta; ADR-182, Max: "fix is a good idea since its small"):
+- **C-195.** A function's own import was bound module-wide in lane A's import table, so another function's
+  call to the same name could take it (watterson's `exit_code`, found by the dev environment's fold). Now
+  scoped to the function. 3 sites moved over 22 repos, all to Python's binding; residuals (class-body
+  imports, one name imported twice in a scope) counted in the entry. 195 entries, 144 active (112
+  surfaced), 34 lifted.
+
 C-9 narrowed, 2026-10-05 (0.2.121-beta; ADR-180, Max: 2a route (i), then "good to go with recommended"; no entry added):
 - **C-9 narrowed (still partial).** A TS/JS class field holding an arrow or function expression is a `method`
   symbol; lane B's references draw to it. zod +42, hono +75, folio-2025 +3, 0 contradicted on 13 keyed cells.

@@ -1135,7 +1135,9 @@ lane A's own sub-module bindings for Python and Go (the same
 enclosing-function extent must span the call's line, ADR-046; since
 ADR-090 the same bindings also *veto* lane A's fallback: a bare name
 bound in a scope that spans the call never resolves to a module-level
-namesake, since 0.2.10-beta a Go selector's qualifier bound that way
+namesake, since 0.2.122-beta a name a Python function imports binds for
+that function's calls only, never another function's (ADR-182, C-195
+lifted; a class body's import is still bound module-wide), since 0.2.10-beta a Go selector's qualifier bound that way
 never resolves through the import it shadows (ADR-046 amended, C-139),
 and a Rust `name!(...)` binds only to a macro), a Python call whose
 name or whole receiver a same-file import of the **standard library**

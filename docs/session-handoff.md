@@ -1,7 +1,8 @@
 # Session handoff — the single resume point
 
 **Reviewed 2026-10-28 (forty-sixth session); Hobbes 0.3.0-beta on branch `feat/watterson-fold`
-(the PR Max merges), 0.2.121-beta on `main`.** `origin/main` is at `2089e22`. The image and proxy were
+(PR #2), which carries ADR-182's fix (0.2.122-beta, its own PR from `fix/function-local-import-scope`,
+to merge first); 0.2.121-beta on `main`.** `origin/main` is at `2089e22`. The image and proxy were
 rebuilt at 0.3.0-beta on the branch by a local run of `scripts/ci-graph.sh`; that run also ingested this
 repo at the branch's head. If `main` moves, ingest at HEAD again. A new session's knowledge server is a
 new container from the current image, so it starts fresh.
@@ -30,15 +31,14 @@ session went belongs in the BUILDLOG.
   new held-out cell; then item 5, route a ("good for the recommended route with item 5"). Permission for `oracle py-trace` given for future use (local allow
   rules in `.claude/settings.local.json`).
 
-**Next:** the dev environment is folded in (ADR-181, 0.3.0-beta, PR from `feat/watterson-fold`). Its CI
-`graph` job is red on two counts, both in `currently-open.md` § The dev environment: a lane A defect the
-fold surfaced (two functions each importing a different `exit_code`: `hobbes lanes` exits 1), and the
-one-time `review` delta (1,689 new modules no test reaches, mostly opencode). The extraction routes stand
+**Next:** the dev environment is folded in (ADR-181, 0.3.0-beta, PR #2). The lane A defect its CI run
+found is fixed (ADR-182, C-195, 0.2.122-beta); what is left red in its `graph` job is the one-time
+`review` delta (1,689 new modules no test reaches, mostly opencode), Max's call at merge. The extraction routes stand
 as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- The fold's PR: merge, then the live `watterson tui` check and the `~/.local/bin/watterson` relink;
-  routes for the lane A `exit_code` defect (precedent 1).
+- The two PRs: ADR-182's fix first, then the fold (PR #2); after them the live `watterson tui` check and
+  the `~/.local/bin/watterson` relink; rebuild the image at 0.3.0-beta and ingest at HEAD.
 - The gate's map reason `dynamic-dispatch` for `attr-call` (`currently-open.md`).
 - **Whether to extend the standing trace oracle:** all four cells measured (click and rich on 2026-10-04).
 - The Python routes (C-181's residual, ADR-156 and fixture values).
@@ -53,6 +53,8 @@ Forty-sixth session (Max: bring watterson-environment in as a monorepo, behaving
 - **Parity:** every watterson pytest accounted for (3,345 here, hobbes' 2,892 unchanged); review 13/13 and
   its bundle byte-identical; the TUI's suite 1,492 pass / 2 skip on both; `watterson` outputs compared
   against watterson-environment@a65b6b1 on two targets (the BUILDLOG entry has the counts).
+- **0.2.122 (ADR-182, C-195 lifted):** a function's import binds its name in that function only; the
+  fold's `unexplained` lanes row. 3 sites moved over 22 repos, all to Python's binding (cachetools held out).
 - **Measured:** opencode adds 2,628 module nodes and ~43 s of lane A; lane B fails per opencode zone where
   its deps are not installed (disclosed), so it adds no unexplained disagreement.
 
@@ -88,8 +90,8 @@ Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. F
   (ADR-160); pyparsing, icalendar and structlog are graded held out
   (icalendar 70.2%, its 6 wrong rows contained by ADR-168; structlog 77.8%
   at 0.2.100-beta).
-- **Register:** 194 entries: 144 active (112 surfaced, 28 partial, 3
-  unsurfaced — C-19, C-20, C-112 — 1 n/a), 33 lifted, 11 superseded,
+- **Register:** 195 entries: 144 active (112 surfaced, 28 partial, 3
+  unsurfaced — C-19, C-20, C-112 — 1 n/a), 34 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
 - **Oracle defect log: H-38 open** (2026-10-03): the trace oracle's
   `getattr` reads run a repo's `__getattr__`; not met on a standing cell.
