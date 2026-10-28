@@ -11,6 +11,11 @@ named below was removed unless it says otherwise.
 
 ## Reusable drivers
 
+- **The dev environment against watterson-environment (ADR-181):**
+  `watterson-fold-2026-10-28/parity.sh` and `compare.py` run both
+  checkouts' `watterson` on the same targets and diff every output;
+  `pytest-compare.py` compares the suites test by test. Its `README.md`
+  says how; `results/` is the fold's run.
 - **A TS/JS before/after over every keyed cell:**
   `c177-tagged-template/run.sh` with `cells.tsv` (every keyed TS/JS cell
   and its H-34 key).

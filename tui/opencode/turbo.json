@@ -1,0 +1,57 @@
+{
+  "$schema": "https://v2-8-13.turborepo.dev/schema.json",
+  "globalDependencies": [
+    "patches/**",
+    "bunfig.toml",
+    ".npmrc",
+    ".github/actions/setup-bun/**",
+    ".github/workflows/test.yml",
+    "package.json"
+  ],
+  "globalEnv": ["CI", "OPENCODE_DISABLE_SHARE"],
+  "globalPassThroughEnv": ["CI", "OPENCODE_DISABLE_SHARE"],
+  "tasks": {
+    "typecheck": {},
+    "@opencode/cli#typecheck": {
+      "dependsOn": ["@opencode/core#typecheck"]
+    },
+    "test:components": {
+      "outputs": [],
+      "cache": false
+    },
+    "@opencode/sdk#typecheck": {
+      "dependsOn": ["@opencode/core#typecheck"]
+    },
+    "@opencode/server#typecheck": {
+      "dependsOn": ["@opencode/core#typecheck"]
+    },
+    "@opencode/simulation#typecheck": {
+      "dependsOn": ["@opencode/core#typecheck"]
+    },
+    "@opencode/tui#typecheck": {
+      "dependsOn": ["@opencode/core#typecheck"]
+    },
+    "build": {
+      "dependsOn": ["transit"],
+      "outputs": ["dist/**"]
+    },
+    // Workspace packages export their sources, so tests never wait for a dependency's build; the build job in
+    // test.yml checks the library builds. No package has a transit script: it runs nothing and only folds every
+    // workspace dependency into the test hash.
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
+    // Every package with a test script runs here, so a new suite cannot be left out of CI.
+    "test": {
+      "dependsOn": ["transit"],
+      "outputs": []
+    },
+    "@opencode/desktop#test": {
+      "outputs": [],
+      "cache": false
+    },
+    "@opencode/sdk#verify:package": {
+      "outputs": []
+    }
+  }
+}

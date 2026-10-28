@@ -1,0 +1,7 @@
+#!/bin/sh
+# Opens the watterson app (DEC-016, ADR-181): this checkout's `watterson`
+# command, run in the current folder. With no arguments that is
+# `watterson tui` on the repo here; any arguments pass through
+# (`watterson levels --list`).
+here=$(dirname "$(readlink -f "$0")")
+exec uv run --quiet --project "$here/../pipeline" watterson "$@"

@@ -1,6 +1,6 @@
 [project]
 name = "hobbes"
-version = "0.2.122b0"  # PEP 440 for VERSION 0.2.122-beta (test_version.py maps it)
+version = "0.3.0b0"  # PEP 440 for VERSION 0.3.0-beta (test_version.py maps it)
 description = "Hobbes CLI and ingestion pipeline: extractors, invariant compiler, and the front-end to the Go policy engine"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -9,7 +9,12 @@ authors = [{ name = "Max Marrujo" }]
 # tree-sitter is pinned below 0.26: the 0.26.0 core segfaults during our
 # walk of larger files (reproduced on this repo's own sources; 0.25.x is
 # clean with the same code and grammar). Revisit the pin on a new release.
+# The dev environment's two provider libraries are pinned exactly (DEC-004):
+# both are young and the ACP SDK is pre-1.0. Only hobbes.watterson.providers
+# imports them.
 dependencies = [
+    "agent-client-protocol==0.12.1",
+    "any-llm-sdk[anthropic,openai]==1.36.0",
     "pyyaml>=6",
     "tree-sitter>=0.25,<0.26",
     "tree-sitter-c>=0.24.2,<0.25",
@@ -23,6 +28,7 @@ dependencies = [
 
 [project.scripts]
 hobbes = "hobbes.cli:main"
+watterson = "hobbes.watterson.cli:main"
 
 [dependency-groups]
 dev = [

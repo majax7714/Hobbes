@@ -15,6 +15,24 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.3.0-beta — 2026-10-28 (the dev environment)
+
+**Minor: a feature.** ADR-181 (Max: "approved recommended good to proceed"). The dev environment built in
+watterson-environment folds in at `a65b6b1`, behaving as it did there. What the layer draws, refuses and
+says is unchanged: the extraction was byte-identical in both repos.
+
+- A second command, **`watterson`** (`hobbes.watterson`, launcher `bin/watterson`), runs it: `tui` (the
+  default: an opencode-fork TUI in `tui/opencode`, served by Hobbes on loopback behind a per-launch
+  password), `ask`, `chat` and `complete` (providers over ACP and any-llm), `freshness`, `levels`, `review`
+  (a standalone HTML page from `review/`), `agents`, `roles`, `dispatch` and `job` (agent roles and a
+  coordinator), and `ingest` and `render`, which are `hobbes`'s own. Its cache stays `~/.watterson/cache`.
+- `hobbes` is unchanged: `hobbes review` is still the PR review (ADR-025), `hobbes dispatch` still Shanks.
+  `watterson review` and `watterson dispatch` keep watterson's meanings.
+- New dependencies: `agent-client-protocol==0.12.1`, `any-llm-sdk[anthropic,openai]==1.36.0`; the ACP
+  adapters are locked in `adapters/`.
+- The application mode is unparked as this environment; §10, ADR-022's scope and D3's scope are amended
+  (ADR-181). Its decisions, DEC-001…027, are in `docs/watterson/`.
+
 ## 0.2.122-beta — 2026-10-28 (a function's import is the function's)
 
 **Patch: what the layer draws**, Python. ADR-182 (Max: "fix is a good idea since its small"); C-195

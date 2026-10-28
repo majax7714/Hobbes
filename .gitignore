@@ -31,6 +31,9 @@ build/
 # Node (web surface, M7)
 node_modules/
 
+# The TUI built from tui/opencode by tui/build.sh (DEC-025, ADR-181)
+tui/bin/
+
 # Editors / OS
 .idea/
 .vscode/

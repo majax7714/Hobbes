@@ -158,6 +158,7 @@ structural change") and §3's list, which puts "a language" under minor. Max's r
 - **patch:** a language addition, even when it reaches "supported", and a constraint's fix, **even
   when structural**. This covers every change to what the layer draws, refuses or says.
 - **minor:** a feature added to Hobbes. The harness was one (0.2.0-beta); the dev environment would
-  be the next (0.3.0), and it is not being worked on. Ask Max before a minor.
+  be the next (0.3.0), and it is not being worked on. Ask Max before a minor. *(2026-10-28: the dev
+  environment folded in as 0.3.0-beta, Max's word, ADR-181.)*
 
 Tags stay his call each time. `v0.2.10-beta` is the latest tag; 0.2.11-beta onward is untagged.

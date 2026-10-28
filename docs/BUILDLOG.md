@@ -16470,6 +16470,48 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
 - Max, on the PR: Claude reviews (`/code-review`, findings as PR comments) and merges only on his explicit
   word, with `--merge`, never squash. §7 reworded; branch protection on `main` left for later.
 
+## 2026-10-28 (forty-sixth session) — the dev environment folds in from watterson-environment (ADR-181, 0.3.0-beta)
+
+- Max: bring watterson-environment's environment piece in as a monorepo, "functionality … the exact
+  same", "a plug and test against watterson-environment"; plan first. Three surveys (watterson's glue, its
+  non-Python pieces, this repo's CI and policing tests); seven routes proposed; "approved recommended good
+  to proceed".
+- Found before building: `extract/`, `tsextract/`, `scip/`, `render.py`, `artifacts.py` byte-identical
+  (watterson copied `2089e22`, still `main`); 60 test files identical; 15 CLI functions identical by AST.
+  Collisions: `hobbes.review`/`hobbes.cli` modules, `review`/`dispatch` commands. The docs had the
+  application mode parked, 0.3.0 reserved for the dev environment, D3 unscoped, and ADR-022's "the surface
+  never runs the pipeline".
+- Branch `feat/watterson-fold`: `0a01ad6` ADR-181; `b759a71` the fold (see the CHANGELOG). The rewrite of
+  `hobbes.X` → `hobbes.watterson.X` left the TUI's RPC wire names (`hobbes.logo`, `hobbes.review`, …)
+  alone. New transitive pins set to watterson's (openai 3.31.0, jiter, httpx2, httpcore2); six shared
+  packages keep this repo's older pins.
+- **Parity** (driver and results: `~/.hobbes/bench/watterson-fold-2026-10-28/`):
+  - pytest, test by test (junit): watterson's 2,480 (2,478 pass, 2 skip) all accounted for — same result
+    under the `test_watterson_` names; 5 the same tests with the venv path in their parametrize id; 40 the
+    summary-printer classes not moved (identical classes run in `test_cli.py`); 2 `test_tail` skips now
+    pass (this repo has `go/internal/knowledge`). Here: 3,345 pass; hobbes' 2,892 unchanged.
+  - review: 13/13 both; `review/dist` byte-identical. Adapters: `npm ls --all` identical. TUI: built
+    here by `tui/build.sh`; its `tui` suite 1,492 pass, 2 skip, 0 fail on both.
+  - Outputs, both checkouts' `watterson` on the same targets, normalized for side path, checkout,
+    version, stamps and timings: miniapp with every view through the CLI 123/130; watterson@a65b6b1
+    (2,729 views in-process, both sides) 41/48; miniapp with lane B (12 semantic edges each) 41/48. The 7
+    each time: six `--help` usage lines indented to `watterson` (prog), and one HTML comment in the review
+    page naming `hobbes.watterson.review`. A first sweep of every watterson view through the CLI
+    (~16,000 calls, ~7 h) was stopped for the in-process dump.
+- **opencode measured** (a clone of watterson@a65b6b1, this repo's `hobbes`): lane A 2,628 of 3,353
+  module nodes, 43 s TS; lane B fails per opencode zone without its deps (`@tsconfig/bun` not found),
+  disclosed, so no disagreement. Here, after `tui/build.sh` installed them, lane B indexed some zones: 4
+  `same-line-pair` rows (C-70, registered).
+- **A lane A defect surfaced (precedent 1, not fixed here):** watterson's `cli.py` imports `exit_code`
+  inside two functions from two modules; lane A sends `_cmd_freshness`'s call to `staleness.exit_code`,
+  lane B to `freshness.exit_code` (right). `hobbes lanes` exits 1 on it. In `currently-open.md`.
+- **`scripts/ci-graph.sh main` run here** (proxy and image rebuilt at 0.3.0-beta): stops at lanes (exit
+  1, the defect). The later steps run by hand: invariants green (I-4 PASS, semgrep 0), `lane_b` 29/29,
+  `hobbes review main..HEAD` exit 1 — 1,689 new modules no test reaches (mostly opencode) and a large
+  architecture delta, a one-time delta of this PR.
+- Go, tsextract 51, scip 97, vitest 52 green at 0.3.0-beta. Not done: live harness runs (Max's), the TUI
+  in CI, the `~/.local/bin` links.
+
 ## 2026-10-28 (forty-sixth session, cont.) — a function's import is the function's (ADR-182, C-195, 0.2.122-beta)
 
 - Max, on the fold's CI finding: "fix is a good idea since its small"; push to `main` on his word or a new

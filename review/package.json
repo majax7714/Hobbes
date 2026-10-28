@@ -1,0 +1,23 @@
+{
+  "name": "hobbes-review",
+  "private": true,
+  "version": "0.1.0",
+  "description": "The review page's drawing (DEC-019): React Flow and ELK, bundled by esbuild into one script that hobbes.review inlines",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@xyflow/react": "12.12.0",
+    "dompurify": "3.4.16",
+    "elkjs": "0.12.0",
+    "marked": "18.0.14",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

@@ -85,6 +85,9 @@ jobs:
       - name: scip helper
         working-directory: scip
         run: npm ci && npm test
+      - name: review page (the dev environment's bundle, ADR-181)
+        working-directory: review
+        run: npm ci && npm test && npm run build
 
   graph:
     # ingest → lanes → compiled invariants → review, in the image.

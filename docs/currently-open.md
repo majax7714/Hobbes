@@ -83,6 +83,18 @@ key no implicit call, so a rule's rows could not be graded.
   C-178's residue (pyparsing's star re-exports, 1,377 held-out misses) is
   held, since any rule would be fitted to pyparsing.
 
+## The dev environment (`watterson`, ADR-181)
+
+Its own open items stay in [`watterson/open-work.md`](watterson/open-work.md) ("Next up" first: item 11b,
+hiding what the server does not back; then the app's Hobbes start, `tui` matching `chat`, the map file).
+Left by the fold (2026-10-28):
+- **The fold's PR carries a one-time `hobbes review` delta** (1,689 new modules no test reaches, mostly
+  opencode's, whose Bun tests static reach does not connect): CI's `graph` job is red on it; Max's call.
+- **Live checks are Max's:** `watterson tui` (and `ask`, `chat`, `dispatch`, `job`) reach real harnesses;
+  the fold verified them with the fake agent only. Re-point `~/.local/bin/watterson` at this repo's
+  `bin/watterson`; `~/.local/bin/hobbes-proxy` points at a missing `~/hobbes/go/bin`.
+- **The TUI is not in CI** (Bun 1.4.2 is fetched by `tui/build.sh`); whether to add it is open.
+
 ## Decisions open for Max (no spend, not extraction)
 
 - **Calvin's findings, proposed and not registered:** G-diff coverage. The

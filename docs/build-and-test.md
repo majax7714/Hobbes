@@ -16,6 +16,10 @@ Run these once:
 - `cd scip && npm install`
 - `cd bench/oracle/ts && npm install` (the oracle lane's `tsc`; its Go
   tests run it wherever node is)
+- For the dev environment (ADR-181): `cd adapters && npm ci`, `cd review &&
+  npm ci && npm run build`, and `tui/build.sh` (fetches Bun 1.4.2 into
+  `~/.watterson/bun`, writes `tui/bin/opencode`). `docs/watterson/README.md`
+  has its commands.
 - `git config core.hooksPath .githooks`. The pre-commit hook runs CI's
   gofmt step on the staged Go files. Without it, a red gofmt step hides
   both Go suites behind it.
@@ -41,6 +45,8 @@ Otherwise the knowledge tools answer with the old build (C-65).
 cd bench/oracle && go test ./...          # fixture self-test: Python via uv, Rust via the nightly driver
 cd web && npm test && npm run build
 cd pipeline && uv sync && uv run pytest   # HOBBES_SCIP=0 by default; `lane_b`-marked tests opt in
+cd review && npm test                     # the dev environment's review page
+(cd tui/opencode/packages/tui && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # the TUI; not in CI
 ```
 
 CI (`.github/workflows/ci.yml`, ADR-095) runs every suite on every push.
@@ -55,17 +61,19 @@ so a bare `ok` proves nothing. Verify them in the image with `-v`.
 
 ## Suite sizes
 
-Last checked 2026-10-05. pytest was re-run on the host at 0.2.121-beta and Go at 0.2.121-beta, tsextract at 0.2.121-beta and vitest at 0.2.83-beta; the rest were run at
+Last checked 2026-10-28. pytest, Go, tsextract, scip node, vitest, review and the TUI were re-run on the host at 0.3.0-beta; the rest were run at
 0.2.74-beta.
 
 | Suite | Size | Notes |
 |---|---|---|
-| pytest | 2,892 | 29 of them `lane_b`, run on the host at 0.2.121-beta |
+| pytest | 3,345 | 29 of them `lane_b`; 453 are the dev environment's (`test_watterson_*`) |
 | Go `./...` | 405 with subtests | 405 pass |
 | oracle-lane Go | 131 with subtests | 119 pass, 12 skip on a host without clang++ or cmake; the C++ ones pass in the image |
 | vitest | 52 | |
 | tsextract | 51 | |
 | scip node | 97 | |
+| review (node) | 13 | the dev environment's review page |
+| TUI (bun) | 1,494 | 1,492 pass, 2 skip; `tui/opencode/packages/tui`, not in CI |
 | atlas0 | 84 | |
 | lattice | 663 | 631 pass, 32 skip on a host without clang; they run in the image (2026-10-03) |
 
