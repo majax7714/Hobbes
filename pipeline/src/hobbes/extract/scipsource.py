@@ -30,7 +30,7 @@ import subprocess
 from bisect import bisect_right
 from pathlib import Path, PurePosixPath
 
-from hobbes.extract import containment, indexcache, staging
+from hobbes.extract import caps, containment, indexcache, staging
 from hobbes.extract.discover import SKIPPED_DIR_NAMES
 from hobbes.extract.evidence import IMPLEMENTS, RESOLUTION, Site
 from hobbes.extract.evidence import SCIP as SCIP_LANE
@@ -155,7 +155,9 @@ def venv_environment(venv_path: str, venv_name: str) -> list[dict] | None:
     the answer described the *system* environment and every third-party
     reference was attributed to the local project (C-27). Read-only, and
     None on any failure — the index still runs, resolution degrades, and
-    ``dependency_coverage`` says so.
+    ``dependency_coverage`` says so — except a listing that outran its cap,
+    which raises :class:`containment.ContainmentTimeout` so the caller can
+    say which (C-196).
     """
     python = Path(venv_path) / venv_name / "bin" / "python"
     if not python.is_file():
@@ -173,7 +175,9 @@ def venv_environment(venv_path: str, venv_name: str) -> list[dict] | None:
         ro=[str(python.parent.parent), *containment.interpreter_mounts(python)],
     )
     try:
-        proc = containment.run(p, timeout=60).proc
+        proc = containment.run(p, timeout=caps.seconds("python-env")).proc
+    except containment.ContainmentTimeout:
+        raise  # the caller says the cap fired (C-196); None would not
     except (OSError, containment.ContainmentError):
         return None
     if proc.returncode != 0:
@@ -387,7 +391,7 @@ def _helper_cmd() -> list[str]:
 
 def run_helper(
     config: dict,
-    timeout: int = 900,
+    timeout: int | None = None,
     ro: list[str] | tuple[str, ...] = (),
     env: tuple[str, ...] | list[str] = (),
     root: str = "",
@@ -422,6 +426,13 @@ def run_helper(
     config_path = stage.parent / f"{stage.name}.config.json"
     facts_path = stage.parent / f"{stage.name}.facts.ndjson"
     config["facts"] = str(facts_path)
+    # One table for every cap (ADR-183): the unit's container, and under it
+    # each step the helper runs, so the helper's named error fires first.
+    if timeout is None:
+        timeout = caps.seconds("lane-b-unit")
+    config["stepTimeoutSeconds"] = caps.step_seconds(timeout)
+    if config["language"] in ("c", "cpp"):
+        config["clangUnitTimeoutSeconds"] = caps.seconds("clang-unit")
     key = _cache_key(config, ro, env)
     if key is not None:
         cached = indexcache.lookup(key)
@@ -672,7 +683,7 @@ def _fetch(
     (ADR-097) and the guarantee outranks the degrade (P10)."""
     plan = containment.plan(step, command, cwd=cwd, env=env)
     try:
-        outcome = containment.run(plan, timeout=timeout or _NPM_INSTALL_TIMEOUT)
+        outcome = containment.run(plan, timeout=timeout or caps.seconds("registry-fetch"))
     except FileNotFoundError as exc:
         return f"{command[0]} is not installed: {exc}"
     except containment.ContainmentError as exc:
@@ -1344,10 +1355,6 @@ def workspace_link_targets(tree: Path) -> list[str]:
     return sorted(targets)
 
 
-#: Seconds a dependency install may take. Docusaurus-sized trees need
-#: minutes; a hang needs an end.
-_NPM_INSTALL_TIMEOUT = 600
-
 #: The classic-yarn version corepack runs for v1 lockfiles. Pinned in
 #: code for the same reason every indexer is (ADR-027 Decision 1): an
 #: unpinned installer is a different environment on every box.
@@ -1710,9 +1717,12 @@ def ts_zone_map(repo_root: Path) -> dict[str, str]:
     from hobbes.extract import tssource  # the helper's argv; no cycle
 
     cmd = [*tssource._helper_cmd(), "--zones", "--repo", str(repo_root)]
+    cap = caps.seconds("tsextract-zones")
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-    except (OSError, subprocess.TimeoutExpired) as exc:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=cap)
+    except subprocess.TimeoutExpired as exc:
+        raise ScipError(caps.timed_out("the tsextract zone map", cap)) from exc
+    except OSError as exc:
         raise ScipError(f"tsextract zone map unavailable: {exc}") from exc
     if proc.returncode != 0:
         detail = (proc.stderr or proc.stdout).strip()[-300:]
@@ -2958,8 +2968,6 @@ def gradle_user_properties() -> str:
     )
 
 
-_JAVA_INDEX_TIMEOUT = 1800
-
 
 def _index_java_unit(
     repo_root: Path, root: str, tool: str, root_files: list[str], sha: str
@@ -3017,7 +3025,7 @@ def _index_java_unit(
                 tool, str(init_script), wrapper=(Path(resolve_stage[1]) / "mvnw").is_file()
             ),
             resolve_stage[1],
-            timeout=_JAVA_INDEX_TIMEOUT,
+            timeout=caps.seconds("lane-b-java"),
             env=env,
         )
     finally:
@@ -3038,7 +3046,7 @@ def _index_java_unit(
                 "output": str(stage.parent / f"{stage.name}.scip"),
                 "declaredDeps": declared,
             },
-            timeout=_JAVA_INDEX_TIMEOUT,
+            timeout=caps.seconds("lane-b-java"),
             env=env,
             root=root,
         )
@@ -3362,7 +3370,7 @@ def extract_scip(
         config["venvPath"], config["venv"] = venv
         try:
             environment = venv_environment(*venv)
-        except containment.ContainmentRefusal as exc:
+        except (containment.ContainmentRefusal, containment.ContainmentTimeout) as exc:
             environment = None
             refused = str(exc)
     if environment is None:

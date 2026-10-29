@@ -36,6 +36,12 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-28 — every wall-clock cap named (ADR-183, 0.3.1-beta)
+
+- `~/.hobbes/bench/caps-adr183-2026-10-28/arms.sh`: cJSON, fmt, toml, jsoup ingested by a `main`
+  worktree (`main-wt/`, node_modules copied) and by the live checkout, one pass at a time; `diff.py` diffs
+  two `graph.json` by top-level key. `fmt-repeat.sh`: each arm twice more, index cache off.
+
 ## 2026-10-28 — a function's import scoped to the function (ADR-182, 0.2.122-beta)
 
 - `local-import-scope-2026-10-28/`: `probe.py` (lane A's `resolve_call_sites` per repo) over `repos.txt`

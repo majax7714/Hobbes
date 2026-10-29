@@ -55,3 +55,17 @@ prints the log's path, so a before-and-after is two lines of one file.
   dropped, so the bench's `ingest(workspace)` is unchanged.
 - The step names are the summary's contract; a rename is a change to
   what the layer says and moves the patch number.
+
+## Amendment — 2026-10-28 (0.3.2-beta): memory beside the time
+
+Max, 2026-10-28 ("good to go with the first 3", route 1 of the speed and memory review): every memory
+figure on record had been taken by hand (`/usr/bin/time -v`, a probe), so speed work had no memory
+baseline to measure against.
+
+- Each step also records two peaks as it ends, in MB: this process's resident set since the ingest began
+  (`peak_rss_mb`, `RUSAGE_SELF`), and the largest host child's that has exited (`child_peak_rss_mb`,
+  `RUSAGE_CHILDREN`: the TS/JS helper, a host-run step). Both only rise, so the step a peak first appears
+  at is the step that set it.
+- A contained step's indexer runs under podman's monitor, not as a child of this process, so neither figure
+  measures it. The summary's peak line says so in words.
+- Still never in an artifact (P1).

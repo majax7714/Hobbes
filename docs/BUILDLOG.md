@@ -16531,3 +16531,28 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
 - Residuals in C-195: class-body imports (32, 0 sites through them); a name imported twice in a scope (81,
   32 sites, all one symbol either way but C-181's registered `try`/`except` fixture).
 - pytest 2,899 (2,892 + 7); register 195 entries, 34 lifted.
+
+## 2026-10-28 (forty-seventh session) — every wall-clock cap is named (ADR-183, C-196, C-197, 0.3.1-beta)
+
+- Max asked for a broad look at the pipeline's speed and memory before any build: three read-only passes
+  (the code's cost centres; every recorded timing; the web for lighter indexers) and a timed ingest of this
+  repo at `71a28c3` (warm lane B: 130.5 s, 3.49 GB peak RSS; lane A TS 99.5 s, Python parse 12.1 s). Routes
+  proposed; Max: "good to go with the first 3", the `tui/` scope question kept for afterwards.
+- Route 1 found the ingest's wall-clock caps in no register entry: an indexer step past 600 s said `exited
+  null`, a venv listing past 60 s said nothing, and the inner 600 s sat under Java's 1,800 s container
+  (dagger's unit is about 500 s). A scip-clang probe in the image (`--receive-timeout-seconds=0`): exit 0, a
+  well-formed empty index, `num errored TUs: 2`; the helper counted both units indexed.
+- Built: `hobbes.extract.caps` (one table, `HOBBES_TIMEOUT_SCALE`, `timed_out`'s four things); the helper's
+  step cap from the unit's config (unit less 30 s); `containment.ContainmentTimeout`, so the venv listing's
+  record names its cap; scip-clang's wait from the table; per-unit `NNNN.log` and `clangRunOutcome` (C-197).
+  The TS lane A helper still stops the ingest: per-zone is route 2's split (C-196's residual).
+- Measured (`~/.hobbes/bench/caps-adr183-2026-10-28/`): cJSON, toml, jsoup identical but `built_by`; fmt one
+  `xchar-test.cc` tail site that flips within each arm over three runs (C-149's residual). The real
+  scip-clang through the new shell: 2 of 2 failed and timed out at a 0 s wait, 0 of 2 at 5 s.
+- The main worktree first went in the scratchpad and hit `/tmp`'s disk quota in `uv sync`; moved under
+  `~/.hobbes/bench/`.
+- pytest 3,369 (17 new in `test_caps.py`), `lane_b` 29/29 on the host, scip node 102 (5 new), tsextract 51;
+  register 197 entries, 145 active, 35 lifted.
+- **0.3.2-beta (ADR-119 amended):** each timed step also records this process's peak RSS and its largest
+  host child's (`RUSAGE_SELF`, `RUSAGE_CHILDREN`); contained indexers are podman's, not measured, and the
+  summary says so. One test; pytest 3,370.

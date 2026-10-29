@@ -1268,9 +1268,28 @@ lane B index run, the join, the projection, the lane agreement, the
 tail, the test map, the write — is timed in run order
 (`extract/timings.py`); the summary prints the total and every step,
 and `hobbes ingest` appends one JSON line per run under the Hobbes
-cache (`timings/<key>.jsonl`, keyed by the repo's path). Nothing enters
+cache (`timings/<key>.jsonl`, keyed by the repo's path). Since 0.3.2-beta
+each step also records this process's peak resident set and its largest
+host child's as it ends (ADR-119's amendment); a contained step's indexer
+runs under podman's monitor and is not measured. Nothing enters
 an artifact: two ingests of one commit stay byte-identical (P1). The
 caches above are measured against this record, or they are guesses.
+
+**Every wall-clock cap is in one table and names itself (ADR-183,
+0.3.1-beta).** `extract/caps.py` holds each step's cap: lane A's TS/JS
+helper (300 s, the whole repo), the zone map (300 s), a lane B unit's
+container (900 s; Java 1,800 s), a registry fetch (600 s), the venv
+listing (60 s), and scip-clang's wait for one unit's worker (300 s,
+passed as `--receive-timeout-seconds`). The helper reads its per-step cap
+from the unit's config (`stepTimeoutSeconds`, the unit's cap less 30 s),
+so its named error fires before podman stops the container.
+`HOBBES_TIMEOUT_SCALE` multiplies every cap. A cap that fires says what
+ran out of time, its seconds, C-196 and the knob, in the unit's degraded
+record or (lane A TS) the ingest's error. A wall-clock cap is the one place
+the graph depends on the box rather than the input; the record is what
+tells two such graphs apart. scip-clang exits 0 with an empty index for a
+unit it timed out or errored on, so a unit counts as indexed only when
+its own summary line says so (C-197).
 
 **Lane B reads an unchanged unit from its index cache (ADR-122,
 0.2.35-beta).** Every indexing unit passes through `run_helper`, and
@@ -2429,7 +2448,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.3.0-beta** (2026-10-28, ADR-103; the dev environment, ADR-181; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.0-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.3.2-beta** (2026-10-28, ADR-103; the dev environment, ADR-181; every wall-clock cap named, ADR-183; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.2-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

@@ -23,6 +23,7 @@ import subprocess
 from collections import defaultdict
 from pathlib import Path, PurePosixPath
 
+from hobbes.extract import caps
 from hobbes.extract.discover import SKIPPED_DIR_NAMES, is_linked_copy
 from hobbes.extract.schema import tiered_edge
 
@@ -99,17 +100,23 @@ def run_helper(repo_root: Path) -> dict:
         "Node and run `npm install` in the hobbes repo's tsextract/, or set "
         f"${TSEXTRACT_CMD_ENV} (ADR-021)"
     )
+    cap = caps.seconds("tsextract")
     try:
         proc = subprocess.run(
             [*cmd, "--repo", str(repo_root)],
             capture_output=True,
             text=True,
-            timeout=300,
+            timeout=cap,
         )
     except FileNotFoundError as exc:
         raise TsExtractError(f"{setup}: {exc}") from exc
     except subprocess.TimeoutExpired as exc:
-        raise TsExtractError(f"tsextract helper timed out on {repo_root}") from exc
+        # The ingest stops rather than drawing a graph without TS/JS; one
+        # zone failing alone needs the helper run per zone (C-196).
+        raise TsExtractError(
+            caps.timed_out(f"the TS/JS lane A helper (tsextract) on {repo_root}", cap)
+            + "; the ingest stops rather than drawing the repo without its TS/JS"
+        ) from exc
     if proc.returncode != 0:
         detail = (proc.stderr or proc.stdout).strip()[-500:]
         raise TsExtractError(f"{setup}: helper exited {proc.returncode}: {detail}")
