@@ -44,8 +44,7 @@ routes stand as they were: C is the next-thinnest language (two cells).
   `bench/subsume/`. After merging, restart the knowledge server (runbook: the image changed).
 - The four fork oddities `latex`'s tests pin (`currently-open.md`): fix upstream code, or leave pinned.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
-- From earlier: the live `watterson tui` check and the `~/.local/bin/watterson` relink; the gate's map
-  reason `dynamic-dispatch` for `attr-call`; whether to extend the standing trace oracle; the Python routes
+- From earlier: the live `watterson tui` check and the `~/.local/bin/watterson` relink; whether to extend the standing trace oracle; the Python routes
   (C-181's residual, ADR-156 and fixture values).
 
 ## Where the last day left things (2026-10-28; the CHANGELOG and BUILDLOG have each one)

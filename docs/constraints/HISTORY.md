@@ -6,6 +6,10 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-2 amended, 2026-10-29 (0.3.7-beta; Max: "yeah proposed for both are good"; no entry added):
+- **The gate's map reason for `attr-call`** is `laneb-miss`, not `dynamic-dispatch`. The 2026-10-04 note left it
+  open: neither of the class's two causes shows a target chosen at runtime. The vocabulary is unchanged.
+
 C-198 registered, 2026-10-29 (0.3.6-beta; ADR-186, Max: "good for the recommended routes"):
 - **C-198.** `hobbes review` and `hobbes diff` extract each end from `git archive`, which held no
   `node_modules` or venv, so 18 modules `tests_guarding` called guarded were "lost every guard" to the

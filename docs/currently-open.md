@@ -23,11 +23,6 @@ key no implicit call, so a rule's rows could not be graded.
 
 ### Routes waiting on Max
 
-**TypeScript / JavaScript** (each moves the TS symbol set):
-- **The gate's map reason for `attr-call`** (0.2.119-beta left it): `gate.py` files the class under
-  `dynamic-dispatch`; a re-exported alias site (zod 1,232) is not dispatch. The closed vocabulary is
-  `MAP_REASONS`; changing it is Max's.
-
 **Python:**
 - **Whether to extend the standing trace oracle (C-174).** Measured on all four keyed cells, contained
   (`~/.hobbes/bench/c174-counts-2026-10-03/python/trace-run/`; click and rich run 2026-10-04): implicit

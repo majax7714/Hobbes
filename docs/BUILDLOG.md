@@ -16761,3 +16761,18 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   strings, clamps that never bind, out-of-range writes `setCell` ignores, dead code). Typecheck clean. The
   `maxExpand` off-by-one it reported I confirmed directly (`maxExpand: 1` refuses a one-level macro); it and
   three other fork oddities are pinned by tests and listed in `currently-open.md`, not fixed.
+
+## 2026-10-29 (forty-ninth session) — the gate's map reason for `attr-call`; 0.3.7-beta
+
+- Max: "yeah proposed for both are good" — item 1 route a (refile `attr-call` under `laneb-miss`) and item 2
+  route a (the trace oracle's implicit calls as a companion key, H-38 first).
+- Read first: the map reason is a label. `_reason_ok` (`gate.py:160`) routes a NULL to `unknown` for any valid
+  reason, and no code branches on `dynamic-dispatch`; it reaches the record's `unknown_reasons` (`gate.py:620`)
+  and the repair text (`gate.py:674`). Neither of `attr-call`'s causes is dispatch, so the class is a
+  `laneb-miss`. `expr-callee` and `union-member` keep `dynamic-dispatch`. `MAP_REASONS` unchanged.
+- `test_gate.py`: the derived map's site row, the hand-built map's `attr-call` rows, and a pin that only
+  `expr-callee` and `union-member` file `dynamic-dispatch` (the hand-built symbol row keeps the reason, its
+  detail now C-63). C-2's line, HISTORY, `calvin-m0-gate.md` §0b (a dated note; the rounds ran with the old
+  pairing), CHANGELOG; the item deleted from `currently-open.md`.
+- pytest 3,411 passed; Go `./...` ok. Proxy rebuilt static (`hobbes-proxy 0.3.7-beta`), image rebuilt
+  (`2c5d040d284c`). lane_b not re-run: nothing it reads moved.

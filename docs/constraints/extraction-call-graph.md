@@ -58,7 +58,8 @@
   (`import * as z` → `export *` → `export { objectType as object }` → `const objectType = X.create`):
   zod's 1,232 `static→property` misses. Until 0.2.119 the class's text said only "receiver no static
   provider could type"; it now names both causes. The class is the site's shape and does not say which.
-  The Calvin gate still files the class under the map reason `dynamic-dispatch` (`gate.py`).
+  Since 0.3.7-beta the Calvin gate files the class under the map reason `laneb-miss`, not
+  `dynamic-dispatch`: neither cause shows a target chosen at runtime (`gate.py`'s `_TAIL_REASON`).
 - **Note:** deliberately counts, never a confidence score. An edge with no
   named target cannot be drawn, checked, or cited — it is C-1's false edge
   wearing a probability. The tail classes keep that rule: each is an
