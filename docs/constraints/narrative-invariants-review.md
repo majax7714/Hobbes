@@ -124,11 +124,17 @@
 - **Bites at:** a range that adds, removes or upgrades a dependency is reviewed with today's install at
   both ends, so an edge into a package the base did not have can show as present at the base. A checkout
   whose install is stale, or missing, gives both ends the same stale or missing tree. A tree that cannot
-  be hardlinked (another filesystem, a filesystem without hardlinks) is read without it at that end.
+  be hardlinked (another filesystem, a filesystem without hardlinks, a checkout that cannot be written,
+  whose scratch then sits in the system temp) is read without it at that end.
+  - Not today's *source*: an absolute link into the checkout is pointed at the same place in the ref's
+    tree, and a tree that is itself a symlink is linked from where it resolves and named. A venv's
+    editable-install `.pth` still names the checkout's path; measured on this repo (PR #7's review), the
+    base end's test reach at `main` with the branch checked out matched `ingest` at `main` on all 5,763
+    tests, so Python resolves the ref's own sources first.
 - **You find out:** **surfaced** — the review's header and `hobbes diff`'s stderr say "dependency trees:
   N hardlinked from the checkout into each end … both ends read today's install, not each ref's
-  (C-198)", list the ends apart when they differ, and name each tree that could not be linked with its
-  error. `review --json` carries the records as `environments`.
+  (C-198)", list the ends apart when they differ, name each tree that could not be linked with its
+  error (and if part of one could not be removed again), and each tree linked through a symlink. `review --json` carries the records as `environments`.
 - **Source:** ADR-186 (2026-10-29), found writing our own tests for the opencode fork.
 
 ---

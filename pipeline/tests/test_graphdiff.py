@@ -219,6 +219,45 @@ class TestLinkEnvironments:
         assert "cross-device" in record["error"]
         assert not (scratch / "node_modules").exists()
 
+    def test_an_absolute_link_into_the_checkout_reads_the_ref(self, tmp_path):
+        checkout, scratch = tmp_path / "checkout", tmp_path / "scratch"
+        (checkout / "node_modules").mkdir(parents=True)
+        os.symlink(checkout / "packages" / "x", checkout / "node_modules" / "x")
+        os.symlink("/usr/lib", checkout / "node_modules" / "outside")
+        scratch.mkdir()
+
+        link_environments(checkout, scratch)
+        assert os.readlink(scratch / "node_modules" / "x") == str(scratch / "packages" / "x")
+        assert os.readlink(scratch / "node_modules" / "outside") == "/usr/lib"
+
+    def test_a_tree_that_is_a_symlink_is_linked_from_where_it_resolves_and_says_so(self, tmp_path):
+        checkout, scratch, shared = tmp_path / "checkout", tmp_path / "scratch", tmp_path / "shared"
+        (shared / "dep").mkdir(parents=True)
+        (shared / "dep" / "index.js").write_text("")
+        checkout.mkdir()
+        os.symlink(shared, checkout / "node_modules")
+        scratch.mkdir()
+
+        [record] = link_environments(checkout, scratch)
+        assert record == {"path": "node_modules", "kind": "node_modules", "via": str(shared)}
+        assert not (scratch / "node_modules").is_symlink()
+        assert (scratch / "node_modules" / "dep" / "index.js").stat().st_ino == (shared / "dep" / "index.js").stat().st_ino
+        assert "node_modules -> " in format_environments([record])[1]
+
+    def test_a_part_left_behind_is_said(self, tmp_path, monkeypatch):
+        checkout, scratch = tmp_path / "checkout", tmp_path / "scratch"
+        (checkout / "node_modules" / "dep").mkdir(parents=True)
+        (checkout / "node_modules" / "dep" / "index.js").write_text("")
+        scratch.mkdir()
+
+        def cross_device(src, dst):
+            raise OSError(18, "Invalid cross-device link")
+
+        monkeypatch.setattr(graphdiff.os, "link", cross_device)
+        monkeypatch.setattr(graphdiff.shutil, "rmtree", lambda path, ignore_errors=False: None)
+        [record] = link_environments(checkout, scratch)
+        assert record["error"].endswith("so that end reads a partial tree")
+
     def test_format_names_the_trees_and_each_failure(self):
         lines = format_environments(
             [
@@ -261,6 +300,33 @@ class TestExtractAtRefWithEnvironments:
         assert extraction.environments == ({"path": "a/node_modules", "kind": "node_modules"},)
         # The scratch and the directories made for it are gone.
         assert not (repo / ".hobbes").exists()
+
+    def test_the_scratch_ignores_itself_while_it_exists(self, tmp_path, monkeypatch):
+        repo = self._workspace(tmp_path)
+        seen = {}
+
+        def look(repo_root, scratch):
+            seen["ignore"] = (repo / ".hobbes" / "tmp" / ".gitignore").read_text()
+            status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True, text=True)
+            seen["status"] = status.stdout
+            return []
+
+        monkeypatch.setattr(graphdiff, "link_environments", look)
+        extract_all_at_ref(repo, "HEAD")
+        assert seen == {"ignore": "*\n", "status": ""}
+        assert not (repo / ".hobbes").exists()
+
+    def test_a_checkout_that_cannot_be_written_unpacks_in_the_system_temp(self, tmp_path):
+        repo = self._workspace(tmp_path)
+        repo.chmod(0o555)
+        try:
+            extraction = extract_all_at_ref(repo, "HEAD")
+        finally:
+            repo.chmod(0o755)
+        assert not (repo / ".hobbes").exists()
+        # The system temp may be another filesystem: then the link fails and is said.
+        [record] = extraction.environments
+        assert record["path"] == "a/node_modules"
 
     def test_without_the_link_the_import_is_not_drawn(self, tmp_path, monkeypatch):
         # The control: the same ref, read as an archive alone.

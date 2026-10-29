@@ -28,6 +28,9 @@ close of 2026-09-13).
 - **It is said:** the review's header and `hobbes diff`'s stderr name the trees and that both ends read
   today's install, not each ref's (C-198); `review --json` carries them as `environments`. A tree that
   cannot be hardlinked is named, and that end reads without it.
+- The scratch ignores itself, a checkout that cannot be written unpacks in the system temp, an absolute
+  link into the checkout reads the ref's tree, and a symlinked tree is linked from where it resolves and
+  named (PR #7's review).
 - The 18 leave `.hobbes/accepted-lost-guards.yaml` (ADR-185).
 
 ## 0.3.5-beta — 2026-10-29

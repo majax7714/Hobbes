@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from subsume import mirror, mutants, redundant_cases
+from subsume import classify, mirror, mutants, redundant_cases
 
 
 def labels(text: str) -> list[str]:
@@ -80,3 +80,28 @@ def test_the_mirror_copies_the_package_and_links_the_rest(tmp_path):
     assert (workspace / "packages" / "util" / "src" / "a.ts").read_text() == "export const a = 1\n"
     assert os.readlink(tmp_path / "copy" / "node_modules") == str(workspace / "node_modules")
     assert Path(os.readlink(tmp_path / "copy" / "packages" / "other")) == workspace / "packages" / "other"
+
+
+def test_a_package_at_any_depth_is_mirrored_with_its_siblings(tmp_path):
+    workspace = tmp_path / "ws"
+    for rel in ("util", "packages/sdk/js/src", "packages/sdk/py", "packages/other"):
+        (workspace / rel).mkdir(parents=True)
+    for package in (workspace / "util", workspace / "packages" / "sdk" / "js"):
+        into = tmp_path / package.name
+        into.mkdir()
+        copy = mirror(workspace, package, into)
+        assert copy.is_dir() and not copy.is_symlink()
+    js = tmp_path / "js"
+    assert (js / "packages" / "sdk" / "py").is_symlink()
+    assert (js / "packages" / "other").is_symlink()
+    assert (js / "util").is_symlink()
+
+
+def test_a_fault_every_case_fails_on_tells_none_apart():
+    baseline = {"a": False, "b": False}
+    assert classify(baseline, {"a": False, "b": False}) == ("survived", set())
+    assert classify(baseline, {"a": True, "b": False}) == ("caught", {"a"})
+    assert classify(baseline, {"a": True, "b": True})[0] == "every-case"
+    # A file that no longer loads reports no cases at all.
+    assert classify(baseline, {})[0] == "every-case"
+    assert classify({"a": False}, {"a": True}) == ("caught", {"a"})

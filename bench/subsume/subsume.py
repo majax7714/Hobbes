@@ -19,7 +19,8 @@ case before deleting it.
 Workers mutate private mirrors of the workspace (the package copied, the
 rest symlinked), never the real tree. Tests must import the package's
 source relatively; a sibling package resolves to the real tree. Prints
-one JSON report. Bun is `$BUN`, else the build's pinned copy.
+one JSON report; `caught` leaves out `every_case`, faults every case
+fails on (a load broken, say), which tell no case apart. Bun is `$BUN`, else the build's pinned copy.
 """
 import concurrent.futures as cf
 import json
@@ -173,16 +174,16 @@ def mutants(text):
 
 
 def mirror(workspace, package, into):
-    """A workspace copy: `package` copied, everything else symlinked."""
+    """A workspace copy: `package` copied, everything else symlinked, at any depth."""
     rel = package.relative_to(workspace)
-    for entry in workspace.iterdir():
-        if entry.name != rel.parts[0]:
-            os.symlink(entry, into / entry.name)
-    parent = into / rel.parts[0]
-    parent.mkdir()
-    for entry in (workspace / rel.parts[0]).iterdir():
-        if entry.name != rel.parts[1]:
-            os.symlink(entry, parent / entry.name)
+    here, there = workspace, into
+    for part in rel.parts:
+        for entry in here.iterdir():
+            if entry.name != part:
+                os.symlink(entry, there / entry.name)
+        here, there = here / part, there / part
+        if here != package:
+            there.mkdir()
     shutil.copytree(package, into / rel, symlinks=True)
     return into / rel
 
@@ -226,7 +227,7 @@ def redundant_cases(kills: dict[str, set]) -> tuple[list[dict], dict[str, set]]:
 
 def main():
     args = sys.argv[1:]
-    jobs = os.cpu_count() // 2
+    jobs = max(1, (os.cpu_count() or 2) // 2)
     if "-j" in args:
         i = args.index("-j")
         jobs = int(args[i + 1])
@@ -242,6 +243,25 @@ def main():
             for line, label, text in mutants((package / source).read_text())]
 
     scratch = Path(tempfile.mkdtemp(prefix="subsume-"))
+    try:
+        report = _run_all(workspace, package, tests, baseline, work, scratch, jobs)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+    print(json.dumps(report, indent=1))
+
+
+def classify(baseline: dict, cases: dict) -> tuple[str, set]:
+    """One run's verdict: "survived", "every-case" (no case told apart, as when
+    the fault breaks the module's load) or "caught", with the failed cases."""
+    failed = {name for name, bad in cases.items() if bad} | (set(baseline) - set(cases))
+    if not failed:
+        return "survived", failed
+    if len(baseline) > 1 and failed >= set(baseline):
+        return "every-case", failed
+    return "caught", failed
+
+
+def _run_all(workspace, package, tests, baseline, work, scratch, jobs):
     copies = []
     for n in range(jobs):
         (scratch / str(n)).mkdir()
@@ -263,7 +283,7 @@ def main():
             free.append(copy)
 
     kills = {name: set() for name in baseline}
-    survivors, unattributed = [], []
+    survivors, unattributed, every_case = [], [], []
     with cf.ThreadPoolExecutor(jobs) as pool:
         for index, ((source, line, label, _), (cases, status)) in enumerate(pool.map(one, work)):
             # The index keeps two same-label faults on one line apart.
@@ -271,19 +291,21 @@ def main():
             if cases is None:
                 unattributed.append((mid, status))
                 continue
-            failed = {name for name, bad in cases.items() if bad} | (set(baseline) - set(cases))
-            if not failed:
+            verdict, failed = classify(baseline, cases)
+            if verdict == "survived":
                 survivors.append(mid)
-            for name in failed:
-                kills.setdefault(name, set()).add(mid)
-    shutil.rmtree(scratch)
+            elif verdict == "every-case":
+                every_case.append(mid)
+            else:
+                for name in failed:
+                    kills.setdefault(name, set()).add(mid)
 
     redundant, kept = redundant_cases(kills)
-    print(json.dumps({
-        "mutants": len(work), "caught": len(work) - len(survivors) - len(unattributed),
-        "unattributed": unattributed, "redundant": redundant,
+    return {
+        "mutants": len(work), "caught": len(work) - len(survivors) - len(unattributed) - len(every_case),
+        "every_case": len(every_case), "unattributed": unattributed, "redundant": redundant,
         "kept": {n: len(k) for n, k in kept.items()}, "survivors": survivors,
-    }, indent=1))
+    }
 
 
 if __name__ == "__main__":

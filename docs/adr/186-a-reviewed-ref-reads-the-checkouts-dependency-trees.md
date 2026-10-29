@@ -43,6 +43,12 @@ What was measured, each against `ingest` at the same commit (`2ca4260`):
    extracted as before for that directory, never with a half-linked tree.
 4. **It is said where the user is standing.** `hobbes review` and `hobbes diff` print what each end read
    and that both read today's install (C-198); `review --json` carries the list as `environments`.
+5. **Amended at PR #7's review (same version):** the scratch ignores itself (a `*` `.gitignore`, so a
+   killed run leaves nothing to commit in a repo that ignores only `.hobbes/derived/`); a checkout that
+   cannot be written unpacks in the system temp, where a link fails and is said; the linker is Hobbes'
+   own, so an absolute link into the checkout is re-pointed into the ref's tree, a tree that is a symlink
+   is linked from where it resolves and named (`via`), and a part left behind by a failed link is said.
+   Walking the checkout once per end was kept: it costs about 1.6 s against about 150 s of extraction.
 
 ## Consequences
 
