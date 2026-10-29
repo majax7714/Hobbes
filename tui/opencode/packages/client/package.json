@@ -50,7 +50,6 @@
   },
   "devDependencies": {
     "@effect/platform-node": "catalog:",
-    "@opencode/httpapi-codegen": "workspace:*",
     "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
     "@typescript/native": "catalog:",

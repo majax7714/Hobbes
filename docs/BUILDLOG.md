@@ -16633,3 +16633,34 @@ PR #5's branch.
   `compare`. The gate on the fixes, before `a77d140` against after `8b52cc4`, control arm on: cJSON,
   toml, jsoup and click are identical bytes. fmt differs only in C-149 tail rows (`os-test.cc` in the
   control as well; `unicode-test.cc`, which flipped in lever 2's control).
+
+## 2026-10-29 — forty-seventh session, continued: PR #5 merged, the image rebuilt, the TUI trimmed (DEC-028)
+
+- PR #5's CI went green after `bd22068`, and I merged it on Max's word (`6cb09d4`; #4 before it at
+  `2351c13`). I rebuilt the proxy (static) and the image. The cold ingest at HEAD took 194.9 s, peak
+  6.4 GB (the ingest's own process 995 MB); no cap fired. Lane B's per-language peaks now differ (342–679
+  MB), the review fix showing.
+- Max cleared removing the stale bench worktrees. I removed nine; none had tracked changes. The gate
+  results stay as ADR-184's evidence.
+- **The `tui/` question:** Max keeps the TUI and keeps ingesting it, and asked whether all 2,624 files are
+  needed. I measured instead of reading: a copy of the TUI build script with a Bun plugin that records every
+  file the bundler loads. 1,455 repo files on linux-x64; windows-x64 the same. 1,226 of the 2,627 TS/JS
+  files were never loaded. Max picked the widest cut, since upstream is not pulled (DEC-028).
+- **Building it took four passes, each caught by a check:**
+  1. `bun install` failed: the root postinstall runs `core/script/fix-node-pty.ts`.
+  2. The TUI suite loaded 78 fewer tests: a core test helper, a theme JSON and a `node`-condition entry
+     point (`plugin/src/source.node.ts`) the bundler's `bun` condition had skipped.
+  3. Restoring every declared entry point over-restored half of `ui`'s web components. Instead, `ui` was cut
+     to its sounds, `http-recorder` and `httpapi-codegen` were dropped whole, and the relative imports of
+     every restored file were restored too.
+  4. `turbo typecheck` found 22 type-only imports (erased before bundling, so the recorder never saw them)
+     and `ai`'s test-only `tsconfig.types.json`.
+- **Final:**
+  - Files 4,306 → 1,987; TS/JS 2,627 → 1,686; 32.8 → 17.9 MB.
+  - The re-recorded bundle inputs are identical: 1,455 repo files and the same `node_modules` files.
+  - Typecheck 16/16; `tui/build.sh` builds 2.0.29.
+  - TUI suite 1,492 pass, 2 skip, 0 fail (`--timeout 30000`). With Bun's 5 s default, the two shell-output
+    cases time out both before and after; my first baseline used the default.
+  - `bun.lock` lost 302 lines; its 7 added lines are re-hoisted entries at already-locked versions.
+  - Cold ingest, one run each: 194.9 → 157.6 s; lane A TS 40.4 → 29.6 s; lane B TypeScript 130.6 →
+    107.2 s; peak 6.4 → 5.3 GB.

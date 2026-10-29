@@ -73,7 +73,7 @@ Last checked 2026-10-29. pytest, tsextract and scip node at 0.3.4-beta, on the h
 | tsextract | 56 | |
 | scip node | 105 | |
 | review (node) | 13 | the dev environment's review page |
-| TUI (bun) | 1,494 | 1,492 pass, 2 skip; `tui/opencode/packages/tui`, not in CI |
+| TUI (bun) | 1,494 | 1,492 pass, 2 skip (2026-10-29, after DEC-028's trim); `tui/opencode/packages/tui`, not in CI; with Bun's default 5 s timeout two shell-output cases time out, so use `--timeout 30000` |
 | atlas0 | 84 | |
 | identity gate | 5 | `bench/identity/test_compare.py`, run by CI with the pipeline's environment |
 | lattice | 663 | 631 pass, 32 skip on a host without clang; they run in the image (2026-10-03) |

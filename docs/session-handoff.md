@@ -1,9 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-29 (forty-seventh session, continued); Hobbes 0.3.4-beta on branch
-`perf/same-output-faster` (PR #5), which sits on `fix/name-extraction-caps` (0.3.2-beta, PR #4, to merge
-first); 0.3.0-beta on `main` (`71a28c3`, PRs #2 and #3 merged).** The image and proxy are at 0.3.0-beta: rebuild them at the merged
-version and ingest at HEAD (the helper changed, so every lane B unit misses the index cache once). A new
+**Reviewed 2026-10-29 (forty-seventh session, continued); Hobbes 0.3.4-beta on `main` (`6cb09d4`, PRs #4
+and #5 merged); the image and proxy rebuilt at it, and this repo ingested at HEAD.** The TUI trim (DEC-028)
+is on branch `refactor/trim-opencode`. A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
@@ -32,14 +31,13 @@ session went belongs in the BUILDLOG.
 - 2026-10-28: speed and memory as a standing constraint; "good to go with the first 3" routes (name the
   caps; same output faster; probe a lighter Python indexer), the `tui/` scope "standalone, afterwards".
 
-**Next:** the `tui/` scope question (Max: standalone, after the three routes): opencode is 2,624 of this
-repo's 2,698 TS/JS files and most of its ingest; keep ingesting it, or exclude it with a disclosure. Then
-ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own ADR first. The extraction
+**Next:** the `tui/` scope question is settled (Max, 2026-10-29: keep it and keep ingesting it, trimmed
+to what the binary ships: DEC-028, on branch `refactor/trim-opencode`). Then ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own ADR first. The extraction
 routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- The merge of PR #4 (ADR-183, 0.3.1–0.3.2), then PR #5 (ADR-184, 0.3.3–0.3.4: it carries the fixes for
-  both PRs' review findings). `gh pr merge N --merge`, on his word.
+- The PR for `refactor/trim-opencode` (DEC-028). PRs #4 and #5 merged 2026-10-29 (`main` at 0.3.4-beta,
+  `6cb09d4`); the image and proxy are rebuilt at it.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - From earlier: the live `watterson tui` check and the `~/.local/bin/watterson` relink; the gate's map
   reason `dynamic-dispatch` for `attr-call`; whether to extend the standing trace oracle; the Python routes
