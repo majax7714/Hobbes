@@ -2,10 +2,13 @@
 
     compare.py <before-dir> <after-dir>
 
-Each of graph.json, tests.json and interfaces.json must be identical but
-for graph.json's `built_by` (the checkout's path, version and dirty flag).
-Prints IDENTICAL, or each top-level key that differs with a few of its
-differing rows, and exits 1.
+Each of graph.json, tests.json and interfaces.json must be the same
+bytes but for the value of graph.json's `built_by` (the checkout's path,
+version and dirty flag), which is masked in both. The same JSON in
+different bytes (key order, number form) differs. A pass that run.sh
+recorded as failed (a non-zero `exit`) differs whatever its directory
+holds. Prints IDENTICAL, or what differs, with a few of a key's differing
+rows, and exits 1.
 """
 
 import json
@@ -17,8 +20,33 @@ def rows(value):
     return {json.dumps(row, sort_keys=True) for row in value}
 
 
+def masked(raw: str) -> str:
+    """*raw* with the value of its top-level `built_by` cut out, if any."""
+    at = raw.find('"built_by"')
+    if at < 0:
+        return raw
+    start = raw.index(":", at) + 1
+    while raw[start].isspace():
+        start += 1
+    _, end = json.JSONDecoder().raw_decode(raw, start)
+    return raw[:start] + raw[end:]
+
+
+def failed(arm: Path) -> str | None:
+    code = (arm / "exit").read_text().strip() if (arm / "exit").is_file() else "0"
+    return None if code == "0" else code
+
+
 def main(before: Path, after: Path) -> int:
     differs = False
+    for arm, label in ((before, "before"), (after, "after")):
+        code = failed(arm)
+        if code is not None:
+            print(f"the {label} pass failed (exit {code}): nothing it left is compared")
+            differs = True
+    if differs:
+        print("DIFFERS")
+        return 1
     for name in ("graph.json", "tests.json", "interfaces.json"):
         a, b = before / name, after / name
         if not a.is_file() or not b.is_file():
@@ -28,15 +56,18 @@ def main(before: Path, after: Path) -> int:
         if a.read_bytes() == b.read_bytes():
             print(f"{name}: identical bytes")
             continue
+        if name == "graph.json" and masked(a.read_text()) == masked(b.read_text()):
+            print(f"{name}: identical bytes but for built_by")
+            continue
+        differs = True
         da, db = json.loads(a.read_text()), json.loads(b.read_text())
         if name == "graph.json":
             da.pop("built_by", None)
             db.pop("built_by", None)
         keys = sorted(k for k in set(da) | set(db) if da.get(k) != db.get(k))
         if not keys:
-            print(f"{name}: identical but for built_by")
+            print(f"{name}: the same JSON in different bytes (key order or number form)")
             continue
-        differs = True
         for key in keys:
             va, vb = da.get(key), db.get(key)
             if isinstance(va, list) and isinstance(vb, list):

@@ -6,8 +6,10 @@
 # Each cell (one path per line of cells.txt; `#` comments) is ingested by
 # the before checkout and then the after one, one pass at a time, with the
 # index cache off in both: a fresh index is what a version bump sees. The
-# three artifacts are copied out after each pass and compared by
-# compare.py, which ignores `built_by` alone. Each pass's wall time and
+# three artifacts are cleared before each pass and copied out after it,
+# and compare.py compares their bytes with `built_by`'s value masked. A
+# pass that exits non-zero is recorded as failed (`exit` beside its
+# artifacts), and the comparison fails with it. Each pass's wall time and
 # peak RSS (GNU time) and its timings summary are kept beside them.
 # CONTROL=1 ingests the before checkout a second time (`control`) and
 # compares it with the first: a difference the control shows too is the
@@ -29,9 +31,13 @@ while IFS= read -r cell; do
   for arm in $arms; do
     root=$BEFORE; [ "$arm" = after ] && root=$AFTER
     dir=$OUT/$name/$arm; mkdir -p "$dir"
+    # A pass that writes nothing must not be compared as the last pass's
+    # output.
+    rm -f "$cell"/.hobbes/derived/{graph,tests,interfaces}.json "$dir"/{graph,tests,interfaces}.json
     (cd "$root/pipeline" && env HOBBES_INDEX_CACHE=0 "$@" /usr/bin/time -v -o "$dir/time.txt" \
       uv run hobbes ingest --repo "$cell") > "$dir/ingest.log" 2>&1
     code=$?
+    echo "$code" > "$dir/exit"
     for f in graph tests interfaces; do cp "$cell/.hobbes/derived/$f.json" "$dir/" 2>/dev/null; done
     wall=$(awk -F': ' '/Elapsed \(wall clock\)/{print $2}' "$dir/time.txt" | awk -F: '{ if (NF==3) print $1*3600+$2*60+$3; else print $1*60+$2 }')
     rss=$(awk -F': ' '/Maximum resident/{printf "%d", $2/1024}' "$dir/time.txt")
