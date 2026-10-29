@@ -32,6 +32,7 @@
     }
   },
   "scripts": {
+    "test": "bun test --timeout 30000 --only-failures",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

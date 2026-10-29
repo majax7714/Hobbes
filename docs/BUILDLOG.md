@@ -16687,3 +16687,36 @@ PR #5's branch.
   - The local review at the new head found 222 lost guards. CI's 219 minus the 2 files since deleted,
     plus 5 restored `util`/`schema` files, gives the same set. All 222 are under `tui/opencode/`.
   - With the record in place: "nothing needs attention", tests 8,660 → 5,763. pytest 3,398.
+
+## 2026-10-29 — forty-eighth session: our own tests for the fork, `util` first (ADR-185's list, 222 → 212)
+
+Max's direction: cover the modules DEC-028 left unguarded, using Hobbes, with no test that "only fails
+due to other tests failing".
+- **Method:** "only fails when another does" was made checkable by mutation subsumption. A script plants
+  one fault at a time in each source file (operators, ±1, strings, regex anchors, a call replaced by its
+  argument, a one-line guard deleted), runs the package's tests and records which cases fail. A case is
+  redundant when every fault it catches is caught by another kept case. Workers mutate private mirrors
+  of the workspace, never the tree. The script is in the session scratchpad; where it lives is with Max.
+  - Its first operator set was too weak to judge: four cases caught nothing, yet each guarded a
+    regex, a `throw`/`catch` or a string the set never planted. "Redundant" then measured the tool.
+    Strings, regexes, guard deletion and call unwrapping fixed that.
+  - A tool bug: two mutants on one line with the same label shared an id and merged, so a case that
+    alone caught one looked subsumed; I deleted it on that verdict, and the next run showed the
+    survivor. Ids now carry the position; the case is back.
+- **`util`, 10 modules, 49 cases** (`packages/util/test/`, plus a `test` script so `turbo test` runs
+  it): 507 faults, 466 caught, 0 redundant cases; 7 hang `Binary` in a synchronous loop
+  (unattributable). The 34 survivors are equivalent (a native-codec fast path, guards whose fall-through
+  returns the same, `Pick<>` key strings, a lazy `^(.*?)`, clamps that cannot bind) except `global`'s
+  default layer, untested because it creates directories under the real XDG home.
+  - Mutation found two cases of mine that passed for the wrong reason: `a:N` reads `a` as a drive, so
+    the range checks never ran; and under Bun, `base64`'s own code never runs (native codecs). The
+    first now uses `f.ts:N`; the second loads a copy without the natives.
+  - Redundant by the rule and removed: `make`'s case and two retry cases; a third folded into the
+    defaults case with distinct errors, since only it saw "the first error, not the last".
+- Checks: `hobbes review main..HEAD` "nothing needs attention", tests 5,763 → 5,812; `tests_guarding`
+  per module: each of the ten reached by its own file; `turbo test` (util + TUI) green, TUI 1,492/2/0;
+  `test_watterson_tui_refs.py` 5 pass.
+- **Found, not fixed:** `hobbes review` builds each end from `git archive` (`graphdiff.py:31`) without
+  `node_modules`, so this workspace's cross-package imports don't resolve there. At `main`, `ingest`'s
+  graph has a TUI test reaching 18 of the 222 "lost" modules (`client/promise/*`, `schema/event`,
+  `util/global`, …): review and `tests_guarding` disagree. Unregistered; routes to Max.
