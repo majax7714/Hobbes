@@ -84,8 +84,6 @@ accepted:
       - tui/opencode/packages/core/src/tool/runtime
       - tui/opencode/packages/core/src/util/error-summary
       - tui/opencode/packages/core/src/util/wildcard
-      - tui/opencode/packages/merman/src/detect
-      - tui/opencode/packages/merman/src/diagnostics
       - tui/opencode/packages/merman/src/flowchart/drawing
       - tui/opencode/packages/merman/src/flowchart/labels
       - tui/opencode/packages/merman/src/flowchart/layout
@@ -100,7 +98,6 @@ accepted:
       - tui/opencode/packages/merman/src/gitgraph/parser
       - tui/opencode/packages/merman/src/gitgraph/render-grid
       - tui/opencode/packages/merman/src/gitgraph/style
-      - tui/opencode/packages/merman/src/markdown
       - tui/opencode/packages/merman/src/sequence/drawing
       - tui/opencode/packages/merman/src/sequence/options
       - tui/opencode/packages/merman/src/sequence/parser
