@@ -75,6 +75,7 @@ Last checked 2026-10-29. pytest, tsextract and scip node at 0.3.4-beta, on the h
 | review (node) | 13 | the dev environment's review page |
 | TUI (bun) | 1,494 | 1,492 pass, 2 skip; `tui/opencode/packages/tui`, not in CI |
 | atlas0 | 84 | |
+| identity gate | 5 | `bench/identity/test_compare.py`, run by CI with the pipeline's environment |
 | lattice | 663 | 631 pass, 32 skip on a host without clang; they run in the image (2026-10-03) |
 
 Keep them green. CI does not check these counts. Update this table when

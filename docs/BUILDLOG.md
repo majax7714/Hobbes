@@ -16624,3 +16624,12 @@ PR #5's branch.
   Ctrl-C hanging parallel lane B: the terminal's SIGINT reaches the podman clients too (same foreground
   group). The queued languages are now cancelled anyway.
 - Suites: pytest 3,386, `lane_b` 29/29 on the host, scip node 105, tsextract 56, Go version ok.
+
+- **PR #5's CI `graph` job failed** on its behavioural-coverage check: `bench/identity/compare.py` was a
+  new module no test reaches. PR #4 merged clean (`2351c13`) first. Added `bench/identity/test_compare.py`
+  (5 tests: built_by masked, the same JSON in other bytes, a failed pass, a differing row, the mask) and a CI
+  step that runs it. A test that loads the script by path would not have counted: the graph places a
+  `spec_from_file_location` load but never draws it (ADR-167). A local lane-A ingest shows all 5 reaching
+  `compare`. The gate on the fixes, before `a77d140` against after `8b52cc4`, control arm on: cJSON,
+  toml, jsoup and click are identical bytes. fmt differs only in C-149 tail rows (`os-test.cc` in the
+  control as well; `unicode-test.cc`, which flipped in lever 2's control).
