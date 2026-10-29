@@ -71,4 +71,36 @@ a third of this box's 30 GB. Each knob set to 1 gives today's serial run.
 
 ## Measured, as built
 
-*(Filled in as each lever lands.)*
+Gate runs in `~/.hobbes/bench/speed-route2-2026-10-28/gate-lever{1,2,3}/`, each cell cold (index cache off),
+both arms frozen worktrees. Wall times are from a box running other work at the same time, so they are
+indicative only; the identity results are not affected by load.
+
+- **Lever 1** (`1c3ccad`): cJSON, toml, jsoup, memchr, click, zod identical. The hobbes cell and fmt each
+  differed by one C/C++ tail count (`distance-avx512.c`, `printf.h`). pysource reads no C. The control arm
+  was added to the gate after this run; lever 2's control showed the same shape run to run. The Python parse
+  over this repo: 10.54 → 9.06 s.
+- **Lever 2** (`15a2c9b`), with the control: six cells identical, control identical. The hobbes cell and fmt
+  differ in tail counts of the same C/C++ files in the control (before against before) as in the change
+  (`sqlite-vector-kernels/src/distance-*.c`; fmt `test/unicode-test.cc`, the same row both ways). That is
+  C-149, amended with the size seen. The helper's facts alone are byte-identical to the original at jobs 1
+  and 4 on the hobbes cell. Hobbes cell, cold ingest: 325 s and 308 s (before, control) → 251 s; peak RSS
+  3.5 → 6.3 GB.
+- **Lever 3** (`a77d140`), with the control: six cells identical, control identical; the hobbes cell and fmt
+  again differ only in C/C++ tail counts that the control shows differing too (the `sqlite-vector-kernels`
+  files; fmt `printf.h`). `graph.json`'s `containment` steps are identical: the ledger merge holds. Hobbes
+  cell, cold ingest: 251 s (before and control) → 195 s; peak 6.4 → 6.3 GB. The single-language cells do not
+  move, as expected.
+
+**End to end, quiet box** (`final-timing.sh`; the hobbes cell; `main` at `71a28c3` against the branch at
+`a77d140`, nothing else running):
+
+| | `main` | branch |
+|---|---|---|
+| cold (index cache off) | 305 s | 194 s |
+| warm (second run, cache on) | 129 s | 69 s |
+| lane A TS | 98 s | 42 s |
+| Python parse | 12.0 s | 10.5 s |
+| peak RSS (GNU time) | 3.6 GB | 6.3–6.4 GB |
+
+The peak is the TS helper's, four zones at once; the ingest's own process peaks at 989 MB (ADR-119's
+amendment). `HOBBES_TS_JOBS=1` gives back the serial helper's 3.5 GB.

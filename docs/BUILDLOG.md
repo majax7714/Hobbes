@@ -16570,3 +16570,19 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   per thread and merged in the serial order with its timings and outcome; the index cache's sweep moved before
   the threads start (a sweep at one thread's first store could remove another's `.partial`). 6 tests;
   pytest 3,382, `lane_b` 29/29 on the host with the indexers concurrent.
+- **Route 3, the pyrefly probe** (`~/.hobbes/bench/pyrefly-probe-2026-10-28/`; pyrefly 1.4.0 in its own venv;
+  click at `36baa15`; nothing in the repo touched): `pyrefly check … --report-glean` 2.3 s, ~460 MB, against
+  scip-python's 15–18 s in the container (rough, unlike conditions). `--report-pysa` panics (`pysa.rs:486`).
+  Output order is not deterministic (`XRefsViaNameByTarget` order, even at `-j 1`); canonically sorted it is.
+  Against the graph's scip-evidenced edges at (path, line, to): 4,848 both (98.2% / 98.7%), 91 only Hobbes, 66
+  only pyrefly. Sampled 15 each: Hobbes right in 14 of its own (pyrefly names an inherited or `super()` member
+  by the receiver class, a name that exists nowhere — `tests/typing/typing_aliased_group.py:26`); pyrefly right
+  in 12 of its own (platform-dead branches, nested defs, inference) and wrong in 1 (`_termui_impl.py:918`, a
+  dead branch resolved at module scope). An unresolved import looks like a resolved target. Verdict: worth a
+  held-out probe, not a drop-in (in `currently-open.md`).
+- **Gates** (`~/.hobbes/bench/speed-route2-2026-10-28/gate-lever{1,2,3}/`, 8 cells, cold, levers 2 and 3 with
+  a control arm): every lever identical on six cells; the hobbes cell and fmt differ only in C/C++ tail counts
+  that the control (before against before) shows differing too — C-149, amended: `distance-cpu.c` moved 27 →
+  11 unresolved sites between two ingests of one commit, `symbol_edges` identical.
+- **End to end, quiet box, hobbes cell, `main` → branch:** cold 305 → 194 s, warm 129 → 69 s; lane A TS 98 →
+  42 s; peak 3.6 → 6.3 GB (the TS helper's four zones; the ingest's own process 989 MB).

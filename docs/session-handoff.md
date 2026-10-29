@@ -1,11 +1,10 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-28 (forty-sixth session); Hobbes 0.3.0-beta on branch `feat/watterson-fold`
-(PR #2), which carries ADR-182's fix (0.2.122-beta, its own PR from `fix/function-local-import-scope`,
-to merge first); 0.2.121-beta on `main`.** `origin/main` is at `2089e22`. The image and proxy were
-rebuilt at 0.3.0-beta on the branch by a local run of `scripts/ci-graph.sh`; that run also ingested this
-repo at the branch's head. If `main` moves, ingest at HEAD again. A new session's knowledge server is a
-new container from the current image, so it starts fresh.
+**Reviewed 2026-10-28 (forty-seventh session); Hobbes 0.3.3-beta on branch `perf/same-output-faster`,
+which sits on `fix/name-extraction-caps` (0.3.2-beta; its own PR, to merge first); 0.3.0-beta on `main`
+(`71a28c3`, PRs #2 and #3 merged).** The image and proxy are at 0.3.0-beta: rebuild them at the merged
+version and ingest at HEAD (the helper changed, so every lane B unit misses the index cache once). A new
+session's knowledge server is a new container from the current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
 file; don't append to it. Anything open but not done goes in
@@ -30,47 +29,39 @@ session went belongs in the BUILDLOG.
 - 2026-10-04: Route 1 ("good to go with route 1"): C-182's node line, the trait-provided-method rule on a
   new held-out cell; then item 5, route a ("good for the recommended route with item 5"). Permission for `oracle py-trace` given for future use (local allow
   rules in `.claude/settings.local.json`).
+- 2026-10-28: speed and memory as a standing constraint; "good to go with the first 3" routes (name the
+  caps; same output faster; probe a lighter Python indexer), the `tui/` scope "standalone, afterwards".
 
-**Next:** the dev environment is folded in (ADR-181, 0.3.0-beta, PR #2). The lane A defect its CI run
-found is fixed (ADR-182, C-195, 0.2.122-beta); what is left red in its `graph` job is the one-time
-`review` delta (1,689 new modules no test reaches, mostly opencode), Max's call at merge. The extraction routes stand
-as they were: C is the next-thinnest language (two cells).
+**Next:** the `tui/` scope question (Max: standalone, after the three routes): opencode is 2,624 of this
+repo's 2,698 TS/JS files and most of its ingest; keep ingesting it, or exclude it with a disclosure. Then
+ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own ADR first. The extraction
+routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- The two PRs: ADR-182's fix first, then the fold (PR #2); after them the live `watterson tui` check and
-  the `~/.local/bin/watterson` relink; rebuild the image at 0.3.0-beta and ingest at HEAD.
-- The gate's map reason `dynamic-dispatch` for `attr-call` (`currently-open.md`).
-- **Whether to extend the standing trace oracle:** all four cells measured (click and rich on 2026-10-04).
-- The Python routes (C-181's residual, ADR-156 and fixture values).
+- The two PRs, `fix/name-extraction-caps` first (ADR-183, 0.3.1–0.3.2), then `perf/same-output-faster`
+  (ADR-184, 0.3.3). Push is his step (`! git push -u origin <branch>`); then the PRs.
+- Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
+- From earlier: the live `watterson tui` check and the `~/.local/bin/watterson` relink; the gate's map
+  reason `dynamic-dispatch` for `attr-call`; whether to extend the standing trace oracle; the Python routes
+  (C-181's residual, ADR-156 and fixture values).
 
 ## Where the last day left things (2026-10-28; the CHANGELOG and BUILDLOG have each one)
 
-Forty-sixth session (Max: bring watterson-environment in as a monorepo, behaving exactly as it does;
-"approved recommended good to proceed" on seven routes):
-- **ADR-181, 0.3.0-beta:** `hobbes.watterson` and its own `watterson` command; `tui/`, `review/`,
-  `adapters/`, `bin/` at the root; watterson's docs in `docs/watterson/`. The extraction was
-  byte-identical in both repos, so `hobbes` is unchanged.
-- **Parity:** every watterson pytest accounted for (3,345 here, hobbes' 2,892 unchanged); review 13/13 and
-  its bundle byte-identical; the TUI's suite 1,492 pass / 2 skip on both; `watterson` outputs compared
-  against watterson-environment@a65b6b1 on two targets (the BUILDLOG entry has the counts).
-- **0.2.122 (ADR-182, C-195 lifted):** a function's import binds its name in that function only; the
-  fold's `unexplained` lanes row. 3 sites moved over 22 repos, all to Python's binding (cachetools held out).
-- **Measured:** opencode adds 2,628 module nodes and ~43 s of lane A; lane B fails per opencode zone where
-  its deps are not installed (disclosed), so it adds no unexplained disagreement.
+Forty-seventh session (speed and memory; three routes approved):
+- **ADR-183, 0.3.1-beta:** every wall-clock cap in one table (`extract/caps.py`), named where it bites
+  (C-196), `HOBBES_TIMEOUT_SCALE`; scip-clang's timed-out or errored units counted from its own summary
+  (C-197, registered and lifted: it exits 0 with an empty index). **0.3.2:** per-step peak RSS in the timings.
+- **ADR-184, 0.3.3-beta:** the byte-identity gate `bench/identity/` (8 cells, a control arm); `_own_body`
+  once per parse; TS zones on worker threads with a per-zone cap (C-196 narrowed); lane B languages
+  concurrent, merged in the serial order. This repo: cold 305 → 194 s, warm 129 → 69 s, peak 3.6 → 6.3 GB.
+- **The pyrefly probe:** 98% agreement with scip-python on click, ~6× faster (rough); not a drop-in.
+- C-149 amended: its tail flip is larger than a site or two (the control arm showed 16 in one file).
+- A flaky dev-environment test, cause not found (`currently-open.md`).
 
-Forty-fourth session (Max: routes for the TS/JS items; "approved recommended", "recommended is approved"):
-- **1a:** ADR-158's amendment approved as built (0.2.82-beta); the open item is now C-176's floor alone.
-- **2a:** all 13 keyed TS/JS cells regraded at `d101148` (0 contradicted, poison passed). zod's 1,274
-  `static→property` rows: 42 lane B names at the token, 1,232 an alias chain the index writes nothing at.
-- **1b step 0:** caller side ~515 rows, callee side ~48; shorthand members are locals in the index.
-- **0.2.119:** `attr-call`'s text names both causes (C-2 amended). **0.2.120 (ADR-179):** a top-level literal's member
-  is a scope-only caller; the held-out walk (42–80) took no cell; Max merged on the fitted cells (ajv 628
-  rows re-filed, grades and reach unmoved).
-- **0.2.121 (ADR-180):** a function-literal class field is a method symbol: zod 9,927 (+42), hono 910 (+75),
-  folio +3, 0 contradicted; the TS draw (`~/.hobbes/bench/ts-cells/`, 80 positions) took no cell.
-- A 20-hour wait loop (`until ! pgrep -f walk-adr179.sh`) matched itself; Max caught it twice. Killed; the
-  memory on detached launches carries it.
+Forty-sixth session: the dev environment folded in (ADR-181, 0.3.0-beta; extraction byte-identical in both
+repos; every watterson test accounted for); ADR-182's function-local import fix (0.2.122-beta, C-195 lifted).
 
+Forty-fourth session: the TS/JS routes, 0.2.119–0.2.121 (ADR-179, ADR-180).
 Forty-third session: `currently-open.md` condensed; the trace oracle on click and rich; 0.2.115–0.2.118.
 Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. Forty-first: 0.2.109–0.2.110.
 
