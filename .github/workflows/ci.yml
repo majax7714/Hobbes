@@ -71,6 +71,9 @@ jobs:
       - name: identity gate (ADR-184's comparison, bench tooling; stdlib only)
         working-directory: bench/identity
         run: uv run --project ../../pipeline pytest -q
+      - name: mutation subsumption (our fork tests' redundancy check, bench tooling; stdlib only)
+        working-directory: bench/subsume
+        run: uv run --project ../../pipeline pytest -q
 
   web:
     runs-on: ubuntu-24.04
