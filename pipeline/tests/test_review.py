@@ -622,6 +622,22 @@ class TestOutput:
         json.dumps(payload)  # must be serialisable
 
 
+    def test_each_end_says_which_dependency_trees_it_read(self, repo):
+        # ADR-186: the checkout's venv is hardlinked into both ends, and the review says so.
+        write(repo, ".gitignore", ".venv/\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "ignore the venv")
+        write(repo, ".venv/pyvenv.cfg", "home = /usr/bin\n")
+        review = build_review(repo, "HEAD~1", "HEAD")
+        text = format_review(review)
+        assert "dependency trees: 1 hardlinked from the checkout into each end (1 venv)" in text
+        assert "both ends read today's install, not each ref's (C-198)" in text
+        assert review_to_dict(review)["environments"] == {
+            "base": [{"path": ".venv", "kind": "venv"}],
+            "head": [{"path": ".venv", "kind": "venv"}],
+        }
+
+
 class TestCli:
     def test_exit_one_when_something_needs_attention(self, repo, capsys):
         from hobbes import cli

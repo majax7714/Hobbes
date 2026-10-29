@@ -1,17 +1,22 @@
 """Tests for hobbes.graphdiff — delta computation, formatting, ref extraction."""
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
+from hobbes import graphdiff
 from hobbes.graphdiff import (
     RefError,
     diff_graphs,
+    extract_all_at_ref,
     extract_at_ref,
     format_delta,
+    format_environments,
     has_changes,
+    link_environments,
 )
 
 FIXTURE = Path(__file__).parent / "fixtures" / "miniapp"
@@ -148,3 +153,185 @@ class TestExtractAtRef:
             ("miniapp.extra", "miniapp.util")
         ]
         assert delta["nodes_removed"] == []
+
+
+def _commit_all(repo: Path, message: str = "one") -> None:
+    git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t"]
+    if not (repo / ".git").exists():
+        subprocess.run([*git[:3], "init", "-q"], check=True)
+    subprocess.run([*git, "add", "."], check=True)
+    subprocess.run([*git, "commit", "-qm", message], check=True)
+
+
+class TestLinkEnvironments:
+    """ADR-186: a ref's extraction gets the checkout's dependency trees."""
+
+    def test_node_modules_is_hardlinked_and_a_workspace_link_stays_inside_the_ref(self, tmp_path):
+        checkout, scratch = tmp_path / "checkout", tmp_path / "scratch"
+        modules = checkout / "pkg" / "node_modules"
+        (modules / "dep").mkdir(parents=True)
+        (modules / "dep" / "index.js").write_text("module.exports = 1\n")
+        (modules / "@s").mkdir()
+        os.symlink("../../../lib", modules / "@s" / "lib")
+        (scratch / "pkg").mkdir(parents=True)
+        (scratch / "lib").mkdir()
+
+        assert link_environments(checkout, scratch) == [{"path": "pkg/node_modules", "kind": "node_modules"}]
+        linked = scratch / "pkg" / "node_modules"
+        assert (linked / "dep" / "index.js").stat().st_ino == (modules / "dep" / "index.js").stat().st_ino
+        assert os.readlink(linked / "@s" / "lib") == "../../../lib"
+        assert (linked / "@s" / "lib").resolve() == (scratch / "lib").resolve()
+
+    def test_a_venv_needs_its_marker(self, tmp_path):
+        checkout, scratch = tmp_path / "checkout", tmp_path / "scratch"
+        (checkout / ".venv").mkdir(parents=True)
+        (checkout / ".venv" / "pyvenv.cfg").write_text("home = /usr/bin\n")
+        (checkout / "tools" / "venv").mkdir(parents=True)
+        (scratch / "tools").mkdir(parents=True)
+
+        assert link_environments(checkout, scratch) == [{"path": ".venv", "kind": "venv"}]
+        assert not (scratch / "tools" / "venv").exists()
+
+    def test_only_where_the_ref_has_the_directory_and_not_the_tree(self, tmp_path):
+        checkout, scratch = tmp_path / "checkout", tmp_path / "scratch"
+        for where in ("gone", "kept", "ours"):
+            (checkout / where / "node_modules").mkdir(parents=True)
+        (scratch / "kept").mkdir(parents=True)
+        (scratch / "ours" / "node_modules").mkdir(parents=True)
+        (scratch / "ours" / "node_modules" / "vendored.js").write_text("")
+
+        assert [r["path"] for r in link_environments(checkout, scratch)] == ["kept/node_modules"]
+        assert not (scratch / "gone").exists()
+        assert [p.name for p in (scratch / "ours" / "node_modules").iterdir()] == ["vendored.js"]
+
+    def test_a_tree_that_cannot_be_linked_is_removed_and_says_why(self, tmp_path, monkeypatch):
+        checkout, scratch = tmp_path / "checkout", tmp_path / "scratch"
+        (checkout / "node_modules" / "dep").mkdir(parents=True)
+        (checkout / "node_modules" / "dep" / "index.js").write_text("")
+        scratch.mkdir()
+
+        def cross_device(src, dst):
+            raise OSError(18, "Invalid cross-device link")
+
+        monkeypatch.setattr(graphdiff.os, "link", cross_device)
+        [record] = link_environments(checkout, scratch)
+        assert record["path"] == "node_modules"
+        assert "cross-device" in record["error"]
+        assert not (scratch / "node_modules").exists()
+
+    def test_an_absolute_link_into_the_checkout_reads_the_ref(self, tmp_path):
+        checkout, scratch = tmp_path / "checkout", tmp_path / "scratch"
+        (checkout / "node_modules").mkdir(parents=True)
+        os.symlink(checkout / "packages" / "x", checkout / "node_modules" / "x")
+        os.symlink("/usr/lib", checkout / "node_modules" / "outside")
+        scratch.mkdir()
+
+        link_environments(checkout, scratch)
+        assert os.readlink(scratch / "node_modules" / "x") == str(scratch / "packages" / "x")
+        assert os.readlink(scratch / "node_modules" / "outside") == "/usr/lib"
+
+    def test_a_tree_that_is_a_symlink_is_linked_from_where_it_resolves_and_says_so(self, tmp_path):
+        checkout, scratch, shared = tmp_path / "checkout", tmp_path / "scratch", tmp_path / "shared"
+        (shared / "dep").mkdir(parents=True)
+        (shared / "dep" / "index.js").write_text("")
+        checkout.mkdir()
+        os.symlink(shared, checkout / "node_modules")
+        scratch.mkdir()
+
+        [record] = link_environments(checkout, scratch)
+        assert record == {"path": "node_modules", "kind": "node_modules", "via": str(shared)}
+        assert not (scratch / "node_modules").is_symlink()
+        assert (scratch / "node_modules" / "dep" / "index.js").stat().st_ino == (shared / "dep" / "index.js").stat().st_ino
+        assert "node_modules -> " in format_environments([record])[1]
+
+    def test_a_part_left_behind_is_said(self, tmp_path, monkeypatch):
+        checkout, scratch = tmp_path / "checkout", tmp_path / "scratch"
+        (checkout / "node_modules" / "dep").mkdir(parents=True)
+        (checkout / "node_modules" / "dep" / "index.js").write_text("")
+        scratch.mkdir()
+
+        def cross_device(src, dst):
+            raise OSError(18, "Invalid cross-device link")
+
+        monkeypatch.setattr(graphdiff.os, "link", cross_device)
+        monkeypatch.setattr(graphdiff.shutil, "rmtree", lambda path, ignore_errors=False: None)
+        [record] = link_environments(checkout, scratch)
+        assert record["error"].endswith("so that end reads a partial tree")
+
+    def test_format_names_the_trees_and_each_failure(self):
+        lines = format_environments(
+            [
+                {"path": "a/node_modules", "kind": "node_modules"},
+                {"path": "b/node_modules", "kind": "node_modules", "error": "Invalid cross-device link"},
+                {"path": "pipeline/.venv", "kind": "venv"},
+            ]
+        )
+        assert lines[0].startswith("dependency trees: 2 hardlinked from the checkout into each end (1 node_modules, 1 venv)")
+        assert "C-198" in lines[0]
+        assert lines[1] == (
+            "not linked, read without its dependency tree (C-198): b/node_modules — Invalid cross-device link"
+        )
+        assert format_environments([]) == []
+
+
+class TestExtractAtRefWithEnvironments:
+    def _workspace(self, tmp_path):
+        # Package a imports a subpath of @s/b through its `exports` map, as the fork's
+        # `@opencode/simulation/frontend/semantics` does. Lane A resolves a package's
+        # main by name, but a subpath export only through the gitignored workspace link.
+        repo = tmp_path / "ws"
+        (repo / "a" / "src").mkdir(parents=True)
+        (repo / "b" / "src" / "x").mkdir(parents=True)
+        (repo / ".gitignore").write_text("node_modules/\n")
+        (repo / "a" / "package.json").write_text('{"name": "@s/a", "dependencies": {"@s/b": "*"}}\n')
+        (repo / "a" / "src" / "index.ts").write_text('import { b } from "@s/b/x/thing"\nexport const a = () => b()\n')
+        (repo / "b" / "package.json").write_text('{"name": "@s/b", "exports": {"./x/*": "./src/x/*.ts"}}\n')
+        (repo / "b" / "src" / "x" / "thing.ts").write_text("export const b = () => 1\n")
+        _commit_all(repo)
+        (repo / "a" / "node_modules" / "@s").mkdir(parents=True)
+        os.symlink("../../../b", repo / "a" / "node_modules" / "@s" / "b")
+        return repo
+
+    def test_a_workspace_import_resolves_at_a_ref(self, tmp_path):
+        repo = self._workspace(tmp_path)
+        extraction = extract_all_at_ref(repo, "HEAD")
+        edges = {(e["from"], e["to"]) for e in extraction.graph["module_edges"] if e["type"] == "imports"}
+        assert ("a/src/index", "b/src/x/thing") in edges
+        assert extraction.environments == ({"path": "a/node_modules", "kind": "node_modules"},)
+        # The scratch and the directories made for it are gone.
+        assert not (repo / ".hobbes").exists()
+
+    def test_the_scratch_ignores_itself_while_it_exists(self, tmp_path, monkeypatch):
+        repo = self._workspace(tmp_path)
+        seen = {}
+
+        def look(repo_root, scratch):
+            seen["ignore"] = (repo / ".hobbes" / "tmp" / ".gitignore").read_text()
+            status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True, text=True)
+            seen["status"] = status.stdout
+            return []
+
+        monkeypatch.setattr(graphdiff, "link_environments", look)
+        extract_all_at_ref(repo, "HEAD")
+        assert seen == {"ignore": "*\n", "status": ""}
+        assert not (repo / ".hobbes").exists()
+
+    def test_a_checkout_that_cannot_be_written_unpacks_in_the_system_temp(self, tmp_path):
+        repo = self._workspace(tmp_path)
+        repo.chmod(0o555)
+        try:
+            extraction = extract_all_at_ref(repo, "HEAD")
+        finally:
+            repo.chmod(0o755)
+        assert not (repo / ".hobbes").exists()
+        # The system temp may be another filesystem: then the link fails and is said.
+        [record] = extraction.environments
+        assert record["path"] == "a/node_modules"
+
+    def test_without_the_link_the_import_is_not_drawn(self, tmp_path, monkeypatch):
+        # The control: the same ref, read as an archive alone.
+        repo = self._workspace(tmp_path)
+        monkeypatch.setattr(graphdiff, "link_environments", lambda repo_root, scratch: [])
+        extraction = extract_all_at_ref(repo, "HEAD")
+        edges = {(e["from"], e["to"]) for e in extraction.graph["module_edges"] if e["type"] == "imports"}
+        assert ("a/src/index", "b/src/x/thing") not in edges

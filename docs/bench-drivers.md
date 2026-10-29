@@ -41,6 +41,13 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-29 — our own tests for the opencode fork
+
+- `bench/subsume/subsume.py` (in the repo): `subsume.py <workspace> <package> <src>... [--tests …] [-j N]`,
+  run from `tui/opencode` (e.g. `. packages/util src/path.ts …`). Mutation subsumption: which test cases
+  are redundant (every fault they catch, another catches), which faults survive. Prints JSON; the docstring
+  says how to read a verdict. `test_subsume.py` beside it (CI).
+
 ## 2026-10-28 — same output, faster (ADR-184) and the pyrefly probe
 
 - `bench/identity/` (in the repo): `run.sh <out> <before> <after> cells.txt`, `CONTROL=1` for a second before

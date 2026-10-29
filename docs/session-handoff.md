@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-29 (forty-seventh session, continued); Hobbes 0.3.4-beta on `main` (`6cb09d4`, PRs #4
-and #5 merged); the image and proxy rebuilt at it, and this repo ingested at HEAD.** The TUI trim (DEC-028)
-is on branch `refactor/trim-opencode`. A new
+**Reviewed 2026-10-29 (forty-eighth session); `main` at 0.3.5-beta (`1f93eb1`, PR #6 merged); branch
+`test/opencode-own-tests` at 0.3.6-beta (ADR-186), the image and proxy rebuilt at it, this repo ingested at
+its HEAD.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
@@ -31,13 +31,18 @@ session went belongs in the BUILDLOG.
 - 2026-10-28: speed and memory as a standing constraint; "good to go with the first 3" routes (name the
   caps; same output faster; probe a lighter Python indexer), the `tui/` scope "standalone, afterwards".
 
-**Next:** the `tui/` scope question is settled (Max, 2026-10-29: keep it and keep ingesting it, trimmed
-to what the binary ships: DEC-028, on branch `refactor/trim-opencode`). Then ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own ADR first. The extraction
+- 2026-10-29: our own tests for the fork, "tests aren't test dependent" (no case that only fails when
+  another does; checked by `bench/subsume/`); "good for the recommended routes" (C-198's fix, the tool in
+  `bench/`, no-logic modules accepted apart, pure packages first).
+
+**Next:** the fork's tests, in Max's order: `merman`, `core/shell`, `codemode`, then `schema`'s decoders,
+then the effectful packages (179 modules wait, `currently-open.md`). Then ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own ADR first. The extraction
 routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- PR #6, `refactor/trim-opencode` (DEC-028, 0.3.5-beta with ADR-185: lost guards accepted by name). PRs #4 and #5 merged 2026-10-29 (`main` at 0.3.4-beta,
-  `6cb09d4`); the image and proxy are rebuilt at it.
+- The PR of `test/opencode-own-tests` (Max opens it): `util` and `latex` tests, ADR-186/C-198 (0.3.6-beta),
+  `bench/subsume/`. After merging, restart the knowledge server (runbook: the image changed).
+- The four fork oddities `latex`'s tests pin (`currently-open.md`): fix upstream code, or leave pinned.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - From earlier: the live `watterson tui` check and the `~/.local/bin/watterson` relink; the gate's map
   reason `dynamic-dispatch` for `attr-call`; whether to extend the standing trace oracle; the Python routes
@@ -84,7 +89,7 @@ Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. F
   (ADR-160); pyparsing, icalendar and structlog are graded held out
   (icalendar 70.2%, its 6 wrong rows contained by ADR-168; structlog 77.8%
   at 0.2.100-beta).
-- **Register:** 197 entries: 145 active (113 surfaced, 28 partial, 3
+- **Register:** 198 entries: 146 active (114 surfaced, 28 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 35 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
 - **Oracle defect log: H-38 open** (2026-10-03): the trace oracle's

@@ -6,6 +6,7 @@
 # would put a name on decisions never made, so they stay clone-local
 # here too (the C-20 shape).
 .hobbes/plans/
+.hobbes/tmp/
 
 # Terraform state carries secrets — never read, never committed
 *.tfstate

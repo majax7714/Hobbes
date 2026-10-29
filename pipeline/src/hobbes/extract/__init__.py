@@ -98,12 +98,14 @@ SCHEMA_VERSION = 4
 class Extraction:
     """The three artifact documents, minus the provenance stamp — and the
     fixture trees `hobbes review` reads beside them (ADR-114), which are
-    not emitted."""
+    not emitted. *environments* is set only for a ref's extraction: the
+    checkout's dependency trees it was given (ADR-186, C-198)."""
 
     graph: dict
     tests: dict
     interfaces: dict
     fixture_trees: tuple = ()
+    environments: tuple = ()
 
 
 def extract_repo(

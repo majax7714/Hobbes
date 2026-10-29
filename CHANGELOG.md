@@ -15,6 +15,24 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.3.6-beta — 2026-10-29
+
+**Patch: a reviewed ref reads the checkout's dependency trees.** ADR-186, C-198.
+
+- **`hobbes review` and `hobbes diff`** extract each end from `git archive`, which holds no
+  `node_modules` and no virtual environment, so a workspace package's subpath import (the opencode
+  fork's `@opencode/simulation/frontend/semantics`) resolved at `ingest` and not at a ref. On `main`, 18
+  modules a TUI test reaches in `ingest`'s graph were "lost every guard" to the review. Each end is now
+  unpacked under `.hobbes/tmp/` and given the checkout's `node_modules` and `.venv`/`venv` trees by
+  hardlink (nothing copied); measured on this repo, a ref's extraction then matches `ingest`'s.
+- **It is said:** the review's header and `hobbes diff`'s stderr name the trees and that both ends read
+  today's install, not each ref's (C-198); `review --json` carries them as `environments`. A tree that
+  cannot be hardlinked is named, and that end reads without it.
+- The scratch ignores itself, a checkout that cannot be written unpacks in the system temp, an absolute
+  link into the checkout reads the ref's tree, and a symlinked tree is linked from where it resolves and
+  named (PR #7's review).
+- The 18 leave `.hobbes/accepted-lost-guards.yaml` (ADR-185).
+
 ## 0.3.5-beta — 2026-10-29
 
 **Patch: a lost guard can be accepted by name.** ADR-185.

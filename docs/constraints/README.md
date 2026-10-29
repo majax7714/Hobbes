@@ -138,7 +138,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-cpp.md`](extraction-cpp.md) | Extraction — C++ (ADR-113) | C-142, C-143, C-145, C-146, C-147, C-148, C-151, C-152, C-153, C-160, C-162, C-164, C-144, C-155, C-175 |
 | [`extraction-terraform.md`](extraction-terraform.md) | Extraction — Terraform/HCL (ADR-010, ADR-173) | C-188, C-189, C-190, C-191, C-192, C-193, C-187 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
-| [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-154, C-18 |
+| [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-154, C-198, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1), the Calvin grounder and `hobbes gate` | C-35, C-36, C-37, C-38, C-91, C-109, C-110, C-111, C-112, C-113, C-117, C-118, C-121, C-122, C-123, C-126, C-104, C-105, C-106, C-107, C-108, C-114, C-116, C-119, C-120 |
 | [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099) and the Calvin M0 local harness (ADR-100) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-124, C-55, C-56, C-115 |
 | [`dispatch-harness.md`](dispatch-harness.md) | The dispatch harness (ADR-107, ADR-112) — `hobbes dispatch`, the session and its records | C-125, C-127, C-128, C-129, C-140 |
@@ -152,11 +152,11 @@ their segment, in that order, and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and ninety-seven entries: one hundred and forty-five active, thirty-five lifted, eleven superseded, six folded**
+**One hundred and ninety-eight entries: one hundred and forty-six active, thirty-five lifted, eleven superseded, six folded**
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 113 | every active entry not listed below |
+| active — surfaced | 114 | every active entry not listed below |
 | active — *partial* | 28 | C-1, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150, C-153, C-164, C-167, C-168, C-176, C-179, C-181, C-184 |
 | active — **unsurfaced** (debt) | 3 | C-19, C-20, C-112 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |

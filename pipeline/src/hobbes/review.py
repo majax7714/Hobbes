@@ -22,7 +22,7 @@ from pathlib import Path
 import yaml
 
 from hobbes.extract.testmap import value_only_modules
-from hobbes.graphdiff import diff_graphs, extract_all_at_ref, has_changes
+from hobbes.graphdiff import diff_graphs, extract_all_at_ref, format_environments, has_changes
 from hobbes.invariants import Invariant, load_all, scope_matches
 from hobbes.invariants.verdict import FAIL, PASS, SUSPECT, Verdict, judge_all
 
@@ -111,6 +111,8 @@ class Review:
     coverage: CoverageDelta
     soft: list[dict] = field(default_factory=list)
     changed_paths: list[str] = field(default_factory=list)
+    #: The checkout's dependency trees each end was given (ADR-186, C-198).
+    environments: dict = field(default_factory=dict)
 
     @property
     def regressions(self) -> list[InvariantReview]:
@@ -183,6 +185,7 @@ def build_review(
         invariants=reviews,
         coverage=coverage,
         changed_paths=touched,
+        environments={"base": list(base.environments), "head": list(head.environments)},
     )
     if with_soft:
         review.soft = judge_soft(review, records, runner=runner, repo_root=repo_root)
@@ -563,6 +566,14 @@ def format_review(review: Review) -> str:
     add = lines.append
 
     add(f"review {review.base_ref}..{review.head_ref}")
+    base_env, head_env = review.environments.get("base", []), review.environments.get("head", [])
+    if base_env == head_env:
+        for line in format_environments(head_env):
+            add(f"   {line}")
+    else:
+        for end, environments in (("base", base_env), ("head", head_env)):
+            for line in format_environments(environments):
+                add(f"   {end}: {line}")
     add("")
 
     add("1. architecture delta")
@@ -717,6 +728,7 @@ def review_to_dict(review: Review) -> dict:
             "autouse_only": review.coverage.autouse_only,
         },
         "soft": review.soft,
+        "environments": review.environments,
     }
 
 
