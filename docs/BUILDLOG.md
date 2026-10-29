@@ -16761,3 +16761,27 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   strings, clamps that never bind, out-of-range writes `setCell` ignores, dead code). Typecheck clean. The
   `maxExpand` off-by-one it reported I confirmed directly (`maxExpand: 1` refuses a one-level macro); it and
   three other fork oddities are pinned by tests and listed in `currently-open.md`, not fixed.
+
+## 2026-10-29 (forty-ninth session, cont.) — our own tests for `merman`'s `core` (64 cases, none redundant)
+
+- Max's order after `latex`: `merman`, taken in sub-units; `core` first (nine modules, about 1,340 lines:
+  canvas, color/style, drawing, geometry, mermaid, render-grid, spatial, text, text-lines). Tests in
+  `packages/merman/test/core/`, one file per module importing it directly; a `test` script as `latex` has.
+- `bench/subsume` (`core` alone): first pass 1,082 faults, 901 caught, 14 redundant cases, 135 survivors.
+  Read every survivor. Gaps closed: inputs at 0 or symmetric (a fault in `right - left` is invisible at
+  `left = 0`), error messages matched as substrings (the string fault prefixes `~`, so `toThrow("…")` passed;
+  now exact), no call without backgrounds, a diagonal step before a straight one, a zero-width or combining
+  grapheme off the ASCII path, a wide one after an offset at the edge. The redundant cases guarded one-line
+  wrappers no fault tells apart; their assertions folded into cases with catches of their own, and three
+  `text` wrappers dropped (the box and canvas cases pin what they did).
+- Final: 1,082 faults, 967 caught, 48 hang (the walkers' loops, unattributable), 0 redundant, 64 cases kept,
+  67 survivors, each equivalent: strings in type positions, default strings only compared against another
+  value, loop bounds whose extra write the next line overwrites, guards on unreachable branches, sort
+  comparators over unique ids, a clamped alpha, the ASCII fast path (same output either way).
+- **A fork oddity, pinned:** `drawDiagramDiamond` 2, 3 or 5 wide puts both caps on one column, the right
+  cap's glyph over the left's (`core/drawing.ts:236`); listed in `currently-open.md`, not fixed.
+- Three expectations of mine were wrong on first run and corrected after reading the code: a canvas prints
+  every row (trailing blank lines), a corner beside a diagonal step keeps its one direction, and clearance 1
+  conflicts with a touching neighbour, not one a column away.
+- `bun test`: 64 pass. `tsc --noEmit` clean. `tests_guarding` on `merman/src/core`: all 64 cases reach it.
+  The nine modules removed from `.hobbes/accepted-lost-guards.yaml`: 182 remain, 170 waiting for tests.
