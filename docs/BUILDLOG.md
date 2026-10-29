@@ -16744,3 +16744,20 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   needs attention" with "dependency trees: 28 hardlinked … (25 node_modules, 3 venv)", 5,763 → 5,820,
   and `.hobbes/tmp` gone after; each of the 18 reached in the graph (1 to 384 tests). The 15 still on
   ADR-185's list left it: 197 remain.
+
+### Later the same session — routes 2 and 3, then `latex` (179 wait for tests)
+
+- Route 2: the tool is `bench/subsume/` with `test_subsume.py` (9), run by CI beside the identity gate; the
+  verdict is factored into `redundant_cases`. Re-run on `retry` from its new home: 52 faults, 51 caught, 0
+  redundant.
+- Route 3: 12 accepted modules have no runtime logic (9 re-export barrels, `merman`'s two type files,
+  `cli/dev/host.d.ts`, which the first classifier missed on `export declare`); each read, then moved to a
+  second entry whose reason says a barrel's only own fault (a re-export removed) fails its importers and
+  the typecheck. 185 wait for tests.
+- `latex` (6 modules, ~1,540 lines) by a subagent under the same method, reviewed here: 86 cases, layout
+  tested on hand-built trees so it is judged apart from the parser, `markdown.ts` on opentui's
+  `createTestRenderer`. My own re-run of `bench/subsume` reproduced its numbers exactly: 1,713 faults, 1,584
+  caught, 11 hang the parser, 0 redundant, 118 survivors, each classed equivalent in its report (types'
+  strings, clamps that never bind, out-of-range writes `setCell` ignores, dead code). Typecheck clean. The
+  `maxExpand` off-by-one it reported I confirmed directly (`maxExpand: 1` refuses a one-level macro); it and
+  three other fork oddities are pinned by tests and listed in `currently-open.md`, not fixed.

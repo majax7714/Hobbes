@@ -101,9 +101,13 @@ Left by the fold (2026-10-28):
   checked by mutation to catch a fault no other case catches; 15 more left when the review learned to
   read the checkout's dependency trees (ADR-186, C-198), which showed a TUI test already reaching them.
   Of the 197, 12 are a second entry (Max, route 3a): no runtime logic of their own (types, a `.d.ts`,
-  re-exports), never to get a test of their own; **185 wait for tests**. The check every new case is held
+  re-exports), never to get a test of their own; **179 wait for tests** (`latex`'s six done: 86 cases). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
+  - **Fork bugs our tests pin, not fixed** (found writing `latex`'s): `maxExpand: N` allows N−1 macro
+    passes (`maxExpand: 1` refuses any macro, `parser.ts:91-120`); `maxDepth` counts braces in
+    `assertNestingDepth` but the parser counts the atom inside too (N−1 effective); `a+-b` draws
+    `a+ - b` (`normalizeBinaryRole`); dead code at `parser.ts:332`. A fix changes the pinning test.
   - Possible later, not asked: ADR-117 exempts a Python module with no code from the guard question; a
     TS module of only types or re-exports is still asked, hence the second entry.
 

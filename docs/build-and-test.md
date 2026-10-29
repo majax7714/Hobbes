@@ -48,6 +48,7 @@ cd pipeline && uv sync && uv run pytest   # HOBBES_SCIP=0 by default; `lane_b`-m
 cd review && npm test                     # the dev environment's review page
 (cd tui/opencode/packages/tui && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # the TUI; not in CI
 (cd tui/opencode/packages/util && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # our util tests; not in CI
+(cd tui/opencode/packages/latex && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # our latex tests; not in CI
 ```
 
 CI (`.github/workflows/ci.yml`, ADR-095) runs every suite on every push.
@@ -76,6 +77,7 @@ Last checked 2026-10-29. pytest at 0.3.6-beta, tsextract and scip node at 0.3.4-
 | review (node) | 13 | the dev environment's review page |
 | TUI (bun) | 1,494 | 1,492 pass, 2 skip (2026-10-29, after DEC-028's trim); `tui/opencode/packages/tui`, not in CI; with Bun's default 5 s timeout two shell-output cases time out, so use `--timeout 30000` |
 | util (bun) | 49 | 49 pass (2026-10-29); `tui/opencode/packages/util`, ours since DEC-028, not in CI; `turbo test` runs it with the TUI |
+| latex (bun) | 86 | 86 pass (2026-10-29); `tui/opencode/packages/latex`, ours, not in CI; `turbo test` runs it |
 | atlas0 | 84 | |
 | identity gate | 5 | `bench/identity/test_compare.py`, run by CI with the pipeline's environment |
 | lattice | 663 | 631 pass, 32 skip on a host without clang; they run in the image (2026-10-03) |
