@@ -10,7 +10,8 @@
     "./plugin": "./src/plugin.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test --timeout 30000 --only-failures"
   },
   "dependencies": {
     "@opencode/plugin": "workspace:*",
