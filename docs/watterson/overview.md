@@ -142,12 +142,13 @@ no agent loop. Callers import from `hobbes.providers`, never `acp`/`any_llm`:
   `hobbes agents --check` reports the gap to npm. Bumps stay manual; the
   policy and how to bump are in DEC-004's notes.
 
-## The environment application (DEC-011, DEC-013 to DEC-015, DEC-025 to DEC-027)
+## The environment application (DEC-011, DEC-013 to DEC-015, DEC-025 to DEC-028)
 
 The environment is an application (DEC-011): a TUI with a graph view.
 
 - **TUI:** our own opencode v2 code in `tui/opencode/` (from opencode's
-  `dev`, trimmed to what the TUI build uses, DEC-026, DEC-027), built by
+  `dev`, trimmed to what the TUI binary ships and the TUI's own tests,
+  DEC-026 to DEC-028), built by
   `tui/build.sh` (DEC-025), run
   with `--server` pointing at a **Hobbes server** (`pipeline/src/hobbes/serve/`,
   stdlib HTTP + events). It serves the slice of opencode's API the TUI needs

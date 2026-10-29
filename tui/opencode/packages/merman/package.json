@@ -10,8 +10,6 @@
     "./plugin": "./src/plugin.ts"
   },
   "scripts": {
-    "audit:layouts": "bun run script/layout-audit.ts",
-    "test": "bun test --timeout 30000 --only-failures",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

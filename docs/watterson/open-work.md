@@ -258,10 +258,10 @@ order where given:
 - **11c. Our own name and version**: "opencode" in the UI text, the binary
   name, a version of our own (today it mirrors `2.0.29`, which
   `hobbes.serve` reports).
-- **11d. Trim further** (the first cut, to the build's 20 packages, is
-  DEC-027): `packages/ui`'s web assets (6.7 MB), `core`'s
-  `models-dev/snapshot.txt` (5.5 MB), the root scripts and lint setup;
-  each to be measured.
+- **11d. Trim further** (built, DEC-028, 2026-10-29): the fork keeps what
+  the binary's bundler loads, the TUI's own tests, and what those import
+  or the build runs; 4,306 files → 1,987. Left as measured: `core`'s
+  `models-dev/snapshot.txt` (5.5 MB) is loaded by the bundle, so it stays.
 - **11e. Remove the service code** (opencode's own background server,
   upgrade, cloud paths), since we only run it with `--server`.
 - **11f. Maybe**: move the plugin's features (graph panel, modes, the

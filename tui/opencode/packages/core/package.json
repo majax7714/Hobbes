@@ -17,13 +17,7 @@
   ],
   "scripts": {
     "db": "bun drizzle-kit",
-    "migration": "bun run script/migration.ts",
     "fix-node-pty": "bun run script/fix-node-pty.ts",
-    "benchmark:location": "bun run script/benchmark-location.ts",
-    "benchmark:location-memory": "bun run script/benchmark-location-memory.ts",
-    "build": "bun run script/build.ts",
-    "update-models-snapshot": "bun run script/update-models-snapshot.ts",
-    "test": "bun run script/test.ts",
     "typecheck": "tsc -b tsconfig.json tsconfig.tests.json"
   },
   "exports": {
@@ -79,7 +73,6 @@
     "@effect/platform-node": "catalog:",
     "@effect/sql-sqlite-bun": "catalog:",
     "@modelcontextprotocol/server": "2.0.0",
-    "@opencode/http-recorder": "workspace:*",
     "@parcel/watcher-darwin-arm64": "2.5.1",
     "@parcel/watcher-darwin-x64": "2.5.1",
     "@parcel/watcher-linux-arm64-glibc": "2.5.1",

@@ -15,6 +15,21 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.3.5-beta — 2026-10-29
+
+**Patch: a lost guard can be accepted by name.** ADR-185.
+
+- **`hobbes review` reads `.hobbes/accepted-lost-guards.yaml`:** each entry names its modules one by
+  one, with the reason and who decided. A lost guard on the list is printed under "lost every guarding
+  test, accepted", with its reason, and is not a reason for attention. A loss not on the list fails as
+  before, and a record of another shape is refused. The graph still says these modules have no guarding
+  test.
+- **This repo's first entry:** the 222 `tui/opencode/` modules whose only guards were opencode's own
+  tests, deleted by the TUI trim (DEC-028). Those tests were never in CI.
+- **The TUI trim itself** (DEC-028) is the dev environment's code, not the layer's: the opencode fork
+  keeps what the binary ships and the TUI's own tests. 4,306 files → 2,018. This repo's cold ingest went
+  from 194.9 s to 157.6 s.
+
 ## 0.3.4-beta — 2026-10-29
 
 **Patch: the caps' review.** The review of PRs #4 and #5 (ADR-183 and ADR-184, both amended; C-196).

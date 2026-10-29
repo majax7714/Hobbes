@@ -11,6 +11,11 @@ named below was removed unless it says otherwise.
 
 ## Reusable drivers
 
+- **The files the TUI binary is built from (DEC-028):** `tui/bundle-inputs.ts`,
+  in the repo (`~/.watterson/bun/1.4.2/bun tui/bundle-inputs.ts
+  [--target=opencode-<os>-<arch>]`): every file Bun's bundler loads for
+  `tui/build.sh`'s build, repo files first.
+
 - **The dev environment against watterson-environment (ADR-181):**
   `watterson-fold-2026-10-28/parity.sh` and `compare.py` run both
   checkouts' `watterson` on the same targets and diff every output;

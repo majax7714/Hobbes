@@ -20,9 +20,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "bun run script/build.ts",
-    "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "acorn": "8.15.0",

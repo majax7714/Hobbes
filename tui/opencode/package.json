@@ -8,8 +8,7 @@
   "packageManager": "bun@1.4.2",
   "scripts": {
     "dev": "bun run --cwd packages/cli src/index.ts",
-    "dev:vite": "bun run --cwd packages/cli --conditions=browser dev/vite.ts",
-    "lint": "oxlint && ast-grep scan -c script/ast-grep/gui-extensions/sgconfig.yml && bun script/sdk-docs.ts",
+    "lint": "ast-grep scan -c script/ast-grep/gui-extensions/sgconfig.yml && bun script/sdk-docs.ts",
     "lint:changed": "bun script/lint-changed.ts",
     "lint:effect-patterns": "ast-grep scan -c script/ast-grep/sgconfig.yml packages/util/src packages/core/src packages/server/src packages/protocol/src packages/cli/src",
     "lint:effect-simplifications": "ast-grep scan -c script/ast-grep/effect-simplifications/sgconfig.yml --off=unused-suppression packages",
@@ -102,7 +101,6 @@
   "devDependencies": {
     "@ast-grep/cli": "0.44.0",
     "@opencode/client": "workspace:*",
-    "@oxlint/plugins": "1.60.0",
     "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
     "@types/mime-types": "3.0.1",
@@ -110,8 +108,6 @@
     "@types/react-dom": "19.2.3",
     "@typescript/native": "catalog:",
     "glob": "13.0.5",
-    "oxlint": "1.60.0",
-    "oxlint-tsgolint": "0.21.0",
     "prettier": "3.6.2",
     "semver": "^7.6.0",
     "turbo": "2.10.2"

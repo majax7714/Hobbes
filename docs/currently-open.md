@@ -94,6 +94,10 @@ Left by the fold (2026-10-28):
   the fold verified them with the fake agent only. Re-point `~/.local/bin/watterson` at this repo's
   `bin/watterson`; `~/.local/bin/hobbes-proxy` points at a missing `~/hobbes/go/bin`.
 - **The TUI is not in CI** (Bun 1.4.2 is fetched by `tui/build.sh`); whether to add it is open.
+- **Our own tests for the trimmed fork** (Max, 2026-10-29: "we can tackle independently later, add our
+  own tests"). DEC-028 deleted opencode's tests outside `packages/tui`. The 222 modules that lost every
+  guard are accepted by name in `.hobbes/accepted-lost-guards.yaml` (ADR-185). Remove a module from it
+  once a test of ours reaches it.
 
 ## Decisions open for Max (no spend, not extraction)
 

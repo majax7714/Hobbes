@@ -32,4 +32,26 @@ Changed:
   dependencies `@aws-sdk/client-s3` and `heap-snapshot-toolkit`.
 - `bun.lock`: pruned by `bun install` to match (no version changed).
 
+Left out later (2026-10-29, DEC-028): everything the binary's bundler does
+not load, except the TUI's tests (`packages/tui/test/`), what a kept file
+imports (type-only imports too), each package's declared entry points, the
+scripts a kept package script runs, and the manifests, configs, type
+declarations and licences; with them, every script, preload and config
+that named only what went. DEC-028 gives the rule; the commits'
+deletions are the list.
+By area: `packages/ui` but its sounds (`src/assets/audio/`; its
+`package.json` cut to that export); the packages `http-recorder` and
+`httpapi-codegen` (and the `workspace:*` dependencies on them in `ai`,
+`core` and `client`); opencode's tests in every package but `tui`, with
+the `test` scripts and `core`'s `bunfig.toml` preload; oxlint
+(`script/oxlint/`, `.oxlintrc.json`, its step in `lint` and its
+devDependencies); `ai`'s `tsconfig.types.json` (its `typecheck` script now
+runs `tsc --noEmit` alone); `util`'s `tsconfig.dist.json` and
+`typecheck:dist`; `cli`'s Node build (`build:node`, `vite.node.config.ts`,
+`script/build-node.ts`, `script/node-assets.ts`, `src/node/target.ts`) and
+`dev:vite`; the package scripts whose files went (library builds, codegen,
+migrations, benchmarks); and the scripts, dev entry points and sources that
+nothing loads, imports or declares. `bun.lock`:
+pruned by `bun install` to match (no version changed).
+
 Later changes are ordinary commits in watterson-environment.
