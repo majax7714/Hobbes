@@ -37,8 +37,10 @@ session went belongs in the BUILDLOG.
   both are good": `attr-call` filed `laneb-miss` (0.3.7-beta); the trace key's implicit calls as a companion
   key (ADR-187), H-38 fixed first.
 
-**Next:** the fork's tests, in Max's order: `merman`, `core/shell`, `codemode`, then `schema`'s decoders,
-then the effectful packages (179 modules wait, `currently-open.md`). Then ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own ADR first. The extraction
+**Next:** the fork's tests, in Max's order: `merman` (its `core` done, PR #9; 38 modules left: the
+top-level four, then flowchart, gantt, gitgraph, sequence, state, timeline), `core/shell`, `codemode`, then
+`schema`'s decoders, then the effectful packages (170 modules wait, `currently-open.md`). **Serially, and
+`bench/subsume` with `-j 2`** (Max, 2026-10-29: its default 6 workers peaked this machine's memory). Then ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own ADR first. The extraction
 routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
