@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-29 (forty-eighth session); `main` at 0.3.5-beta (`1f93eb1`, PR #6 merged); branch
-`test/opencode-own-tests` at 0.3.6-beta (ADR-186), the image and proxy rebuilt at it, this repo ingested at
-its HEAD.** A new
+**Reviewed 2026-10-29 (forty-ninth session); `main` at 0.3.6-beta (`b372278`, PR #7 merged); branch
+`fix/gate-reason-and-trace-implicit` at 0.3.7-beta (the gate's `attr-call` reason, H-38, ADR-187), the image
+and proxy rebuilt at it; this repo's ingest is at `71e42e1` (rerun `hobbes ingest`).** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
@@ -33,15 +33,17 @@ session went belongs in the BUILDLOG.
 
 - 2026-10-29: our own tests for the fork, "tests aren't test dependent" (no case that only fails when
   another does; checked by `bench/subsume/`); "good for the recommended routes" (C-198's fix, the tool in
-  `bench/`, no-logic modules accepted apart, pure packages first).
+  `bench/`, no-logic modules accepted apart, pure packages first). Forty-ninth session: "yeah proposed for
+  both are good": `attr-call` filed `laneb-miss` (0.3.7-beta); the trace key's implicit calls as a companion
+  key (ADR-187), H-38 fixed first.
 
 **Next:** the fork's tests, in Max's order: `merman`, `core/shell`, `codemode`, then `schema`'s decoders,
 then the effectful packages (179 modules wait, `currently-open.md`). Then ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own ADR first. The extraction
 routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- The PR of `test/opencode-own-tests` (Max opens it): `util` and `latex` tests, ADR-186/C-198 (0.3.6-beta),
-  `bench/subsume/`. After merging, restart the knowledge server (runbook: the image changed).
+- The PR of `fix/gate-reason-and-trace-implicit` (0.3.7-beta, ADR-187, H-38). After merging, restart the
+  knowledge server (runbook: the image changed).
 - The four fork oddities `latex`'s tests pin (`currently-open.md`): fix upstream code, or leave pinned.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - H-39: the trace oracle's re-entrance guard is shared across threads; a thread-local guard moves every key
