@@ -16840,3 +16840,36 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   conflicts with a touching neighbour, not one a column away.
 - `bun test`: 64 pass. `tsc --noEmit` clean. `tests_guarding` on `merman/src/core`: all 64 cases reach it.
   The nine modules removed from `.hobbes/accepted-lost-guards.yaml`: 182 remain, 170 waiting for tests.
+
+## 2026-10-29 (forty-ninth session, cont.) — our own tests for `merman`'s top level (13 cases, none redundant)
+
+- PR #9 merged on Max's word; PR #8 then conflicted on the BUILDLOG (both appended), resolved by merging `main`
+  into its branch (both sides kept, in order), pushed by Max, merged. Max: serial from here, `bench/subsume` at
+  `-j 2` (its six default workers peaked this machine's memory); a standing memory note.
+- CI on `main` is red on `graph` only (`go`, `python`, `web` green): `hobbes review` from the last green run
+  (`95edb94`, before the watterson fold) reads 1,341 unguarded new modules. Already in `currently-open.md` as
+  the fold's one-time delta, Max's call; neither of today's merges caused it. Both merged with CI pending.
+- `palette` (2 cases), `diagnostics` (1) and `markdown` (10: two of them one loop over two palettes). The
+  markdown cases build each family's expected styled text from the family's own resolver with the palette
+  mapping written out, so every mapping and fallback is pinned, and draw one sample per family that uses every
+  style. `detect`'s two cases were redundant against them (the renderer detects every kind) and were dropped.
+- Probed first, not assumed: `parseColor` returns magenta rather than throwing (the rethrows are unreachable);
+  a flowchart folds below its natural width plus 3 (the boundary case is 118 wide, folding at 120 and fitting
+  at 121); flowchart and state grids have no blank top rows, gantt, gitGraph and timeline none at all;
+  OpenTUI reads `defaultPrevented` only on a press (focus and selection), so the drag, release and scroll
+  `preventDefault`s are inert; a release that ends a drag reaches the parent although the diagram's own
+  `onMouseUp` stops a plain click's (pinned as observed).
+- Expectations of mine corrected after reading: the destroy microtask spares a diagram reused in the same tick
+  (the design, `markdown.ts:331`); the chain I first used folds whole, so it told no widths apart.
+- `bench/subsume` (top level, `-j 2`): 210 faults, 184 caught, 0 redundant, 13 kept, 26 survivors, all
+  equivalent (types, inert `preventDefault`s, trims and clamps with no reachable effect, the unreachable
+  rethrows, a header-only retry that draws nothing).
+- The diamond oddity found under `core` is unreachable from the fork: a flowchart decision node is always odd
+  and at least 7 wide (`flowchart/layout.ts:116-121`).
+- `bun test`: 77 pass across 12 files. `tsc --noEmit` clean. `tests_guarding` on `detect` and `diagnostics`:
+  the named markdown cases. The two cases first written as one loop with template-literal titles were not
+  listed as tests at all: `tsextract/extract.mjs:1167` drops an `it`/`test` call whose title is not a string
+  literal, silently, so its reach is not counted. Unregistered (no `C-n` names it); about 8 of ~1,335 TS/JS
+  cases in this repo (7 in the TUI's own tests). Unrolled here to two literal titles; the limit itself taken
+  to Max as routes.
+  Three modules off the accepted list (`palette` was never on it): 179 remain, 167 waiting, 35 in `merman`.

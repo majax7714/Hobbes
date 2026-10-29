@@ -23,6 +23,14 @@ key no implicit call, so a rule's rows could not be graded.
 
 ### Routes waiting on Max
 
+**TypeScript / JavaScript:**
+- **An `it`/`test` case with a computed title is not a test** (found 2026-10-29, unregistered, so precedent 1):
+  `tsextract/extract.mjs:1167` drops a case whose title is not a string literal (a template with `${…}`, a
+  variable), with no count or degradation record, so its reach never reaches `tests_guarding` or the review.
+  About 8 of ~1,335 cases in this repo (7 in the TUI's own tests). Routes: (a) keep the case, named by its
+  title's source text, counted and registered as a `C-n` (a patch); (b) keep dropping it, but count and
+  surface it per file and register it.
+
 **Python:**
 - **C-181's residual** (ADR-164): a name a stdlib import binds that an `except ImportError:` branch rebinds
   to a repo function keeps lane A's `syntactic` edge; lane B's local answer cannot veto it (ADR-111). No
@@ -85,12 +93,13 @@ Left by the fold (2026-10-28):
 - **Our own tests for the trimmed fork** (Max, 2026-10-29: "we can tackle independently later, add our
   own tests"). DEC-028 deleted opencode's tests outside `packages/tui`. The 222 modules that lost every
   guard are accepted by name in `.hobbes/accepted-lost-guards.yaml` (ADR-185). Remove a module from it
-  once a test of ours reaches it. **182 remain** (2026-10-29): `util`'s ten have 49 tests of ours, each
+  once a test of ours reaches it. **179 remain** (2026-10-29): `util`'s ten have 49 tests of ours, each
   checked by mutation to catch a fault no other case catches; 15 more left when the review learned to
   read the checkout's dependency trees (ADR-186, C-198), which showed a TUI test already reaching them.
-  Of the 182, 12 are a second entry (Max, route 3a): no runtime logic of their own (types, a `.d.ts`,
-  re-exports), never to get a test of their own; **170 wait for tests** (`latex`'s six done: 86 cases;
-  `merman`'s `core`, nine modules: 64 cases; `merman` has 38 left). The check every new case is held
+  Of the 179, 12 are a second entry (Max, route 3a): no runtime logic of their own (types, a `.d.ts`,
+  re-exports), never to get a test of their own; **167 wait for tests** (`latex`'s six done: 86 cases;
+  `merman`'s `core`, nine modules: 64 cases; its top level, three listed and `palette`: 13; `merman` has
+  35 left, the six diagram families). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
   - **Fork bugs our tests pin, not fixed** (found writing `latex`'s): `maxExpand: N` allows N−1 macro
@@ -99,7 +108,8 @@ Left by the fold (2026-10-28):
     `a+ - b` (`normalizeBinaryRole`); dead code at `parser.ts:332`. A fix changes the pinning test.
   - **Found writing `merman`'s `core`:** `drawDiagramDiamond` 2, 3 or 5 wide puts both caps on one column
     (`capLeft === capRight`, or crossed at 2), the right cap's glyph over the left's (`core/drawing.ts:236`);
-    4 and 6 or more are whole. Its one caller is the flowchart's decision node, not yet read.
+    4 and 6 or more are whole. Unreachable from the fork: its one caller, the flowchart's decision node,
+    is always odd and at least 7 wide (`flowchart/layout.ts:116-121`).
   - Possible later, not asked: ADR-117 exempts a Python module with no code from the guard question; a
     TS module of only types or re-exports is still asked, hence the second entry.
 
