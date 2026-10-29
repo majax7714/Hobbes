@@ -23,6 +23,14 @@ key no implicit call, so a rule's rows could not be graded.
 
 ### Routes waiting on Max
 
+**TypeScript / JavaScript:**
+- **An `it`/`test` case with a computed title is not a test** (found 2026-10-29, unregistered, so precedent 1):
+  `tsextract/extract.mjs:1167` drops a case whose title is not a string literal (a template with `${…}`, a
+  variable), with no count or degradation record, so its reach never reaches `tests_guarding` or the review.
+  About 8 of ~1,335 cases in this repo (7 in the TUI's own tests). Routes: (a) keep the case, named by its
+  title's source text, counted and registered as a `C-n` (a patch); (b) keep dropping it, but count and
+  surface it per file and register it.
+
 **Python:**
 - **C-181's residual** (ADR-164): a name a stdlib import binds that an `except ImportError:` branch rebinds
   to a repo function keeps lane A's `syntactic` edge; lane B's local answer cannot veto it (ADR-111). No
