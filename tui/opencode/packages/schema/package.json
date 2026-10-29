@@ -20,8 +20,6 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "build": "bun run script/build.ts",
-    "test": "bun test --only-failures",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

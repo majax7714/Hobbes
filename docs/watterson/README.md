@@ -7,7 +7,7 @@ roles with a coordinator. It was built in watterson-environment and folded in at
 ## Reading the imported docs
 
 `overview.md`, `open-work.md`, `decisions/` (DEC-001…027), `research/` and `plans/` are imported verbatim
-from watterson-environment@a65b6b1. Read them with these renames:
+from watterson-environment@a65b6b1. DEC-028 (2026-10-29) was written here, after the fold. Read them with these renames:
 
 | Pre-fold (in those docs) | Now |
 |---|---|

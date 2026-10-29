@@ -1,6 +1,7 @@
 # 027: The TUI's code moves into this repo, trimmed, at `tui/opencode/`
 
-- Status: accepted; built (see note)
+- Status: accepted; built (see note); amended by DEC-028 (2026-10-29: the
+  fork keeps what the binary ships and the TUI's tests)
 - Date: 2026-10-18
 - Supersedes in part: DEC-026 (the code in `~/opencode`, pinned by commit
   in `tui/fork.lock`). Keeps DEC-026's stance: the code is ours, from

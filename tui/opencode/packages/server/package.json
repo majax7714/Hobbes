@@ -19,10 +19,7 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "build": "bun run script/build.ts",
-    "test": "bun test --only-failures",
-    "typecheck": "tsc -b",
-    "probe:workerd": "bun run script/workerd-probe.ts"
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@effect/platform-node": "catalog:",

@@ -20,8 +20,6 @@
     "./tui/v1": "./src/tui/v1.ts"
   },
   "scripts": {
-    "build": "bun run script/build.ts",
-    "test": "bun test --timeout 30000",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

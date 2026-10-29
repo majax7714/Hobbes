@@ -5,8 +5,6 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "setup:recording-env": "bun run script/setup-recording-env.ts",
-    "test": "bun test --timeout 30000 --only-failures",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json"
   },

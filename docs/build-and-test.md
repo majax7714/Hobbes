@@ -66,7 +66,7 @@ Last checked 2026-10-29. pytest, tsextract and scip node at 0.3.4-beta, on the h
 
 | Suite | Size | Notes |
 |---|---|---|
-| pytest | 3,386 | 29 of them `lane_b`; 453 are the dev environment's (`test_watterson_*`) |
+| pytest | 3,391 | 29 of them `lane_b`; 458 are the dev environment's (`test_watterson_*`) |
 | Go `./...` | 405 with subtests | 405 pass |
 | oracle-lane Go | 131 with subtests | 119 pass, 12 skip on a host without clang++ or cmake; the C++ ones pass in the image |
 | vitest | 52 | |
