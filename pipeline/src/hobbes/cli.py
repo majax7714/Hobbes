@@ -765,20 +765,26 @@ def _cmd_diff(args: argparse.Namespace) -> int:
     from hobbes.graphdiff import (
         RefError,
         diff_graphs,
-        extract_at_ref,
+        extract_all_at_ref,
         format_delta,
+        format_environments,
         has_changes,
     )
 
     repo_root = _repo_root_from(args)
     base_ref, head_ref = _parse_range(args.range)
     try:
-        base = extract_at_ref(repo_root, base_ref)
-        head = extract_at_ref(repo_root, head_ref)
+        base = extract_all_at_ref(repo_root, base_ref)
+        head = extract_all_at_ref(repo_root, head_ref)
     except RefError as exc:
         print(f"hobbes diff: {exc}", file=sys.stderr)
         return 2
-    delta = diff_graphs(base, head)
+    delta = diff_graphs(base.graph, head.graph)
+    # What each end read beside its tracked files (ADR-186, C-198); stderr
+    # keeps --json's stdout one document.
+    for end, extraction in (("base", base), ("head", head)):
+        for line in format_environments(extraction.environments):
+            print(f"hobbes diff: {end}: {line}", file=sys.stderr)
     if args.json:
         print(json.dumps(delta, indent=2, sort_keys=True))
     else:

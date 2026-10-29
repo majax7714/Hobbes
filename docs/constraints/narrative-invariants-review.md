@@ -111,6 +111,26 @@
   `--json` carries them under `coverage.fixture_trees`.
 - **Source:** ADR-114 (2026-09-15), from the W0 item of 2026-09-10.
 
+### C-198 — A reviewed ref reads the checkout's install, not its own — *registered 2026-10-29 (0.3.6-beta, ADR-186)*
+- **Cannot tell you:** what either end of a review or a diff resolves under the dependencies *that ref*
+  declared. Each end is extracted from `git archive` and given the checkout's `node_modules` and
+  `.venv`/`venv` trees by hardlink, as they are installed now. Another dependency tree inside the repo (a
+  vendored directory, a Go or Cargo cache placed there) is not carried.
+- **Because:** an archive holds only tracked files, and installing each ref's dependencies would mean a
+  package manager, a network and minutes per end. Until 0.3.6-beta neither end had any tree, so a
+  workspace package's subpath import resolved at `ingest` and not at a ref: on `main`, 18 modules a TUI
+  test reaches in `ingest`'s graph were "lost every guard" to the review, and `tests_guarding` said
+  guarded. With the hardlinks, a ref's extraction of this repo matches `ingest`'s (ADR-186's measurement).
+- **Bites at:** a range that adds, removes or upgrades a dependency is reviewed with today's install at
+  both ends, so an edge into a package the base did not have can show as present at the base. A checkout
+  whose install is stale, or missing, gives both ends the same stale or missing tree. A tree that cannot
+  be hardlinked (another filesystem, a filesystem without hardlinks) is read without it at that end.
+- **You find out:** **surfaced** — the review's header and `hobbes diff`'s stderr say "dependency trees:
+  N hardlinked from the checkout into each end … both ends read today's install, not each ref's
+  (C-198)", list the ends apart when they differ, and name each tree that could not be linked with its
+  error. `review --json` carries the records as `environments`.
+- **Source:** ADR-186 (2026-10-29), found writing our own tests for the opencode fork.
+
 ---
 
 ## Lifted constraints in this segment

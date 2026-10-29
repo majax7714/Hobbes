@@ -6,6 +6,12 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-198 registered, 2026-10-29 (0.3.6-beta; ADR-186, Max: "good for the recommended routes"):
+- **C-198.** `hobbes review` and `hobbes diff` extract each end from `git archive`, which held no
+  `node_modules` or venv, so 18 modules `tests_guarding` called guarded were "lost every guard" to the
+  review, unnamed. Contained and prevented: each end now gets the checkout's trees by hardlink and says
+  so; the residual (both ends read today's install) is surfaced. 198 entries, 146 active (114 surfaced).
+
 C-195 registered and lifted, 2026-10-28 (0.2.122-beta; ADR-182, Max: "fix is a good idea since its small"):
 - **C-195.** A function's own import was bound module-wide in lane A's import table, so another function's
   call to the same name could take it (watterson's `exit_code`, found by the dev environment's fold). Now
