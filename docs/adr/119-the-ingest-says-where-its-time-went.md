@@ -62,10 +62,13 @@ Max, 2026-10-28 ("good to go with the first 3", route 1 of the speed and memory 
 figure on record had been taken by hand (`/usr/bin/time -v`, a probe), so speed work had no memory
 baseline to measure against.
 
-- Each step also records two peaks as it ends, in MB: this process's resident set since the ingest began
+- Each step also records two peaks as it ends, in MB: this process's resident set since the process began
   (`peak_rss_mb`, `RUSAGE_SELF`), and the largest host child's that has exited (`child_peak_rss_mb`,
-  `RUSAGE_CHILDREN`: the TS/JS helper, a host-run step). Both only rise, so the step a peak first appears
-  at is the step that set it.
+  `RUSAGE_CHILDREN`: the TS/JS helper, a host-run step). Both only rise, so in a process that runs one
+  ingest, the step a peak first appears at is the step that set it, or one running beside it: since
+  ADR-184, the lane B languages run at once, and each records the peaks as its own run ended (corrected
+  2026-10-29: they were sampled at the merge). A second ingest in the same process starts from the first
+  one's peaks.
 - A contained step's indexer runs under podman's monitor, not as a child of this process, so neither figure
   measures it. The summary's peak line says so in words.
 - Still never in an artifact (P1).

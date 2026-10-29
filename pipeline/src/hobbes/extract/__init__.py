@@ -73,7 +73,7 @@ from hobbes.extract.schema import (
     tiered_edge,
 )
 from hobbes.extract.testmap import collect_tests, runner_excluded_trees
-from hobbes.extract.timings import Timings
+from hobbes.extract.timings import Timings, peaks
 from hobbes.extract.tssource import (
     collect_ts_tests,
     declared_test_frameworks,
@@ -2255,17 +2255,26 @@ def _run_lane_b(runs, timings: Timings):
         started = time.perf_counter()
         with containment.capture() as ledger:
             try:
-                return run(), None, ledger, time.perf_counter() - started
-            except Exception as exc:
-                return None, exc, ledger, time.perf_counter() - started
+                facts, exc = run(), None
+            except Exception as caught:
+                facts, exc = None, caught
+        return facts, exc, ledger, time.perf_counter() - started, peaks()
 
-    with ThreadPoolExecutor(max_workers=width, thread_name_prefix="lane-b") as pool:
+    pool = ThreadPoolExecutor(max_workers=width, thread_name_prefix="lane-b")
+    try:
         futures = [pool.submit(contained, run) for _, run in runs]
         done = [future.result() for future in futures]
-    for (language, _), (facts, exc, ledger, seconds) in zip(runs, done):
+    except BaseException:
+        # An interrupt: no language that has not started starts. One that
+        # is running ends with its container, which the terminal's Ctrl-C
+        # reaches too (the same foreground process group).
+        pool.shutdown(wait=False, cancel_futures=True)
+        raise
+    pool.shutdown()
+    for (language, _), (facts, exc, ledger, seconds, ended) in zip(runs, done):
         for entry in ledger:
             containment.record(entry)
-        timings.add(f"lane B [{language}]", seconds)
+        timings.add(f"lane B [{language}]", seconds, ended)
         yield language, (_raising(exc) if exc is not None else (lambda facts=facts: facts))
 
 

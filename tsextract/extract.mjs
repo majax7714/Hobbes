@@ -1472,8 +1472,13 @@ export function extractRepo(repoRoot) {
 
 /** A zone that outran its cap (ADR-184, C-196): its files stay listed —
  * discovery found them — with no facts, and one record says why. */
-export function zoneTimedOut(zone, zoneFiles, seconds) {
+export function zoneTimedOut(zone, zoneFiles, seconds, jobs = 1) {
   const sample = zoneFiles.slice(0, 4).join(", ");
+  // Zones that run at once share the box, so a zone near its cap can finish
+  // one at a time and not beside others: the knob that says so is named.
+  const beside = jobs > 1
+    ? `; ${jobs} zones ran at once (HOBBES_TS_JOBS=1 runs them one at a time)`
+    : "";
   return {
     files: zoneFiles.map((file) => ({
       calls: [], env_reads: [], imports: [], path: file, routes: [], routes_declined: [],
@@ -1482,7 +1487,7 @@ export function zoneTimedOut(zone, zoneFiles, seconds) {
     errors: [{
       message:
         `the zone ${zone || "under the default compiler options"} did not finish within its ${seconds} s cap ` +
-        `(C-196; HOBBES_TIMEOUT_SCALE raises every cap): its ${zoneFiles.length} file(s) (${sample}` +
+        `(C-196; HOBBES_TIMEOUT_SCALE raises every cap${beside}): its ${zoneFiles.length} file(s) (${sample}` +
         `${zoneFiles.length > 4 ? ", …" : ""}) are listed with no facts — no import, call, symbol, route ` +
         "or test is drawn from them",
       path: zone || ".",
@@ -1498,9 +1503,13 @@ export function zoneTimedOut(zone, zoneFiles, seconds) {
  * finishes is the same bytes as the serial one. A zone past its cap is
  * stopped and recorded (`zoneTimedOut`); a zone whose worker fails
  * otherwise fails the run, as it would in the serial loop. */
+/** The longest delay setTimeout keeps: a 32-bit signed count of ms. */
+const MAX_TIMER_MS = 2 ** 31 - 1;
+
 export async function extractRepoParallel(repoRoot, { jobs = 1, zoneTimeoutSeconds = 300 } = {}) {
   const plan = planRepo(repoRoot);
   const results = new Array(plan.zones.length);
+  const width = Math.max(1, Math.min(jobs, plan.zones.length));
   const order = plan.zones
     .map((_, i) => i)
     .sort((a, b) => plan.zones[b][1].length - plan.zones[a][1].length || a - b);
@@ -1517,10 +1526,16 @@ export async function extractRepoParallel(repoRoot, { jobs = 1, zoneTimeoutSecon
         clearTimeout(timer);
         fn(value);
       };
-      const timer = setTimeout(() => {
-        settle(resolve, zoneTimedOut(zone, zoneFiles, zoneTimeoutSeconds));
-        worker.terminate();
-      }, zoneTimeoutSeconds * 1000);
+      // Past setTimeout's own limit (about 24.8 days) Node fires at once,
+      // which would stop every zone: there the zone has no cap of its own,
+      // and the whole run's backstop holds.
+      const ms = zoneTimeoutSeconds * 1000;
+      const timer = ms <= MAX_TIMER_MS
+        ? setTimeout(() => {
+          settle(resolve, zoneTimedOut(zone, zoneFiles, zoneTimeoutSeconds, width));
+          worker.terminate();
+        }, ms)
+        : undefined;
       worker.once("message", (result) => settle(resolve, result));
       worker.once("error", (error) => settle(reject, error));
       worker.once("exit", (code) =>
@@ -1528,13 +1543,20 @@ export async function extractRepoParallel(repoRoot, { jobs = 1, zoneTimeoutSecon
       );
     });
   let next = 0;
+  let failed = false;
   const lane = async () => {
-    while (next < order.length) {
+    // A failed zone fails the run, so no lane starts another after it.
+    while (next < order.length && !failed) {
       const i = order[next++];
-      results[i] = await runZone(i);
+      try {
+        results[i] = await runZone(i);
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
     }
   };
-  await Promise.all(Array.from({ length: Math.max(1, Math.min(jobs, order.length)) }, lane));
+  await Promise.all(Array.from({ length: width }, lane));
   return finishRepo(plan, results);
 }
 

@@ -358,9 +358,10 @@
   - **`tsextract` (3,600 s, the whole run, a backstop for a hung
     helper):** no graph at all. The ingest stops rather than drawing the
     repo without its TS/JS.
-  - **`lane-b-unit` (900 s) and `lane-b-java` (1,800 s), and each step
-    the helper runs inside one (the unit's cap less 30 s):** that unit's
-    lane B answers. Its sites fall to lane A's fallback (`syntactic`).
+  - **`lane-b-unit` (900 s) and `lane-b-java` (1,800 s), and the steps
+    the helper runs inside one (together, the unit's cap less 30 s):**
+    that unit's lane B answers. Its sites fall to lane A's fallback
+    (`syntactic`).
   - **`registry-fetch` (600 s):** third-party resolution in that unit
     (C-23's shape).
   - **`tsextract-zones` (300 s):** the solution-style zones' referenced
@@ -368,9 +369,19 @@
   - **`python-env` (60 s):** the venv's listing. Third-party references
     attribute to the local project (C-27).
   - **`clang-unit` (300 s, scip-clang's wait for one unit's worker):** that
-    translation unit's lane B answers (counted by C-197's technique).
+    translation unit's lane B answers (counted by C-197's technique). A
+    run where this cap fired is never stored in the index cache, so the
+    next ingest indexes the unit again.
+  - **`podman-probe` (60 s, whether the image is built, and its id):**
+    containment for the run. Lane B is refused, and says why.
 - **Because:** a helper whose run time grows with the repo needs an end,
   and wall-clock time is a property of the box, not of the input.
+- **Also:** zones that run at once share the box, so a zone near its cap
+  can finish at `HOBBES_TS_JOBS=1` and not at 4. Its record names the
+  parallelism and the knob. And when the helper stops a step on the host
+  (uncontained), the step's own children (a C index step's `xargs` and
+  scip-clang runs) keep running until they finish. Nothing they write is
+  read. In a container they end with it.
 - **Bites at:** measured margins: this repo's lane A TS took 99–110 s of
   the whole-repo 300 s after the dev environment's fold (ADR-181), and its
   largest zone 22.7 s of the per-zone 300 s that replaced it (ADR-184);
@@ -382,8 +393,9 @@
   - in the unit's `scip-<lang>` degraded record (a container, a helper
     step, a fetch, the zone map, the venv listing);
   - in the `scip-decode` record's count of timed-out units (scip-clang);
-  - in the TS layer's `zone-timeout` record (a zone of lane A TS), or the
-    ingest's own error (the whole helper).
+  - in the TS layer's `zone-timeout` record (a zone of lane A TS, with
+    how many ran at once), or the ingest's own error (the whole helper);
+  - in containment's refusal (a podman probe).
   `HOBBES_TIMEOUT_SCALE` multiplies every cap; a value that is not a
   positive number is refused.
 - **Narrowed 2026-10-28 (0.3.3-beta, ADR-184 lever 2).** As registered,

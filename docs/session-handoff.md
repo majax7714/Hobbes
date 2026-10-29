@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-28 (forty-seventh session); Hobbes 0.3.3-beta on branch `perf/same-output-faster`,
-which sits on `fix/name-extraction-caps` (0.3.2-beta; its own PR, to merge first); 0.3.0-beta on `main`
-(`71a28c3`, PRs #2 and #3 merged).** The image and proxy are at 0.3.0-beta: rebuild them at the merged
+**Reviewed 2026-10-29 (forty-seventh session, continued); Hobbes 0.3.4-beta on branch
+`perf/same-output-faster` (PR #5), which sits on `fix/name-extraction-caps` (0.3.2-beta, PR #4, to merge
+first); 0.3.0-beta on `main` (`71a28c3`, PRs #2 and #3 merged).** The image and proxy are at 0.3.0-beta: rebuild them at the merged
 version and ingest at HEAD (the helper changed, so every lane B unit misses the index cache once). A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -38,8 +38,8 @@ ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own 
 routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- The two PRs, `fix/name-extraction-caps` first (ADR-183, 0.3.1–0.3.2), then `perf/same-output-faster`
-  (ADR-184, 0.3.3). Push is his step (`! git push -u origin <branch>`); then the PRs.
+- The merge of PR #4 (ADR-183, 0.3.1–0.3.2), then PR #5 (ADR-184, 0.3.3–0.3.4: it carries the fixes for
+  both PRs' review findings). `gh pr merge N --merge`, on his word.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - From earlier: the live `watterson tui` check and the `~/.local/bin/watterson` relink; the gate's map
   reason `dynamic-dispatch` for `attr-call`; whether to extend the standing trace oracle; the Python routes
@@ -57,6 +57,11 @@ Forty-seventh session (speed and memory; three routes approved):
 - **The pyrefly probe:** 98% agreement with scip-python on click, ~6× faster (rough); not a drop-in.
 - C-149 amended: its tail flip is larger than a site or two (the control arm showed 16 in one file).
 - A flaky dev-environment test, cause not found (`currently-open.md`).
+- **0.3.4-beta, 2026-10-29:** the reviews of PRs #4 and #5 (20 findings, some shared). Fixed: the helper's
+  one budget for a unit's steps, no caching of a timed-out scip-clang run, step labels, signals named,
+  C-197's counting refined, podman's probes capped, the zone timer's limit, per-thread lane B peaks, the
+  identity gate (it could pass a failed ingest; every earlier gate re-checked, all stand). Registered in
+  C-196: an uncontained step's children outlive its cap.
 
 Forty-sixth session: the dev environment folded in (ADR-181, 0.3.0-beta; extraction byte-identical in both
 repos; every watterson test accounted for); ADR-182's function-local import fix (0.2.122-beta, C-195 lifted).

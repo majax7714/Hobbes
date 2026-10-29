@@ -113,7 +113,7 @@ class TestTheUnitConfigCarriesTheCaps:
         seen = self._capture(tmp_path, monkeypatch)
         scipsource.run_helper({"stage": str(tmp_path / "s"), "language": "go"})
         assert seen["timeout"] == 900
-        assert seen["config"]["stepTimeoutSeconds"] == 870
+        assert seen["config"]["helperTimeoutSeconds"] == 870
         assert "clangUnitTimeoutSeconds" not in seen["config"]
 
     def test_a_c_unit_carries_scip_clangs_wait(self, tmp_path, monkeypatch):
@@ -121,14 +121,58 @@ class TestTheUnitConfigCarriesTheCaps:
         seen = self._capture(tmp_path, monkeypatch)
         scipsource.run_helper({"stage": str(tmp_path / "s"), "language": "cpp"})
         assert seen["timeout"] == 1800
-        assert seen["config"]["stepTimeoutSeconds"] == 1770
+        assert seen["config"]["helperTimeoutSeconds"] == 1770
         assert seen["config"]["clangUnitTimeoutSeconds"] == 600
 
     def test_a_named_timeout_sets_the_step_under_it(self, tmp_path, monkeypatch):
         monkeypatch.delenv(caps.SCALE_ENV, raising=False)
         seen = self._capture(tmp_path, monkeypatch)
         scipsource.run_helper({"stage": str(tmp_path / "s"), "language": "java"}, timeout=caps.seconds("lane-b-java"))
-        assert seen["config"]["stepTimeoutSeconds"] == 1770
+        assert seen["config"]["helperTimeoutSeconds"] == 1770
+
+
+class TestTheIndexCache:
+    def test_a_run_whose_units_met_the_clang_unit_cap_is_not_stored(self, tmp_path, monkeypatch):
+        # A busy box made it; a hit would replay it on an idle one (C-196).
+        import json
+
+        from hobbes.extract import indexcache
+
+        stored: list = []
+        monkeypatch.setattr(indexcache, "store", lambda key, path: stored.append(key))
+        monkeypatch.setattr(indexcache, "record", lambda *a, **k: None)
+        facts_path = tmp_path / "s.facts.ndjson"
+
+        def run(plan, timeout, units_timed_out):
+            trailer = {"end": True, "documents": 0, "definitions": 0, "references": 0,
+                       "external_refs": 0, "implements": 0, "units": 2, "units_timed_out": units_timed_out}
+            facts_path.write_text(
+                json.dumps({"helper_version": scipsource.HELPER_VERSION, "language": "c"}) + "\n" + json.dumps(trailer) + "\n"
+            )
+            return containment.Outcome(subprocess.CompletedProcess([], 0, "", ""), True)
+
+        for units_timed_out, want in ((1, []), (0, ["key"])):
+            stored.clear()
+            monkeypatch.setattr(containment, "run", lambda plan, timeout, n=units_timed_out: run(plan, timeout, n))
+            config_path = tmp_path / "s.config.json"
+            config_path.write_text("{}")
+            facts = scipsource._run_helper({"language": "c"}, config_path, facts_path, 900, [], (), "", key="key")
+            assert facts["units_timed_out"] == units_timed_out
+            assert stored == want
+
+
+class TestPodman:
+    def test_a_probe_past_its_cap_names_it(self, monkeypatch):
+        monkeypatch.setattr(containment.shutil, "which", lambda name: "/usr/bin/podman")
+        monkeypatch.setattr(containment, "_availability", {})
+
+        def slow(*a, **k):
+            raise subprocess.TimeoutExpired(a[0], k["timeout"])
+
+        monkeypatch.setattr(containment.subprocess, "run", slow)
+        reason = containment.unavailable_reason()
+        assert reason.startswith("podman is not usable: `podman image exists ")
+        assert reason.endswith("did not finish within its 60 s cap (C-196; HOBBES_TIMEOUT_SCALE raises every cap)")
 
 
 class TestTheVenvListing:

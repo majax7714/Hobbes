@@ -394,15 +394,18 @@ def unavailable_reason() -> str | None:
     if shutil.which("podman") is None:
         reason = "podman is not installed"
     else:
+        cap = caps.seconds("podman-probe")
         try:
             proc = subprocess.run(
                 ["podman", "image", "exists", key],
-                capture_output=True, timeout=60,
+                capture_output=True, timeout=cap,
             )
             reason = None if proc.returncode == 0 else (
                 f"image {key} is not built (sandbox/README.md: `podman build`)"
             )
-        except (OSError, subprocess.TimeoutExpired) as exc:
+        except subprocess.TimeoutExpired:
+            reason = "podman is not usable: " + caps.timed_out(f"`podman image exists {key}`", cap)
+        except OSError as exc:
             reason = f"podman is not usable: {exc}"
     _availability[key] = reason
     return reason
@@ -427,10 +430,12 @@ def image_id() -> str | None:
         try:
             proc = subprocess.run(
                 ["podman", "image", "inspect", "--format", "{{.Id}}", key],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True, text=True, timeout=caps.seconds("podman-probe"),
             )
             _image_ids[key] = proc.stdout.strip() or None if proc.returncode == 0 else None
         except (OSError, subprocess.TimeoutExpired):
+            # No id is no index cache for this run: every unit indexes,
+            # and the artifact is the same bytes (ADR-122).
             _image_ids[key] = None
     return _image_ids[key]
 

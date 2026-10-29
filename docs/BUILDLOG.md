@@ -16586,3 +16586,41 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
   11 unresolved sites between two ingests of one commit, `symbol_edges` identical.
 - **End to end, quiet box, hobbes cell, `main` → branch:** cold 305 → 194 s, warm 129 → 69 s; lane A TS 98 →
   42 s; peak 3.6 → 6.3 GB (the TS helper's four zones; the ingest's own process 989 MB).
+
+## 2026-10-29 — forty-seventh session, continued: the reviews of PRs #4 and #5 (0.3.4-beta)
+
+Max pushed both branches. I opened PR #4 (`fix/name-extraction-caps`, ADR-183) and PR #5
+(`perf/same-output-faster`, ADR-184, stacked on #4) and reviewed each with `/code-review high --comment`: 10
+findings each, posted inline, several shared. I checked each against the code before acting. PR #4's
+commits were already pushed, and amending them would need a force-push, so the fixes are new commits on
+PR #5's branch.
+
+- **Real and fixed (0.3.4-beta):**
+  - The helper's step cap was per step, so a slow C build left podman to kill the index step under its
+    generic message. It is now one budget (`helperTimeoutSeconds`).
+  - A scip-clang run whose units met the `clang-unit` cap was stored in the index cache, and a hit would
+    replay it on an idle box. It is no longer stored.
+  - `sh -c` named a shell step. The steps now carry labels.
+  - A signal kill or a buffer overflow read "exited null". Both are now named.
+  - A root whose every unit failed said "the others stand".
+  - A readable index with no summary was counted failed, though its contents are drawn. It is now
+    uncounted.
+  - A timeout count was dropped when there was no summary.
+  - podman's 60 s probes were outside the caps table.
+  - A zone cap past setTimeout's 2³¹−1 ms made Node fire at once and stopped every zone. Reproduced:
+    the new test fails on the old helper with Node's `TimeoutOverflowWarning`.
+  - A zone timeout didn't say how many zones ran beside it.
+  - A failed zone didn't stop new zones from starting.
+  - Lane B peaks were sampled at the merge.
+  - An interrupt didn't cancel the queued lane B languages.
+- **The gate (`e9c4ae1`, no bump):** `run.sh` copied a failed pass's stale artifacts, and `compare.py`
+  compared parsed JSON while the rule says bytes. Both are fixed. I re-checked every gate run of levers 1–3
+  with the new comparison: all passes exited 0, and every cell called identical is identical bytes.
+- **Registered, not fixed:** an uncontained step's children outlive its cap. Group-kill needs a detached
+  child, and a detached child no longer gets the terminal's Ctrl-C (probed: `spawnSync({detached: true})`
+  plus `process.kill(-pid)` works). C-196 records it.
+- **Judged not a defect:** a timed-out venv listing in the cache. The listing is in the key, so a later
+  success misses. Per-zone workers re-importing TypeScript: measured fine at 27 zones, and noted in ADR-184.
+  Ctrl-C hanging parallel lane B: the terminal's SIGINT reaches the podman clients too (same foreground
+  group). The queued languages are now cancelled anyway.
+- Suites: pytest 3,386, `lane_b` 29/29 on the host, scip node 105, tsextract 56, Go version ok.

@@ -108,3 +108,39 @@ def test_the_lane_b_default_is_a_bounded_quarter_of_the_cores(monkeypatch):
     assert jobs.lane_b_jobs() == 3
     monkeypatch.setattr(jobs, "_cores", lambda: 2)
     assert jobs.lane_b_jobs() == 1
+
+
+def test_each_language_keeps_the_peaks_its_own_run_ended_with(monkeypatch, ledger):
+    # Sampled on the thread as the run ends, not once for all at the merge.
+    import hobbes.extract as extract
+
+    monkeypatch.setenv(jobs.LANE_B_JOBS_ENV, "2")
+    monkeypatch.setattr(extract, "peaks", lambda: {"peak_rss_mb": len(threading.current_thread().name),
+                                                   "child_peak_rss_mb": 0, "ran_on": threading.current_thread().name})
+    timings = Timings()
+    _drain([("python", _run("python", 0.0)), ("go", _run("go", 0.05))], timings)
+    assert all(s["ran_on"].startswith("lane-b") for s in timings.steps), "each sample was taken on its own thread"
+
+
+def test_an_interrupt_starts_no_language_that_had_not_started(monkeypatch, ledger):
+    # Ctrl-C lands on the main thread, waiting on a language's result.
+    from concurrent.futures import Future
+
+    monkeypatch.setenv(jobs.LANE_B_JOBS_ENV, "2")
+    started: list[str] = []
+
+    def run(name):
+        def go():
+            started.append(name)
+            time.sleep(0.2)
+            return {}
+        return go
+
+    def interrupted(self, timeout=None):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(Future, "result", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        _drain([("python", run("python")), ("go", run("go")), ("rust", run("rust"))], Timings())
+    time.sleep(0.4)
+    assert "rust" not in started, "the queued language was cancelled"

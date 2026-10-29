@@ -1314,7 +1314,8 @@ test("a zone past its cap is stopped and recorded, its files listed with no fact
   const facts = await extractRepoParallel(root, { jobs: 2, zoneTimeoutSeconds: 0.001 });
   const timedOut = facts.errors.filter((e) => e.stage === "zone-timeout");
   assert.deepEqual(timedOut.map((e) => e.path).sort(), [".", "a/tsconfig.json", "b/tsconfig.json"])
-  assert.match(timedOut[0].message, /did not finish within its 0\.001 s cap \(C-196; HOBBES_TIMEOUT_SCALE raises every cap\)/);
+  assert.match(timedOut[0].message,
+    /did not finish within its 0\.001 s cap \(C-196; HOBBES_TIMEOUT_SCALE raises every cap; 2 zones ran at once \(HOBBES_TS_JOBS=1 runs them one at a time\)\)/);
   assert.deepEqual(facts.files.map((f) => f.path), ["a/src/x.ts", "a/src/y.ts", "b/lib/helper.ts", "b/main.ts", "loose.js"],
     "discovery found them, so they stay listed");
   assert.ok(facts.files.every((f) => f.imports.length === 0 && f.calls.length === 0 && f.symbols.length === 0));
@@ -1325,6 +1326,14 @@ test("a timed-out zone's record names its files, a sample of them past four", ()
   const { errors, files: listed } = zoneTimedOut("p/tsconfig.json", files, 300);
   assert.equal(listed.length, 5);
   assert.match(errors[0].message, /its 5 file\(s\) \(p\/1\.ts, p\/2\.ts, p\/3\.ts, p\/4\.ts, …\) are listed with no facts/);
+  assert.doesNotMatch(errors[0].message, /ran at once/, "one at a time, nothing ran beside it");
+});
+
+test("a zone cap past setTimeout's limit is no zone cap, not one that fires at once", async () => {
+  // Node clamps a delay over 2^31-1 ms to 1 ms: every zone would be stopped.
+  const root = threeZones();
+  const facts = await extractRepoParallel(root, { jobs: 2, zoneTimeoutSeconds: 3_000_000 });
+  assert.equal(JSON.stringify(facts), JSON.stringify(extractRepo(root)));
 });
 
 test("the CLI runs zones in parallel with --jobs and caps each with --zone-timeout", () => {

@@ -1290,9 +1290,11 @@ helper (one zone 300 s since ADR-184; the whole run 3,600 s, a backstop),
 the zone map (300 s), a lane B unit's
 container (900 s; Java 1,800 s), a registry fetch (600 s), the venv
 listing (60 s), and scip-clang's wait for one unit's worker (300 s,
-passed as `--receive-timeout-seconds`). The helper reads its per-step cap
-from the unit's config (`stepTimeoutSeconds`, the unit's cap less 30 s),
-so its named error fires before podman stops the container.
+passed as `--receive-timeout-seconds`), and podman's probes (60 s). The
+helper reads one budget for all its steps from the unit's config
+(`helperTimeoutSeconds`, the unit's cap less 30 s; each step gets what is
+left), so its named error fires before podman stops the container. A run
+where scip-clang's wait fired is never stored in the index cache.
 `HOBBES_TIMEOUT_SCALE` multiplies every cap. A cap that fires says what
 ran out of time, its seconds, C-196 and the knob, in the unit's degraded
 record or (lane A TS) the ingest's error. A wall-clock cap is the one place
@@ -2467,7 +2469,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.3.3-beta** (2026-10-28, ADR-103; the dev environment, ADR-181; every wall-clock cap named, ADR-183; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.3-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.3.4-beta** (2026-10-29, ADR-103; the dev environment, ADR-181; every wall-clock cap named, ADR-183; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.4-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

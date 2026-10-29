@@ -14,11 +14,16 @@ before-and-after can be read off two lines.
 
 **Memory too (ADR-119, amended by ADR-183's review).** Each step also
 records two peaks as it ends, in MB: this process's resident set since
-the ingest began (``peak_rss_mb``), and the largest host child's that has
+the process began (``peak_rss_mb``), and the largest host child's that has
 exited (``child_peak_rss_mb``: the TS/JS helper, a host-run step). Both
-only rise, so the step a peak first appears at is the step that set it. A
-contained step's indexer runs under podman's monitor, not as a child of
-this process, so no figure here measures it; the summary says so.
+only rise, so in a process that runs one ingest, the step a peak first
+appears at is the step that set it, or a step running beside it: the lane
+B languages run at once (ADR-184 lever 3), so each records the peaks as
+its own run ended, and a peak one of them set can first appear at another.
+A second ingest in the same process (a test run, a server) starts from the
+first one's peaks. A contained step's indexer runs under podman's monitor,
+not as a child of this process, so no figure here measures it; the summary
+says so.
 """
 
 from __future__ import annotations
@@ -34,6 +39,14 @@ from pathlib import Path
 from typing import Iterator
 
 from hobbes.extract.staging import cache_root
+
+
+def peaks() -> dict:
+    """This process's two peaks now, as a step records them."""
+    return {
+        "peak_rss_mb": _peak_mb(resource.RUSAGE_SELF),
+        "child_peak_rss_mb": _peak_mb(resource.RUSAGE_CHILDREN),
+    }
 
 
 def _peak_mb(who: int) -> int:
@@ -59,25 +72,14 @@ class Timings:
             yield
         finally:
             self.steps.append(
-                {
-                    "step": name,
-                    "seconds": round(time.perf_counter() - started, 3),
-                    "peak_rss_mb": _peak_mb(resource.RUSAGE_SELF),
-                    "child_peak_rss_mb": _peak_mb(resource.RUSAGE_CHILDREN),
-                }
+                {"step": name, "seconds": round(time.perf_counter() - started, 3), **peaks()}
             )
 
-    def add(self, name: str, seconds: float) -> None:
+    def add(self, name: str, seconds: float, ended: dict) -> None:
         """Record a step timed elsewhere — on a thread of its own (ADR-184
-        lever 3) — in the order the serial run would have."""
-        self.steps.append(
-            {
-                "step": name,
-                "seconds": round(seconds, 3),
-                "peak_rss_mb": _peak_mb(resource.RUSAGE_SELF),
-                "child_peak_rss_mb": _peak_mb(resource.RUSAGE_CHILDREN),
-            }
-        )
+        lever 3) — in the order the serial run would have, with the
+        :func:`peaks` sampled as it *ended* there, not as it is merged."""
+        self.steps.append({"step": name, "seconds": round(seconds, 3), **ended})
 
     @property
     def total(self) -> float:

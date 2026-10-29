@@ -104,3 +104,27 @@ indicative only; the identity results are not affected by load.
 
 The peak is the TS helper's, four zones at once; the ingest's own process peaks at 989 MB (ADR-119's
 amendment). `HOBBES_TS_JOBS=1` gives back the serial helper's 3.5 GB.
+
+## Amended 2026-10-29 (0.3.4-beta): the review of PR #5
+
+- **The gate could pass a failed ingest.** `run.sh` copied whatever artifacts the cell held after a pass, so
+  a pass that crashed was compared as the previous pass's output. `compare.py` also compared parsed JSON
+  while the rule says bytes. Now each pass's artifacts are cleared first and its exit kept. A failed pass
+  fails the comparison. `graph.json` is compared as bytes with `built_by`'s value masked, and the same JSON
+  in other bytes differs. **Every gate run above was re-checked under the new comparison:** every pass
+  exited 0, and every cell called identical is identical bytes. The measured results stand.
+- **A zone cap past setTimeout's limit** (2³¹−1 ms, about 24.8 days, reached by a large
+  `HOBBES_TIMEOUT_SCALE`) made Node fire at once and stopped every zone. Past that limit a zone now has no cap
+  of its own, and the whole run's backstop holds.
+- **A zone timeout says how many zones ran beside it.** A zone near its cap can finish alone and not beside
+  others, so the facts can depend on `HOBBES_TS_JOBS`. The `zone-timeout` record names the parallelism and
+  the knob (C-196).
+- **A failed zone stops the dispatch.** No lane starts another zone after one has failed the run.
+- **Each lane B language keeps the peaks its own run ended with.** They were sampled at the merge, after
+  every language had finished, so each row showed the last peak. A language beside another still shares
+  its process's peak (ADR-119's amendment says so).
+- **An interrupt starts no lane B language that has not started.** The pool's queued languages are
+  cancelled. A running one ends with its container, which the terminal's Ctrl-C reaches too.
+- **Not changed:** each zone still starts a fresh worker, which re-imports TypeScript and copies the file
+  set. That is measured fine at this repo's 27 zones. Keeping `jobs` long-lived workers is the shape for a
+  repo with hundreds of zones, and it waits for one that measures it.

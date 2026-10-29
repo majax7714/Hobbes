@@ -32,6 +32,9 @@ CAPS: dict[str, int] = {
     "registry-fetch": 600,
     # The venv's own interpreter listing its distributions.
     "python-env": 60,
+    # podman's answer on whether the image is built, and its id: past it,
+    # containment is refused for the run and says why.
+    "podman-probe": 60,
     # scip-clang's wait for one translation unit's worker (its own
     # ``--receive-timeout-seconds``, whose default this is).
     "clang-unit": 300,
@@ -65,8 +68,9 @@ def seconds(name: str) -> int:
 
 
 def step_seconds(unit_seconds: int) -> int:
-    """The helper's per-step cap inside a unit whose container has
-    *unit_seconds*."""
+    """The helper's cap on all its steps together inside a unit whose
+    container has *unit_seconds*: one budget, so a slow build leaves the
+    index step only what is left of it."""
     return max(1, unit_seconds - STEP_MARGIN)
 
 
