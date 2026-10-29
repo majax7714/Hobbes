@@ -91,8 +91,8 @@ Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. F
 - **Register:** 198 entries: 146 active (114 surfaced, 28 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 35 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
-- **Oracle defect log: H-38 open** (2026-10-03): the trace oracle's
-  `getattr` reads run a repo's `__getattr__`; not met on a standing cell.
+- **Oracle defect log: H-39 open** (2026-10-29): the trace oracle's re-entrance
+  guard is shared across threads (H-38 fixed the same day).
   RC-4 still carries its price: its silencing is indiscriminate, and it
   hides 6 of C-153's rows.
 - **Shanks, the harness** (ADR-107, ADR-112, ADR-152): 98 session logs, and

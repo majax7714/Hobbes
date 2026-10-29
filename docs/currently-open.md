@@ -128,8 +128,9 @@ Left by the fold (2026-10-28):
   Python lane A on a process pool, tree-sitter queries in place of walks, and lane B units within one
   language in parallel (the tool caches' concurrency first).
 
-- **H-38** (`oracle/oracle-defects.md`): read the trace oracle's
-  `__code__`/`__func__`/`__wrapped__` through the type, with a fixture.
+- **H-39** (`oracle/oracle-defects.md`): the trace oracle's re-entrance guard is one flag for every thread, so a
+  call on one thread while another sits in a callback is lost. No pair lost on the four standing Python cells. A
+  thread-local guard moves every key with a threaded test, so it is Max's call whether to fix it and regenerate.
 
 - **W1/W3:** the decorated-declaration line convention, the C-15
   namespacing ADR, and `fetch-java` on the egress proxy.

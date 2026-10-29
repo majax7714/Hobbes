@@ -73,10 +73,12 @@ import argparse
 import ast
 import dis
 import functools
+import inspect
 import json
 import os
 import subprocess
 import sys
+import types
 from collections import defaultdict
 from pathlib import Path
 
@@ -98,6 +100,63 @@ WITH_FRAME_NAMES = frozenset({"__enter__", "__exit__"})
 WITH_OPCODES = frozenset(
     dis.opmap[name] for name in ("BEFORE_WITH", "WITH_EXCEPT_START") if name in dis.opmap
 )
+
+# The descriptor types the interpreter implements in C (H-38): binding one
+# runs no line the repo wrote, so ``_static_attr`` reads through them.
+_C_DESCRIPTORS = (
+    types.GetSetDescriptorType, types.MemberDescriptorType, types.WrapperDescriptorType,
+    types.MethodDescriptorType, types.ClassMethodDescriptorType,
+)
+# The callables no class can subclass, so no repo code sits on their
+# attribute lookup (a bound method forwards an unknown name to its
+# function, which is one of them): read directly, the fast path nearly
+# every call takes. ``getattr_static`` is slow enough to widen the window
+# H-39's shared guard drops another thread's calls in.
+_SEALED_TYPES = frozenset({
+    types.FunctionType, types.MethodType, types.BuiltinFunctionType,
+    types.MethodWrapperType, types.WrapperDescriptorType, types.MethodDescriptorType,
+})
+
+
+def _static_attr(obj, name: str):
+    """``getattr(obj, name, None)`` without running a line the repo wrote
+    (H-38, root RC-12): never ``__getattr__`` or ``__getattribute__``, a
+    property or another descriptor of the repo's. A value the object holds
+    itself, or a class holds that is no descriptor, reads as ``getattr``
+    reads it; a C slot (a function's ``__code__``, a bound method's
+    ``__func__``) through its descriptor, the interpreter's own code; a
+    function, ``staticmethod`` or ``classmethod`` a class holds is bound as
+    ``getattr`` binds it. Any other descriptor reads as absent."""
+    if type(obj) in _SEALED_TYPES:
+        return getattr(obj, name, None)
+    try:
+        v = inspect.getattr_static(obj, name)
+    except AttributeError:
+        return None
+    if not any("__get__" in vars(k) for k in type(v).__mro__):
+        return v  # not a descriptor: the same value either way
+    is_type = isinstance(obj, type)
+    if not is_type:
+        try:
+            own = object.__getattribute__(obj, "__dict__")
+        except AttributeError:
+            own = {}
+        if own.get(name, None) is v:
+            return v  # an instance's own value is never bound
+    # On a class, what its own MRO holds binds as ``__get__(None, cls)``;
+    # what its metaclass holds binds to the class as an instance.
+    in_mro = is_type and any(name in vars(k) for k in obj.__mro__)
+    inst, owner = (None, obj) if in_mro else (obj, type(obj))
+    if isinstance(v, staticmethod):
+        return v.__func__
+    if isinstance(v, classmethod):
+        return types.MethodType(v.__func__, owner)
+    if isinstance(v, _C_DESCRIPTORS + (types.FunctionType,)):
+        try:
+            return v.__get__(inst, owner)
+        except (AttributeError, TypeError):  # an unset slot, or one that does not apply
+            return None
+    return None
 
 
 # ---------------------------------------------------------------- ast index
@@ -265,8 +324,8 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
         than through ``resolve``: none of resolve's unwindings (partial,
         ``__wrapped__``, bound method, ``__call__``) can stand between a
         caller and a comprehension, which no source token can name."""
-        fcode = getattr(callable_obj, "__code__", None)
-        return fcode is not None and fcode.co_name in GENERATED_FRAME_NAMES
+        fcode = _static_attr(callable_obj, "__code__")
+        return isinstance(fcode, types.CodeType) and fcode.co_name in GENERATED_FRAME_NAMES
 
     def resolve(callable_obj):
         """Return (target dict or None, via) — None means a C callee."""
@@ -280,11 +339,11 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
             if isinstance(obj, (staticmethod, classmethod)):
                 obj = obj.__func__
                 continue
-            f = getattr(obj, "__func__", None)  # bound method
+            f = _static_attr(obj, "__func__")  # bound method
             if f is not None and not isinstance(obj, type):
                 obj = f
                 continue
-            w = getattr(obj, "__wrapped__", None)
+            w = _static_attr(obj, "__wrapped__")
             if w is not None and w is not obj and not isinstance(obj, type):
                 obj = w
                 via = via or "wrapped"
@@ -292,7 +351,7 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
             break
         if isinstance(obj, type):
             mod = _sys.modules.get(obj.__module__)
-            filename = getattr(mod, "__file__", None)
+            filename = _static_attr(mod, "__file__")
             r = _rel(repo, filename) if filename else None
             if r is None:
                 return {"name": obj.__qualname__, "kind": "class", "external": True}, via
@@ -301,11 +360,11 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
             if hit is None:
                 return {"name": obj.__qualname__, "kind": "class", "external": True, "via": "unindexed"}, via
             return {"pos": {"path": r, "line": hit[0]}, "name": obj.__qualname__, "kind": "class"}, via
-        fcode = getattr(obj, "__code__", None)
-        if fcode is None:
-            call = getattr(type(obj), "__call__", None)
-            fcode = getattr(call, "__code__", None)
-            if fcode is None:
+        fcode = _static_attr(obj, "__code__")
+        if not isinstance(fcode, types.CodeType):
+            call = _static_attr(type(obj), "__call__")
+            fcode = _static_attr(call, "__code__")
+            if not isinstance(fcode, types.CodeType):
                 return None, via  # a C callee
             via = via or "__call__"
         return target_of_code(fcode), via

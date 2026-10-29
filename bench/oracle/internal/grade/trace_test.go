@@ -334,3 +334,77 @@ func TestTraceBuckets(t *testing.T) {
 		t.Errorf("a trace report must print its own coverage line:\n%s", txt)
 	}
 }
+
+// H-38: the tracer reads a callable's `__code__`, `__func__` and
+// `__wrapped__` without running the repo's code. testdata/pygetattr's
+// `__getattr__` answers every name and records it; its test asserts the
+// record is empty, so a tracer that asks it fails the suite under trace
+// only. The three unwindings it must still make are its docstring's hand
+// truth; every line number is found in the fixture's text.
+func TestTracerRunsNoRepoCode(t *testing.T) {
+	if why := contain.UnavailableReason(); why != "" && !contain.Uncontained() {
+		t.Skip("containment unavailable: " + why)
+	}
+	pipeline, _ := filepath.Abs("../../../../pipeline")
+	python := filepath.Join(pipeline, ".venv", "bin", "python")
+	if _, err := os.Stat(python); err != nil {
+		t.Skip("pipeline venv not built (uv sync)")
+	}
+	src, err := os.ReadFile("../../testdata/pygetattr/src/pygetattr/core.py")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(string(src), "\n")
+	lineOf := func(from int, prefix string) int {
+		t.Helper()
+		for i := from; i < len(lines); i++ {
+			if strings.HasPrefix(strings.TrimSpace(lines[i]), prefix) {
+				return i + 1
+			}
+		}
+		t.Fatalf("core.py has no line starting %q after line %d", prefix, from)
+		return 0
+	}
+	const core = "src/pygetattr/core.py"
+	at := func(line int) string { return core + ":" + strconv.Itoa(line) }
+	var (
+		anyCls  = lineOf(0, "class Anything:")
+		callDef = lineOf(anyCls, "def __call__")
+		ping    = lineOf(lineOf(0, "class Bound(Anything):"), "def ping")
+		plain   = lineOf(0, "def plain(x):")
+		aCall   = lineOf(lineOf(0, "def call_instance():"), "return a()")
+		logged  = lineOf(lineOf(0, "def call_wrapped():"), "return logged(1)")
+		bPing   = lineOf(lineOf(0, "def call_method():"), "return b.ping()")
+	)
+	out := filepath.Join(t.TempDir(), "oracle.json")
+	o, err := pytrace.Run(pytrace.Options{
+		Repo: "../../testdata/pygetattr", Module: ".", Runs: 1, SysPath: []string{"src"}, Out: out,
+		Python: []string{python},
+		Pytest: []string{"-q", "-p", "no:cacheprovider", "-c", "pyproject.toml", "--rootdir", ".", "--import-mode=importlib", "tests"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(o.SuiteExitCodes) != 1 || o.SuiteExitCodes[0] != 0 {
+		t.Fatalf("the suite under trace exited %v, want [0]: the tracer ran the repo's __getattr__", o.SuiteExitCodes)
+	}
+	via := map[string]string{}
+	for _, s := range o.Sites {
+		for _, tg := range s.Targets {
+			if !tg.External {
+				via[s.Pos.Key()+" -> "+tg.Pos.Key()] = tg.Via
+			}
+		}
+	}
+	for _, w := range []struct {
+		site, target int
+		via          string
+	}{{aCall, callDef, "__call__"}, {logged, plain, "wrapped"}, {bPing, ping, ""}} {
+		p := at(w.site) + " -> " + at(w.target)
+		if got, ok := via[p]; !ok {
+			t.Errorf("missing observed pair %s (have %v)", p, via)
+		} else if got != w.via {
+			t.Errorf("%s: via %q, want %q", p, got, w.via)
+		}
+	}
+}

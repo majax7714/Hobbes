@@ -16776,3 +16776,21 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   pairing), CHANGELOG; the item deleted from `currently-open.md`.
 - pytest 3,411 passed; Go `./...` ok. Proxy rebuilt static (`hobbes-proxy 0.3.7-beta`), image rebuilt
   (`2c5d040d284c`). lane_b not re-run: nothing it reads moved.
+
+## 2026-10-29 (forty-ninth session, cont.) — H-38 fixed; H-39 found and logged open
+
+- Item 2's route a, step 1 (contain first): the tracer read `__code__`, `__func__`, `__wrapped__`, a module's
+  `__file__` and a class's `__call__` with `getattr`, which runs a repo's `__getattr__`. Fixture first:
+  `testdata/pygetattr` (a `__getattr__` that answers every name and records it) and `TestTracerRunsNoRepoCode`,
+  red on the old tracer exactly as H-38 reads (`AttributeError` at `is_generated_frame`, suite exits `[1]`).
+- The fix, `_static_attr`: sealed builtin types read directly; anything else through `inspect.getattr_static`,
+  binding only C descriptors, functions, `staticmethod`, `classmethod`. A first cut bound a class's own slot wrapper
+  as an instance's (`TypeError`, the pygen and pywith tests red); fixed by binding where `getattr` binds.
+- Identity (`~/.hobbes/bench/h38-trace-2026-10-29/RESULTS.md`): the four standing keys re-run as their cells ran
+  them. flask, click and rich identical pair for pair; structlog gains one correct external row (`call("test")`
+  → `_Call.__call__`, which the old reads lost by running mock's `__getattr__`); no Hobbes edge on that line.
+- **H-39, found on the way:** the build without the fast path dropped 307 C-callee events over 39 rich sites
+  against the unfixed tracer the same day (`tests/test_live.py:124` read 18 of 20). The re-entrance guard is one
+  flag for every thread; a slower read widened the window. The fast path restores speed; the race stays as in the
+  standing tracer. Logged open (RC-4), taken to Max: fixing it moves every key with a threaded test.
+- bench/oracle `go test ./...` ok (the trace tests ran, not skipped). Bench only: no bump.
