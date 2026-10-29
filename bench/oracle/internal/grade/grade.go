@@ -146,9 +146,19 @@ type Report struct {
 	CollapsedPairs  int      `json:"collapsed_pairs,omitempty"`
 	CollapsedHits   int      `json:"collapsed_hits,omitempty"`
 	RecallCollapsed *float64 `json:"recall_collapsed,omitempty"`
-	Tolerance       int      `json:"tolerance_matches"`
-	Rows            []Row    `json:"rows"`
-	Misses          []Miss   `json:"misses"`
+	// The companion recall over a trace key's implicit list (ADR-187):
+	// (standing hits + implicit hits) / (standing in-repo pairs + implicit
+	// in-repo pairs). Printed beside the standing recall, never in its
+	// place; no bucket, rate or poison row reads the list. ImplicitBy
+	// splits the implicit in-repo pairs by the caller-opcode families a
+	// target was met on, joined with "+" when more than one.
+	ImplicitPairs      int                 `json:"implicit_pairs,omitempty"`
+	ImplicitHits       int                 `json:"implicit_confirmed,omitempty"`
+	ImplicitBy         map[string]Fraction `json:"implicit_by_family,omitempty"`
+	RecallWithImplicit *float64            `json:"recall_with_implicit,omitempty"`
+	Tolerance          int                 `json:"tolerance_matches"`
+	Rows               []Row               `json:"rows"`
+	Misses             []Miss              `json:"misses"`
 	// Trace oracles only (design §3.1): runs unioned, the tracer's
 	// coverage line, the confirmation and suspect rates over Hobbes
 	// edges, and how many of Hobbes' distinct sites the trace spoke about.
@@ -445,6 +455,31 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 		rc := float64(r.RecallHits) / float64(r.OraclePairs)
 		r.Recall = &rc
 	}
+	if trace && len(o.Implicit) > 0 {
+		r.ImplicitBy = map[string]Fraction{}
+		for _, s := range o.Implicit {
+			for _, t := range s.Targets {
+				if t.External {
+					continue
+				}
+				fams := append([]string(nil), t.Families...)
+				sort.Strings(fams)
+				fam := strings.Join(fams, "+")
+				f := r.ImplicitBy[fam]
+				f.Pairs++
+				r.ImplicitPairs++
+				if hobbesPairs[s.Pos.Key()+"->"+t.Pos.Key()] {
+					f.Hits++
+					r.ImplicitHits++
+				}
+				r.ImplicitBy[fam] = f
+			}
+		}
+		if d := r.OraclePairs + r.ImplicitPairs; d > 0 {
+			c := float64(r.RecallHits+r.ImplicitHits) / float64(d)
+			r.RecallWithImplicit = &c
+		}
+	}
 	if !trace {
 		r.CollapsedPairs, r.CollapsedHits = collapse(o, r.Rows)
 		if r.CollapsedPairs > 0 {
@@ -710,6 +745,10 @@ func printTrace(w io.Writer, r *Report) {
 			*r.Recall*100, r.RecallHits, r.OraclePairs, r.Runs, r.RootNames, r.OracleExternal, r.MissBy)
 	} else {
 		fmt.Fprintf(w, "recall-against-executed: undefined (no observed in-repo pairs) over %d run(s)\n", r.Runs)
+	}
+	if r.RecallWithImplicit != nil {
+		fmt.Fprintf(w, "recall-with-implicit %.1f%% (%d/%d: the standing pairs plus %d implicit pairs the trace keyed apart, %d of them drawn — C-174's calls with no call token, ADR-187; the standing grade is the line above) by family %v\n",
+			*r.RecallWithImplicit*100, r.RecallHits+r.ImplicitHits, r.OraclePairs+r.ImplicitPairs, r.ImplicitPairs, r.ImplicitHits, r.ImplicitBy)
 	}
 	sitePct := 0.0
 	if r.SitesTotal > 0 {

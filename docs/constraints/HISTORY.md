@@ -6,6 +6,10 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-174 amended, 2026-10-29 (ADR-187; Max: "yeah proposed for both are good"; no entry added, no bump: bench only):
+- **C-174's Python share is measured.** The trace keys hold the calls with no call token in a companion list;
+  on the four standing cells they are 13.6–27.5% of confirmed, none drawn. The Bites-at line names them.
+
 C-2 amended, 2026-10-29 (0.3.7-beta; Max: "yeah proposed for both are good"; no entry added):
 - **The gate's map reason for `attr-call`** is `laneb-miss`, not `dynamic-dispatch`. The 2026-10-04 note left it
   open: neither of the class's two causes shows a target chosen at runtime. The vocabulary is unchanged.

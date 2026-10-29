@@ -62,6 +62,23 @@ type Target struct {
 	Via string `json:"via,omitempty"`
 }
 
+// ImplicitSite is one line of a trace key's companion list (ADR-187): a
+// call the language made there with no call token. Each target carries
+// the caller instructions it was met on and their families, for triage.
+type ImplicitSite struct {
+	Pos     Pos              `json:"pos"`
+	Caller  string           `json:"caller"`
+	Targets []ImplicitTarget `json:"targets"`
+}
+
+// ImplicitTarget is a Target with its triage fields; its own type because
+// a Target is a map key elsewhere and cannot hold a slice.
+type ImplicitTarget struct {
+	Target
+	Opcodes  []string `json:"opcodes,omitempty"`
+	Families []string `json:"families,omitempty"`
+}
+
 // Site is one call site the oracle analysed. Mode is "static" or
 // "dynamic" (interface invoke / function value). Interface is set for an
 // invoke: the abstract method's declaration, so a Hobbes edge to the
@@ -106,6 +123,13 @@ type OracleExport struct {
 	// for calls in compiler-written code (Rust's test harness, attribute
 	// and derive output), which no source line makes.
 	Excluded map[string]int `json:"excluded,omitempty"`
+	// Implicit is a trace key's companion list (ADR-187): calls the
+	// language made with no call token (a property's getter, an operator's
+	// dunder), keyed apart from Sites. The grader judges nothing from it;
+	// it prints recall_with_implicit beside the standing recall.
+	// ImplicitDroppedAsCalled counts targets a CALL also recorded there.
+	Implicit                []ImplicitSite `json:"implicit,omitempty"`
+	ImplicitDroppedAsCalled int            `json:"implicit_dropped_as_called,omitempty"`
 	// State names a cell that could not be graded and says why, as its
 	// own state rather than an empty result (A-1, RR-6): "no-roots" — a
 	// reachability oracle found no main or test binary to root at, so

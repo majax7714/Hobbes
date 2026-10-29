@@ -16794,3 +16794,25 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   flag for every thread; a slower read widened the window. The fast path restores speed; the race stays as in the
   standing tracer. Logged open (RC-4), taken to Max: fixing it moves every key with a threaded test.
 - bench/oracle `go test ./...` ok (the trace tests ran, not skipped). Bench only: no bump.
+
+## 2026-10-29 (forty-ninth session, cont.) — ADR-187: the trace key's implicit calls as a companion key
+
+- ADR-187 first (route a as approved). The measuring copy's implicit read ported onto the fixed tracer:
+  in-repo dunders (construction, class-creation and teardown hooks excluded; `with` stays H-37's) and
+  property getters/setters/deleters with no `CALL` of their own, keyed at the caller's line in the export's
+  `implicit` list with the caller's opcodes and families; a target a `CALL` recorded there in any run is
+  dropped and counted. `sites` untouched. Go: `edges.ImplicitSite`/`ImplicitTarget` (own types: `Target` is a
+  map key and cannot hold a slice); the grader's `recall_with_implicit`, `implicit_pairs`, `implicit_confirmed`,
+  `implicit_by_family`, printed under the standing recall in `printTrace` (first placed in the non-trace
+  branch; the test caught it).
+- Tests: `TestImplicitListJudgesNothingAndAddsACompanionRecall` (buckets, rates and recall equal with and
+  without the list; an edge on an implicit-only line stays `unobserved`), `TestTracerKeysImplicitCallsApart`
+  on `testdata/pyimplicit` (10 implicit pairs, 5 quiet lines from the file's own comments; the first count
+  of 11 in the test was mine, the fixture marks 10). `functools.cached_property` keys nothing, stated in the ADR.
+- Re-keyed the four standing cells (`~/.hobbes/bench/adr187-keys-2026-10-29/RESULTS.md`): every standing
+  figure and row equal to the old key's, poison PASS; implicit pairs flask 208, structlog 191, click 676, rich
+  1,308, the measuring run's counts, none drawn; recall with them 50.8%, 62.2%, 71.2%, 71.1% against 54.6%,
+  69.7%, 81.7%, 88.4% (each key directory's own graph). C-174's Bites-at line names them;
+  `oracle-grading.md` §10.52; the four cell records name the new keys. The item deleted from
+  `currently-open.md`.
+- bench/oracle `go test ./...` and `go vet` ok; pytest 3,411 passed. Bench only: no bump, no image rebuild.

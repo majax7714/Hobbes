@@ -11,6 +11,13 @@ named below was removed unless it says otherwise.
 
 ## Reusable drivers
 
+- **A standing Python trace key re-keyed and graded beside the old one (ADR-187):**
+  `adr187-keys-2026-10-29/run.sh <cell> <standing key dir> <new key dir>` keys the cell as it ran, into a new
+  key directory, and grades both keys against the standing `hobbes.json` with `--poison`.
+  `h38-trace-2026-10-29/run.sh <cell>` and `diff.py` re-key a cell and diff every site and pair against its
+  standing key (the H-38 identity check); `run-unfixed.sh` ran the tracer before the fix, from a worktree
+  since removed.
+
 - **The files the TUI binary is built from (DEC-028):** `tui/bundle-inputs.ts`,
   in the repo (`~/.watterson/bun/1.4.2/bun tui/bundle-inputs.ts
   [--target=opencode-<os>-<arch>]`): every file Bun's bundler loads for

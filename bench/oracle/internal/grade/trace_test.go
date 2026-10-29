@@ -2,6 +2,7 @@ package grade
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -405,6 +406,168 @@ func TestTracerRunsNoRepoCode(t *testing.T) {
 			t.Errorf("missing observed pair %s (have %v)", p, via)
 		} else if got != w.via {
 			t.Errorf("%s: via %q, want %q", p, got, w.via)
+		}
+	}
+}
+
+// ADR-187: a trace key's implicit list moves no bucket, rate or standing
+// recall; it adds only the companion recall beside the standing one. The
+// rich shape that motivated it: an edge on a line where the key observed
+// nothing but an implicit call stays `unobserved`, never `suspect`.
+func TestImplicitListJudgesNothingAndAddsACompanionRecall(t *testing.T) {
+	pos := func(p string, l int) edges.Pos { return edges.Pos{Path: p, Line: l} }
+	h := &edges.HobbesExport{Edges: []edges.HobbesEdge{
+		{Site: pos("a.py", 5), Target: pos("b.py", 30), Tier: "semantic"},   // confirmed by a standing site
+		{Site: pos("a.py", 9), Target: pos("b.py", 40), Tier: "semantic"},   // a line only an implicit row speaks about
+		{Site: pos("a.py", 12), Target: pos("b.py", 50), Tier: "syntactic"}, // drawn to a getter the trace keyed implicit
+	}}
+	standing := []edges.Site{
+		{Pos: pos("a.py", 5), Mode: "observed", Targets: []edges.Target{
+			{Pos: pos("b.py", 30), Name: "f", Kind: "function"},
+			{Pos: pos("b.py", 31), Name: "g", Kind: "function"},
+		}},
+	}
+	implicit := []edges.ImplicitSite{
+		{Pos: pos("a.py", 9), Targets: []edges.ImplicitTarget{
+			{Target: edges.Target{Pos: pos("b.py", 60), Name: "C.p", Kind: "method", Via: "implicit"}, Families: []string{"attribute"}},
+		}},
+		{Pos: pos("a.py", 12), Targets: []edges.ImplicitTarget{
+			{Target: edges.Target{Pos: pos("b.py", 50), Name: "C.q", Kind: "method", Via: "implicit"}, Families: []string{"operator", "attribute"}},
+			{Target: edges.Target{Name: "X.__eq__", External: true, Via: "implicit"}, Families: []string{"operator"}},
+		}},
+	}
+	o := &edges.OracleExport{Kind: "trace", Runs: 1, Files: []string{"a.py", "b.py"}, Sites: standing}
+	base := Grade(h, o)
+	o.Implicit = implicit
+	r := Grade(h, o)
+	for i := range base.Rows {
+		if base.Rows[i].Bucket != r.Rows[i].Bucket {
+			t.Errorf("row %d: %s without the list, %s with it", i, base.Rows[i].Bucket, r.Rows[i].Bucket)
+		}
+	}
+	if r.Rows[1].Bucket != "unobserved" {
+		t.Errorf("a line only an implicit row speaks about: %s, want unobserved", r.Rows[1].Bucket)
+	}
+	if r.Total != base.Total || r.RecallHits != 1 || r.OraclePairs != 2 || *r.Recall != *base.Recall {
+		t.Errorf("standing grade moved: %+v recall %d/%d, was %+v %d/%d", r.Total, r.RecallHits, r.OraclePairs, base.Total, base.RecallHits, base.OraclePairs)
+	}
+	if base.RecallWithImplicit != nil || base.ImplicitBy != nil {
+		t.Errorf("a key without the list printed a companion: %v %v", base.RecallWithImplicit, base.ImplicitBy)
+	}
+	if r.ImplicitPairs != 2 || r.ImplicitHits != 1 || r.RecallWithImplicit == nil || *r.RecallWithImplicit != 0.5 {
+		t.Errorf("companion: %d/%d implicit, recall_with_implicit %v; want 1/2 and 2/4", r.ImplicitHits, r.ImplicitPairs, r.RecallWithImplicit)
+	}
+	want := map[string]Fraction{"attribute": {Pairs: 1}, "attribute+operator": {Hits: 1, Pairs: 1}}
+	if fmt.Sprint(r.ImplicitBy) != fmt.Sprint(want) {
+		t.Errorf("by family %v, want %v (external rows are out, families sorted)", r.ImplicitBy, want)
+	}
+	var b bytes.Buffer
+	Print(&b, r)
+	if !strings.Contains(b.String(), "recall-with-implicit 50.0% (2/4") {
+		t.Errorf("printed report lacks the companion line:\n%s", b.String())
+	}
+}
+
+// ADR-187: the tracer keys calls with no call token into the export's
+// implicit list, never into sites. Hand truth is testdata/pyimplicit's
+// own comments: a `# implicit: <def>` line keys that def there, a
+// `# not implicit` line keys nothing implicit. Run as the other fixtures.
+func TestTracerKeysImplicitCallsApart(t *testing.T) {
+	if why := contain.UnavailableReason(); why != "" && !contain.Uncontained() {
+		t.Skip("containment unavailable: " + why)
+	}
+	pipeline, _ := filepath.Abs("../../../../pipeline")
+	python := filepath.Join(pipeline, ".venv", "bin", "python")
+	if _, err := os.Stat(python); err != nil {
+		t.Skip("pipeline venv not built (uv sync)")
+	}
+	src, err := os.ReadFile("../../testdata/pyimplicit/src/pyimplicit/core.py")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(string(src), "\n")
+	const core = "src/pyimplicit/core.py"
+	at := func(line int) string { return core + ":" + strconv.Itoa(line) }
+	// defLine is the def a `# implicit:` name means: `p.setter` the def
+	// after `@p.setter`, any other name its own `def <name>(`.
+	defLine := func(name string) int {
+		t.Helper()
+		after := ""
+		if base, ok := strings.CutSuffix(name, ".setter"); ok {
+			after, name = "@"+base+".setter", base
+		}
+		armed := after == ""
+		for i, l := range lines {
+			l = strings.TrimSpace(l)
+			if !armed && l == after {
+				armed = true
+			} else if armed && strings.HasPrefix(l, "def "+name+"(") {
+				return i + 1
+			}
+		}
+		t.Fatalf("core.py declares no %q", name)
+		return 0
+	}
+	want, quiet := map[string]bool{}, map[int]bool{}
+	body := -1
+	for i, l := range lines {
+		if strings.HasPrefix(l, "def body():") {
+			body = i
+		}
+		if body < 0 {
+			continue // the docstring spells the markers too
+		}
+		if _, name, ok := strings.Cut(l, "# implicit: "); ok {
+			want[at(i+1)+" -> "+at(defLine(strings.TrimSpace(name)))] = true
+		} else if strings.HasSuffix(l, "# not implicit") {
+			quiet[i+1] = true
+		}
+	}
+	if len(want) != 10 || len(quiet) != 5 {
+		t.Fatalf("the fixture's hand truth reads %d implicit and %d quiet lines, want 10 and 5", len(want), len(quiet))
+	}
+	out := filepath.Join(t.TempDir(), "oracle.json")
+	o, err := pytrace.Run(pytrace.Options{
+		Repo: "../../testdata/pyimplicit", Module: ".", Runs: 1, SysPath: []string{"src"}, Out: out,
+		Python: []string{python},
+		Pytest: []string{"-q", "-p", "no:cacheprovider", "-c", "pyproject.toml", "--rootdir", ".", "--import-mode=importlib", "tests"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(o.SuiteExitCodes) != 1 || o.SuiteExitCodes[0] != 0 {
+		t.Fatalf("the suite under trace exited %v, want [0]", o.SuiteExitCodes)
+	}
+	for _, s := range o.Sites {
+		for _, tg := range s.Targets {
+			if tg.Via == "implicit" {
+				t.Errorf("sites holds an implicit target: %s -> %s", s.Pos.Key(), tg.Name)
+			}
+		}
+	}
+	got := map[string]bool{}
+	for _, s := range o.Implicit {
+		for _, tg := range s.Targets {
+			if tg.External {
+				continue
+			}
+			if tg.Via != "implicit" || len(tg.Opcodes) == 0 || len(tg.Families) == 0 {
+				t.Errorf("%s -> %s: via %q, opcodes %v, families %v", s.Pos.Key(), tg.Name, tg.Via, tg.Opcodes, tg.Families)
+			}
+			if s.Pos.Path == core && quiet[s.Pos.Line] {
+				t.Errorf("a `not implicit` line keyed %s implicit at %s", tg.Name, s.Pos.Key())
+			}
+			got[s.Pos.Key()+" -> "+tg.Pos.Key()] = true
+		}
+	}
+	for p := range want {
+		if !got[p] {
+			t.Errorf("missing implicit pair %s (have %v)", p, got)
+		}
+	}
+	for p := range got {
+		if strings.HasPrefix(p, core+":") && !want[p] {
+			t.Errorf("an implicit pair the hand truth does not name: %s", p)
 		}
 	}
 }

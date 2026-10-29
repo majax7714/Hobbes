@@ -24,13 +24,6 @@ key no implicit call, so a rule's rows could not be graded.
 ### Routes waiting on Max
 
 **Python:**
-- **Whether to extend the standing trace oracle (C-174).** Measured on all four keyed cells, contained
-  (`~/.hobbes/bench/c174-counts-2026-10-03/python/trace-run/`; click and rich run 2026-10-04): implicit
-  rows flask 208, structlog 191, click 676, rich 1,308 (13.4%, 15.4%, 17.9%, 26.0% of confirmed), mostly
-  property getters (rich also `__eq__` 115, `__str__` 90, `__getitem__` 69); each cell's regular pairs
-  identical to its standing key; recall falls by denominator only (55.7% → 51.8%, 77.8% → 69.5%,
-  82.0% → 71.5%, 93.6% → 75.3%); one Hobbes edge changes bucket (rich, `unobserved` → `suspect`), none
-  is contradicted. Graphs graded are the cells' on-disk ingests (0.2.99/0.2.100-beta).
 - **C-181's residual** (ADR-164): a name a stdlib import binds that an `except ImportError:` branch rebinds
   to a repo function keeps lane A's `syntactic` edge; lane B's local answer cannot veto it (ADR-111). No
   graded cell writes it; `ministdlib` pins it. Routes: refuse lane A's fallback where a stdlib import also
