@@ -16720,3 +16720,27 @@ due to other tests failing".
   `node_modules`, so this workspace's cross-package imports don't resolve there. At `main`, `ingest`'s
   graph has a TUI test reaching 18 of the 222 "lost" modules (`client/promise/*`, `schema/event`,
   `util/global`, …): review and `tests_guarding` disagree. Unregistered; routes to Max.
+
+### Later the same session — the review reads the checkout's dependency trees (ADR-186, C-198, 0.3.6-beta)
+
+Max: "good for the recommended routes" (all four: the review gap, the tool in `bench/`, type-only modules
+accepted apart, pure packages next). The gap first, as an unnamed limit.
+- **Measured before building**, archive of `main` against `ingest`, the 18 disputed modules:
+  - nothing linked: 0 of 18 reached (the review's view, reproduced);
+  - each `node_modules` symlinked whole: 14 of 18 — a workspace link resolves to the checkout's package,
+    outside the scratch root, and is dropped;
+  - mirrored one level, `.venv` linked: 18 of 18 and test reach identical over 5,812 tests, but 4 module
+    edges, 1 tier and 568 TS files' counts differ in both of two runs (systematic: lane B's container
+    cannot follow an absolute link into the checkout);
+  - hardlinked into a scratch on the checkout's filesystem: identical to `ingest` except one `bench`
+    file's counts, which two runs of one archive also differ by. 1.6 s for 63k files.
+- A probe of import shapes for the test: lane A resolves a workspace package's `main` and `"."` export by
+  name, without `node_modules`; a subpath export (wildcard or not) only through it. The test uses the
+  fork's wildcard shape, with a control that fails without the link.
+- Built: `graphdiff.link_environments`, the scratch under `.hobbes/tmp/` (removed after), the review's
+  header line and `--json` `environments`, `hobbes diff`'s stderr line; C-198 registered (surfaced);
+  ADR-186; 0.3.6-beta; the image and proxy rebuilt (the proxy in the image reports 0.3.6-beta).
+- Checks: pytest 3,406 (3,404 + the 2 tally copies fixed); Go green; `hobbes review main..HEAD` "nothing
+  needs attention" with "dependency trees: 28 hardlinked … (25 node_modules, 3 venv)", 5,763 → 5,820,
+  and `.hobbes/tmp` gone after; each of the 18 reached in the graph (1 to 384 tests). The 15 still on
+  ADR-185's list left it: 197 remain.

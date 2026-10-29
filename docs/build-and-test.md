@@ -62,12 +62,12 @@ so a bare `ok` proves nothing. Verify them in the image with `-v`.
 
 ## Suite sizes
 
-Last checked 2026-10-29. pytest at 0.3.5-beta, tsextract and scip node at 0.3.4-beta, on the host; Go, vitest, review and the TUI at 0.3.0-beta; the rest were run at
+Last checked 2026-10-29. pytest at 0.3.6-beta, tsextract and scip node at 0.3.4-beta, on the host; Go, vitest, review and the TUI at 0.3.0-beta; the rest were run at
 0.2.74-beta.
 
 | Suite | Size | Notes |
 |---|---|---|
-| pytest | 3,398 | 29 of them `lane_b`; 458 are the dev environment's (`test_watterson_*`) |
+| pytest | 3,406 | 29 of them `lane_b`; 458 are the dev environment's (`test_watterson_*`) |
 | Go `./...` | 405 with subtests | 405 pass |
 | oracle-lane Go | 131 with subtests | 119 pass, 12 skip on a host without clang++ or cmake; the C++ ones pass in the image |
 | vitest | 52 | |

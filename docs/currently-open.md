@@ -97,12 +97,9 @@ Left by the fold (2026-10-28):
 - **Our own tests for the trimmed fork** (Max, 2026-10-29: "we can tackle independently later, add our
   own tests"). DEC-028 deleted opencode's tests outside `packages/tui`. The 222 modules that lost every
   guard are accepted by name in `.hobbes/accepted-lost-guards.yaml` (ADR-185). Remove a module from it
-  once a test of ours reaches it. **212 remain** (2026-10-29): `util`'s ten have 49 tests of ours, each
-  checked by mutation to catch a fault no other case catches (BUILDLOG 2026-10-29).
-  - **Open, found doing it:** `hobbes review` extracts each end from `git archive` (`graphdiff.py`), with
-    no `node_modules`, so cross-package TS imports in this workspace don't resolve there; 18 of the 222
-    are reached by a TUI test in `ingest`'s graph at `main` (`tests_guarding` says guarded, review says
-    lost). Not registered yet; routes are with Max.
+  once a test of ours reaches it. **197 remain** (2026-10-29): `util`'s ten have 49 tests of ours, each
+  checked by mutation to catch a fault no other case catches; 15 more left when the review learned to
+  read the checkout's dependency trees (ADR-186, C-198), which showed a TUI test already reaching them.
 
 ## Decisions open for Max (no spend, not extraction)
 
