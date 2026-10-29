@@ -76,6 +76,10 @@ root `lint` script, and its three devDependencies.
   codegen, `core`'s migrations generator, benchmarks and
   `update-models-snapshot` (the snapshot itself is loaded and kept),
   `cli`'s Node build and `dev:vite`.
+- `hobbes review` would fail on the 222 modules whose only guards were those
+  tests: they are accepted by name in `.hobbes/accepted-lost-guards.yaml`
+  (ADR-185, Max: "register for now … add our own tests"), and our own
+  tests for them are open work.
 - Regenerating `client`'s API code (`httpapi-codegen`) is no longer
   possible. The generated code is kept as source.
 - A file the TUI later needs back is in history (`git show <commit>^:<path>`).

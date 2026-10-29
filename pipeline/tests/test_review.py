@@ -360,6 +360,62 @@ class TestCoverageDelta:
         assert review.coverage.lost_guards == ["app.core"]
         assert review.needs_attention
 
+    def test_a_lost_guard_accepted_by_name_is_said_and_needs_no_attention(self, repo):
+        # ADR-185: the loss stays said, on its own list, with its reason.
+        (repo / "tests" / "test_core.py").unlink()
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "drop the test")
+        write(
+            repo,
+            ".hobbes/accepted-lost-guards.yaml",
+            yaml.safe_dump({"accepted": [{"reason": "tests removed on purpose", "decided": "Max, 2026-10-29",
+                                          "modules": ["app.core"]}]}),
+        )
+        review = build_review(repo, "HEAD~1", "HEAD")
+        assert review.coverage.lost_guards == []
+        assert review.coverage.lost_guards_accepted == {"app.core": "tests removed on purpose — Max, 2026-10-29"}
+        assert not review.needs_attention
+        text = format_review(review)
+        assert "lost every guarding test, accepted (1; .hobbes/accepted-lost-guards.yaml, ADR-185):" in text
+        assert "tests removed on purpose — Max, 2026-10-29 (1):\n         app.core\n" in text
+        assert review_to_dict(review)["coverage"]["lost_guards_accepted"] == {
+            "app.core": "tests removed on purpose — Max, 2026-10-29"
+        }
+
+    def test_a_loss_not_on_the_list_still_needs_attention(self, repo):
+        write(repo, "src/app/extra.py", "def go():\n    return 3\n")
+        write(repo, "tests/test_extra.py", "from app import extra\n\n\ndef test_go():\n    assert extra.go() == 3\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "extra")
+        (repo / "tests" / "test_core.py").unlink()
+        (repo / "tests" / "test_extra.py").unlink()
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "drop both tests")
+        write(
+            repo,
+            ".hobbes/accepted-lost-guards.yaml",
+            yaml.safe_dump({"accepted": [{"reason": "r", "decided": "d", "modules": ["app.core"]}]}),
+        )
+        review = build_review(repo, "HEAD~1", "HEAD")
+        assert review.coverage.lost_guards == ["app.extra"]
+        assert list(review.coverage.lost_guards_accepted) == ["app.core"]
+        assert review.needs_attention
+
+    @pytest.mark.parametrize(
+        "record",
+        [
+            {"accepted": [{"reason": "r", "decided": "d", "modules": ["app.*"]}]},
+            {"accepted": [{"reason": "r", "modules": ["app.core"]}]},
+            {"accepted": [{"reason": "r", "decided": "d", "modules": ["app.core"], "until": "x"}]},
+            {"accepted": [{"reason": "r", "decided": "d", "modules": []}]},
+            {"accepts": []},
+        ],
+    )
+    def test_an_accepted_record_of_another_shape_is_refused(self, repo, record):
+        write(repo, ".hobbes/accepted-lost-guards.yaml", yaml.safe_dump(record))
+        with pytest.raises(ValueError, match="ADR-185"):
+            build_review(repo, "HEAD", "HEAD")
+
     def test_a_guard_that_no_longer_exists_is_reported(self, repo):
         record = yaml.safe_load((repo / ".hobbes/invariants/I-1.yaml").read_text())
         record["guarded_by"] = ["tests/test_core.py::test_gone"]

@@ -19,6 +19,8 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import yaml
+
 from hobbes.extract.testmap import value_only_modules
 from hobbes.graphdiff import diff_graphs, extract_all_at_ref, has_changes
 from hobbes.invariants import Invariant, load_all, scope_matches
@@ -59,6 +61,9 @@ class CoverageDelta:
     new_unguarded: list[str] = field(default_factory=list)
     #: Modules that had guarding tests on base and have none on head.
     lost_guards: list[str] = field(default_factory=list)
+    #: Lost guards the repo accepted by name (ADR-185), each with its
+    #: ``"reason — decided"``: said, never a reason for attention.
+    lost_guards_accepted: dict[str, str] = field(default_factory=dict)
     #: Invariants whose guarded_by names a test that no longer exists.
     broken_guards: dict[str, list[str]] = field(default_factory=dict)
     base_tests: int = 0
@@ -168,7 +173,7 @@ def build_review(
     ]
     reviews.sort(key=lambda r: (_MOVEMENT_ORDER[r.movement], r.invariant.id))
 
-    coverage = _coverage_delta(base, head, records, head_tests)
+    coverage = _coverage_delta(base, head, records, head_tests, accepted_lost_guards(repo_root))
     touched = changed_paths(repo_root, base_ref, head_ref)
 
     review = Review(
@@ -274,7 +279,44 @@ def _fixture_counts(graph: dict, fixture_trees) -> list[dict]:
     return [{**tree, "modules": sum(1 for p in paths if _under(p, [tree["path"]]))} for tree in fixture_trees]
 
 
-def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str]) -> CoverageDelta:
+#: Where a repo accepts lost guards by name (ADR-185).
+ACCEPTED_LOST_GUARDS = Path(".hobbes") / "accepted-lost-guards.yaml"
+
+
+def accepted_lost_guards(repo_root: Path) -> dict[str, str]:
+    """The modules whose lost guards the repo accepted, each with its
+    ``"reason — decided"`` (ADR-185); empty when there is no record.
+
+    Read from the working tree, as the invariants are: it is a rule being
+    applied. A record of another shape is refused, never half read."""
+    path = Path(repo_root) / ACCEPTED_LOST_GUARDS
+    if not path.is_file():
+        return {}
+    data = yaml.safe_load(path.read_text()) or {}
+    entries = data.get("accepted") if isinstance(data, dict) else None
+    if not isinstance(entries, list) or set(data) - {"accepted"}:
+        raise ValueError(f"{ACCEPTED_LOST_GUARDS}: want one key, `accepted`, a list of entries (ADR-185)")
+    out: dict[str, str] = {}
+    for i, entry in enumerate(entries):
+        ok = (
+            isinstance(entry, dict)
+            and set(entry) == {"reason", "decided", "modules"}
+            and all(isinstance(entry[k], str) and entry[k].strip() for k in ("reason", "decided"))
+            and isinstance(entry["modules"], list)
+            and entry["modules"]
+            and all(isinstance(m, str) and m and "*" not in m for m in entry["modules"])
+        )
+        if not ok:
+            raise ValueError(
+                f"{ACCEPTED_LOST_GUARDS}: entry {i} needs `reason`, `decided` and `modules` "
+                "(module ids, one by one, no patterns) and nothing else (ADR-185)"
+            )
+        for module in entry["modules"]:
+            out[module] = f"{entry['reason'].strip()} — {entry['decided'].strip()}"
+    return out
+
+
+def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str], accepted=None) -> CoverageDelta:
     """Which behaviour lost its guard, and which new behaviour never had one."""
     base_modules = _own_code(base.graph, base.tests, base.fixture_trees)
     head_modules = _own_code(head.graph, head.tests, head.fixture_trees)
@@ -297,6 +339,10 @@ def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str]) 
     no_code = sorted(empty & {*new_unguarded, *lost_guards})
     new_unguarded = [m for m in new_unguarded if m not in empty]
     lost_guards = [m for m in lost_guards if m not in empty]
+    # ADR-185: a loss the repo accepted by name is said on its own list.
+    accepted = accepted or {}
+    lost_accepted = {m: accepted[m] for m in lost_guards if m in accepted}
+    lost_guards = [m for m in lost_guards if m not in accepted]
     broken = {
         record.id: missing
         for record in records
@@ -306,6 +352,7 @@ def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str]) 
     return CoverageDelta(
         new_unguarded=new_unguarded,
         lost_guards=lost_guards,
+        lost_guards_accepted=lost_accepted,
         broken_guards=broken,
         base_tests=len(base.tests.get("tests", [])),
         head_tests=len(head.tests.get("tests", [])),
@@ -572,6 +619,18 @@ def format_review(review: Review) -> str:
         add(f"   lost every guarding test ({len(coverage.lost_guards)}):")
         for module in coverage.lost_guards:
             add(f"      {module}{_value_only_note(coverage, module)}")
+    if coverage.lost_guards_accepted:
+        add(
+            f"   lost every guarding test, accepted ({len(coverage.lost_guards_accepted)};"
+            f" {ACCEPTED_LOST_GUARDS}, ADR-185):"
+        )
+        by_reason: dict[str, list[str]] = {}
+        for module, reason in coverage.lost_guards_accepted.items():
+            by_reason.setdefault(reason, []).append(module)
+        for reason, modules in sorted(by_reason.items()):
+            add(f"      {reason} ({len(modules)}):")
+            for module in sorted(modules):
+                add(f"         {module}")
     if coverage.fixture_only:
         add(
             f"   new code reached only through a pytest fixture ({len(coverage.fixture_only)};"
@@ -648,6 +707,7 @@ def review_to_dict(review: Review) -> dict:
             "head_tests": review.coverage.head_tests,
             "new_unguarded": review.coverage.new_unguarded,
             "lost_guards": review.coverage.lost_guards,
+            "lost_guards_accepted": review.coverage.lost_guards_accepted,
             "broken_guards": review.coverage.broken_guards,
             "fixture_trees": review.coverage.fixture_trees,
             "value_only": review.coverage.value_only,

@@ -2441,8 +2441,10 @@ MultiEdit and NotebookEdit.
   module a file loads by name carries the load, since 0.2.96-beta, and
   `tests_guarding` names it after "unguarded": ADR-167, C-179; a Python
   module that is at most its docstring is not asked for a guard and is
-  named on its own line, since 0.2.90-beta: ADR-117's amendment) → line
-  diff last. Edge styling by tier is **built**. The
+  named on its own line, since 0.2.90-beta: ADR-117's amendment; a lost
+  guard the repo accepted by name in `.hobbes/accepted-lost-guards.yaml`
+  is said on its own list with its reason and is not a reason for
+  attention, since 0.3.5-beta: ADR-185) → line diff last. Edge styling by tier is **built**. The
   lane-disagreement view is **not** — `hobbes lanes` is a command with no
   tab behind it, which is a known gap awaiting scope, not an oversight.
 - **The dev environment (`watterson`, ADR-181)** — `hobbes.watterson`, run
@@ -2469,7 +2471,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.3.4-beta** (2026-10-29, ADR-103; the dev environment, ADR-181; every wall-clock cap named, ADR-183; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.4-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.3.5-beta** (2026-10-29, ADR-103; the dev environment, ADR-181; every wall-clock cap named, ADR-183; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.5-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

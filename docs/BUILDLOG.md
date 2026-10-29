@@ -16664,3 +16664,26 @@ PR #5's branch.
   - `bun.lock` lost 302 lines; its 7 added lines are re-hoisted entries at already-locked versions.
   - Cold ingest, one run each: 194.9 → 157.6 s; lane A TS 40.4 → 29.6 s; lane B TypeScript 130.6 →
     107.2 s; peak 6.4 → 5.3 GB.
+- **The review of PR #6 (10 findings, all real):** kept configs named files the trim removed. That
+  covered package scripts, `core`'s test preload, `util`'s `tsconfig.dist.json`, `cli`'s Node build,
+  `ai`'s wildcard-exported barrels (`@opencode/ai/providers`), the oxlint leftovers and the `test`
+  scripts left with no tests. A missing record of the recorder made the work hard to reproduce, and the
+  DEC links were stale.
+  - **Root fix:** `pipeline/tests/test_watterson_tui_refs.py` walks every kept manifest, preload and
+    tsconfig. Its first version missed `plugin-browser`, because `*.test.*` matched
+    `tsconfig.test.json`; it now uses bun's own test-file rule.
+  - Rule 4 widened to wildcard exports, since Node's `*` spans `/`; 41 files came back.
+  - The recorder is committed as `tui/bundle-inputs.ts`, with 3 tests. It reproduces the pre-trim
+    inputs exactly.
+  - Checks after the fixes: `turbo test` runs the TUI suite alone (1,492/2/0), the typecheck passes
+    16/16, and the build passes.
+- **CI's `graph` job then failed on 219 lost guards:** opencode's deleted tests had been the only ones
+  reaching those modules. There was no way to accept a deliberate loss, and on `main` the review runs
+  from the last green run, so it would have stayed red. Max chose to register the loss and add our own
+  tests later.
+  - ADR-185 (0.3.5-beta): `.hobbes/accepted-lost-guards.yaml` names modules one by one with a reason
+    and who decided. `hobbes review` lists them as accepted and doesn't fail on them; the graph is
+    unchanged.
+  - The local review at the new head found 222 lost guards. CI's 219 minus the 2 files since deleted,
+    plus 5 restored `util`/`schema` files, gives the same set. All 222 are under `tui/opencode/`.
+  - With the record in place: "nothing needs attention", tests 8,660 → 5,763. pytest 3,398.

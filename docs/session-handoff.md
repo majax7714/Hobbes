@@ -36,7 +36,7 @@ to what the binary ships: DEC-028, on branch `refactor/trim-opencode`). Then ADR
 routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- The PR for `refactor/trim-opencode` (DEC-028). PRs #4 and #5 merged 2026-10-29 (`main` at 0.3.4-beta,
+- PR #6, `refactor/trim-opencode` (DEC-028, 0.3.5-beta with ADR-185: lost guards accepted by name). PRs #4 and #5 merged 2026-10-29 (`main` at 0.3.4-beta,
   `6cb09d4`); the image and proxy are rebuilt at it.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - From earlier: the live `watterson tui` check and the `~/.local/bin/watterson` relink; the gate's map
