@@ -164,18 +164,25 @@ const FULL: Palette = {
 }
 const GROUPED: Palette = { ...BASE, group: "#0f0f0f" }
 
-for (const [name, palette] of [["the full palette", FULL], ["only the base colours and a group colour, the rest falling back", GROUPED]] as const) {
-  test(`each kind is drawn as its family draws it, one row down, as tall as its text, coloured from ${name}`, () => {
-    const render = createMermaidCodeBlockRenderer(renderer, { colors: palette })
-    for (const kind of Object.keys(SAMPLES) as Kind[]) {
-      const diagram = call(render, SAMPLES[kind]) as TextRenderable
-      const want = expected(kind, SAMPLES[kind], palette)
-      expect(diagram.constructor.name).toBe("StaticDiagramRenderable")
-      expect(cells(diagram)).toEqual(cells(want))
-      expect([kind, diagram.height, diagram.marginTop]).toEqual([kind, lineCount(want), 1])
-    }
-  })
+function drawsEveryKindAsItsFamily(palette: Palette) {
+  const render = createMermaidCodeBlockRenderer(renderer, { colors: palette })
+  for (const kind of Object.keys(SAMPLES) as Kind[]) {
+    const diagram = call(render, SAMPLES[kind]) as TextRenderable
+    const want = expected(kind, SAMPLES[kind], palette)
+    expect(diagram.constructor.name).toBe("StaticDiagramRenderable")
+    expect(cells(diagram)).toEqual(cells(want))
+    expect([kind, diagram.height, diagram.marginTop]).toEqual([kind, lineCount(want), 1])
+  }
 }
+
+// Two literal titles rather than a loop: Hobbes names a TS test case only by a string-literal title.
+test("each kind is drawn as its family draws it, one row down, as tall as its text, coloured from the full palette", () => {
+  drawsEveryKindAsItsFamily(FULL)
+})
+
+test("each kind is drawn as its family draws it, coloured from only the base colours and a group colour, the rest falling back", () => {
+  drawsEveryKindAsItsFamily(GROUPED)
+})
 
 /** 118 columns wide: it folds at a layout width of 120 and fits at 121. */
 const BOUNDARY = `flowchart LR\n  A[${"a".repeat(52)}] --> B[${"b".repeat(53)}]`

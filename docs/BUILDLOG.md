@@ -16867,5 +16867,9 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
 - The diamond oddity found under `core` is unreachable from the fork: a flowchart decision node is always odd
   and at least 7 wide (`flowchart/layout.ts:116-121`).
 - `bun test`: 77 pass across 12 files. `tsc --noEmit` clean. `tests_guarding` on `detect` and `diagnostics`:
-  the named markdown cases; the two loop-generated cases (template-literal names) are not listed as tests.
+  the named markdown cases. The two cases first written as one loop with template-literal titles were not
+  listed as tests at all: `tsextract/extract.mjs:1167` drops an `it`/`test` call whose title is not a string
+  literal, silently, so its reach is not counted. Unregistered (no `C-n` names it); about 8 of ~1,335 TS/JS
+  cases in this repo (7 in the TUI's own tests). Unrolled here to two literal titles; the limit itself taken
+  to Max as routes.
   Three modules off the accepted list (`palette` was never on it): 179 remain, 167 waiting, 35 in `merman`.
