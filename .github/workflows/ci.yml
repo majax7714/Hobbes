@@ -68,6 +68,9 @@ jobs:
       - name: lattice (the Calvin experiments' E0 instruments, bench tooling; stdlib only)
         working-directory: bench/calvin/lattice
         run: uv sync && uv run pytest -q
+      - name: identity gate (ADR-184's comparison, bench tooling; stdlib only)
+        working-directory: bench/identity
+        run: uv run --project ../../pipeline pytest -q
 
   web:
     runs-on: ubuntu-24.04

@@ -1916,7 +1916,8 @@ test('a unit scip-clang timed out on is counted failed, though its index is well
   }
   const runs = readUnitIndexes(dir)
   assert.equal(runs.units, 3)
-  assert.equal(runs.units_failed, 2, 'the timed-out unit, and the one that left no summary')
+  assert.equal(runs.units_failed, 1, 'the timed-out unit')
+  assert.equal(runs.units_uncounted, 1, 'the one that left no summary: its index is drawn, its count unread')
   assert.equal(runs.units_timed_out, 1)
   assert.equal(runs.files.length, 3, 'every readable index is still decoded: a failed one holds nothing to draw')
   const said = degradations(fakeIndex([{ relative_path: 'a.c', occurrences: [] }]),
@@ -1944,7 +1945,22 @@ test("a whole-database run's count is read off its own summary, or said to be un
     { ...decode(fakeIndex([])), units: 3, units_failed: 0, units_uncounted: 3 }, { language: 'c' })
     .map((r) => r.message).filter((m) => /no summary/.test(m))
   assert.equal(said.length, 1)
-  assert.match(said[0], /how many of them indexed cannot be read/)
+  assert.match(said[0], /whether they indexed whole cannot be read; what their indexes hold is drawn/)
+  const timedOut = degradations(fakeIndex([{ relative_path: 'a.c', occurrences: [] }]),
+    { ...decode(fakeIndex([])), units: 3, units_failed: 0, units_uncounted: 3, units_timed_out: 1 }, { language: 'c' })
+    .map((r) => r.message).filter((m) => /no summary/.test(m))
+  assert.match(timedOut[0], /1 stopped at scip-clang's wait for its worker, the clang-unit cap: C-196/,
+    'a timeout is named even when no summary came')
+})
+
+test('a root whose every unit failed says it has no lane B answer, not that the others stand (C-197)', () => {
+  const said = degradations(fakeIndex([{ relative_path: 'a.c', occurrences: [] }]),
+    { ...decode(fakeIndex([])), units: 5, units_failed: 5, units_timed_out: 5 }, { language: 'c' })
+    .map((r) => r.message).filter((m) => /translation unit\(s\) failed/.test(m))
+  assert.equal(said.length, 1)
+  assert.match(said[0], /^all 5 of this root's translation unit\(s\) failed to index \(5 stopped/)
+  assert.match(said[0], /the root has no lane B answer/)
+  assert.doesNotMatch(said[0], /the others stand/)
 })
 
 test("the per-unit shell passes the clang-unit cap and keeps each unit's words (ADR-183, C-197)", () => {
@@ -1983,8 +1999,11 @@ test("the per-unit shell passes the clang-unit cap and keeps each unit's words (
 
 test('a step past its cap stops with the cap named, as an indexer failure (ADR-183)', () => {
   const err = stepTimedOut({ bin: 'scip-go', args: ['index'] }, 870)
-  assert.equal(err.message, 'scip-go index did not finish within its 870 s cap (C-196; HOBBES_TIMEOUT_SCALE raises every cap)')
+  assert.equal(err.message,
+    "scip-go index did not finish within the helper's 870 s cap on its steps (C-196; HOBBES_TIMEOUT_SCALE raises every cap)")
   assert.equal(exitCodeFor(err), INDEXER_EXIT, 'the helper ran; the indexer did not finish')
+  assert.match(stepTimedOut(cPlan({ language: 'c', stage: '/w', compdbSource: 'repo', compdb: '/w/c.json' }).steps[0], 870).message,
+    /^scip-clang over this root's translation units did not finish/, "a shell step says what it runs, not 'sh -c'")
 
   const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-step-'))
   const bin = cpath.join(dir, 'bin')
@@ -1994,8 +2013,50 @@ test('a step past its cap stops with the cap named, as an indexer failure (ADR-1
   process.env.PATH = `${bin}:${path}`
   try {
     assert.throws(
-      () => indexStage({ language: 'go', stage: dir, output: cpath.join(dir, 'o.scip'), stepTimeoutSeconds: 1 }),
-      (thrown) => /^scip-go index did not finish within its 1 s cap \(C-196/.test(thrown.message) && exitCodeFor(thrown) === INDEXER_EXIT,
+      () => indexStage({ language: 'go', stage: dir, output: cpath.join(dir, 'o.scip'), helperTimeoutSeconds: 1 }),
+      (thrown) => /^scip-go index did not finish within the helper's 1 s cap/.test(thrown.message) && exitCodeFor(thrown) === INDEXER_EXIT,
+    )
+  } finally {
+    process.env.PATH = path
+  }
+})
+
+test("the helper's cap is one budget for all of a plan's steps, so a slow build leaves the index only the rest (ADR-183)", () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-steps-'))
+  const bin = cpath.join(dir, 'bin')
+  cfs.mkdirSync(bin)
+  // The build takes most of the budget; the index alone would fit in it.
+  cfs.writeFileSync(cpath.join(bin, 'cmake'), '#!/bin/sh\nsleep 2\n', { mode: 0o755 })
+  cfs.writeFileSync(cpath.join(bin, 'scip-clang'), '#!/bin/sh\nsleep 2\n', { mode: 0o755 })
+  cfs.mkdirSync(cpath.join(dir, 'build'))
+  cfs.writeFileSync(cpath.join(dir, 'build', 'compile_commands.json'),
+    JSON.stringify([{ directory: dir, file: 'a.c', arguments: ['cc', '-c', 'a.c'] }]))
+  cfs.writeFileSync(cpath.join(dir, 'a.c'), 'int x;\n')
+  const path = process.env.PATH
+  process.env.PATH = `${bin}:${path}`
+  try {
+    assert.throws(
+      () => indexStage({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: cpath.join(dir, 'build'),
+        compdbSource: 'cmake', helperTimeoutSeconds: 3 }),
+      (thrown) => /^scip-clang over this root's translation units did not finish within the helper's 3 s cap/.test(thrown.message),
+    )
+  } finally {
+    process.env.PATH = path
+  }
+})
+
+test('a step killed by a signal says so, not "exited null" (C-150)', () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-sig-'))
+  const bin = cpath.join(dir, 'bin')
+  cfs.mkdirSync(bin)
+  cfs.writeFileSync(cpath.join(bin, 'scip-go'), '#!/bin/sh\necho dying >&2\nkill -KILL $$\n', { mode: 0o755 })
+  const path = process.env.PATH
+  process.env.PATH = `${bin}:${path}`
+  try {
+    assert.throws(
+      () => indexStage({ language: 'go', stage: dir, output: cpath.join(dir, 'o.scip') }),
+      (thrown) => /^scip-go index was stopped by SIGKILL \(the OOM killer or the container's memory limit, most likely: C-150\): dying/
+        .test(thrown.message) && exitCodeFor(thrown) === INDEXER_EXIT,
     )
   } finally {
     process.env.PATH = path

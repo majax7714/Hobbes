@@ -16,8 +16,12 @@ SCALE_ENV = "HOBBES_TIMEOUT_SCALE"
 
 #: Seconds at scale 1, by the step each cap bounds.
 CAPS: dict[str, int] = {
-    # Lane A's TS/JS helper, the whole repo in one run (tssource).
-    "tsextract": 300,
+    # Lane A's TS/JS helper, the whole run: a backstop for a hung helper,
+    # since each zone has its own cap below (ADR-184 lever 2).
+    "tsextract": 3600,
+    # One tsconfig zone of lane A's TS/JS helper, on its worker thread: a
+    # zone past it is stopped and recorded, and the others stand.
+    "tsextract-zone": 300,
     # The helper's tsconfig zone map, read for lane B (scipsource).
     "tsextract-zones": 300,
     # One lane B unit's container (containment.run via scipsource).
@@ -28,6 +32,9 @@ CAPS: dict[str, int] = {
     "registry-fetch": 600,
     # The venv's own interpreter listing its distributions.
     "python-env": 60,
+    # podman's answer on whether the image is built, and its id: past it,
+    # containment is refused for the run and says why.
+    "podman-probe": 60,
     # scip-clang's wait for one translation unit's worker (its own
     # ``--receive-timeout-seconds``, whose default this is).
     "clang-unit": 300,
@@ -61,8 +68,9 @@ def seconds(name: str) -> int:
 
 
 def step_seconds(unit_seconds: int) -> int:
-    """The helper's per-step cap inside a unit whose container has
-    *unit_seconds*."""
+    """The helper's cap on all its steps together inside a unit whose
+    container has *unit_seconds*: one budget, so a slow build leaves the
+    index step only what is left of it."""
     return max(1, unit_seconds - STEP_MARGIN)
 
 

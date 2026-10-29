@@ -7,13 +7,14 @@ import subprocess
 
 import pytest
 
-from hobbes.extract import caps, containment, scipsource, tssource
+from hobbes.extract import caps, containment, jobs, scipsource, tssource
 
 
 class TestTable:
     def test_scale_one_is_the_table(self, monkeypatch):
         monkeypatch.delenv(caps.SCALE_ENV, raising=False)
-        assert caps.seconds("tsextract") == 300
+        assert caps.seconds("tsextract") == 3600, "the whole run's backstop (ADR-184)"
+        assert caps.seconds("tsextract-zone") == 300
         assert caps.seconds("lane-b-unit") == 900
         assert caps.seconds("lane-b-java") == 1800
         assert caps.seconds("clang-unit") == 300, "scip-clang's own default, so scale 1 moves nothing"
@@ -42,6 +43,17 @@ class TestTable:
 
 
 class TestWhereTheyBite:
+    def test_the_ts_helper_is_given_its_jobs_and_its_zone_cap(self, tmp_path, monkeypatch):
+        seen = tmp_path / "argv"
+        script = tmp_path / "helper.sh"
+        script.write_text(f'#!/bin/sh\necho "$@" > {seen}\necho \'{{"helper_version": {tssource.HELPER_VERSION}, "files": []}}\'\n')
+        script.chmod(script.stat().st_mode | stat.S_IXUSR)
+        monkeypatch.setenv("HOBBES_TSEXTRACT_CMD", str(script))
+        monkeypatch.setenv(jobs.TS_JOBS_ENV, "3")
+        monkeypatch.setenv(caps.SCALE_ENV, "2")
+        tssource.run_helper(tmp_path)
+        assert seen.read_text().split()[-4:] == ["--jobs", "3", "--zone-timeout", "600"]
+
     def test_the_ts_helper_names_its_cap_and_stops_the_ingest(self, tmp_path, monkeypatch):
         script = tmp_path / "helper.sh"
         script.write_text("#!/bin/sh\nsleep 5\n")
@@ -101,7 +113,7 @@ class TestTheUnitConfigCarriesTheCaps:
         seen = self._capture(tmp_path, monkeypatch)
         scipsource.run_helper({"stage": str(tmp_path / "s"), "language": "go"})
         assert seen["timeout"] == 900
-        assert seen["config"]["stepTimeoutSeconds"] == 870
+        assert seen["config"]["helperTimeoutSeconds"] == 870
         assert "clangUnitTimeoutSeconds" not in seen["config"]
 
     def test_a_c_unit_carries_scip_clangs_wait(self, tmp_path, monkeypatch):
@@ -109,14 +121,58 @@ class TestTheUnitConfigCarriesTheCaps:
         seen = self._capture(tmp_path, monkeypatch)
         scipsource.run_helper({"stage": str(tmp_path / "s"), "language": "cpp"})
         assert seen["timeout"] == 1800
-        assert seen["config"]["stepTimeoutSeconds"] == 1770
+        assert seen["config"]["helperTimeoutSeconds"] == 1770
         assert seen["config"]["clangUnitTimeoutSeconds"] == 600
 
     def test_a_named_timeout_sets_the_step_under_it(self, tmp_path, monkeypatch):
         monkeypatch.delenv(caps.SCALE_ENV, raising=False)
         seen = self._capture(tmp_path, monkeypatch)
         scipsource.run_helper({"stage": str(tmp_path / "s"), "language": "java"}, timeout=caps.seconds("lane-b-java"))
-        assert seen["config"]["stepTimeoutSeconds"] == 1770
+        assert seen["config"]["helperTimeoutSeconds"] == 1770
+
+
+class TestTheIndexCache:
+    def test_a_run_whose_units_met_the_clang_unit_cap_is_not_stored(self, tmp_path, monkeypatch):
+        # A busy box made it; a hit would replay it on an idle one (C-196).
+        import json
+
+        from hobbes.extract import indexcache
+
+        stored: list = []
+        monkeypatch.setattr(indexcache, "store", lambda key, path: stored.append(key))
+        monkeypatch.setattr(indexcache, "record", lambda *a, **k: None)
+        facts_path = tmp_path / "s.facts.ndjson"
+
+        def run(plan, timeout, units_timed_out):
+            trailer = {"end": True, "documents": 0, "definitions": 0, "references": 0,
+                       "external_refs": 0, "implements": 0, "units": 2, "units_timed_out": units_timed_out}
+            facts_path.write_text(
+                json.dumps({"helper_version": scipsource.HELPER_VERSION, "language": "c"}) + "\n" + json.dumps(trailer) + "\n"
+            )
+            return containment.Outcome(subprocess.CompletedProcess([], 0, "", ""), True)
+
+        for units_timed_out, want in ((1, []), (0, ["key"])):
+            stored.clear()
+            monkeypatch.setattr(containment, "run", lambda plan, timeout, n=units_timed_out: run(plan, timeout, n))
+            config_path = tmp_path / "s.config.json"
+            config_path.write_text("{}")
+            facts = scipsource._run_helper({"language": "c"}, config_path, facts_path, 900, [], (), "", key="key")
+            assert facts["units_timed_out"] == units_timed_out
+            assert stored == want
+
+
+class TestPodman:
+    def test_a_probe_past_its_cap_names_it(self, monkeypatch):
+        monkeypatch.setattr(containment.shutil, "which", lambda name: "/usr/bin/podman")
+        monkeypatch.setattr(containment, "_availability", {})
+
+        def slow(*a, **k):
+            raise subprocess.TimeoutExpired(a[0], k["timeout"])
+
+        monkeypatch.setattr(containment.subprocess, "run", slow)
+        reason = containment.unavailable_reason()
+        assert reason.startswith("podman is not usable: `podman image exists ")
+        assert reason.endswith("did not finish within its 60 s cap (C-196; HOBBES_TIMEOUT_SCALE raises every cap)")
 
 
 class TestTheVenvListing:
@@ -138,3 +194,18 @@ class TestTheVenvListing:
     def test_a_timeout_is_still_a_containment_error(self):
         # Every catch that degrades on a ContainmentError still does.
         assert issubclass(containment.ContainmentTimeout, containment.ContainmentError)
+
+
+class TestJobs:
+    def test_a_default_is_a_bounded_fraction_of_the_cores(self, monkeypatch):
+        monkeypatch.delenv(jobs.TS_JOBS_ENV, raising=False)
+        monkeypatch.setattr(jobs, "_cores", lambda: 12)
+        assert jobs.ts_jobs() == 4
+        monkeypatch.setattr(jobs, "_cores", lambda: 1)
+        assert jobs.ts_jobs() == 1, "never zero"
+
+    @pytest.mark.parametrize("raw", ["0", "-2", "two", "1.5"])
+    def test_a_knob_that_is_not_a_whole_number_is_refused(self, monkeypatch, raw):
+        monkeypatch.setenv(jobs.TS_JOBS_ENV, raw)
+        with pytest.raises(ValueError, match="not a whole number"):
+            jobs.ts_jobs()

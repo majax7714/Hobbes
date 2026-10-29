@@ -492,7 +492,12 @@ recovery (ADR-109) and the provider's moniker scheme.)*
   - a few external type references scip-clang records inconsistently
     even within one unit (`size_t`, `ptrdiff_t`: 13 of fmt's 13,739
     external sites). These can move a tail count (`external` against
-    `builtin-name`), never an edge.
+    `builtin-name`), never an edge. **Seen larger 2026-10-28** (ADR-184's
+    gate, a control arm: one checkout ingested twice, per unit): in this
+    repo's `sqlite-vector-kernels` fixture, `distance-cpu.c`'s unresolved
+    tail moved 27 → 11 sites and `distance-sse2.c`'s 6 → 0 between two
+    ingests of one commit; `symbol_edges` were identical. The count can
+    move by more than a site or two; still no edge seen to move.
 - **You find out:** **partial** — a root over the bound draws a
   `scip-decode` record naming its unit count, the bound and C-149.
   Nothing says a tail count may differ by a site or two below it.

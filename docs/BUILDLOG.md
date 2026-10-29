@@ -16556,3 +16556,80 @@ rule and no version move. Item 9 goes to an ADR first. The proxy and image were 
 - **0.3.2-beta (ADR-119 amended):** each timed step also records this process's peak RSS and its largest
   host child's (`RUSAGE_SELF`, `RUSAGE_CHILDREN`); contained indexers are podman's, not measured, and the
   summary says so. One test; pytest 3,370.
+- **ADR-184 (route 2, same output faster):** the gate is `bench/identity/` (`run.sh`, `compare.py`, 8 cells;
+  `CONTROL=1` ingests the before arm twice). Measured first on this repo at `71a28c3`: 27 TS zones, largest
+  22.7 s, sum 99.1 s; the Python parse 12.1 s of which tree-sitter is 0.51 s, `_own_body` 12.0 M calls.
+  **Lever 1** (`_own_body` once per parse): 10.54 → 9.06 s; gate: cJSON, toml identical, the hobbes cell and
+  fmt one C tail count each (`distance-avx512.c`, `printf.h`; C-149's shape — pysource cannot move a C count;
+  the control arm was added to show it). **Lever 2** (TS zones on worker threads, per-zone cap, 0.3.3-beta):
+  the helper's facts byte-identical to the original at jobs 1 and 4 on the hobbes cell; 118.9 → 48.5 s,
+  3.7 → 6.8 GB, on a loaded box. pytest 3,376, tsextract 55.
+- A flaky test, not touched here: `test_watterson_live_session.py::TestTurnLabel::test_head_graph_clean_then_edited`
+  failed in 2 of 5 full runs on a loaded box; cause not found (in `currently-open.md`).
+- **Lever 3** (lane B languages on threads, `HOBBES_LANE_B_JOBS`): each language's containment ledger captured
+  per thread and merged in the serial order with its timings and outcome; the index cache's sweep moved before
+  the threads start (a sweep at one thread's first store could remove another's `.partial`). 6 tests;
+  pytest 3,382, `lane_b` 29/29 on the host with the indexers concurrent.
+- **Route 3, the pyrefly probe** (`~/.hobbes/bench/pyrefly-probe-2026-10-28/`; pyrefly 1.4.0 in its own venv;
+  click at `36baa15`; nothing in the repo touched): `pyrefly check … --report-glean` 2.3 s, ~460 MB, against
+  scip-python's 15–18 s in the container (rough, unlike conditions). `--report-pysa` panics (`pysa.rs:486`).
+  Output order is not deterministic (`XRefsViaNameByTarget` order, even at `-j 1`); canonically sorted it is.
+  Against the graph's scip-evidenced edges at (path, line, to): 4,848 both (98.2% / 98.7%), 91 only Hobbes, 66
+  only pyrefly. Sampled 15 each: Hobbes right in 14 of its own (pyrefly names an inherited or `super()` member
+  by the receiver class, a name that exists nowhere — `tests/typing/typing_aliased_group.py:26`); pyrefly right
+  in 12 of its own (platform-dead branches, nested defs, inference) and wrong in 1 (`_termui_impl.py:918`, a
+  dead branch resolved at module scope). An unresolved import looks like a resolved target. Verdict: worth a
+  held-out probe, not a drop-in (in `currently-open.md`).
+- **Gates** (`~/.hobbes/bench/speed-route2-2026-10-28/gate-lever{1,2,3}/`, 8 cells, cold, levers 2 and 3 with
+  a control arm): every lever identical on six cells; the hobbes cell and fmt differ only in C/C++ tail counts
+  that the control (before against before) shows differing too — C-149, amended: `distance-cpu.c` moved 27 →
+  11 unresolved sites between two ingests of one commit, `symbol_edges` identical.
+- **End to end, quiet box, hobbes cell, `main` → branch:** cold 305 → 194 s, warm 129 → 69 s; lane A TS 98 →
+  42 s; peak 3.6 → 6.3 GB (the TS helper's four zones; the ingest's own process 989 MB).
+
+## 2026-10-29 — forty-seventh session, continued: the reviews of PRs #4 and #5 (0.3.4-beta)
+
+Max pushed both branches. I opened PR #4 (`fix/name-extraction-caps`, ADR-183) and PR #5
+(`perf/same-output-faster`, ADR-184, stacked on #4) and reviewed each with `/code-review high --comment`: 10
+findings each, posted inline, several shared. I checked each against the code before acting. PR #4's
+commits were already pushed, and amending them would need a force-push, so the fixes are new commits on
+PR #5's branch.
+
+- **Real and fixed (0.3.4-beta):**
+  - The helper's step cap was per step, so a slow C build left podman to kill the index step under its
+    generic message. It is now one budget (`helperTimeoutSeconds`).
+  - A scip-clang run whose units met the `clang-unit` cap was stored in the index cache, and a hit would
+    replay it on an idle box. It is no longer stored.
+  - `sh -c` named a shell step. The steps now carry labels.
+  - A signal kill or a buffer overflow read "exited null". Both are now named.
+  - A root whose every unit failed said "the others stand".
+  - A readable index with no summary was counted failed, though its contents are drawn. It is now
+    uncounted.
+  - A timeout count was dropped when there was no summary.
+  - podman's 60 s probes were outside the caps table.
+  - A zone cap past setTimeout's 2³¹−1 ms made Node fire at once and stopped every zone. Reproduced:
+    the new test fails on the old helper with Node's `TimeoutOverflowWarning`.
+  - A zone timeout didn't say how many zones ran beside it.
+  - A failed zone didn't stop new zones from starting.
+  - Lane B peaks were sampled at the merge.
+  - An interrupt didn't cancel the queued lane B languages.
+- **The gate (`e9c4ae1`, no bump):** `run.sh` copied a failed pass's stale artifacts, and `compare.py`
+  compared parsed JSON while the rule says bytes. Both are fixed. I re-checked every gate run of levers 1–3
+  with the new comparison: all passes exited 0, and every cell called identical is identical bytes.
+- **Registered, not fixed:** an uncontained step's children outlive its cap. Group-kill needs a detached
+  child, and a detached child no longer gets the terminal's Ctrl-C (probed: `spawnSync({detached: true})`
+  plus `process.kill(-pid)` works). C-196 records it.
+- **Judged not a defect:** a timed-out venv listing in the cache. The listing is in the key, so a later
+  success misses. Per-zone workers re-importing TypeScript: measured fine at 27 zones, and noted in ADR-184.
+  Ctrl-C hanging parallel lane B: the terminal's SIGINT reaches the podman clients too (same foreground
+  group). The queued languages are now cancelled anyway.
+- Suites: pytest 3,386, `lane_b` 29/29 on the host, scip node 105, tsextract 56, Go version ok.
+
+- **PR #5's CI `graph` job failed** on its behavioural-coverage check: `bench/identity/compare.py` was a
+  new module no test reaches. PR #4 merged clean (`2351c13`) first. Added `bench/identity/test_compare.py`
+  (5 tests: built_by masked, the same JSON in other bytes, a failed pass, a differing row, the mask) and a CI
+  step that runs it. A test that loads the script by path would not have counted: the graph places a
+  `spec_from_file_location` load but never draws it (ADR-167). A local lane-A ingest shows all 5 reaching
+  `compare`. The gate on the fixes, before `a77d140` against after `8b52cc4`, control arm on: cJSON,
+  toml, jsoup and click are identical bytes. fmt differs only in C-149 tail rows (`os-test.cc` in the
+  control as well; `unicode-test.cc`, which flipped in lever 2's control).

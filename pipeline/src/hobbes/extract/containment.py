@@ -75,8 +75,11 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import threading
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Iterator
 
 from hobbes.extract import caps, staging
 
@@ -391,15 +394,18 @@ def unavailable_reason() -> str | None:
     if shutil.which("podman") is None:
         reason = "podman is not installed"
     else:
+        cap = caps.seconds("podman-probe")
         try:
             proc = subprocess.run(
                 ["podman", "image", "exists", key],
-                capture_output=True, timeout=60,
+                capture_output=True, timeout=cap,
             )
             reason = None if proc.returncode == 0 else (
                 f"image {key} is not built (sandbox/README.md: `podman build`)"
             )
-        except (OSError, subprocess.TimeoutExpired) as exc:
+        except subprocess.TimeoutExpired:
+            reason = "podman is not usable: " + caps.timed_out(f"`podman image exists {key}`", cap)
+        except OSError as exc:
             reason = f"podman is not usable: {exc}"
     _availability[key] = reason
     return reason
@@ -424,10 +430,12 @@ def image_id() -> str | None:
         try:
             proc = subprocess.run(
                 ["podman", "image", "inspect", "--format", "{{.Id}}", key],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True, text=True, timeout=caps.seconds("podman-probe"),
             )
             _image_ids[key] = proc.stdout.strip() or None if proc.returncode == 0 else None
         except (OSError, subprocess.TimeoutExpired):
+            # No id is no index cache for this run: every unit indexes,
+            # and the artifact is the same bytes (ADR-122).
             _image_ids[key] = None
     return _image_ids[key]
 
@@ -538,9 +546,33 @@ def plan(
 #: (ADR-092 phase 3). Reset per ingest.
 LEDGER: list[dict] = []
 
+#: A thread's own ledger while lane B runs its languages at once (ADR-184
+#: lever 3): each language's steps are kept apart and added to
+#: :data:`LEDGER` in the serial order, so the artifact cannot depend on
+#: which language finished first.
+_LOCAL = threading.local()
+
 
 def reset_ledger() -> None:
     LEDGER.clear()
+
+
+def record(entry: dict) -> None:
+    """Add *entry* to this thread's ledger: its own under :func:`capture`,
+    else :data:`LEDGER`."""
+    own = getattr(_LOCAL, "ledger", None)
+    (own if own is not None else LEDGER).append(entry)
+
+
+@contextmanager
+def capture() -> Iterator[list[dict]]:
+    """Keep this thread's ledger entries apart, in the list yielded."""
+    previous = getattr(_LOCAL, "ledger", None)
+    _LOCAL.ledger = entries = []
+    try:
+        yield entries
+    finally:
+        _LOCAL.ledger = previous
 
 
 def summary() -> dict:
@@ -588,7 +620,7 @@ def run(p: Plan, *, timeout: int) -> Outcome:
             raise ContainmentError(
                 f"podman could not start {p.profile.step}: {proc.stderr.strip()[-500:]}"
             )
-        LEDGER.append({"step": p.profile.step, "contained": True})
+        record({"step": p.profile.step, "contained": True})
         return Outcome(proc, True)
 
     if p.profile.executes_repo_code and not uncontained_requested():
@@ -610,7 +642,7 @@ def run(p: Plan, *, timeout: int) -> Outcome:
         raise  # the caller names how its tool is installed
     except subprocess.TimeoutExpired as exc:
         raise ContainmentTimeout(caps.timed_out(f"{p.profile.step}, on the host,", timeout)) from exc
-    LEDGER.append({"step": p.profile.step, "contained": False, "reason": reason})
+    record({"step": p.profile.step, "contained": False, "reason": reason})
     return Outcome(proc, False, host_reason=reason)
 
 

@@ -427,10 +427,10 @@ def run_helper(
     facts_path = stage.parent / f"{stage.name}.facts.ndjson"
     config["facts"] = str(facts_path)
     # One table for every cap (ADR-183): the unit's container, and under it
-    # each step the helper runs, so the helper's named error fires first.
+    # the helper's steps together, so the helper's named error fires first.
     if timeout is None:
         timeout = caps.seconds("lane-b-unit")
-    config["stepTimeoutSeconds"] = caps.step_seconds(timeout)
+    config["helperTimeoutSeconds"] = caps.step_seconds(timeout)
     if config["language"] in ("c", "cpp"):
         config["clangUnitTimeoutSeconds"] = caps.seconds("clang-unit")
     key = _cache_key(config, ro, env)
@@ -442,7 +442,7 @@ def run_helper(
             except ScipError:
                 indexcache.discard(key)
             else:
-                containment.LEDGER.append(
+                containment.record(
                     {"step": containment.INDEX_STEP[config["language"]], "contained": True}
                 )
                 indexcache.record(config["language"], key, hit=True)
@@ -539,9 +539,12 @@ def _run_helper(config, config_path, facts_path, timeout, ro, env, root, key=Non
         facts.setdefault("degraded", []).append(record)
     if key is not None:
         indexcache.record(config["language"], key, hit=False)
-        if outcome.contained:
+        if outcome.contained and not facts.get("units_timed_out"):
             # Stored after the read validated it (the trailer's counts),
             # and only when contained: the host's toolchain is unpinned.
+            # A run whose units met the clang-unit cap is not stored: a
+            # busy box made it, and a hit would replay it on an idle one
+            # (C-196).
             indexcache.store(key, facts_path)
     return facts
 

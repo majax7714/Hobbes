@@ -36,6 +36,15 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-28 — same output, faster (ADR-184) and the pyrefly probe
+
+- `bench/identity/` (in the repo): `run.sh <out> <before> <after> cells.txt`, `CONTROL=1` for a second before
+  arm; `compare.py`. Runs and worktrees in `~/.hobbes/bench/speed-route2-2026-10-28/` (`gate-lever*/`,
+  `wt-lever*-{before,after}/`, removable); `pyparse_prof.py`, `pyparse_time.py`; `tsprof/` (per-zone timing),
+  `tsnew/transform.py` (lever 2's edit).
+- `~/.hobbes/bench/pyrefly-probe-2026-10-28/`: `run.sh` (pyrefly 1.4.0, `--report-glean`), `scripts/`
+  (the mapping onto Hobbes ids and the comparison), `samples.txt`, `compare-summary.json`, `nodes.txt`.
+
 ## 2026-10-28 — every wall-clock cap named (ADR-183, 0.3.1-beta)
 
 - `~/.hobbes/bench/caps-adr183-2026-10-28/arms.sh`: cJSON, fmt, toml, jsoup ingested by a `main`

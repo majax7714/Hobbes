@@ -61,20 +61,21 @@ so a bare `ok` proves nothing. Verify them in the image with `-v`.
 
 ## Suite sizes
 
-Last checked 2026-10-28. pytest at 0.3.2-beta, tsextract and scip node at 0.3.1-beta, on the host; Go, vitest, review and the TUI at 0.3.0-beta; the rest were run at
+Last checked 2026-10-29. pytest, tsextract and scip node at 0.3.4-beta, on the host; Go, vitest, review and the TUI at 0.3.0-beta; the rest were run at
 0.2.74-beta.
 
 | Suite | Size | Notes |
 |---|---|---|
-| pytest | 3,370 | 29 of them `lane_b`; 453 are the dev environment's (`test_watterson_*`) |
+| pytest | 3,386 | 29 of them `lane_b`; 453 are the dev environment's (`test_watterson_*`) |
 | Go `./...` | 405 with subtests | 405 pass |
 | oracle-lane Go | 131 with subtests | 119 pass, 12 skip on a host without clang++ or cmake; the C++ ones pass in the image |
 | vitest | 52 | |
-| tsextract | 51 | |
-| scip node | 102 | |
+| tsextract | 56 | |
+| scip node | 105 | |
 | review (node) | 13 | the dev environment's review page |
 | TUI (bun) | 1,494 | 1,492 pass, 2 skip; `tui/opencode/packages/tui`, not in CI |
 | atlas0 | 84 | |
+| identity gate | 5 | `bench/identity/test_compare.py`, run by CI with the pipeline's environment |
 | lattice | 663 | 631 pass, 32 skip on a host without clang; they run in the image (2026-10-03) |
 
 Keep them green. CI does not check these counts. Update this table when

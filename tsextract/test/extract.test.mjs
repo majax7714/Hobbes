@@ -15,6 +15,8 @@ import {
   discoverWorkspacePackages,
   externalName,
   extractRepo,
+  extractRepoParallel,
+  zoneTimedOut,
   isTestFile,
   resolveRelative, UNION_MEMBER, isSolutionTsconfig, zoneTsconfig } from "../extract.mjs";
 
@@ -1283,4 +1285,62 @@ test("a function-literal field of a top-level named class is a method at its nam
     file.calls.filter((c) => c.name === "f").map((c) => [c.line, c.scope]),
     [[3, "Box.create"], [5, "Box.pick"], [6, "Box.#hidden"], [7, "Box"], [10, "Box"], [13, null]]
   );
+});
+
+
+// ADR-184 lever 2: zones on worker threads, merged in zone order.
+function threeZones() {
+  return makeRepo({
+    "a/tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+    "a/src/x.ts": 'import { y } from "./y";\nexport const x = () => y();\nnew Map();\n',
+    "a/src/y.ts": "export function y() { return 1; }\n",
+    "b/tsconfig.json": JSON.stringify({ compilerOptions: {} }),
+    "b/main.ts": 'import { helper } from "./lib/helper";\nhelper();\n',
+    "b/lib/helper.ts": "export function helper() {}\n",
+    "loose.js": "function z() {}\nz();\n",
+  });
+}
+
+test("zones on worker threads give the serial loop's bytes, at any parallelism (ADR-184)", async () => {
+  const root = threeZones();
+  const serial = JSON.stringify(extractRepo(root));
+  for (const jobs of [1, 2, 8]) {
+    assert.equal(JSON.stringify(await extractRepoParallel(root, { jobs })), serial, `jobs=${jobs}`);
+  }
+});
+
+test("a zone past its cap is stopped and recorded, its files listed with no facts (ADR-184, C-196)", async () => {
+  const root = threeZones();
+  const facts = await extractRepoParallel(root, { jobs: 2, zoneTimeoutSeconds: 0.001 });
+  const timedOut = facts.errors.filter((e) => e.stage === "zone-timeout");
+  assert.deepEqual(timedOut.map((e) => e.path).sort(), [".", "a/tsconfig.json", "b/tsconfig.json"])
+  assert.match(timedOut[0].message,
+    /did not finish within its 0\.001 s cap \(C-196; HOBBES_TIMEOUT_SCALE raises every cap; 2 zones ran at once \(HOBBES_TS_JOBS=1 runs them one at a time\)\)/);
+  assert.deepEqual(facts.files.map((f) => f.path), ["a/src/x.ts", "a/src/y.ts", "b/lib/helper.ts", "b/main.ts", "loose.js"],
+    "discovery found them, so they stay listed");
+  assert.ok(facts.files.every((f) => f.imports.length === 0 && f.calls.length === 0 && f.symbols.length === 0));
+});
+
+test("a timed-out zone's record names its files, a sample of them past four", () => {
+  const files = ["p/1.ts", "p/2.ts", "p/3.ts", "p/4.ts", "p/5.ts"];
+  const { errors, files: listed } = zoneTimedOut("p/tsconfig.json", files, 300);
+  assert.equal(listed.length, 5);
+  assert.match(errors[0].message, /its 5 file\(s\) \(p\/1\.ts, p\/2\.ts, p\/3\.ts, p\/4\.ts, …\) are listed with no facts/);
+  assert.doesNotMatch(errors[0].message, /ran at once/, "one at a time, nothing ran beside it");
+});
+
+test("a zone cap past setTimeout's limit is no zone cap, not one that fires at once", async () => {
+  // Node clamps a delay over 2^31-1 ms to 1 ms: every zone would be stopped.
+  const root = threeZones();
+  const facts = await extractRepoParallel(root, { jobs: 2, zoneTimeoutSeconds: 3_000_000 });
+  assert.equal(JSON.stringify(facts), JSON.stringify(extractRepo(root)));
+});
+
+test("the CLI runs zones in parallel with --jobs and caps each with --zone-timeout", () => {
+  const root = threeZones();
+  const run = (...args) => execFileSync("node", [path.join(import.meta.dirname, "..", "extract.mjs"), "--repo", root, ...args], { encoding: "utf8" });
+  const serial = JSON.stringify(extractRepo(root)) + "\n";
+  assert.equal(run(), serial, "one job by default");
+  assert.equal(run("--jobs", "3"), serial);
+  assert.match(run("--jobs", "2", "--zone-timeout", "0.001"), /"stage":"zone-timeout"/);
 });

@@ -15,6 +15,42 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.3.4-beta — 2026-10-29
+
+**Patch: the caps' review.** The review of PRs #4 and #5 (ADR-183 and ADR-184, both amended; C-196).
+
+- **One budget for a unit's steps.** The helper's cap inside a lane B container now covers all its steps
+  together (`helperTimeoutSeconds`, the unit's cap less 30 s). Before, a slow C build left podman to kill
+  the index step under a generic message.
+- **A timed-out scip-clang run is never cached.** The cache would have replayed a busy box's timeout on an
+  idle one. The facts carry `units_timed_out`.
+- **The words where a step stops:** shell steps name what they run (scip-clang over the units, bear over
+  make, the Gradle build), not `sh -c`. A step killed by a signal names it (SIGKILL: the OOM killer or the
+  container's memory limit, C-150), and so does output past the helper's buffer. A C/C++ root whose every
+  unit failed says it has no lane B answer. A unit that wrote an index but no summary is counted as
+  unreadable, not failed, since what it holds is drawn.
+- **podman's probes are in the caps table** (60 s), and a probe past its cap names it.
+- **Lane A TS:** a zone timeout names how many zones ran at once and `HOBBES_TS_JOBS`. A zone cap past
+  setTimeout's limit no longer fires at once, and a failed zone stops further zones from starting.
+- **Lane B in parallel:** each language's peak memory is sampled when its own run ends, and an interrupt
+  starts no language that had not started.
+- Registered in C-196: on the host (uncontained), a stopped C index step's children run on until they
+  finish. Nothing they write is read.
+
+## 0.3.3-beta — 2026-10-28
+
+**Patch: one TS zone fails alone.** ADR-184 levers 1 and 2 (route 2 of the speed and memory review: same
+output, faster). C-196 narrowed.
+
+- **Lane A TS runs its tsconfig zones on worker threads**, at most `HOBBES_TS_JOBS` at once (default: half
+  the cores, at most 4). The facts are the serial run's bytes at any parallelism. This repo's helper took
+  118.9 s before and 48.5 s with 4 at a time, on a loaded box; its peak went from 3.7 GB to 6.8 GB.
+- **Each zone has its own cap** (300 s). A zone past it is stopped, its files stay listed with no facts, and
+  a `zone-timeout` record names them (C-196). Before, the helper had one 300 s cap for the whole repo, and
+  the ingest stopped. The whole run keeps a 3,600 s backstop for a hung helper.
+- **pysource walks a definition's own body once per parse** (lever 1): about a dozen readers each walked
+  it afresh. This repo's Python parse: 10.5 s → 9.1 s. Byte-identical.
+
 ## 0.3.2-beta — 2026-10-28
 
 **Patch: the summary says more.** ADR-119, amended (route 1 of the speed and memory review).

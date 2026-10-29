@@ -1,0 +1,10 @@
+# ADR-184's cells: every lane, fixed commits. The first is this repo at
+# 71a28c3 with opencode's node_modules copied (bench speed-route2 dir).
+~/.hobbes/bench/speed-route2-2026-10-28/cells/hobbes
+~/.hobbes/bench/oracle/repos/cJSON
+~/.hobbes/bench/cpp-cells/fmt
+~/.hobbes/bench/oracle/repos/toml
+~/.hobbes/bench/oracle/repos/jsoup
+~/.hobbes/bench/oracle/repos/memchr
+~/.hobbes/bench/oracle/repos/click
+~/.hobbes/bench/comparative/repos/zod
