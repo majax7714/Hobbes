@@ -100,6 +100,12 @@ Left by the fold (2026-10-28):
   once a test of ours reaches it. **197 remain** (2026-10-29): `util`'s ten have 49 tests of ours, each
   checked by mutation to catch a fault no other case catches; 15 more left when the review learned to
   read the checkout's dependency trees (ADR-186, C-198), which showed a TUI test already reaching them.
+  Of the 197, 12 are a second entry (Max, route 3a): no runtime logic of their own (types, a `.d.ts`,
+  re-exports), never to get a test of their own; **185 wait for tests**. The check every new case is held
+  to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
+  `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
+  - Possible later, not asked: ADR-117 exempts a Python module with no code from the guard question; a
+    TS module of only types or re-exports is still asked, hence the second entry.
 
 ## Decisions open for Max (no spend, not extraction)
 

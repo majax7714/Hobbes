@@ -7,8 +7,6 @@ accepted:
   - reason: "DEC-028: opencode's own tests in tui/opencode were deleted with the trim; never in CI, only the TUI's suite runs"
     decided: "Max, 2026-10-29"
     modules:
-      - tui/opencode/packages/ai/src/index
-      - tui/opencode/packages/cli/dev/host.d
       - tui/opencode/packages/cli/script/files
       - tui/opencode/packages/cli/script/opencode-pty
       - tui/opencode/packages/cli/src/acp/agent
@@ -26,7 +24,6 @@ accepted:
       - tui/opencode/packages/cli/src/commands/handlers/mini
       - tui/opencode/packages/cli/src/commands/handlers/pair
       - tui/opencode/packages/cli/src/commands/handlers/stats
-      - tui/opencode/packages/cli/src/config/index
       - tui/opencode/packages/cli/src/cpu-profile
       - tui/opencode/packages/cli/src/env
       - tui/opencode/packages/cli/src/mini
@@ -44,7 +41,6 @@ accepted:
       - tui/opencode/packages/cli/src/ui/prompt
       - tui/opencode/packages/cli/src/version
       - tui/opencode/packages/client/src/effect/client
-      - tui/opencode/packages/client/src/effect/index
       - tui/opencode/packages/client/src/effect/service
       - tui/opencode/packages/client/src/promise/service
       - tui/opencode/packages/client/src/service-contender
@@ -56,7 +52,6 @@ accepted:
       - tui/opencode/packages/codemode/src/codemode
       - tui/opencode/packages/codemode/src/data
       - tui/opencode/packages/codemode/src/extension
-      - tui/opencode/packages/codemode/src/index
       - tui/opencode/packages/codemode/src/interpreter/callback
       - tui/opencode/packages/codemode/src/interpreter/errors
       - tui/opencode/packages/codemode/src/interpreter/execute
@@ -112,7 +107,6 @@ accepted:
       - tui/opencode/packages/merman/src/flowchart/parser
       - tui/opencode/packages/merman/src/flowchart/routing
       - tui/opencode/packages/merman/src/flowchart/style
-      - tui/opencode/packages/merman/src/flowchart/types
       - tui/opencode/packages/merman/src/gantt/drawing
       - tui/opencode/packages/merman/src/gantt/parser
       - tui/opencode/packages/merman/src/gantt/render-grid
@@ -138,7 +132,6 @@ accepted:
       - tui/opencode/packages/merman/src/state/routing
       - tui/opencode/packages/merman/src/state/search
       - tui/opencode/packages/merman/src/state/style
-      - tui/opencode/packages/merman/src/state/types
       - tui/opencode/packages/merman/src/state/visible-model
       - tui/opencode/packages/merman/src/timeline/drawing
       - tui/opencode/packages/merman/src/timeline/parser
@@ -161,14 +154,11 @@ accepted:
       - tui/opencode/packages/schema/src/event-manifest
       - tui/opencode/packages/schema/src/file-diff
       - tui/opencode/packages/schema/src/filesystem
-      - tui/opencode/packages/schema/src/filesystem-v1
       - tui/opencode/packages/schema/src/form
-      - tui/opencode/packages/schema/src/legacy-event
       - tui/opencode/packages/schema/src/mcp
       - tui/opencode/packages/schema/src/mcp-event
       - tui/opencode/packages/schema/src/model
       - tui/opencode/packages/schema/src/money
-      - tui/opencode/packages/schema/src/permission-v1
       - tui/opencode/packages/schema/src/project
       - tui/opencode/packages/schema/src/prompt
       - tui/opencode/packages/schema/src/provider
@@ -180,7 +170,6 @@ accepted:
       - tui/opencode/packages/schema/src/session-inbox
       - tui/opencode/packages/schema/src/session-message
       - tui/opencode/packages/schema/src/session-revert
-      - tui/opencode/packages/schema/src/session-v1
       - tui/opencode/packages/schema/src/shell
       - tui/opencode/packages/schema/src/skill
       - tui/opencode/packages/schema/src/v1/legacy-event
@@ -202,5 +191,19 @@ accepted:
       - tui/opencode/packages/simulation/src/frontend/actions
       - tui/opencode/packages/simulation/src/frontend/server
       - tui/opencode/packages/simulation/src/manifest
-      - tui/opencode/packages/simulation/src/protocol/index
       - tui/opencode/packages/simulation/src/recording
+  - reason: "no runtime logic of their own: type declarations only, a .d.ts, or re-exports of another module. A test of one could fail only on a re-export removed, which its importers and the typecheck already fail on; their behavior is the modules they re-export"
+    decided: "Max, 2026-10-29 (route 3a: modules with no runtime code accepted apart)"
+    modules:
+      - tui/opencode/packages/ai/src/index
+      - tui/opencode/packages/cli/dev/host.d
+      - tui/opencode/packages/cli/src/config/index
+      - tui/opencode/packages/client/src/effect/index
+      - tui/opencode/packages/codemode/src/index
+      - tui/opencode/packages/merman/src/flowchart/types
+      - tui/opencode/packages/merman/src/state/types
+      - tui/opencode/packages/schema/src/filesystem-v1
+      - tui/opencode/packages/schema/src/legacy-event
+      - tui/opencode/packages/schema/src/permission-v1
+      - tui/opencode/packages/schema/src/session-v1
+      - tui/opencode/packages/simulation/src/protocol/index
