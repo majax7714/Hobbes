@@ -74,6 +74,7 @@ Facts resolved by the orchestrator before WP-17 and WP-18, so no package re-deri
 
 - `reason` ∈ `uncaptured-file | dynamic-dispatch | laneb-miss | oracle-miss:<class>`.
 - `detail` names the tail class or the C-n entry behind the reason.
+- *Note, 2026-10-29 (0.3.7-beta):* the example's `attr-call` → `dynamic-dispatch` pairing is how the rounds above ran. The gate now files `attr-call` under `laneb-miss` (C-2: an untyped receiver, or a typed one the index names nothing past; neither is dispatch); `expr-callee` and `union-member` keep `dynamic-dispatch`. A record's `unknown_reasons` from before then counts those sites under `dynamic-dispatch`.
 - `sites` lists only the unresolved call sites in partition files, read from the parent graph's tail — the same data `list_blind_spots` serves.
 - The oracle cell's miss classes (for Go: function values, closures, interface dispatch) map onto `oracle-miss:<class>`.
 - `files` and `symbols` cover every partition file and every symbol in them.

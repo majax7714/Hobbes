@@ -39,6 +39,18 @@ Conventions (the harness README, D-O4), as the tracer meets them:
   Python declaration; they are counted per site as ``c_callees`` and
   *not* listed as targets. Python callees outside the repo are listed
   ``external: true`` (out of the in-repo recall denominator, D-O3).
+- **Implicit calls are a companion list** (ADR-187, C-174): an in-repo
+  dunder or property def that starts with no ``CALL`` event (a getter at
+  ``LOAD_ATTR``, ``__eq__`` at ``COMPARE_OP``, ``__str__`` at a format) is
+  keyed in ``implicit`` at its caller's line, ``via: "implicit"``, with
+  the caller's opcodes and their families. ``sites`` never holds one, and
+  the grader judges nothing from the list; it prints a second recall.
+- **Implicit calls are a companion list** (ADR-187, C-174): an in-repo
+  dunder or property def that starts with no ``CALL`` event (a getter at
+  ``LOAD_ATTR``, ``__eq__`` at ``COMPARE_OP``, ``__str__`` at a format) is
+  keyed in ``implicit`` at its caller's line, ``via: "implicit"``, with
+  the caller's opcodes and their families. ``sites`` never holds one, and
+  the grader judges nothing from the list; it prints a second recall.
 - **Comprehension frames are the compiler's own call** (H-36, root RC-2):
   a generator expression is its own code object and the compiler writes
   the ``CALL`` of it at the expression's own line. Nobody wrote that call
@@ -73,10 +85,12 @@ import argparse
 import ast
 import dis
 import functools
+import inspect
 import json
 import os
 import subprocess
 import sys
+import types
 from collections import defaultdict
 from pathlib import Path
 
@@ -98,6 +112,110 @@ WITH_FRAME_NAMES = frozenset({"__enter__", "__exit__"})
 WITH_OPCODES = frozenset(
     dis.opmap[name] for name in ("BEFORE_WITH", "WITH_EXCEPT_START") if name in dis.opmap
 )
+
+# The descriptor types the interpreter implements in C (H-38): binding one
+# runs no line the repo wrote, so ``_static_attr`` reads through them.
+_C_DESCRIPTORS = (
+    types.GetSetDescriptorType, types.MemberDescriptorType, types.WrapperDescriptorType,
+    types.MethodDescriptorType, types.ClassMethodDescriptorType,
+)
+# The callables no class can subclass, so no repo code sits on their
+# attribute lookup (a bound method forwards an unknown name to its
+# function, which is one of them): read directly, the fast path nearly
+# every call takes. ``getattr_static`` is slow enough to widen the window
+# H-39's shared guard drops another thread's calls in.
+_SEALED_TYPES = frozenset({
+    types.FunctionType, types.MethodType, types.BuiltinFunctionType,
+    types.MethodWrapperType, types.WrapperDescriptorType, types.MethodDescriptorType,
+})
+
+
+def _static_attr(obj, name: str):
+    """``getattr(obj, name, None)`` without running a line the repo wrote
+    (H-38, root RC-12): never ``__getattr__`` or ``__getattribute__``, a
+    property or another descriptor of the repo's. A value the object holds
+    itself, or a class holds that is no descriptor, reads as ``getattr``
+    reads it; a C slot (a function's ``__code__``, a bound method's
+    ``__func__``) through its descriptor, the interpreter's own code; a
+    function, ``staticmethod`` or ``classmethod`` a class holds is bound as
+    ``getattr`` binds it. Any other descriptor reads as absent."""
+    if type(obj) in _SEALED_TYPES:
+        return getattr(obj, name, None)
+    try:
+        v = inspect.getattr_static(obj, name)
+    except AttributeError:
+        return None
+    if not any("__get__" in vars(k) for k in type(v).__mro__):
+        return v  # not a descriptor: the same value either way
+    is_type = isinstance(obj, type)
+    if not is_type:
+        try:
+            own = object.__getattribute__(obj, "__dict__")
+        except AttributeError:
+            own = {}
+        if own.get(name, None) is v:
+            return v  # an instance's own value is never bound
+    # On a class, what its own MRO holds binds as ``__get__(None, cls)``;
+    # what its metaclass holds binds to the class as an instance.
+    in_mro = is_type and any(name in vars(k) for k in obj.__mro__)
+    inst, owner = (None, obj) if in_mro else (obj, type(obj))
+    if isinstance(v, staticmethod):
+        return v.__func__
+    if isinstance(v, classmethod):
+        return types.MethodType(v.__func__, owner)
+    if isinstance(v, _C_DESCRIPTORS + (types.FunctionType,)):
+        try:
+            return v.__get__(inst, owner)
+        except (AttributeError, TypeError):  # an unset slot, or one that does not apply
+            return None
+    return None
+
+
+# Implicit calls (ADR-187, C-174): an in-repo dunder or property def that
+# starts with no ``CALL`` of its own is keyed apart from ``sites``, at its
+# caller frame's line. Never keyed: construction, class-creation hooks and
+# GC teardown, which no caller line writes (a class's construction is keyed
+# at the class, "Classes" above); ``__enter__``/``__exit__`` are H-37's.
+IMPLICIT_EXCLUDE = frozenset({
+    "__init__", "__new__", "__init_subclass__", "__set_name__", "__del__",
+    "__post_init__", "__subclasshook__", "__instancecheck__", "__subclasscheck__",
+    "__prepare__",
+})
+# The caller's opcode → its family, for triage; looked up by name, so an
+# interpreter without one reads ``other`` rather than the wrong family.
+_OPFAM: dict[int, str] = {}
+for _fam, _names in (
+    ("operator", ("BINARY_OP", "COMPARE_OP", "BINARY_SUBSCR", "STORE_SUBSCR", "DELETE_SUBSCR",
+                  "BINARY_SLICE", "STORE_SLICE", "CONTAINS_OP", "UNARY_NEGATIVE", "UNARY_INVERT")),
+    ("iteration", ("GET_ITER", "FOR_ITER", "GET_AITER", "GET_ANEXT", "UNPACK_SEQUENCE", "UNPACK_EX",
+                   "LIST_EXTEND", "SET_UPDATE", "DICT_UPDATE", "DICT_MERGE", "GET_YIELD_FROM_ITER",
+                   "END_FOR")),
+    ("truth", ("POP_JUMP_IF_TRUE", "POP_JUMP_IF_FALSE", "UNARY_NOT")),
+    ("format", ("FORMAT_VALUE",)),
+    ("builtin-call", ("CALL", "CALL_FUNCTION_EX", "CALL_INTRINSIC_1", "CALL_INTRINSIC_2")),
+    ("attribute", ("LOAD_ATTR", "STORE_ATTR", "DELETE_ATTR", "LOAD_SUPER_ATTR", "LOAD_METHOD")),
+    ("with", ("BEFORE_WITH", "WITH_EXCEPT_START", "BEFORE_ASYNC_WITH")),
+):
+    for _n in _names:
+        if _n in dis.opmap:
+            _OPFAM[dis.opmap[_n]] = _fam
+
+
+def _bare(target: dict) -> str:
+    """A target's identity without ``via`` and the implicit triage fields."""
+    return json.dumps({k: v for k, v in target.items() if k not in ("via", "opcodes", "families")}, sort_keys=True)
+
+
+def _is_dunder(name: str) -> bool:
+    return len(name) > 4 and name.startswith("__") and name.endswith("__")
+
+
+def _is_property_decorator(d: ast.expr) -> bool:
+    if isinstance(d, ast.Call):
+        d = d.func
+    if isinstance(d, ast.Name):
+        return d.id in ("property", "cached_property")
+    return isinstance(d, ast.Attribute) and d.attr in ("property", "cached_property", "setter", "getter", "deleter")
 
 
 # ---------------------------------------------------------------- ast index
@@ -126,7 +244,7 @@ class DeclIndex:
         idx = self.files.get(rel)
         if idx is not None:
             return idx
-        idx = {"first_to_def": {}, "qual": {}, "lambda_lines": set(), "declared": 0}
+        idx = {"first_to_def": {}, "qual": {}, "lambda_lines": set(), "declared": 0, "props": set()}
         self.files[rel] = idx
         # `@overload` stubs and the implementation are one declaration
         # (D-O4, 2026-08-28): the graph's symbol sits on the first stub's
@@ -153,6 +271,8 @@ class DeclIndex:
                             _is_overload(d) for d in child.decorator_list
                         ):
                             overload_anchor[qual] = child.lineno
+                    if kind == "function" and any(_is_property_decorator(d) for d in child.decorator_list):
+                        idx["props"].add(child.lineno)
                     idx["qual"].setdefault(qual, (idx["first_to_def"][first], kind))
                     idx["declared"] += 1
                     walk(child, qual + ("." if kind == "class" else ".<locals>."))
@@ -214,6 +334,10 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
     positions: dict = {}
     guard = [False]
     generated = [0]  # call *events* dropped by the H-36 rule, as c_callees counts events
+    # ADR-187: (site key) -> {bare target key: target with its opcodes}
+    implicit: dict[tuple[str, int], dict] = {}
+    implicit_callers: dict[tuple[str, int], str] = {}
+    candidate: dict = {}
 
     def rel_of(code):
         try:
@@ -265,8 +389,8 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
         than through ``resolve``: none of resolve's unwindings (partial,
         ``__wrapped__``, bound method, ``__call__``) can stand between a
         caller and a comprehension, which no source token can name."""
-        fcode = getattr(callable_obj, "__code__", None)
-        return fcode is not None and fcode.co_name in GENERATED_FRAME_NAMES
+        fcode = _static_attr(callable_obj, "__code__")
+        return isinstance(fcode, types.CodeType) and fcode.co_name in GENERATED_FRAME_NAMES
 
     def resolve(callable_obj):
         """Return (target dict or None, via) — None means a C callee."""
@@ -280,11 +404,11 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
             if isinstance(obj, (staticmethod, classmethod)):
                 obj = obj.__func__
                 continue
-            f = getattr(obj, "__func__", None)  # bound method
+            f = _static_attr(obj, "__func__")  # bound method
             if f is not None and not isinstance(obj, type):
                 obj = f
                 continue
-            w = getattr(obj, "__wrapped__", None)
+            w = _static_attr(obj, "__wrapped__")
             if w is not None and w is not obj and not isinstance(obj, type):
                 obj = w
                 via = via or "wrapped"
@@ -292,7 +416,7 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
             break
         if isinstance(obj, type):
             mod = _sys.modules.get(obj.__module__)
-            filename = getattr(mod, "__file__", None)
+            filename = _static_attr(mod, "__file__")
             r = _rel(repo, filename) if filename else None
             if r is None:
                 return {"name": obj.__qualname__, "kind": "class", "external": True}, via
@@ -301,11 +425,11 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
             if hit is None:
                 return {"name": obj.__qualname__, "kind": "class", "external": True, "via": "unindexed"}, via
             return {"pos": {"path": r, "line": hit[0]}, "name": obj.__qualname__, "kind": "class"}, via
-        fcode = getattr(obj, "__code__", None)
-        if fcode is None:
-            call = getattr(type(obj), "__call__", None)
-            fcode = getattr(call, "__code__", None)
-            if fcode is None:
+        fcode = _static_attr(obj, "__code__")
+        if not isinstance(fcode, types.CodeType):
+            call = _static_attr(type(obj), "__call__")
+            fcode = _static_attr(call, "__code__")
+            if not isinstance(fcode, types.CodeType):
                 return None, via  # a C callee
             via = via or "__call__"
         return target_of_code(fcode), via
@@ -393,18 +517,82 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
         finally:
             guard[0] = False
 
+    def is_candidate(code):
+        """ADR-187: an in-repo dunder (not excluded) or property def."""
+        try:
+            return candidate[code]
+        except KeyError:
+            pass
+        ok = False
+        r = _rel(repo, code.co_filename)
+        if r is not None and r.endswith(".py"):
+            name = code.co_name
+            if _is_dunder(name):
+                ok = name not in IMPLICIT_EXCLUDE
+            else:
+                idx = index.file(r)
+                ok = idx["first_to_def"].get(code.co_firstlineno, code.co_firstlineno) in idx["props"]
+        candidate[code] = ok
+        return ok
+
+    def on_implicit_start(code):
+        """ADR-187: a candidate frame started; key it at its caller frame's
+        line with the opcode the caller stands on. A target the caller's own
+        ``CALL`` already recorded at that line (an explicit call, an
+        instance's ``__call__``) is not implicit and is skipped; the union
+        drops any a ``CALL`` recorded there in another run."""
+        if guard[0]:
+            return
+        caller = _sys._getframe(2).f_back  # 0 is this, 1 on_start, 2 the started frame
+        if caller is None:
+            return
+        ccode = caller.f_code
+        r = rel_of(ccode)
+        if r is None:
+            return
+        guard[0] = True
+        try:
+            op = ccode.co_code[caller.f_lasti]
+            target = target_of_code(code)
+            line, _col = site_line(ccode, caller.f_lasti)
+            key = (r, line)
+            tk = _bare(target)
+            site = sites.get(key)
+            if site is not None and tk in {_bare(t) for t in site["targets"].values()}:
+                return
+            row = implicit.setdefault(key, {})
+            t = row.get(tk)
+            if t is None:
+                t = dict(target)
+                t["via"] = "implicit"
+                t["opcodes"] = []
+                t["families"] = []
+                row[tk] = t
+                implicit_callers.setdefault(key, ccode.co_qualname)
+            opname = dis.opname[op]
+            fam = _OPFAM.get(op, "other")
+            if opname not in t["opcodes"]:
+                t["opcodes"].append(opname)
+            if fam not in t["families"]:
+                t["families"].append(fam)
+        finally:
+            guard[0] = False
+
     def on_start(code, offset):
         with_frame = code.co_name in WITH_FRAME_NAMES
         if with_frame:
             on_with_start(code)
+        implicit_frame = not with_frame and is_candidate(code)
+        if implicit_frame:
+            on_implicit_start(code)
         r = rel_of(code)
         if r is not None:
             if code.co_name == "<module>":
                 loaded.add(r)
             else:
                 started.add((r, code.co_qualname))
-        if with_frame:
-            return None  # every entry is read, so it is never disabled (H-37)
+        if with_frame or implicit_frame:
+            return None  # every entry is read, so it is never disabled (H-37, ADR-187)
         return mon.DISABLE  # one event per code object is enough
 
     mon.register_callback(TOOL, mon.events.CALL, on_call)
@@ -431,6 +619,11 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
         "exit": int(rc), "sites": out_sites, "loaded": sorted(loaded),
         "started": sorted(f"{r}::{q}" for r, q in started),
         "generated": generated[0],
+        "implicit": [
+            {"pos": {"path": p, "line": l}, "caller": implicit_callers.get((p, l), ""),
+             "targets": sorted(ts.values(), key=_bare)}
+            for (p, l), ts in sorted(implicit.items())
+        ],
     }))
     return int(rc)
 
@@ -478,6 +671,7 @@ def main(argv=None) -> int:
     started: set[str] = set()
     exits = []
     generated = 0  # summed over the runs, as hits and c_callees are
+    implicit_union: dict[tuple[str, int], dict] = {}  # ADR-187
     for i in range(args.runs):
         raw = out.with_suffix(f".run{i + 1}.json")
         cmd = [sys.executable, os.path.abspath(__file__), "--repo", str(repo), "--module", module or ".",
@@ -503,6 +697,32 @@ def main(argv=None) -> int:
             for t in s["targets"]:
                 if target_key(t) not in seen:
                     u["targets"].append(t)
+        for s in data.get("implicit", []):
+            key = (s["pos"]["path"], s["pos"]["line"])
+            u = implicit_union.setdefault(key, {"pos": s["pos"], "caller": s["caller"], "targets": {}})
+            for t in s["targets"]:
+                have = u["targets"].get(_bare(t))
+                if have is None:
+                    u["targets"][_bare(t)] = t
+                else:
+                    for f in ("opcodes", "families"):
+                        have[f] = sorted(set(have[f]) | set(t[f]))
+
+    # ADR-187: a target a CALL recorded at the same line in any run is not
+    # implicit; dropped and counted, never silently.
+    dropped_as_called = 0
+    for key, u in implicit_union.items():
+        reg = union.get(key)
+        if reg is None:
+            continue
+        called = {_bare(t) for t in reg["targets"]}
+        for tk in [tk for tk in u["targets"] if tk in called]:
+            del u["targets"][tk]
+            dropped_as_called += 1
+    implicit_sites = [
+        {"pos": u["pos"], "caller": u["caller"], "targets": [u["targets"][k] for k in sorted(u["targets"])]}
+        for _k, u in sorted(implicit_union.items()) if u["targets"]
+    ]
 
     files = module_files(repo, module)
     index = DeclIndex(repo)
@@ -539,10 +759,16 @@ def main(argv=None) -> int:
     # were seen, so a key from a repo without a comprehension is unchanged.
     if generated:
         export["excluded"] = {"generated": generated}
+    # Keyed apart from `sites` and judged by nothing (ADR-187): the grader
+    # prints a second recall over both, beside the standing one.
+    export["implicit"] = implicit_sites
+    export["implicit_dropped_as_called"] = dropped_as_called
     out.write_text(json.dumps(export, indent=1) + "\n")
     print(f"trace: {len(export['sites'])} sites, {sum(len(s['targets']) for s in export['sites'])} targets, "
           f"{len(loaded)}/{len(files)} module files loaded, {len(started)}/{declared} declarations started, "
           f"{generated} generated calls excluded, "
+          f"{sum(len(s['targets']) for s in implicit_sites)} implicit calls at {len(implicit_sites)} sites "
+          f"({dropped_as_called} dropped as called), "
           f"runs {args.runs}, suite exits {exits}", file=sys.stderr)
     return 0
 

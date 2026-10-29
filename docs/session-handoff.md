@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-29 (forty-eighth session); `main` at 0.3.5-beta (`1f93eb1`, PR #6 merged); branch
-`test/opencode-own-tests` at 0.3.6-beta (ADR-186), the image and proxy rebuilt at it, this repo ingested at
-its HEAD.** A new
+**Reviewed 2026-10-29 (forty-ninth session); `main` at 0.3.6-beta (`b372278`, PR #7 merged); branch
+`fix/gate-reason-and-trace-implicit` at 0.3.7-beta (the gate's `attr-call` reason, H-38, ADR-187), the image
+and proxy rebuilt at it; this repo's ingest is at `71e42e1` (rerun `hobbes ingest`).** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
@@ -33,19 +33,24 @@ session went belongs in the BUILDLOG.
 
 - 2026-10-29: our own tests for the fork, "tests aren't test dependent" (no case that only fails when
   another does; checked by `bench/subsume/`); "good for the recommended routes" (C-198's fix, the tool in
-  `bench/`, no-logic modules accepted apart, pure packages first).
+  `bench/`, no-logic modules accepted apart, pure packages first). Forty-ninth session: "yeah proposed for
+  both are good": `attr-call` filed `laneb-miss` (0.3.7-beta); the trace key's implicit calls as a companion
+  key (ADR-187), H-38 fixed first.
 
-**Next:** the fork's tests, in Max's order: `merman`, `core/shell`, `codemode`, then `schema`'s decoders,
-then the effectful packages (179 modules wait, `currently-open.md`). Then ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own ADR first. The extraction
+**Next:** the fork's tests, in Max's order: `merman` (its `core` done, PR #9; 38 modules left: the
+top-level four, then flowchart, gantt, gitgraph, sequence, state, timeline), `core/shell`, `codemode`, then
+`schema`'s decoders, then the effectful packages (170 modules wait, `currently-open.md`). **Serially, and
+`bench/subsume` with `-j 2`** (Max, 2026-10-29: its default 6 workers peaked this machine's memory). Then ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own ADR first. The extraction
 routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- The PR of `test/opencode-own-tests` (Max opens it): `util` and `latex` tests, ADR-186/C-198 (0.3.6-beta),
-  `bench/subsume/`. After merging, restart the knowledge server (runbook: the image changed).
+- The PR of `fix/gate-reason-and-trace-implicit` (0.3.7-beta, ADR-187, H-38). After merging, restart the
+  knowledge server (runbook: the image changed).
 - The four fork oddities `latex`'s tests pin (`currently-open.md`): fix upstream code, or leave pinned.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
-- From earlier: the live `watterson tui` check and the `~/.local/bin/watterson` relink; the gate's map
-  reason `dynamic-dispatch` for `attr-call`; whether to extend the standing trace oracle; the Python routes
+- H-39: the trace oracle's re-entrance guard is shared across threads; a thread-local guard moves every key
+  with a threaded test (`currently-open.md`).
+- From earlier: the live `watterson tui` check and the `~/.local/bin/watterson` relink; the Python routes
   (C-181's residual, ADR-156 and fixture values).
 
 ## Where the last day left things (2026-10-28; the CHANGELOG and BUILDLOG have each one)
@@ -92,8 +97,8 @@ Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. F
 - **Register:** 198 entries: 146 active (114 surfaced, 28 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 35 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
-- **Oracle defect log: H-38 open** (2026-10-03): the trace oracle's
-  `getattr` reads run a repo's `__getattr__`; not met on a standing cell.
+- **Oracle defect log: H-39 open** (2026-10-29): the trace oracle's re-entrance
+  guard is shared across threads (H-38 fixed the same day).
   RC-4 still carries its price: its silencing is indiscriminate, and it
   hides 6 of C-153's rows.
 - **Shanks, the harness** (ADR-107, ADR-112, ADR-152): 98 session logs, and

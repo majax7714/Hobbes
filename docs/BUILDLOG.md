@@ -16762,6 +16762,61 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   `maxExpand` off-by-one it reported I confirmed directly (`maxExpand: 1` refuses a one-level macro); it and
   three other fork oddities are pinned by tests and listed in `currently-open.md`, not fixed.
 
+## 2026-10-29 (forty-ninth session) — the gate's map reason for `attr-call`; 0.3.7-beta
+
+- Max: "yeah proposed for both are good" — item 1 route a (refile `attr-call` under `laneb-miss`) and item 2
+  route a (the trace oracle's implicit calls as a companion key, H-38 first).
+- Read first: the map reason is a label. `_reason_ok` (`gate.py:160`) routes a NULL to `unknown` for any valid
+  reason, and no code branches on `dynamic-dispatch`; it reaches the record's `unknown_reasons` (`gate.py:620`)
+  and the repair text (`gate.py:674`). Neither of `attr-call`'s causes is dispatch, so the class is a
+  `laneb-miss`. `expr-callee` and `union-member` keep `dynamic-dispatch`. `MAP_REASONS` unchanged.
+- `test_gate.py`: the derived map's site row, the hand-built map's `attr-call` rows, and a pin that only
+  `expr-callee` and `union-member` file `dynamic-dispatch` (the hand-built symbol row keeps the reason, its
+  detail now C-63). C-2's line, HISTORY, `calvin-m0-gate.md` §0b (a dated note; the rounds ran with the old
+  pairing), CHANGELOG; the item deleted from `currently-open.md`.
+- pytest 3,411 passed; Go `./...` ok. Proxy rebuilt static (`hobbes-proxy 0.3.7-beta`), image rebuilt
+  (`2c5d040d284c`). lane_b not re-run: nothing it reads moved.
+
+## 2026-10-29 (forty-ninth session, cont.) — H-38 fixed; H-39 found and logged open
+
+- Item 2's route a, step 1 (contain first): the tracer read `__code__`, `__func__`, `__wrapped__`, a module's
+  `__file__` and a class's `__call__` with `getattr`, which runs a repo's `__getattr__`. Fixture first:
+  `testdata/pygetattr` (a `__getattr__` that answers every name and records it) and `TestTracerRunsNoRepoCode`,
+  red on the old tracer exactly as H-38 reads (`AttributeError` at `is_generated_frame`, suite exits `[1]`).
+- The fix, `_static_attr`: sealed builtin types read directly; anything else through `inspect.getattr_static`,
+  binding only C descriptors, functions, `staticmethod`, `classmethod`. A first cut bound a class's own slot wrapper
+  as an instance's (`TypeError`, the pygen and pywith tests red); fixed by binding where `getattr` binds.
+- Identity (`~/.hobbes/bench/h38-trace-2026-10-29/RESULTS.md`): the four standing keys re-run as their cells ran
+  them. flask, click and rich identical pair for pair; structlog gains one correct external row (`call("test")`
+  → `_Call.__call__`, which the old reads lost by running mock's `__getattr__`); no Hobbes edge on that line.
+- **H-39, found on the way:** the build without the fast path dropped 307 C-callee events over 39 rich sites
+  against the unfixed tracer the same day (`tests/test_live.py:124` read 18 of 20). The re-entrance guard is one
+  flag for every thread; a slower read widened the window. The fast path restores speed; the race stays as in the
+  standing tracer. Logged open (RC-4), taken to Max: fixing it moves every key with a threaded test.
+- bench/oracle `go test ./...` ok (the trace tests ran, not skipped). Bench only: no bump.
+
+## 2026-10-29 (forty-ninth session, cont.) — ADR-187: the trace key's implicit calls as a companion key
+
+- ADR-187 first (route a as approved). The measuring copy's implicit read ported onto the fixed tracer:
+  in-repo dunders (construction, class-creation and teardown hooks excluded; `with` stays H-37's) and
+  property getters/setters/deleters with no `CALL` of their own, keyed at the caller's line in the export's
+  `implicit` list with the caller's opcodes and families; a target a `CALL` recorded there in any run is
+  dropped and counted. `sites` untouched. Go: `edges.ImplicitSite`/`ImplicitTarget` (own types: `Target` is a
+  map key and cannot hold a slice); the grader's `recall_with_implicit`, `implicit_pairs`, `implicit_confirmed`,
+  `implicit_by_family`, printed under the standing recall in `printTrace` (first placed in the non-trace
+  branch; the test caught it).
+- Tests: `TestImplicitListJudgesNothingAndAddsACompanionRecall` (buckets, rates and recall equal with and
+  without the list; an edge on an implicit-only line stays `unobserved`), `TestTracerKeysImplicitCallsApart`
+  on `testdata/pyimplicit` (10 implicit pairs, 5 quiet lines from the file's own comments; the first count
+  of 11 in the test was mine, the fixture marks 10). `functools.cached_property` keys nothing, stated in the ADR.
+- Re-keyed the four standing cells (`~/.hobbes/bench/adr187-keys-2026-10-29/RESULTS.md`): every standing
+  figure and row equal to the old key's, poison PASS; implicit pairs flask 208, structlog 191, click 676, rich
+  1,308, the measuring run's counts, none drawn; recall with them 50.8%, 62.2%, 71.2%, 71.1% against 54.6%,
+  69.7%, 81.7%, 88.4% (each key directory's own graph). C-174's Bites-at line names them;
+  `oracle-grading.md` §10.52; the four cell records name the new keys. The item deleted from
+  `currently-open.md`.
+- bench/oracle `go test ./...` and `go vet` ok; pytest 3,411 passed. Bench only: no bump, no image rebuild.
+
 ## 2026-10-29 (forty-ninth session, cont.) — our own tests for `merman`'s `core` (64 cases, none redundant)
 
 - Max's order after `latex`: `merman`, taken in sub-units; `core` first (nine modules, about 1,340 lines:

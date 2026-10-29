@@ -72,8 +72,8 @@ MAP = {"partition": ["cmd/main.go", "internal/app/app.go"],
        "files": [{"path": "cmd/main.go", "captured": True, "reason": None, "detail": ""},
                  {"path": "internal/app/app.go", "captured": False, "reason": "uncaptured-file", "detail": "C-26"}],
        "symbols": [{"id": "cmd/main.main", "path": "cmd/main.go", "start": 5, "end": 7, "captured": True, "reason": None, "detail": ""},
-                   {"id": "cmd/main.runGoRTA", "path": "cmd/main.go", "start": 9, "end": 11, "captured": False, "reason": "dynamic-dispatch", "detail": "C-2"}],
-       "sites": [{"path": "cmd/main.go", "line": None, "count": 3, "class": "attr-call", "reason": "dynamic-dispatch", "detail": "C-2"}],
+                   {"id": "cmd/main.runGoRTA", "path": "cmd/main.go", "start": 9, "end": 11, "captured": False, "reason": "dynamic-dispatch", "detail": "C-63"}],
+       "sites": [{"path": "cmd/main.go", "line": None, "count": 3, "class": "attr-call", "reason": "laneb-miss", "detail": "C-2"}],
        "partition_lines": 29, "uncaptured_lines": 21, "fraction_uncaptured": 0.72, "source": {"graph": "graph.json", "built_by": "hobbes test"}}
 
 
@@ -265,7 +265,7 @@ def test_the_split_routes_a_name_absence_in_a_blind_spot_to_unknown_and_leaves_t
     assert rec["verdict"] == "clear" and rec["advisory"] == ["unknown"] and rec["counts"]["unknown"] == 1
     row = rec["rows"][0]
     assert (row["class"], row["grounder_class"], row["site"]["grain"], row["site"]["id"], row["site"]["reason"], row["site"]["detail"]) == \
-        ("unknown", "invented", "symbol", "cmd/main.runGoRTA", "dynamic-dispatch", "C-2")
+        ("unknown", "invented", "symbol", "cmd/main.runGoRTA", "dynamic-dispatch", "C-63")
     assert row["site"]["anchor"] == ["replace", 10] and rec["split"]["invented"] == {"stands": 0, "unknown": 1}
     assert rec["unknown_reasons"] == {"dynamic-dispatch": 1} and rec["map"]["partition_agrees"] is True
     # the same invention inside main, a captured symbol: it stands and blocks
@@ -292,7 +292,7 @@ def test_a_file_grain_site_row_never_routes_and_a_line_grain_one_does(repo):
     rec = run_gate(repo, diff_of(root, GO_CASES["invented"]), partition=m["partition"], bmap=m)
     assert rec["blocking"] == ["invented"] and rec["rows"][0]["site"]["grain"] == "symbol" and rec["rows"][0]["site"]["captured"] is True
     assert rec["map"]["unresolved_by_file"] == {"cmd/main.go": {"attr-call": 3}}
-    m["sites"].append({"path": "cmd/main.go", "line": 10, "class": "attr-call", "reason": "dynamic-dispatch", "detail": "C-2"})
+    m["sites"].append({"path": "cmd/main.go", "line": 10, "class": "attr-call", "reason": "laneb-miss", "detail": "C-2"})
     rec = run_gate(repo, diff_of(root, GO_CASES["invented"]), partition=m["partition"], bmap=m)
     assert rec["verdict"] == "clear" and (rec["rows"][0]["site"]["grain"], rec["rows"][0]["site"]["id"]) == ("site", "cmd/main.go:10")
     m["sites"][-1]["reason"] = None
@@ -531,7 +531,7 @@ def test_derive_map_reads_capture_from_the_parent_graph_by_wp17s_rule(repo):
     syms = {s["id"]: s for s in m["symbols"]}
     assert syms["cmd/main.main"]["captured"]
     assert not syms["pkg.core.derive"]["captured"] and syms["pkg.core.derive"]["reason"] == "laneb-miss"
-    assert m["sites"] == [{"path": "pkg/use.py", "line": None, "count": 1, "class": "attr-call", "reason": "dynamic-dispatch",
+    assert m["sites"] == [{"path": "pkg/use.py", "line": None, "count": 1, "class": "attr-call", "reason": "laneb-miss",
                            "detail": gt._TAIL_REASON["attr-call"][1]}]  # builtin-name is language machinery, not a blind spot
     assert str(root) not in json.dumps(m)  # the graph is named by its SHA, never a path of this machine
     assert gt.derive_map(g, list(reversed(files)), root, sha) == m
@@ -547,6 +547,11 @@ def test_every_tail_class_has_a_map_reason_or_is_deliberately_omitted():
     # `arity-mismatch` (ADR-130) is lane B's wrong answer too: the call
     # cannot land on the declaration the index named.
     assert gt._TAIL_REASON["arity-mismatch"][0] == "laneb-miss"
+    # `attr-call` (C-2) names two causes, an untyped receiver or a typed
+    # one the index names nothing past (zod's aliases), and neither shows
+    # a target chosen at runtime; the classes that do keep the reason.
+    assert gt._TAIL_REASON["attr-call"][0] == "laneb-miss"
+    assert {c for c, (r, _) in gt._TAIL_REASON.items() if r == "dynamic-dispatch"} == {"expr-callee", "union-member"}
 
 
 def test_derive_map_without_a_contained_lane_b_reads_every_file_uncaptured(repo):

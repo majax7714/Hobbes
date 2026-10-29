@@ -3069,3 +3069,29 @@ What the search found, so the scope claims above carry their sources:
   extractors, but the tracer protocol and corpus are directly reusable as
   external cells later, and it is the precedent that execution-verification
   scales without manual ground-truth authoring.
+
+### 10.52 The trace key's implicit calls as a companion key (ADR-187) — the four standing Python cells, 2026-10-29
+
+**Why.** C-174's Python shapes (a property's getter, an operator's or a loop's dunder) make no `CALL` event, so
+the standing keys held none, and C-174 called their share unmeasured. Merging them into the key would drop every
+recall by denominator alone and re-bucket edges by what "observed line" means (ADR-187). They are keyed apart:
+the export's `implicit` list, judged by nothing, and a `recall-with-implicit` line beside the standing recall.
+H-38 was fixed first (the tracer ran a repo's `__getattr__`).
+
+| cell | standing recall | recall with implicit | implicit pairs | drawn | standing grade |
+|---|---:|---:|---:|---:|---|
+| flask (`flask-py-r3`) | 54.6% (1,524/2,790) | 50.8% (1,524/2,998) | 208 | 0 | identical, 0 of 1,730 rows moved |
+| structlog (`structlog-py-r2`) | 69.7% (1,110/1,593) | 62.2% (1,110/1,784) | 191 | 0 | identical, 0 of 1,261 |
+| click (`click-py-r5`) | 81.7% (3,756/4,596) | 71.2% (3,756/5,272) | 676 | 0 | identical, 0 of 4,366 |
+| rich (`rich-py-r3`) | 88.4% (4,748/5,370) | 71.1% (4,748/6,678) | 1,308 | 0 | identical, 0 of 5,874 |
+
+Graded on each standing key directory's own `hobbes.json`, the graph its cell record grades; poison PASS on all
+four. The counts equal the 2026-10-03/04 measuring run's. The implicit pairs are mostly property getters
+(`attribute`); rich adds `operator` 228 and `builtin-call` 222. Not keyed: `async with` and async iteration (a
+`SEND`), construction and teardown hooks, and `functools.cached_property`'s getter (its caller is
+`functools`' frame). Fixtures `testdata/pyimplicit` (`TestTracerKeysImplicitCallsApart`, hand truth in the
+file) and the grader's `TestImplicitListJudgesNothingAndAddsACompanionRecall`. Records:
+`~/.hobbes/bench/adr187-keys-2026-10-29/RESULTS.md`.
+
+**What it is not.** A recall figure only (C-60). A rule that narrows C-174 is measured on a held-out cell picked
+before it; these four cells' implicit rows are not its target.

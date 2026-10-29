@@ -58,7 +58,8 @@
   (`import * as z` → `export *` → `export { objectType as object }` → `const objectType = X.create`):
   zod's 1,232 `static→property` misses. Until 0.2.119 the class's text said only "receiver no static
   provider could type"; it now names both causes. The class is the site's shape and does not say which.
-  The Calvin gate still files the class under the map reason `dynamic-dispatch` (`gate.py`).
+  Since 0.3.7-beta the Calvin gate files the class under the map reason `laneb-miss`, not
+  `dynamic-dispatch`: neither cause shows a target chosen at runtime (`gate.py`'s `_TAIL_REASON`).
 - **Note:** deliberately counts, never a confidence score. An edge with no
   named target cannot be drawn, checked, or cited — it is C-1's false edge
   wearing a probability. The tail classes keep that rule: each is an
@@ -867,10 +868,16 @@
   intuitions about them. Measured on the three keyed Python cells (the held-out rich cell,
   `oracle-grading.md` §10.40): observed `__exit__` misses rich 75, flask 88, click 35. The trace
   oracle sees almost no `__enter__` (rich 1), because CPython 3.12 emits no call event for it, so
-  `__enter__`'s share is unmeasured, not small. **Counted at repo scale 2026-10-03**
+  `__enter__`'s share is unmeasured, not small. **Measured in the trace keys 2026-10-29 (ADR-187):**
+  the Python keys now hold the calls with no call token in a companion list. On the four standing
+  cells they are 13.6% (flask, 208 pairs), 17.2% (structlog, 191), 18.0% (click, 676) and 27.5% (rich,
+  1,308) of confirmed, mostly property getters, and Hobbes draws none of them as `calls`: recall with
+  them is 50.8%, 62.2%, 71.2% and 71.1% against the standing 54.6%, 69.7%, 81.7% and 88.4%
+  (`oracle-grading.md` §10.52). `functools.cached_property`'s getter is not counted: it runs from
+  `functools`' own frame. **Counted at repo scale 2026-10-03**
   (`~/.hobbes/bench/c174-counts-2026-10-03/`; every site count an upper bound, the receiver's type
-  unknown): Python's stored traces hold no implicit dunder call at all (the tracer listens to `CALL`
-  and `PY_START` and keys only `with` and `__call__`), and the lines that may reach a repo dunder run
+  unknown): Python's stored traces then held no implicit dunder call at all (the tracer keyed only
+  `with` and `__call__`), and the lines that may reach a repo dunder run
   from 875 (flask) to 6,308 (pyparsing); Rust's graded crates define 20 `Iterator`, 12 `From`, 2
   `Deref`, 1 `Drop` and 1 `Display` impl and no operator, `Index` or `PartialEq` impl (memchr 280 `?`,
   139 index, 208 comparison sites); Java's cells 162 `toString`, 18 `close`, 15 `iterator` bodies

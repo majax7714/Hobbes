@@ -210,9 +210,10 @@ _STEP_BY_EXT = {".py": "index-python", ".go": "index-go", ".ts": "index-typescri
                 ".mjs": "index-typescript", ".cjs": "index-typescript", ".mts": "index-typescript", ".cts": "index-typescript",
                 ".jsx": "index-typescript", ".rs": "index-rust", ".java": "index-java"}
 #: tail class → (map reason, detail); the C-n entries are the knowledge proxy's tail meanings. `builtin-name` is left out: language
-#: machinery the grounder's builtin list binds, not a blind spot.
+#: machinery the grounder's builtin list binds, not a blind spot. `attr-call` is a `laneb-miss`, not `dynamic-dispatch`: neither of its
+#: causes (C-2) shows a target chosen at runtime, only that no static provider placed the site (zod's typed alias sites, 0.2.119).
 _TAIL_REASON = {
-    "attr-call": ("dynamic-dispatch", "tail attr-call: no static provider resolved it — untyped receiver, or nothing named at the member (C-2)"),
+    "attr-call": ("laneb-miss", "tail attr-call: no static provider resolved it — untyped receiver, or nothing named at the member (C-2)"),
     "expr-callee": ("dynamic-dispatch", "tail expr-callee: callee is an expression (C-63)"),
     "union-member": ("dynamic-dispatch", "tail union-member: union receiver, lane B vetoed (C-97)"),
     "fallback-resolved": ("laneb-miss", "tail fallback-resolved: syntactic-tier edge only (C-7)"),

@@ -23,19 +23,7 @@ key no implicit call, so a rule's rows could not be graded.
 
 ### Routes waiting on Max
 
-**TypeScript / JavaScript** (each moves the TS symbol set):
-- **The gate's map reason for `attr-call`** (0.2.119-beta left it): `gate.py` files the class under
-  `dynamic-dispatch`; a re-exported alias site (zod 1,232) is not dispatch. The closed vocabulary is
-  `MAP_REASONS`; changing it is Max's.
-
 **Python:**
-- **Whether to extend the standing trace oracle (C-174).** Measured on all four keyed cells, contained
-  (`~/.hobbes/bench/c174-counts-2026-10-03/python/trace-run/`; click and rich run 2026-10-04): implicit
-  rows flask 208, structlog 191, click 676, rich 1,308 (13.4%, 15.4%, 17.9%, 26.0% of confirmed), mostly
-  property getters (rich also `__eq__` 115, `__str__` 90, `__getitem__` 69); each cell's regular pairs
-  identical to its standing key; recall falls by denominator only (55.7% → 51.8%, 77.8% → 69.5%,
-  82.0% → 71.5%, 93.6% → 75.3%); one Hobbes edge changes bucket (rich, `unobserved` → `suspect`), none
-  is contradicted. Graphs graded are the cells' on-disk ingests (0.2.99/0.2.100-beta).
 - **C-181's residual** (ADR-164): a name a stdlib import binds that an `except ImportError:` branch rebinds
   to a repo function keeps lane A's `syntactic` edge; lane B's local answer cannot veto it (ADR-111). No
   graded cell writes it; `ministdlib` pins it. Routes: refuse lane A's fallback where a stdlib import also
@@ -137,8 +125,9 @@ Left by the fold (2026-10-28):
   Python lane A on a process pool, tree-sitter queries in place of walks, and lane B units within one
   language in parallel (the tool caches' concurrency first).
 
-- **H-38** (`oracle/oracle-defects.md`): read the trace oracle's
-  `__code__`/`__func__`/`__wrapped__` through the type, with a fixture.
+- **H-39** (`oracle/oracle-defects.md`): the trace oracle's re-entrance guard is one flag for every thread, so a
+  call on one thread while another sits in a callback is lost. No pair lost on the four standing Python cells. A
+  thread-local guard moves every key with a threaded test, so it is Max's call whether to fix it and regenerate.
 
 - **W1/W3:** the decorated-declaration line convention, the C-15
   namespacing ADR, and `fetch-java` on the egress proxy.

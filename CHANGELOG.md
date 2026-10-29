@@ -15,6 +15,17 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.3.7-beta — 2026-10-29
+
+**Patch: what the layer says.** C-2 amended (Max: "yeah proposed for both are good").
+
+- `hobbes gate`'s blind-spot map filed the `attr-call` tail class under the reason `dynamic-dispatch`. Neither of
+  the class's causes (0.2.119-beta: an untyped receiver, or a typed one whose member the index names nothing
+  at, zod's 1,232 alias sites) shows a target chosen at runtime, so the map now files it under `laneb-miss`: no
+  static provider placed the site. `expr-callee` and `union-member` keep `dynamic-dispatch`. The vocabulary
+  (`MAP_REASONS`) is unchanged, and so is the routing: every map reason sends a NULL to `unknown` alike. A gate
+  record's `unknown_reasons` and its repair text now say `laneb-miss` for these sites. Nothing drawn moves.
+
 ## 0.3.6-beta — 2026-10-29
 
 **Patch: a reviewed ref reads the checkout's dependency trees.** ADR-186, C-198.

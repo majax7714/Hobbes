@@ -69,3 +69,7 @@ confirmed.
 
 The other cells' predictions (P1–P2 on pyparsing, F1–F2 on the fitted cells) are scored in
 `oracle-grading.md` §10.47.
+
+**Re-keyed 2026-10-29 with the implicit list (ADR-187), `~/.hobbes/bench/oracle/structlog-py-r2/`.** The same command,
+H-38's tracer fix in place. The standing grade is identical to the previous key's, row for row; the report adds a
+`recall-with-implicit` line (`oracle-grading.md` §10.52, `~/.hobbes/bench/adr187-keys-2026-10-29/RESULTS.md`).
