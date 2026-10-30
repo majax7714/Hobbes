@@ -787,7 +787,9 @@ function addSideParallelTransition(builder: StateTransitionRenderBuilder): void 
   addRightDeparture(builder, from)
   addHorizontalLine(builder, startX, railX - 1, startY, 1)
   addCell(builder, { x: railX, y: startY, char: verticalStep === 1 ? "╮" : "╯" })
-  for (let y = startY + verticalStep; y !== endY; y += verticalStep) addCell(builder, { x: railX, y, char: "│" })
+  for (let y = startY + verticalStep; verticalStep === 1 ? y < endY : y > endY; y += verticalStep) {
+    addCell(builder, { x: railX, y, char: "│" })
+  }
   addCell(builder, { x: railX, y: endY, char: verticalStep === 1 ? "╯" : "╮" })
   if (targetApproach) {
     const targetX = innerConnectorX(to, from.centerX)
