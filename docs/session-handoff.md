@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-29 (forty-ninth session); `main` at 0.3.6-beta (`b372278`, PR #7 merged); branch
-`fix/gate-reason-and-trace-implicit` at 0.3.7-beta (the gate's `attr-call` reason, H-38, ADR-187), the image
-and proxy rebuilt at it; this repo's ingest is at `71e42e1` (rerun `hobbes ingest`).** A new
+**Reviewed 2026-10-30 (fiftieth session); `main` at 0.3.9-beta (`8205e42`, PRs #8–#14 merged); branch
+`test/merman-sequence` committed, not yet pushed; the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
 **Size:** about 100 lines, hard cap 150 (`test_agent_docs.py`). Rewrite this
@@ -36,47 +36,54 @@ session went belongs in the BUILDLOG.
   `bench/`, no-logic modules accepted apart, pure packages first). Forty-ninth session: "yeah proposed for
   both are good": `attr-call` filed `laneb-miss` (0.3.7-beta); the trace key's implicit calls as a companion
   key (ADR-187), H-38 fixed first.
+- 2026-10-30, on derived cases redundant against pinned inputs: "Keep both, exempt them" (the derived case is
+  the readable statement of the rule). PRs #13 and #14 flagged cases kept the same way, or kept because they
+  guard a fault `subsume` cannot plant (checked by planting it by hand); neither was overruled.
 
-**Next:** the fork's tests, in Max's order: `merman` (its `core` done, PR #9; 38 modules left: the
-top-level four, then flowchart, gantt, gitgraph, sequence, state, timeline), `core/shell`, `codemode`, then
-`schema`'s decoders, then the effectful packages (170 modules wait, `currently-open.md`). **Serially, and
-`bench/subsume` with `-j 2`** (Max, 2026-10-29: its default 6 workers peaked this machine's memory). Then ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own ADR first. The extraction
-routes stand as they were: C is the next-thinnest language (two cells).
+**Next: `merman`'s last two diagram families, then the rest of the fork's tests.** Done: `core` (PR #9),
+the top level (PR #10), flowchart (PR #13, 97 cases), gantt and gitGraph (PR #14, 71 cases), sequence
+(branch `test/merman-sequence`, 62 cases, PR waiting on Max's push; it carries this handoff's `74408d8`).
+Left, in order, each on its own branch and PR:
+- **state** (`src/state/`: `parser`, `layout` 1,134, `routing` 1,522, `search`, `note`, `visible-model`,
+  `endpoint`, `drawing`, `style`, `options`). Its layout and routing are flowchart-sized.
+- **timeline** (`src/timeline/`: `parser` 119, `drawing` 109, `style`).
+
+How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests under
+`packages/merman/test/<family>/`, one file per module, `prettier --write` on new files):
+- derive each expected output by hand from the source, then run it;
+- `bench/subsume` per module against **that module's own test file** (`--tests test/<family>/<module>.test.ts`;
+  against the whole family every other file's cases read as redundant), **serially with `-j 2`** (Max, 2026-10-29: its default 6 workers peaked this
+  machine's memory), detached (`setsid nohup … &`, then an until-loop waiter); read every survivor; close the
+  gaps; fold redundant cases, or keep one only if a fault planted by hand fails it alone, and say so above it;
+- for a layout or routing module where derived cases leave large gaps (sequence's placement did not), the pinned-input method (flowchart
+  entry: plant each survivor in a scratch copy, search random diagrams for an input it changes, shrink, keep
+  the fewest). **Its scripts were in the forty-ninth session's scratchpad and are gone**; rebuild them from
+  that entry, or ask Max whether to keep them in `bench/` this time.
+- a fork defect found is pinned by a test and listed under the fork-tests item in `currently-open.md`.
+
+After `merman`: `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages (the count is
+in `currently-open.md`). Then ADR-184's unbuilt levers (`currently-open.md`): a TS lane A cache needs its own
+ADR first. The extraction routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- The PR of `fix/gate-reason-and-trace-implicit` (0.3.7-beta, ADR-187, H-38). After merging, restart the
-  knowledge server (runbook: the image changed).
-- The four fork oddities `latex`'s tests pin (`currently-open.md`): fix upstream code, or leave pinned.
+- The fork defects our tests pin (`currently-open.md`, the fork-tests item): `latex`'s four, `merman`'s
+  `core` diamond caps, flowchart's two (an outside node laid over a framed one; a parallel edge's head
+  beside its target), and sequence's note over no one (dropped silently). Fix them, or leave them pinned.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - H-39: the trace oracle's re-entrance guard is shared across threads; a thread-local guard moves every key
   with a threaded test (`currently-open.md`).
 - From earlier: the live `watterson tui` check and the `~/.local/bin/watterson` relink; the Python routes
   (C-181's residual, ADR-156 and fixture values).
 
-## Where the last day left things (2026-10-28; the CHANGELOG and BUILDLOG have each one)
+## Where the last day left things (2026-10-30; the CHANGELOG and BUILDLOG have each one)
 
-Forty-seventh session (speed and memory; three routes approved):
-- **ADR-183, 0.3.1-beta:** every wall-clock cap in one table (`extract/caps.py`), named where it bites
-  (C-196), `HOBBES_TIMEOUT_SCALE`; scip-clang's timed-out or errored units counted from its own summary
-  (C-197, registered and lifted: it exits 0 with an empty index). **0.3.2:** per-step peak RSS in the timings.
-- **ADR-184, 0.3.3-beta:** the byte-identity gate `bench/identity/` (8 cells, a control arm); `_own_body`
-  once per parse; TS zones on worker threads with a per-zone cap (C-196 narrowed); lane B languages
-  concurrent, merged in the serial order. This repo: cold 305 → 194 s, warm 129 → 69 s, peak 3.6 → 6.3 GB.
-- **The pyrefly probe:** 98% agreement with scip-python on click, ~6× faster (rough); not a drop-in.
-- C-149 amended: its tail flip is larger than a site or two (the control arm showed 16 in one file).
-- A flaky dev-environment test, cause not found (`currently-open.md`).
-- **0.3.4-beta, 2026-10-29:** the reviews of PRs #4 and #5 (20 findings, some shared). Fixed: the helper's
-  one budget for a unit's steps, no caching of a timed-out scip-clang run, step labels, signals named,
-  C-197's counting refined, podman's probes capped, the zone timer's limit, per-thread lane B peaks, the
-  identity gate (it could pass a failed ingest; every earlier gate re-checked, all stand). Registered in
-  C-196: an uncontained step's children outlive its cap.
-
-Forty-sixth session: the dev environment folded in (ADR-181, 0.3.0-beta; extraction byte-identical in both
-repos; every watterson test accounted for); ADR-182's function-local import fix (0.2.122-beta, C-195 lifted).
-
-Forty-fourth session: the TS/JS routes, 0.2.119–0.2.121 (ADR-179, ADR-180).
-Forty-third session: `currently-open.md` condensed; the trace oracle on click and rich; 0.2.115–0.2.118.
-Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. Forty-first: 0.2.109–0.2.110.
+Forty-ninth session: 0.3.7-beta (the gate's `attr-call` reason, H-38, ADR-187); 0.3.8-beta (a module the
+accept list names is accepted, ADR-185 amended; this repo's nine unguarded modules tested or accepted, CI's
+`graph` job green, PR #11); 0.3.9-beta (a TS/JS case with a computed title is a case, ADR-188, C-199);
+`merman`'s top level, flowchart, gantt and gitGraph tested (PRs #10, #13, #14).
+Forty-seventh and forty-eighth (2026-10-28/29): speed and memory, ADR-183 and ADR-184 (0.3.1–0.3.4-beta); the
+pyrefly probe; the TUI trimmed (PR #6); the fork's own tests begun (`bench/subsume/`, PRs #7, #9).
+Forty-sixth: the dev environment folded in (ADR-181, 0.3.0-beta).
 
 ## Where things stand
 

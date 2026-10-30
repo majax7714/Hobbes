@@ -100,7 +100,7 @@ Left by the fold (2026-10-28):
   six diagram families came off the record because its renderer's cases reach them, but those cases draw
   their expected output with the families' own code: they pin the palette mapping, not what a family
   draws, so the families still get tests of their own, next in order (flowchart done: 97 cases across six
-  files; gantt: 39 across three; gitGraph: 32 across three; next sequence, state, timeline). The check every new case is held
+  files; gantt: 39 across three; gitGraph: 32 across three; sequence: 62 across four; next state, timeline). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
   - **Fork bugs our tests pin, not fixed** (found writing `latex`'s): `maxExpand: N` allows N−1 macro
@@ -118,6 +118,10 @@ Left by the fold (2026-10-28):
   - **Found writing `merman`'s flowchart drawing:** of two parallel edges top-down (`A --> B` twice), the first
     runs from A's right side straight down to B's right side and draws its head `▼` there, pointing past B rather
     into it; the second lane ends on the same cell. Pinned by `test/flowchart/drawing.test.ts`; a fix changes it.
+  - **Found writing `merman`'s sequence:** a note over no one (`Note over ,: x`, the list empty once blanks are
+    dropped, `sequence/parser.ts:168-171`) parses without an error, takes its rows and draws nothing: its text is
+    lost silently (`placement.ts:580`). Pinned by `test/sequence/placement.test.ts`; a fix (refuse the line)
+    changes it.
   - Possible later, not asked: ADR-117 exempts a Python module with no code from the guard question; a
     TS module of only types or re-exports is still asked, hence the second entry.
 

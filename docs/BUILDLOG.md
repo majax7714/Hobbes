@@ -17044,3 +17044,51 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   changed: `BRANCH_RGB` lists eight colours but every lane draws in the muted rail colour and only four
   entries colour marks.
 - `bun test` (merman): 245 pass across 24 files. `tsc --noEmit` clean.
+
+## 2026-10-30 (forty-ninth session, end) — the handoff points at `merman`'s last three families
+
+- PR #14 (gantt and gitGraph, 71 cases) merged on Max's word after its CI read green (`graph` 18 min); main at
+  `8205e42`.
+- `session-handoff.md` rewritten at its top (Max: "update documentation to point to mermans remaining in a new
+  session"): main's state; the next work as sequence, state and timeline, each with its modules and the method
+  the last three families used; the pinned-input scripts named as lost with this session's scratchpad; the
+  waiting list brought up to date (the fork defects our tests pin, in place of PR #8, which is merged). The
+  2026-10-28 history condensed to make room (141 lines, cap 150; `test_agent_docs.py` passes).
+
+## 2026-10-30 (fiftieth session) — our own tests for `merman`'s sequence (62 cases)
+
+- Branched from `docs/handoff-merman-remaining` (`74408d8`, not yet pushed), so this branch carries that commit.
+- The fourth family: `parser.test.ts` (17), `placement.test.ts` (28), `drawing.test.ts` (12), `style.test.ts` (5,
+  colours and `render-grid`), under `packages/merman/test/sequence/`. Every expected value worked from the source
+  first, then run. My own slips, corrected to my working, never to the output: a note over A that overflows the
+  left edge by one (I had left out the shift), the side-by-side boxes' 11-cell gap, a one-line header's row
+  count, the `note` style's own colour entry, and four rows typed one dash long (counted: 25 cells each).
+- `bench/subsume` (`-j 2`, serially, each module against its own test file; a first run against all four files
+  was stopped, since every other file's cases read as redundant against the parser): `parser` 253 faults, first
+  pass 186 caught, 2 redundant, 66 survivors; final 224 caught, 22 survivors. `placement` + `options` 650, first
+  532 (10 hang or fail to load), 5 redundant, 107 survivors; final 570, 69 survivors. `drawing` 157, first 122,
+  3 redundant, 35 survivors; final 137, 20. `style` + `render-grid` 67 → 66, 1 survivor (a type index).
+- Gaps closed: the statement regexes' anchors (a keyword inside a label, `Boxer->>`, `Elsewhere->>`), a hex
+  colour with a `0`, `rgb(` after a colour word, `rgb(…)Team` unspaced, a single-quoted label after a colour,
+  entities in an unquoted box label, every CSS colour name, a two-digit autonumber step, a declared label
+  kept past a later message, the loop label unquoted; in placement, neighbour messages either way and between
+  any pair and after a self or far message, a leftward far message, notes after a message or another note, a
+  short note over two, an odd centre sum and an odd note width, an empty note, a wide header on either side
+  of a box, boundaries cleared in turn (two boxes), steps on a box's first member and in any order, a far
+  message inside a box, content left of a frame or after an `else`, a lone participant's canvas; in drawing,
+  the box's bottom and right corners and a frame's left wall and right corner styled, a note or self message
+  followed by a step, multi-line self, note, message and compact header labels, a one-row section's walls, an
+  activation to the last row. The pinned-input method was not needed: every survivor left reads as equivalent
+  (type strings, `?? -1` and guards for participants the parser never leaves unknown, bounds a header or the
+  left-overflow pass always covers, the first centre the overflow pass repairs, height floors that never bind,
+  trims on trimmed input, anchors on input matched whole, loop ends a corner overwrites). `options.ts`'s
+  `"rounded"` survives the placement run and fails two drawing cases when planted by hand.
+- Redundancy: the header case folded into the recognition case; the dashed-message and two-box drawing cases
+  folded or dropped. Five cases `subsume` reads as redundant stay, each the only one to fail on a fault it
+  cannot plant, planted by hand in a scratch copy (statement order; a dropped background callback; the row a `+`
+  opens on; the receiver's last arrow not recorded; the rule fixed one row down). The test files say so.
+- A fork defect found, pinned, listed in `currently-open.md`, not fixed: `Note over ,: x` parses, takes its rows
+  and draws nothing. Pinned as observed, not defects: a keyword-named sender followed by a space reads as that
+  keyword (`loop ->> B: x` is a loop); `alt` and `loop` need a label; `autonumber off` is refused; the header
+  is skipped wherever it is; a `%%` after text stays in the label; `participant A` resets an earlier `as` label.
+- `bun test` (merman): 307 pass across 28 files. `tsc --noEmit` clean. `tests_guarding` not checked (no ingest).
