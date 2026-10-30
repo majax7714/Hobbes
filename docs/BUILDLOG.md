@@ -16936,3 +16936,25 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   named here; a rerun read `3429 passed`. (`currently-open.md` lists a known flake that fails on a loaded box;
   not confirmed to be this one.) Go `./...` ok; tsextract 57 pass. Proxy `hobbes-proxy 0.3.9-beta`, image
   `576e6f9787ef`.
+
+## 2026-10-30 (forty-ninth session, cont.) — our own tests for `merman`'s flowchart parser, labels and style (31 cases, none redundant)
+
+- PR #12 merged on Max's word after its CI read green (`graph` 27 min); main at `e9354e1`.
+- Flowchart, the first of `merman`'s six families, in sub-units; this one `parser`, `labels`, `style`, one test
+  file each under `packages/merman/test/flowchart/`, importing the module directly, every message matched whole.
+- `bench/subsume` (`-j 2`, serially): `parser` 348 faults, first pass 226 caught, 2 redundant, 121 survivors;
+  final 315 caught, 0 redundant, 19 cases, 32 survivors. `labels` 80 → 72, 0 redundant, 8 cases. `style` 53 →
+  45, 0 redundant, 4 cases. Read every survivor. Gaps closed: a bracket or quote before an `&`, an arrow or a
+  `;` (the three scanners), `A&B` unspaced, each shape's quoted label, a quoted subgraph id and a `;` in a
+  bracketed title, a subgraph to the right of `~~~`, a start arrow that sets the style (`A == x --> B`), `RL`,
+  a lower-case local `direction`, keywords mid-statement (`A --> graph`, `endpoint --> backend`), a line only
+  a refused separator keeps from parsing (`A[x]; B[y]`, `A[x];]`); for labels, a vertical run that fits only at
+  clearance 1, an unclamped five-line lift, a vertical shorter than a horizontal that does not fit. Survivors
+  left are equivalent: strings in type positions, trims and anchors on input already trimmed or matched whole,
+  bounds compared against an `undefined` close, `||` → `&&` where the box regex accepts the token anyway, the
+  order-only exemption on subgraph ids (always valid ids), a vertical label's clamp (routes are never negative).
+- Pinned as observed: `a---` (an arrow with nothing after it) falls back to a node of that name, since `.` and
+  `-` are id characters. Expectations of mine corrected after reading: a run 3..10 fits a 4-wide label exactly,
+  and the render drops each row's trailing blanks, not only blank top and bottom rows.
+- `bun test`: 108 pass across 15 files. `tsc --noEmit` clean. `tests_guarding` on `flowchart/labels.ts` names
+  the new cases after an ingest.

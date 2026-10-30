@@ -99,7 +99,9 @@ Left by the fold (2026-10-28):
   `merman`'s `core`, nine modules: 64 cases; its top level, three listed and `palette`: 13). `merman`'s
   six diagram families came off the record because its renderer's cases reach them, but those cases draw
   their expected output with the families' own code: they pin the palette mapping, not what a family
-  draws, so the families still get tests of their own, next in order. The check every new case is held
+  draws, so the families still get tests of their own, next in order (flowchart's `parser`, `labels` and
+  `style` done: 31 cases; its `layout`, `routing` and `drawing` next, then gantt, gitGraph, sequence,
+  state, timeline). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
   - **Fork bugs our tests pin, not fixed** (found writing `latex`'s): `maxExpand: N` allows N−1 macro
