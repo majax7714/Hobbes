@@ -94,7 +94,7 @@ Forty-second session: the first random Rust draw (§10.49), 0.2.111–0.2.114. F
   (ADR-160); pyparsing, icalendar and structlog are graded held out
   (icalendar 70.2%, its 6 wrong rows contained by ADR-168; structlog 77.8%
   at 0.2.100-beta).
-- **Register:** 198 entries: 146 active (114 surfaced, 28 partial, 3
+- **Register:** 199 entries: 147 active (115 surfaced, 28 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 35 lifted, 11 superseded,
   6 folded. The dated notes are in `docs/constraints/HISTORY.md`.
 - **Oracle defect log: H-39 open** (2026-10-29): the trace oracle's re-entrance

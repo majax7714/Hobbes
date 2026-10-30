@@ -312,6 +312,42 @@ class TestJoinFacts:
         # guards it even when nothing named is in the symbol layer.
         assert first["reaches_modules"] == ["src/util"]
 
+    def test_a_computed_title_case_reaches_like_any_and_is_marked_and_counted(self):
+        # ADR-188: the case the extractor keeps under its title's source text reaches
+        # what it calls, carries the mark, and the ingest's one record counts it (C-199).
+        from hobbes.extract import _computed_title_record
+
+        joined = join_facts(
+            facts(
+                [
+                    file_facts(
+                        "src/util.js",
+                        symbols=[{"name": "helper", "qualname": "helper", "kind": "function", "line": 1, "end_line": 2}],
+                    ),
+                    file_facts(
+                        "tests/util.test.mjs",
+                        imports=[{"specifier": "../src/util.js", "resolved": "src/util.js", "external": None, "names": ["helper"], "line": 1}],
+                        calls=[{"callee": "helper", "callee_path": "src/util.js", "scope": None, "line": 4}],
+                        test_framework="node:test",
+                        tests=[
+                            {"qualname": "`draws ${kind}`", "line": 3, "end_line": 5, "computed_title": True},
+                            {"qualname": "plain", "line": 7, "end_line": 8},
+                        ],
+                    ),
+                ]
+            )
+        )
+        drawn, plain = collect_ts_tests(joined["files"], joined["symbols"], symbol_layer(joined))
+        assert drawn["id"] == "tests/util.test.mjs::`draws ${kind}`"
+        assert drawn["reaches"] == ["src/util.helper"] and drawn["computed_title"] is True
+        assert "computed_title" not in plain
+        record = _computed_title_record([drawn])
+        assert record["stage"] == "ts-test-titles" and record["path"] == "."
+        assert record["message"].startswith("1 TS/JS test case(s) have a computed title")
+        assert "(C-199). tests/util.test.mjs:3" in record["message"]
+        many = _computed_title_record([{**drawn, "line": n} for n in range(6)])
+        assert many["message"].startswith("6 TS/JS") and many["message"].endswith(" …")
+
     def test_test_file_own_symbols_excluded_from_reach(self):
         joined = join_facts(
             facts(

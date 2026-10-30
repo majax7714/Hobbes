@@ -1142,13 +1142,23 @@ function testCallName(call) {
   return null;
 }
 
+/** A test or describe call's title: the string literal it is given, or else, its argument being computed
+ * (a template with `${…}`, a name, a call), that argument's source text, marked computed (ADR-188, C-199);
+ * null when the call has no argument. */
+function caseTitle(call) {
+  const arg = call.getArguments()[0];
+  if (!arg) return null;
+  const literal = firstStringArg(call);
+  return literal !== null ? { text: literal, computed: false } : { text: arg.getText(), computed: true };
+}
+
 function describeChain(node) {
   const titles = [];
   let current = node.getParent();
   while (current) {
     if (Node.isCallExpression(current) && testCallName(current) === "describe") {
-      const title = firstStringArg(current);
-      if (title) titles.unshift(title);
+      const title = caseTitle(current);
+      if (title && title.text) titles.unshift(title);
     }
     current = current.getParent();
   }
@@ -1163,8 +1173,9 @@ function extractTests(sourceFile, filePath, imports) {
     if (!Node.isCallExpression(node)) return;
     const callName = testCallName(node);
     if (callName !== "it" && callName !== "test") return;
-    const title = firstStringArg(node);
+    const title = caseTitle(node);
     if (title === null) return;
+    const chain = [...describeChain(node), title];
     cases.push({
       line: node.getStartLineNumber(),
       // The case's extent, so reach can be attributed per case rather than
@@ -1172,7 +1183,8 @@ function extractTests(sourceFile, filePath, imports) {
       // symbol to hang an edge on, so range containment is the only way to
       // ask "which calls belong to this `it()`".
       end_line: node.getEndLineNumber(),
-      qualname: [...describeChain(node), title].join(" > "),
+      qualname: chain.map((t) => t.text).join(" > "),
+      ...(chain.some((t) => t.computed) ? { computed_title: true } : {}),
     });
   });
   return {

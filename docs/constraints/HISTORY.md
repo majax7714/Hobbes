@@ -6,6 +6,11 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-199 registered, 2026-10-30 (0.3.9-beta; ADR-188, Max: "for the gap recommended approach is good"):
+- **C-199.** A TS/JS test case with a computed title was dropped from the inventory, silently and unregistered
+  (precedent 1). It is now kept, named by its title's source text, marked and counted by one `ts-test-titles`
+  record; the naming is the residual. 199 entries, 147 active (115 surfaced).
+
 C-174 amended, 2026-10-29 (ADR-187; Max: "yeah proposed for both are good"; no entry added, no bump: bench only):
 - **C-174's Python share is measured.** The trace keys hold the calls with no call token in a companion list;
   on the four standing cells they are 13.6–27.5% of confirmed, none drawn. The Bites-at line names them.
