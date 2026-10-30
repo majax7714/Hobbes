@@ -17044,3 +17044,13 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   changed: `BRANCH_RGB` lists eight colours but every lane draws in the muted rail colour and only four
   entries colour marks.
 - `bun test` (merman): 245 pass across 24 files. `tsc --noEmit` clean.
+
+## 2026-10-30 (forty-ninth session, end) — the handoff points at `merman`'s last three families
+
+- PR #14 (gantt and gitGraph, 71 cases) merged on Max's word after its CI read green (`graph` 18 min); main at
+  `8205e42`.
+- `session-handoff.md` rewritten at its top (Max: "update documentation to point to mermans remaining in a new
+  session"): main's state; the next work as sequence, state and timeline, each with its modules and the method
+  the last three families used; the pinned-input scripts named as lost with this session's scratchpad; the
+  waiting list brought up to date (the fork defects our tests pin, in place of PR #8, which is merged). The
+  2026-10-28 history condensed to make room (141 lines, cap 150; `test_agent_docs.py` passes).
