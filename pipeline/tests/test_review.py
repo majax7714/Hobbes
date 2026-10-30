@@ -382,6 +382,34 @@ class TestCoverageDelta:
             "app.core": "tests removed on purpose — Max, 2026-10-29"
         }
 
+    def test_a_new_module_no_test_reaches_accepted_by_name_is_said_and_needs_no_attention(self, repo):
+        # ADR-185's amendment: a module the record names is accepted whether its guard was lost or never there;
+        # one it does not name still needs attention.
+        write(repo, "src/app/vendored.py", "def go():\n    return 1\n")
+        write(repo, "src/app/ours.py", "def go():\n    return 2\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "two new modules, no tests")
+        write(
+            repo,
+            ".hobbes/accepted-lost-guards.yaml",
+            yaml.safe_dump({"accepted": [{"reason": "vendored", "decided": "Max, 2026-10-30", "modules": ["app.vendored"]}]}),
+        )
+        review = build_review(repo, "HEAD~1", "HEAD")
+        assert review.coverage.new_unguarded == ["app.ours"]
+        assert review.coverage.new_unguarded_accepted == {"app.vendored": "vendored — Max, 2026-10-30"}
+        assert review.needs_attention
+        text = format_review(review)
+        assert "new code no test reaches (1):\n      app.ours\n" in text
+        assert "new code no test reaches, accepted (1; .hobbes/accepted-lost-guards.yaml, ADR-185):" in text
+        assert "vendored — Max, 2026-10-30 (1):\n         app.vendored\n" in text
+        assert review_to_dict(review)["coverage"]["new_unguarded_accepted"] == {"app.vendored": "vendored — Max, 2026-10-30"}
+        write(
+            repo,
+            ".hobbes/accepted-lost-guards.yaml",
+            yaml.safe_dump({"accepted": [{"reason": "vendored", "decided": "Max, 2026-10-30", "modules": ["app.vendored", "app.ours"]}]}),
+        )
+        assert not build_review(repo, "HEAD~1", "HEAD").needs_attention
+
     def test_a_loss_not_on_the_list_still_needs_attention(self, repo):
         write(repo, "src/app/extra.py", "def go():\n    return 3\n")
         write(repo, "tests/test_extra.py", "from app import extra\n\n\ndef test_go():\n    assert extra.go() == 3\n")

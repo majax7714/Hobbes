@@ -84,22 +84,29 @@ key no implicit call, so a rule's rows could not be graded.
 Its own open items stay in [`watterson/open-work.md`](watterson/open-work.md) ("Next up" first: item 11b,
 hiding what the server does not back; then the app's Hobbes start, `tui` matching `chat`, the map file).
 Left by the fold (2026-10-28):
-- **The fold's PR carries a one-time `hobbes review` delta** (1,689 new modules no test reaches, mostly
-  opencode's, whose Bun tests static reach does not connect): CI's `graph` job is red on it; Max's call.
+- **CI's `graph` job goes green when this repo's own nine unguarded modules get tests** (ADR-185's
+  amendment, 0.3.8-beta: the fold's delta is accepted by name, and CI installs the Bun workspace). The nine:
+  six `hobbes.watterson` modules (`hook_client`, `lead_mcp`, `providers`, `providers.acp_session`,
+  `providers.errors`, `providers.llm`), `review/build`, `review/src/main`, `tui/plugins/graph/tui`.
 - **Live checks are Max's:** `watterson tui` (and `ask`, `chat`, `dispatch`, `job`) reach real harnesses;
   the fold verified them with the fake agent only. Re-point `~/.local/bin/watterson` at this repo's
   `bin/watterson`; `~/.local/bin/hobbes-proxy` points at a missing `~/hobbes/go/bin`.
-- **The TUI is not in CI** (Bun 1.4.2 is fetched by `tui/build.sh`); whether to add it is open.
+- **The TUI is not in CI** (Bun 1.4.2 is fetched by `tui/install.sh`; CI's graph job runs only that, to
+  install the workspace); whether to add the TUI's build and tests is open.
 - **Our own tests for the trimmed fork** (Max, 2026-10-29: "we can tackle independently later, add our
   own tests"). DEC-028 deleted opencode's tests outside `packages/tui`. The 222 modules that lost every
-  guard are accepted by name in `.hobbes/accepted-lost-guards.yaml` (ADR-185). Remove a module from it
-  once a test of ours reaches it. **179 remain** (2026-10-29): `util`'s ten have 49 tests of ours, each
+  guard are accepted by name in `.hobbes/accepted-lost-guards.yaml` (ADR-185), and since its amendment
+  (2026-10-30) the fold's 1,108 modules no test ever reached too. Remove a module from it once a test of
+  ours reaches it. **The record names 1,252** (2026-10-30): the trim's 132, the fold's 1,108, the 12 with
+  no code. Before the amendment, 179 remained (2026-10-29): `util`'s ten have 49 tests of ours, each
   checked by mutation to catch a fault no other case catches; 15 more left when the review learned to
   read the checkout's dependency trees (ADR-186, C-198), which showed a TUI test already reaching them.
   Of the 179, 12 are a second entry (Max, route 3a): no runtime logic of their own (types, a `.d.ts`,
   re-exports), never to get a test of their own; **167 wait for tests** (`latex`'s six done: 86 cases;
-  `merman`'s `core`, nine modules: 64 cases; its top level, three listed and `palette`: 13; `merman` has
-  35 left, the six diagram families). The check every new case is held
+  `merman`'s `core`, nine modules: 64 cases; its top level, three listed and `palette`: 13). `merman`'s
+  six diagram families came off the record because its renderer's cases reach them, but those cases draw
+  their expected output with the families' own code: they pin the palette mapping, not what a family
+  draws, so the families still get tests of their own, next in order. The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
   - **Fork bugs our tests pin, not fixed** (found writing `latex`'s): `maxExpand: N` allows N−1 macro

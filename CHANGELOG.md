@@ -15,6 +15,22 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.3.8-beta — 2026-10-30
+
+**Patch: what the review says.** ADR-185 amended (Max: "Accept by name").
+
+- A module `.hobbes/accepted-lost-guards.yaml` names is now accepted whether its guard was lost or never there:
+  a new module no test reaches that the record names moves to `new_unguarded_accepted`, printed under "new
+  code no test reaches, accepted" with its reason, and is no reason for attention. ADR-185 had said `main`'s
+  review would go green after the trim; it did not, because CI reviews from its last green run (ADR-114),
+  from before the fold, where every module of the fork is new rather than lost.
+- The record names the fork's 1,108 remaining modules no test reaches (opencode's code, vendored by the fold),
+  each to come off when a test of ours reaches it; 35 of `merman`'s modules come off now, reached by its
+  renderer's tests. This repo's own nine modules no test reaches are not accepted: they get tests.
+- CI's graph job installs `tui/opencode`'s Bun workspace (`tui/install.sh`, the pinned Bun `build.sh` uses),
+  so its review sees the links between the fork's packages a checkout has (31 modules CI alone called
+  unguarded, ADR-186). Nothing the graph draws moves.
+
 ## 0.3.7-beta — 2026-10-29
 
 **Patch: what the layer says.** C-2 amended (Max: "yeah proposed for both are good").

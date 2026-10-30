@@ -17,9 +17,10 @@ Run these once:
 - `cd bench/oracle/ts && npm install` (the oracle lane's `tsc`; its Go
   tests run it wherever node is)
 - For the dev environment (ADR-181): `cd adapters && npm ci`, `cd review &&
-  npm ci && npm run build`, and `tui/build.sh` (fetches Bun 1.4.2 into
-  `~/.watterson/bun`, writes `tui/bin/opencode`). `docs/watterson/README.md`
-  has its commands.
+  npm ci && npm run build`, and `tui/build.sh` (runs `tui/install.sh`, which
+  fetches Bun 1.4.2 into `~/.watterson/bun` and installs the workspace, then
+  writes `tui/bin/opencode`). CI's graph job runs `tui/install.sh` alone.
+  `docs/watterson/README.md` has its commands.
 - `git config core.hooksPath .githooks`. The pre-commit hook runs CI's
   gofmt step on the staged Go files. Without it, a red gofmt step hides
   both Go suites behind it.
