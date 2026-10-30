@@ -65,6 +65,20 @@
   that declares a runner (jest, vitest, mocha, jasmine) while no file under it is test-named, and
   `list_blind_spots` shows it.
 - **Source:** item 9's measurement (ADR-176), 2026-10-03.
+
+### C-199 — A JS/TS test case with a computed title is named by its title's source text, not by the name its runner prints — *registered 2026-10-30 (0.3.9-beta, ADR-188)*
+- **Cannot tell you:** the name a runner gives a case whose title is computed, a template with `${…}`, a
+  variable or a call, or a `describe` level with one. The inventory names it by the title's source text
+  (`` `draws ${kind}` ``), and a loop that makes several cases from one call (`for (…) test(`…${x}`)`) is
+  one case there, its reach the union of theirs.
+- **Because:** the title is computed when the suite runs; the layer reads the source. Until 0.3.9-beta such a
+  case was dropped silently, so its reach was never counted (found writing `merman`'s tests, 2026-10-29).
+- **Bites at:** `tests_guarding` and `tests.json` show such a case under its source-text name; anything that
+  matches a runner's results by name, as a harness reading a JSON report does, cannot match it. About 8 of
+  ~1,335 TS/JS cases in this repo (7 in the TUI's own tests).
+- **You find out:** **surfaced**. The case carries `computed_title: true` in `tests.json`, and one
+  `ts-test-titles` degradation record per ingest counts such cases with examples; `list_blind_spots` shows it.
+- **Source:** ADR-188, 2026-10-30.
 ---
 
 ### C-63 — A call through an element access (`obj[key]()`) draws no edge — *surfaced 2026-09-05*

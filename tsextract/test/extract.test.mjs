@@ -539,6 +539,34 @@ test("tests: vitest import and nested describes", () => {
   );
 });
 
+test("tests: a computed title is a case all the same, named by its source and marked (ADR-188, C-199)", () => {
+  const root = makeRepo({
+    "src/kinds.test.ts": [
+      'import { describe, test } from "vitest";',
+      'const name = "palette";',
+      "for (const kind of ['a', 'b']) {",
+      "  test(`draws ${kind}`, () => {});",
+      "}",
+      "test(name, () => {});",
+      "test(`plain template`, () => {});",
+      "test();",
+      "describe(`group ${name}`, () => {",
+      '  test("inside", () => {});',
+      "});",
+    ].join("\n"),
+  });
+  const file = byPath(extractRepo(root), "src/kinds.test.ts");
+  assert.deepEqual(
+    file.tests.map((t) => [t.qualname, t.line, t.computed_title ?? false]),
+    [
+      ["`draws ${kind}`", 4, true],
+      ["name", 6, true],
+      ["plain template", 7, false],
+      ["`group ${name}` > inside", 10, true],
+    ]
+  );
+});
+
 test("tests: bare globals in a test-named file are honest-unknown", () => {
   const root = makeRepo({
     "src/x.test.js": 'describe("x", () => { it("works", () => {}); });\n',

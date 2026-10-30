@@ -608,6 +608,8 @@ def collect_ts_tests(
                         if f.get("framework_from")
                         else {}
                     ),
+                    # ADR-188: named by its title's source text, not a name the runner prints (C-199).
+                    **({"computed_title": True} if case.get("computed_title") else {}),
                 }
             )
     return sorted(records, key=lambda r: r["id"])

@@ -16918,3 +16918,21 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
 - `hobbes review 95edb94..HEAD` (CI's base on `main`), on this checkout: exit 0, "no coverage regression",
   "nothing needs attention", 1,254 accepted. CI itself is the check still to see, after the push.
 - pytest 3,428 passed; Go `./...` ok; review 22 pass; graph plugin 8; merman 77.
+
+## 2026-10-30 (forty-ninth session, cont.) — a TS/JS case with a computed title is a case (ADR-188, C-199); 0.3.9-beta
+
+- PR #11 merged on Max's word; main's CI watched in the background.
+- Route (a) as Max approved: ADR-188 first. `tsextract/extract.mjs`: `caseTitle` gives a call's literal title or,
+  computed, its argument's source text, marked; `extractTests` keeps such a case (a call with no argument is
+  still none) and `describeChain` keeps a computed `describe` level instead of dropping it. `tssource.py`
+  carries `computed_title` into `tests.json`; `extract/__init__.py` writes one `ts-test-titles` degradation
+  record. C-199 registered (surfaced), the tally 199/147/115 in the index, README and handoff.
+- Tests: `tsextract` (a loop's template, a name, a literal template, no argument, a computed `describe`;
+  57 pass) and `test_tssource.py` (the mark carried, reach unchanged, the record's count and examples).
+- On this repo after an ingest: 7 computed-title cases inventoried, all in the TUI's own tests, each reaching
+  1 to 41 modules that were never counted before; the record reads "7 TS/JS test case(s) have a computed
+  title … (C-199)" with examples.
+- pytest: the first full run read `1 failed, 3428 passed`, its output not kept, so the failing case is not
+  named here; a rerun read `3429 passed`. (`currently-open.md` lists a known flake that fails on a loaded box;
+  not confirmed to be this one.) Go `./...` ok; tsextract 57 pass. Proxy `hobbes-proxy 0.3.9-beta`, image
+  `576e6f9787ef`.

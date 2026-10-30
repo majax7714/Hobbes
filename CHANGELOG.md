@@ -15,6 +15,18 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.3.9-beta — 2026-10-30
+
+**Patch: what the layer draws**, TS/JS tests. ADR-188; C-199 registered (Max: "for the gap recommended approach
+is good").
+
+- An `it(…)`/`test(…)` case whose title is computed (a template with `${…}`, a name, a call) was left out of the
+  test inventory, silently, so its reach was never counted and no limit said so. It is now a case, named by its
+  title's source text; a `describe` level with a computed title enters the name the same way, where before it
+  was dropped from it. Such a case carries `computed_title: true` in `tests.json`, and one `ts-test-titles`
+  degradation record per ingest counts them. The source-text name is not the name the runner prints, and a loop
+  making several cases from one call is one case: C-199.
+
 ## 0.3.8-beta — 2026-10-30
 
 **Patch: what the review says.** ADR-185 amended (Max: "Accept by name").

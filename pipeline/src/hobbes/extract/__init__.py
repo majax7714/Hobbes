@@ -290,7 +290,11 @@ def extract_repo(
     tests = collect_tests(modules, parsed, graph["symbol_edges"], injections=injections)
     if ts:
         declared_test_frameworks(repo_root, ts["files"])
-        tests += collect_ts_tests(ts["files"], ts["symbols"], graph["symbol_edges"])
+        ts_tests = collect_ts_tests(ts["files"], ts["symbols"], graph["symbol_edges"])
+        tests += ts_tests
+        computed = [t for t in ts_tests if t.get("computed_title")]
+        if computed:
+            degraded.append(_computed_title_record(computed))
         uninventoried = uninventoried_runner_manifests(repo_root, ts["files"])
         if uninventoried:
             degraded.append(_uninventoried_suite_record(uninventoried))
@@ -697,6 +701,22 @@ def _cpp_macro_name_record(named: list[dict]) -> dict:
             "constructor's first member initialiser (`C(int x) : size_(x) {`). The function's "
             "calls are drawn from the misnamed symbol, and no index ran there to remove it "
             f"(ADR-135, C-164). {examples}{' …' if len(named) > 5 else ''}"
+        ),
+    }
+
+
+def _computed_title_record(cases: list[dict]) -> dict:
+    """The one degradation record ADR-188 writes per ingest: TS/JS cases whose
+    title is computed, inventoried under its source text (C-199)."""
+    examples = "; ".join(f"{t['file']}:{t['line']}" for t in cases[:5])
+    return {
+        "path": ".",
+        "stage": "ts-test-titles",
+        "message": (
+            f"{len(cases)} TS/JS test case(s) have a computed title (a template with `${{…}}`, a "
+            "name, a call) and are named by its source text, not by the title the runner prints; "
+            "a loop that makes several cases from one call is one case here, its reach theirs "
+            f"together (C-199). {examples}{' …' if len(cases) > 5 else ''}"
         ),
     }
 
