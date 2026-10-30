@@ -1265,3 +1265,8 @@ accepted:
       - tui/opencode/script/profile-typecheck-packages
       - tui/opencode/script/sdk-docs
       - tui/opencode/script/upgrade-opentui
+  - reason: "a UI entry, checked by eye (DEC-019): it renders, and its logic is in a tested module beside it (review/src/page.js, tui/plugins/graph/logic.ts)"
+    decided: "Max, 2026-10-30 (ADR-185's amendment)"
+    modules:
+      - review/src/main
+      - tui/plugins/graph/tui

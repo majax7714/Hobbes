@@ -60,8 +60,12 @@ this checkout and 1,292 in CI; 1,252 are the fork's, 9 this repo's own.
 2. **One more entry**, for the fork's modules that no test reaches and that the trim's entry does not
    already name: opencode's code, vendored by the fold, whose own tests DEC-028 dropped or never had. Each
    is named, as before, and comes off when a test of ours reaches it.
-3. **This repo's own modules are not accepted.** The nine of them (six `hobbes.watterson` modules,
-   `review/build`, `review/src/main`, `tui/plugins/graph/tui`) get tests.
+3. **This repo's own modules are not accepted, but for a UI entry's render shell.** The nine get tests: six
+   `hobbes.watterson` modules and `review/build`. The two UI entries, `review/src/main` and
+   `tui/plugins/graph/tui`, have their logic moved into a module beside them with tests (`review/src/page.js`,
+   `tui/plugins/graph/logic.ts`), as `review/src/graph.js` was; what is left renders, and is checked by eye
+   (DEC-019), so each is named in an entry of its own with that reason (Max, 2026-10-30: "Extract logic,
+   accept shells", over rendering them under jsdom and a Solid harness).
 4. **CI installs `tui/opencode`'s Bun workspace in the graph job.** The 31 modules CI alone read as
    unguarded are reached through workspace packages (`@opencode/client`, `@opencode/theme`, …) that only an
    install links (ADR-186, C-198). Without it the CI review says less than the one on a checkout.
