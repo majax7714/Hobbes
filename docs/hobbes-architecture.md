@@ -2475,7 +2475,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.3.7-beta** (2026-10-29, ADR-103; the dev environment, ADR-181; every wall-clock cap named, ADR-183; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.6-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.3.8-beta** (2026-10-30, ADR-103; the dev environment, ADR-181; every wall-clock cap named, ADR-183; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.3.6-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

@@ -11,7 +11,9 @@ import any_llm
 import pytest
 from any_llm.types.completion import ChatCompletion, ChatCompletionChunk
 
-from hobbes.watterson.providers import Completion, CompletionError, MissingKeyError, Usage, complete, stream
+# The modules themselves, not the package's lazy names: a name it loads at run time reaches nothing in the graph (C-179).
+from hobbes.watterson.providers.errors import CompletionError, MissingKeyError
+from hobbes.watterson.providers.llm import Completion, Usage, complete, stream
 
 
 def _completion(text: str) -> ChatCompletion:

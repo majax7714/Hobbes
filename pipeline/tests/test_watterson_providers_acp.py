@@ -18,21 +18,20 @@ from pathlib import Path
 
 import pytest
 
-from hobbes.watterson.providers import (
-    AgentError,
-    AgentSession,
-    AgentSpec,
+# The modules themselves, not the package's lazy names: a name it loads at run time reaches nothing in the graph (C-179).
+from hobbes.watterson.providers.acp_session import AgentSession, StdioMcpServer, run_prompt
+from hobbes.watterson.providers.errors import AgentError
+from hobbes.watterson.providers.events import (
     FileDiff,
     PermissionDecision,
     Plan,
-    StdioMcpServer,
     TextChunk,
     ToolCall,
     ToolCallUpdate,
     TurnEnded,
     allow_all,
-    run_prompt,
 )
+from hobbes.watterson.providers.registry import AgentSpec
 
 FAKE_AGENT = Path(__file__).parent / "fixtures" / "fake_acp_agent.py"
 

@@ -112,6 +112,8 @@ jobs:
           node-version: 24
       - name: helpers
         run: (cd tsextract && npm ci) && (cd scip && npm ci) && (cd pipeline && uv sync)
+      - name: the TUI's Bun workspace (the fork's packages reach one another through its links; ADR-185's amendment)
+        run: tui/install.sh
       - name: base ref
         id: base
         env:

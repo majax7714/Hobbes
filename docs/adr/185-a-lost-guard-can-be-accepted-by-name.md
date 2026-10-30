@@ -42,3 +42,33 @@ accepted, by whom, and why.
   it is why each module is named rather than a prefix.
 - Adding our own tests for the fork's packages is open work (`docs/currently-open.md`).
 - Version: the review says something new, so this is a patch (0.3.5-beta).
+
+## Amendment, 2026-10-30: an accepted module is accepted whether its guard was lost or never there
+
+**Status:** accepted (Max, 2026-10-30: "Accept by name", over a recorded review baseline or leaving it red).
+
+The consequence above, "`main`'s review goes green after it", did not happen. On `main` the graph job
+reviews from its last green run (ADR-114), `95edb94`, from before the watterson fold (ADR-181). From that
+base every module of the fork is *new*, not lost, so a module on the list that no test reaches fell into
+`new_unguarded`, which the list did not cover. The review of `95edb94..main` read 1,261 such modules on
+this checkout and 1,292 in CI; 1,252 are the fork's, 9 this repo's own.
+
+1. **A module on the list is accepted on either list.** A new module that no test reaches and that the
+   record names moves to its own list, `new_unguarded_accepted`, printed under "new code no test reaches,
+   accepted", grouped by reason, every module named. It is not a reason for attention. The record keeps
+   its name (`accepted-lost-guards.yaml`): what it accepts is a module with no guarding test.
+2. **One more entry**, for the fork's modules that no test reaches and that the trim's entry does not
+   already name: opencode's code, vendored by the fold, whose own tests DEC-028 dropped or never had. Each
+   is named, as before, and comes off when a test of ours reaches it.
+3. **This repo's own modules are not accepted, but for a UI entry's render shell.** The nine get tests: six
+   `hobbes.watterson` modules and `review/build`. The two UI entries, `review/src/main` and
+   `tui/plugins/graph/tui`, have their logic moved into a module beside them with tests (`review/src/page.js`,
+   `tui/plugins/graph/logic.ts`), as `review/src/graph.js` was; what is left renders, and is checked by eye
+   (DEC-019), so each is named in an entry of its own with that reason (Max, 2026-10-30: "Extract logic,
+   accept shells", over rendering them under jsdom and a Solid harness).
+4. **CI installs `tui/opencode`'s Bun workspace in the graph job.** The 31 modules CI alone read as
+   unguarded are reached through workspace packages (`@opencode/client`, `@opencode/theme`, …) that only an
+   install links (ADR-186, C-198). Without it the CI review says less than the one on a checkout.
+
+Nothing else moves: the graph and `list_blind_spots` still say these modules have no guarding test.
+Version: the review says something new, a patch.

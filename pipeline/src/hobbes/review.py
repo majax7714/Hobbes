@@ -64,6 +64,9 @@ class CoverageDelta:
     #: Lost guards the repo accepted by name (ADR-185), each with its
     #: ``"reason — decided"``: said, never a reason for attention.
     lost_guards_accepted: dict[str, str] = field(default_factory=dict)
+    #: New modules no test reaches that the repo accepted by name (ADR-185's
+    #: amendment), each with its ``"reason — decided"``: said, never a reason for attention.
+    new_unguarded_accepted: dict[str, str] = field(default_factory=dict)
     #: Invariants whose guarded_by names a test that no longer exists.
     broken_guards: dict[str, list[str]] = field(default_factory=dict)
     base_tests: int = 0
@@ -342,10 +345,13 @@ def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str], 
     no_code = sorted(empty & {*new_unguarded, *lost_guards})
     new_unguarded = [m for m in new_unguarded if m not in empty]
     lost_guards = [m for m in lost_guards if m not in empty]
-    # ADR-185: a loss the repo accepted by name is said on its own list.
+    # ADR-185: a loss the repo accepted by name is said on its own list; so, since its
+    # amendment, is a new module no test reaches.
     accepted = accepted or {}
     lost_accepted = {m: accepted[m] for m in lost_guards if m in accepted}
     lost_guards = [m for m in lost_guards if m not in accepted]
+    new_accepted = {m: accepted[m] for m in new_unguarded if m in accepted}
+    new_unguarded = [m for m in new_unguarded if m not in accepted]
     broken = {
         record.id: missing
         for record in records
@@ -356,6 +362,7 @@ def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str], 
         new_unguarded=new_unguarded,
         lost_guards=lost_guards,
         lost_guards_accepted=lost_accepted,
+        new_unguarded_accepted=new_accepted,
         broken_guards=broken,
         base_tests=len(base.tests.get("tests", [])),
         head_tests=len(head.tests.get("tests", [])),
@@ -630,13 +637,15 @@ def format_review(review: Review) -> str:
         add(f"   lost every guarding test ({len(coverage.lost_guards)}):")
         for module in coverage.lost_guards:
             add(f"      {module}{_value_only_note(coverage, module)}")
-    if coverage.lost_guards_accepted:
-        add(
-            f"   lost every guarding test, accepted ({len(coverage.lost_guards_accepted)};"
-            f" {ACCEPTED_LOST_GUARDS}, ADR-185):"
-        )
+    for heading, accepted in (
+        ("new code no test reaches, accepted", coverage.new_unguarded_accepted),
+        ("lost every guarding test, accepted", coverage.lost_guards_accepted),
+    ):
+        if not accepted:
+            continue
+        add(f"   {heading} ({len(accepted)}; {ACCEPTED_LOST_GUARDS}, ADR-185):")
         by_reason: dict[str, list[str]] = {}
-        for module, reason in coverage.lost_guards_accepted.items():
+        for module, reason in accepted.items():
             by_reason.setdefault(reason, []).append(module)
         for reason, modules in sorted(by_reason.items()):
             add(f"      {reason} ({len(modules)}):")
@@ -719,6 +728,7 @@ def review_to_dict(review: Review) -> dict:
             "new_unguarded": review.coverage.new_unguarded,
             "lost_guards": review.coverage.lost_guards,
             "lost_guards_accepted": review.coverage.lost_guards_accepted,
+            "new_unguarded_accepted": review.coverage.new_unguarded_accepted,
             "broken_guards": review.coverage.broken_guards,
             "fixture_trees": review.coverage.fixture_trees,
             "value_only": review.coverage.value_only,

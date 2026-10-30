@@ -16873,3 +16873,48 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   cases in this repo (7 in the TUI's own tests). Unrolled here to two literal titles; the limit itself taken
   to Max as routes.
   Three modules off the accepted list (`palette` was never on it): 179 remain, 167 waiting, 35 in `merman`.
+
+## 2026-10-30 (forty-ninth session, cont.) — a secret-scanning alert answered; ADR-185 amended; 0.3.8-beta
+
+- PR #10 merged on Max's word. Max then raised a report of a Google API key in `tui`. Found by history sweep
+  (11 credential shapes, all commits): one value, in opencode's `http-recorder/test/redaction.test.ts`, in with
+  the fold (`b759a71`), out with DEC-028 (`bb9b7ed`); GitHub alert #1 open, validity unknown; the repo public.
+  Not tried against Google. Upstream `anomalyco/opencode` (default branch `dev`) carries the same value
+  (compared by hash only) and lists it in its `.gitleaksignore` (`afa57ac`, `record-replay.test.ts:71`,
+  `gcp-api-key`) under "Fake secret-looking strings used by HTTP recorder redaction tests". A documented fake:
+  not reported upstream, history not rewritten. Alert #1 closed `used_in_tests` with that evidence (Max:
+  "we can close"). A secret scan of our own for vendored trees is Max's to schedule.
+- `main`'s red `graph` job, sized: the local review of `95edb94..main` (CI's base, the last green run, before
+  the fold) reads 1,261 new modules no test reaches; CI read 1,292. The 31 more are the fork's cross-package
+  imports, which resolve only through an installed workspace (ADR-186). Of the 1,261: 1,252 the fork's, 9 ours.
+  ADR-185's own consequence ("`main`'s review goes green after it") had not held: from a pre-fold base the
+  fork's modules are new, not lost, and the record covered losses only.
+- Max: "Accept by name". ADR-185 amended first; `review.py` moves a named new module to
+  `new_unguarded_accepted`, printed with its reason; `test_review.py` pins it and a sibling that still fails.
+  The record gains one entry, the fold's 1,108 modules no entry named; 35 of `merman`'s came off, reached by
+  its renderer's cases (which pin the palette mapping, not the families' drawing; noted in `currently-open`).
+  CI's graph job runs `tui/install.sh`, split out of `tui/build.sh` (the pinned, checksummed Bun, frozen
+  lockfile), which `build.sh` now sources; run here: "577 installs ... no changes".
+- An unquoted heredoc ran the ADR's backticked names as shell commands and blanked them; caught on reading
+  the file back, restored.
+- pytest 3,412 passed; Go `./...` ok. Proxy rebuilt static (`hobbes-proxy 0.3.8-beta`), image `8b95e04c2f20`.
+  CI not yet seen green: it needs this repo's nine modules' tests, next.
+
+## 2026-10-30 (forty-ninth session, cont.) — this repo's own nine unguarded modules; the review from CI's base reads clean
+
+- The six `hobbes.watterson` modules were tested but invisible: `hook_client` and `lead_mcp` only as scripts run
+  by path, and the provider tests through the package's lazy `__getattr__`/`import_module` names; both stop
+  reach in the graph (C-179, the `shanks_tracker.py` precedent). The provider tests now import the submodules;
+  `test_watterson_relays.py` (16 cases) calls the relays over a real Unix socket, the package's lazy loader and
+  the errors directly. `tests.json`: all six reached (2 to 35 cases each).
+- `review/build.mjs` had no function to call (C-156): its two steps are exported and the build runs only when
+  the file is run directly; the bundle it writes is byte-identical. `review/test/build.test.js`.
+- Max: "Extract logic, accept shells". `review/src/page.js` takes `main.jsx`'s links, titles, counts, hash
+  routing and document link rewriting (`test/page.test.js`, 7 cases); `tui/plugins/graph/logic.ts` takes the
+  plugin's logo spans and fit, item texts, selection and row text, free of the TUI (`logic.test.ts`, 8, run
+  with the TUI's Bun). The two render shells are named in an entry of their own (DEC-019's "checked by eye");
+  ADR-185's amendment says so. The plugin has no type check here: it bundles with its packages external, and
+  a live look is Max's (`currently-open.md`).
+- `hobbes review 95edb94..HEAD` (CI's base on `main`), on this checkout: exit 0, "no coverage regression",
+  "nothing needs attention", 1,254 accepted. CI itself is the check still to see, after the push.
+- pytest 3,428 passed; Go `./...` ok; review 22 pass; graph plugin 8; merman 77.

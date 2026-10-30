@@ -22,6 +22,8 @@ import "./style.css";
 import { ARCH, GROUPS, ORDERED, SPARSE, arrowHead, counts, curvePath, elkGraph, isDependency, laidOutLink, neighbours,
   strokeWidth, toFlow, trimEnd } from "./graph.js";
 import { HEADING_PREFIX, byFolder, linkTarget, render } from "./docs.js";
+import { docHref, imageSource, linkAttributes, many, opensView, parseHash, tabOrder, viewHash, viewTitle,
+  vscodeLink } from "./page.js";
 
 const VIEWS = DATA.views;
 const ARCH_DATA = DATA.architecture && DATA.architecture.views && DATA.architecture.root in DATA.architecture.views
@@ -40,12 +42,11 @@ const REPO = DATA.stamp.path;
 const elk = new ELK();
 const laidOut = new Map(); // view id -> promise of {nodes, edges}
 
-const code = (path, line) => `vscode://file/${encodeURI(REPO + "/" + path)}${line ? ":" + line : ""}`;
+const code = (path, line) => vscodeLink(REPO, path, line);
 const isArch = (view) => view.id.startsWith("arch:") && view.id in TABS.a.views;
 const viewsOf = (view) => (isArch(view) ? TABS.a.views : VIEWS);
-const title = (id, views = VIEWS) => (id in views ? views[id].title : id || "(repo)");
-const opens = (b, views = VIEWS) => b && b.view != null && b.view in views;
-const many = (n, noun) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+const title = (id, views = VIEWS) => viewTitle(id, views);
+const opens = (b, views = VIEWS) => opensView(b, views);
 
 function CodeLink({ path, line, children }) {
   return <a href={code(path, line)} title="Open in VS Code">{children ?? (line ? `${path}:${line}` : path)}</a>;
@@ -60,18 +61,12 @@ function Sample({ s }) {
 
 TABS.d = { name: "Docs", root: DOCS.length ? DOCS[0].path : null };
 TABS.r = { name: "Agents", root: "" };
-const TAB_ORDER = ["a", "v", "d", "r"].filter((t) => TABS[t].root != null);
+const TAB_ORDER = tabOrder(TABS);
+const ROLE_NAMES = new Set(ROLE_BY_NAME.keys());
+const DOC_SET = new Set(DOC_BY_PATH.keys());
 
-function hashView() {
-  const m = /^#([avdr])=([^#]*)(?:#(.*))?$/.exec(location.hash);
-  const tab = m && TAB_ORDER.includes(m[1]) ? m[1] : TAB_ORDER[0];
-  const id = m && m[1] === tab ? decodeURIComponent(m[2]) : TABS[tab].root;
-  if (tab === "d") return { tab, id: DOC_BY_PATH.has(id) ? id : TABS.d.root, anchor: m && m[3] ? decodeURIComponent(m[3]) : null };
-  if (tab === "r") return { tab, id: ROLE_BY_NAME.has(id) ? id : "" };
-  return { tab, id: id in TABS[tab].views ? id : TABS[tab].root };
-}
-const go = (id, tab = "v") => { location.hash = tab + "=" + encodeURIComponent(id); };
-const docHref = (path, anchor) => "#d=" + encodeURIComponent(path) + (anchor ? "#" + encodeURIComponent(anchor) : "");
+const hashView = () => parseHash(location.hash, { tabs: TABS, docPaths: DOC_SET, roleNames: ROLE_NAMES });
+const go = (id, tab = "v") => { location.hash = viewHash(id, tab); };
 const goIn = (view) => (id) => go(id, isArch(view) ? "a" : "v");
 
 function useViewId() {
@@ -561,15 +556,13 @@ function unpack(doc) {
  * docs.linkTarget) and label Mermaid blocks, which are not drawn. */
 function fixUp(root, path) {
   for (const a of root.querySelectorAll("a[href]")) {
-    const t = linkTarget(a.getAttribute("href"), path, DOC_PATHS);
-    if (t.kind === "doc") a.setAttribute("href", docHref(t.path, t.anchor));
-    else if (t.kind === "anchor") a.setAttribute("href", docHref(path, t.anchor));
-    else if (t.kind === "file") { a.setAttribute("href", code(t.path, t.line)); a.title = "Open in VS Code"; }
-    else if (t.kind === "external") { a.target = "_blank"; a.rel = "noopener noreferrer"; }
+    const { href, ...rest } = linkAttributes(linkTarget(a.getAttribute("href"), path, DOC_PATHS), path, REPO);
+    if (href) a.setAttribute("href", href);
+    Object.assign(a, rest);
   }
   for (const img of root.querySelectorAll("img[src]")) {
-    const t = linkTarget(img.getAttribute("src"), path, new Set());
-    if (t.kind === "file") img.src = "file://" + encodeURI(REPO + "/" + t.path);
+    const src = imageSource(linkTarget(img.getAttribute("src"), path, new Set()), REPO);
+    if (src) img.src = src;
   }
   for (const c of root.querySelectorAll("pre > code.language-mermaid")) {
     const note = document.createElement("div");

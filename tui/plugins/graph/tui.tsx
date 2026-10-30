@@ -29,41 +29,24 @@ import type { PanelInput } from "@opencode/plugin/tui/context"
 import { RGBA, TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
 import { useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from "solid-js"
+import {
+  lines,
+  modeLabel,
+  moveSelection,
+  pickPicture,
+  rowText,
+  shownLinks,
+  statusLine,
+  viewHeading,
+  type Box,
+  type LogoData,
+  type Mode,
+  type Reply,
+  type Status,
+  type Tone,
+} from "./logic"
 
 const PANEL = "hobbes.graph"
-const MAX_LINKS = 8
-
-type Box = {
-  id: string
-  label: string
-  detail: string
-  opens: string | null
-  root: boolean
-  links: string[]
-  tests: string[]
-}
-type View = {
-  id: string
-  kind: "folder" | "module" | "entries" | "flow"
-  title: string
-  level: number
-  parent: string | null
-  parentTitle: string | null
-  sha: string
-  dirty: boolean
-  notes: string[]
-  boxes: Box[]
-  outside: string[]
-  cycles: string[]
-}
-type Reply = View | { error: string }
-type Status = { state: "unavailable" | "off" | "starting" | "on" | "failed"; detail: string; since: number | null }
-type Mode = { sessionID: string | null; mode: "default" | "mapped" | "mapping"; mapped: boolean; detail: string; error?: string }
-
-const FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-type Picture = { rows: string[]; palette: Record<string, string> }
-type LogoData = { letters: Picture; art: Picture | null; error?: string }
-type Span = { text: string; fg?: RGBA; bg?: RGBA }
 
 export default Plugin.define({
   id: PANEL,
@@ -258,33 +241,6 @@ export default Plugin.define({
   },
 })
 
-// A picture as terminal lines: two pixels a cell, runs of one colour pair merged into a span.
-function lines(picture: Picture, text: RGBA, muted: RGBA): Span[][] {
-  const cache: Record<string, RGBA> = {}
-  const colour = (ch: string): RGBA | undefined => {
-    if (ch === "." || ch === undefined) return undefined
-    if (ch === "T") return text
-    if (ch === "t") return muted
-    return (cache[ch] ??= RGBA.fromHex(picture.palette[ch]))
-  }
-  const out: Span[][] = []
-  for (let y = 0; y < picture.rows.length; y += 2) {
-    const top = picture.rows[y]
-    const bottom = picture.rows[y + 1] ?? ""
-    const spans: Span[] = []
-    for (let x = 0; x < top.length; x++) {
-      const a = colour(top[x])
-      const b = colour(bottom[x])
-      const cell: Span = !a && !b ? { text: " " } : !b ? { text: "▀", fg: a } : !a ? { text: "▄", fg: b } : { text: "▀", fg: a, bg: b }
-      const last = spans[spans.length - 1]
-      if (last && last.fg === cell.fg && last.bg === cell.bg && last.text[0] === cell.text) last.text += cell.text
-      else spans.push(cell)
-    }
-    out.push(spans)
-  }
-  return out
-}
-
 // Hobbes's logo on the home screen (DEC-017), in the `home.logo` slot in place of opencode's (DEC-025).
 function HomeLogo(props: { context: Plugin.Context }) {
   const context = props.context
@@ -303,18 +259,10 @@ function HomeLogo(props: { context: Plugin.Context }) {
   onCleanup(context.data.on("server.connected", () => void fetchLogo()))
 
   // The art when it fits with room for the prompt, else the plain letters, else nothing.
-  const picture = createMemo(() => {
-    const current = data()
-    const { width, height } = dimensions()
-    const fits = (p: Picture | null | undefined, room: number) =>
-      p && width >= p.rows[0].length + 4 && height >= p.rows.length / 2 + room
-    if (fits(current?.art, 12)) return current!.art!
-    if (fits(current?.letters, 12)) return current!.letters
-    return undefined
-  })
+  const picture = createMemo(() => pickPicture(data(), dimensions().width, dimensions().height))
   const drawn = createMemo(() => {
     const current = picture()
-    return current ? lines(current, context.theme.text.base, context.theme.text.muted) : []
+    return current ? lines(current, context.theme.text.base, context.theme.text.muted, (hex) => RGBA.fromHex(hex)) : []
   })
 
   return (
@@ -350,24 +298,14 @@ function HobbesItem(props: {
   })
   onCleanup(() => timer !== undefined && clearInterval(timer))
 
+  const toneColour = (tone: Tone) =>
+    tone === "success" ? theme().text.feedback.success.base
+      : tone === "warning" ? theme().text.feedback.warning.base
+        : tone === "error" ? theme().text.feedback.error.base
+          : theme().text.muted
   const line = createMemo(() => {
-    const current = props.status()
-    if (!current) return { text: "", color: theme().text.muted }
-    switch (current.state) {
-      case "on":
-        return { text: "● hobbes on", color: theme().text.feedback.success.base }
-      case "starting": {
-        const seconds = current.since ? Math.max(0, Math.floor((now() - current.since) / 1000)) : 0
-        const frame = FRAMES[Math.floor(now() / 120) % FRAMES.length]
-        return { text: `${frame} hobbes starting${props.details ? ` · ${seconds}s` : ""}`, color: theme().text.feedback.warning.base }
-      }
-      case "failed":
-        return { text: `✕ hobbes failed${props.details ? " · retry" : ""}`, color: theme().text.feedback.error.base }
-      case "unavailable":
-        return { text: "◌ hobbes unavailable", color: theme().text.muted }
-      default:
-        return { text: `◌ hobbes off${props.details ? " · start" : ""}`, color: theme().text.muted }
-    }
+    const { text, tone } = statusLine(props.status(), props.details, now())
+    return { text, color: toneColour(tone) }
   })
 
   return (
@@ -389,7 +327,7 @@ function ModeItem(props: { context: Plugin.Context; mode: () => Mode | undefined
       {(current) => (
         <box flexShrink={0} onMouseUp={() => props.pick()}>
           <text fg={current().mode === "default" ? theme().text.muted : theme().text.base} wrapMode="none">
-            {current().mode === "mapped" ? "◆ agent mapped" : current().mode === "mapping" ? "✎ edit mapping" : "◇ default"}
+            {modeLabel(current().mode)}
           </text>
         </box>
       )}
@@ -429,7 +367,7 @@ function GraphPanel(props: { context: Plugin.Context; panel: PanelInput }) {
 
   function move(step: number) {
     const count = view()?.boxes.length ?? 0
-    if (count > 0) setSelected((index) => Math.min(count - 1, Math.max(0, index + step)))
+    setSelected((index) => moveSelection(index, step, count))
   }
 
   function open() {
@@ -488,7 +426,7 @@ function GraphPanel(props: { context: Plugin.Context; panel: PanelInput }) {
                   {current().title}
                 </text>
                 <text fg={theme().text.muted} wrapMode="none" truncate>
-                  {`  ${current().kind} · level ${current().level} · ${current().sha}${current().dirty ? " (dirty)" : ""}`}
+                  {viewHeading(current())}
                 </text>
               </box>
               <Show when={current().parentTitle !== null}>
@@ -523,14 +461,14 @@ function GraphPanel(props: { context: Plugin.Context; panel: PanelInput }) {
                         onMouseUp={() => setSelected(index())}
                       >
                         <text fg={theme().text.muted} wrapMode="none" flexShrink={0}>
-                          {item.opens !== null ? "▸ " : "  "}
+                          {rowText(item).marker}
                         </text>
                         <text
                           attributes={chosen() ? TextAttributes.BOLD : undefined}
                           wrapMode="none"
                           flexShrink={0}
                         >
-                          {item.label + (item.root ? " (root)" : "")}
+                          {rowText(item).label}
                         </text>
                         <text fg={theme().text.muted} wrapMode="none" truncate>
                           {`  ${item.detail}`}
@@ -550,15 +488,15 @@ function GraphPanel(props: { context: Plugin.Context; panel: PanelInput }) {
                       when={chosen().links.length > 0}
                       fallback={<text fg={theme().text.muted}>No links within this view.</text>}
                     >
-                      <For each={chosen().links.slice(0, MAX_LINKS)}>
+                      <For each={shownLinks(chosen().links).shown}>
                         {(link) => (
                           <text wrapMode="none" truncate>
                             {link}
                           </text>
                         )}
                       </For>
-                      <Show when={chosen().links.length > MAX_LINKS}>
-                        <text fg={theme().text.muted}>{`… ${chosen().links.length - MAX_LINKS} more`}</text>
+                      <Show when={shownLinks(chosen().links).more > 0}>
+                        <text fg={theme().text.muted}>{`… ${shownLinks(chosen().links).more} more`}</text>
                       </Show>
                     </Show>
                     <For each={chosen().tests}>
