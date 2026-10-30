@@ -100,7 +100,7 @@ Left by the fold (2026-10-28):
   six diagram families came off the record because its renderer's cases reach them, but those cases draw
   their expected output with the families' own code: they pin the palette mapping, not what a family
   draws, so the families still get tests of their own, next in order (flowchart done: 97 cases across six
-  files; next gantt, gitGraph, sequence, state, timeline). The check every new case is held
+  files; gantt: 39 across three; next gitGraph, sequence, state, timeline). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
   - **Fork bugs our tests pin, not fixed** (found writing `latex`'s): `maxExpand: N` allows N−1 macro
