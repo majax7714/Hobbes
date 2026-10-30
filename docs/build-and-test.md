@@ -51,6 +51,7 @@ cd review && npm test                     # the dev environment's review page
 (cd tui/opencode/packages/util && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # our util tests; not in CI
 (cd tui/opencode/packages/latex && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # our latex tests; not in CI
 (cd tui/opencode/packages/merman && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # our merman tests; not in CI
+~/.watterson/bun/1.4.2/bun test tui/plugins/graph   # the graph plugin's logic; not in CI
 ```
 
 CI (`.github/workflows/ci.yml`, ADR-095) runs every suite on every push.
@@ -76,7 +77,8 @@ Last checked 2026-10-29. pytest at 0.3.6-beta, tsextract and scip node at 0.3.4-
 | vitest | 52 | |
 | tsextract | 56 | |
 | scip node | 105 | |
-| review (node) | 13 | the dev environment's review page |
+| review (node) | 22 | 22 pass (2026-10-30): the review page's graph, its browser-free logic (`src/page.js`) and the bundle's notice |
+| graph plugin (bun) | 8 | 8 pass (2026-10-30): `tui/plugins/graph/logic.ts`; `~/.watterson/bun/1.4.2/bun test tui/plugins/graph`; not in CI |
 | TUI (bun) | 1,494 | 1,492 pass, 2 skip (2026-10-29, after DEC-028's trim); `tui/opencode/packages/tui`, not in CI; with Bun's default 5 s timeout two shell-output cases time out, so use `--timeout 30000` |
 | util (bun) | 49 | 49 pass (2026-10-29); `tui/opencode/packages/util`, ours since DEC-028, not in CI; `turbo test` runs it with the TUI |
 | latex (bun) | 86 | 86 pass (2026-10-29); `tui/opencode/packages/latex`, ours, not in CI; `turbo test` runs it |

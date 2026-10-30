@@ -16899,3 +16899,22 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   the file back, restored.
 - pytest 3,412 passed; Go `./...` ok. Proxy rebuilt static (`hobbes-proxy 0.3.8-beta`), image `8b95e04c2f20`.
   CI not yet seen green: it needs this repo's nine modules' tests, next.
+
+## 2026-10-30 (forty-ninth session, cont.) — this repo's own nine unguarded modules; the review from CI's base reads clean
+
+- The six `hobbes.watterson` modules were tested but invisible: `hook_client` and `lead_mcp` only as scripts run
+  by path, and the provider tests through the package's lazy `__getattr__`/`import_module` names; both stop
+  reach in the graph (C-179, the `shanks_tracker.py` precedent). The provider tests now import the submodules;
+  `test_watterson_relays.py` (16 cases) calls the relays over a real Unix socket, the package's lazy loader and
+  the errors directly. `tests.json`: all six reached (2 to 35 cases each).
+- `review/build.mjs` had no function to call (C-156): its two steps are exported and the build runs only when
+  the file is run directly; the bundle it writes is byte-identical. `review/test/build.test.js`.
+- Max: "Extract logic, accept shells". `review/src/page.js` takes `main.jsx`'s links, titles, counts, hash
+  routing and document link rewriting (`test/page.test.js`, 7 cases); `tui/plugins/graph/logic.ts` takes the
+  plugin's logo spans and fit, item texts, selection and row text, free of the TUI (`logic.test.ts`, 8, run
+  with the TUI's Bun). The two render shells are named in an entry of their own (DEC-019's "checked by eye");
+  ADR-185's amendment says so. The plugin has no type check here: it bundles with its packages external, and
+  a live look is Max's (`currently-open.md`).
+- `hobbes review 95edb94..HEAD` (CI's base on `main`), on this checkout: exit 0, "no coverage regression",
+  "nothing needs attention", 1,254 accepted. CI itself is the check still to see, after the push.
+- pytest 3,428 passed; Go `./...` ok; review 22 pass; graph plugin 8; merman 77.

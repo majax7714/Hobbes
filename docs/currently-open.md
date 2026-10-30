@@ -84,10 +84,11 @@ key no implicit call, so a rule's rows could not be graded.
 Its own open items stay in [`watterson/open-work.md`](watterson/open-work.md) ("Next up" first: item 11b,
 hiding what the server does not back; then the app's Hobbes start, `tui` matching `chat`, the map file).
 Left by the fold (2026-10-28):
-- **CI's `graph` job goes green when this repo's own nine unguarded modules get tests** (ADR-185's
-  amendment, 0.3.8-beta: the fold's delta is accepted by name, and CI installs the Bun workspace). The nine:
-  six `hobbes.watterson` modules (`hook_client`, `lead_mcp`, `providers`, `providers.acp_session`,
-  `providers.errors`, `providers.llm`), `review/build`, `review/src/main`, `tui/plugins/graph/tui`.
+- **The graph plugin's live look** after its logic moved into `logic.ts` (2026-10-30): it bundles and its logic
+  is tested, but the panel is compiled by the TUI and only a live run shows it (`docs/watterson/README.md`).
+- **A secret scan for vendored trees** (Max's to schedule, 2026-10-30): GitHub's alert #1 was opencode's
+  documented fake; a scan on our side (upstream uses `gitleaks` with a fingerprinted ignore list) would catch
+  the next import before it lands.
 - **Live checks are Max's:** `watterson tui` (and `ask`, `chat`, `dispatch`, `job`) reach real harnesses;
   the fold verified them with the fake agent only. Re-point `~/.local/bin/watterson` at this repo's
   `bin/watterson`; `~/.local/bin/hobbes-proxy` points at a missing `~/hobbes/go/bin`.
