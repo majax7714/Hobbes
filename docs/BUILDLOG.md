@@ -16936,3 +16936,57 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   named here; a rerun read `3429 passed`. (`currently-open.md` lists a known flake that fails on a loaded box;
   not confirmed to be this one.) Go `./...` ok; tsextract 57 pass. Proxy `hobbes-proxy 0.3.9-beta`, image
   `576e6f9787ef`.
+
+## 2026-10-30 (forty-ninth session, cont.) — our own tests for `merman`'s flowchart parser, labels and style (31 cases, none redundant)
+
+- PR #12 merged on Max's word after its CI read green (`graph` 27 min); main at `e9354e1`.
+- Flowchart, the first of `merman`'s six families, in sub-units; this one `parser`, `labels`, `style`, one test
+  file each under `packages/merman/test/flowchart/`, importing the module directly, every message matched whole.
+- `bench/subsume` (`-j 2`, serially): `parser` 348 faults, first pass 226 caught, 2 redundant, 121 survivors;
+  final 315 caught, 0 redundant, 19 cases, 32 survivors. `labels` 80 → 72, 0 redundant, 8 cases. `style` 53 →
+  45, 0 redundant, 4 cases. Read every survivor. Gaps closed: a bracket or quote before an `&`, an arrow or a
+  `;` (the three scanners), `A&B` unspaced, each shape's quoted label, a quoted subgraph id and a `;` in a
+  bracketed title, a subgraph to the right of `~~~`, a start arrow that sets the style (`A == x --> B`), `RL`,
+  a lower-case local `direction`, keywords mid-statement (`A --> graph`, `endpoint --> backend`), a line only
+  a refused separator keeps from parsing (`A[x]; B[y]`, `A[x];]`); for labels, a vertical run that fits only at
+  clearance 1, an unclamped five-line lift, a vertical shorter than a horizontal that does not fit. Survivors
+  left are equivalent: strings in type positions, trims and anchors on input already trimmed or matched whole,
+  bounds compared against an `undefined` close, `||` → `&&` where the box regex accepts the token anyway, the
+  order-only exemption on subgraph ids (always valid ids), a vertical label's clamp (routes are never negative).
+- Pinned as observed: `a---` (an arrow with nothing after it) falls back to a node of that name, since `.` and
+  `-` are id characters. Expectations of mine corrected after reading: a run 3..10 fits a 4-wide label exactly,
+  and the render drops each row's trailing blanks, not only blank top and bottom rows.
+- `bun test`: 108 pass across 15 files. `tsc --noEmit` clean. `tests_guarding` on `flowchart/labels.ts` names
+  the new cases after an ingest.
+
+## 2026-10-30 (forty-ninth session, cont.) — our own tests for `merman`'s flowchart layout, routing and drawing (66 cases)
+
+- The rest of the flowchart family: `layout.test.ts` (31 derived cases, a pinned fork defect, 7 cases of pinned
+  inputs), `routing.test.ts` (11 derived, 6 of pinned inputs), `drawing.test.ts` (10, one a pinned fork defect),
+  and `layout-summary.ts`, one line per layout that the pinned cases compare.
+- Derived first: each case's numbers worked from the source (clearances, gaps, centring floors, the rank and
+  band rules) and only then run; probes checked my reading on tiny diagrams. Expectations of mine corrected
+  after reading: a cycle's return edge shifts the canvas 4 right, LR separation uses half of 7 (3), a mixed
+  thick/plain fan keeps each branch's own weight and a light stem.
+- `bench/subsume` (`-j 2`, serially) left large gaps in the derived cases: `layout` 598 of 962 caught, `routing`
+  380 of 1,303. New method for those: every surviving fault planted in a scratch copy of the module and random
+  flowcharts (6,000 per layout fault, 3,000 per routing fault) laid out by both copies; a fault no input tells
+  apart is likely equivalent (layout 194, routing 309, agreeing with every one I had judged by hand), the rest
+  (layout 135, routing 477) each have an input. Each input shrunk by deleting statements and options, then the
+  fewest kept that tell every such fault apart (layout 38, routing 43), each asserting only the summary items
+  its faults change, checked for overlapping nodes and nodes outside their frames. Pinned as observed, not
+  derived; the test files say so. Scripts in the session scratchpad, not the repo.
+- Final: `layout` 737 of 962 caught (18 hang or crash); `routing` 929 of 1,303 (17); `drawing` 203 of 241.
+  Survivors left: type strings, faults no random input tells apart, guards on routes and bounds that always
+  exist, floors that never bind (decision text always has an even margin, a box line is at least 2 in).
+- Redundancy: the pinned inputs assert node positions, so most layout faults reach them and 16 derived layout
+  cases and 4 routing ones read as redundant. Max (2026-10-30), asked with four routes: keep both, the derived
+  cases as the readable statement of each rule, redundant against the pins by design. The 4 routing cases are
+  the same case and are kept on that word; flagged in the PR. Drawing's one redundant case (the decision) was
+  folded into the border-style case.
+- Two fork defects found, pinned, listed in `currently-open.md`, not fixed: a node outside every frame laid out
+  over a framed node (TD, G0 {B}, G1 {A}, `E --> A`, `A --> F`, `A --> A`), found when the frame invariant check
+  failed on one pinned input; and the first of two parallel top-down edges drawing `▼` beside its target, not
+  into it. Also pinned as behaviour: a dashed edge draws as a solid one; box and rounded nodes draw alike; a thick
+  edge's tee on its source stays light.
+- `bun test` (merman): 174 pass across 18 files. `tsc --noEmit` clean.

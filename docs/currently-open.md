@@ -99,7 +99,8 @@ Left by the fold (2026-10-28):
   `merman`'s `core`, nine modules: 64 cases; its top level, three listed and `palette`: 13). `merman`'s
   six diagram families came off the record because its renderer's cases reach them, but those cases draw
   their expected output with the families' own code: they pin the palette mapping, not what a family
-  draws, so the families still get tests of their own, next in order. The check every new case is held
+  draws, so the families still get tests of their own, next in order (flowchart done: 97 cases across six
+  files; next gantt, gitGraph, sequence, state, timeline). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
   - **Fork bugs our tests pin, not fixed** (found writing `latex`'s): `maxExpand: N` allows N−1 macro
@@ -110,6 +111,13 @@ Left by the fold (2026-10-28):
     (`capLeft === capRight`, or crossed at 2), the right cap's glyph over the left's (`core/drawing.ts:236`);
     4 and 6 or more are whole. Unreachable from the fork: its one caller, the flowchart's decision node,
     is always odd and at least 7 wide (`flowchart/layout.ts:116-121`).
+  - **Found writing `merman`'s flowchart layout:** a node outside every frame can be laid out on top of a
+    framed node. Smallest case: `flowchart TD`, `subgraph G0` {B}, `subgraph G1` {A}, `E --> A`, `A --> F`,
+    `A --> A`: the self loop widens G1's frame, the separation pass moves the frames, and E lands over B inside
+    G0 (B's label hidden). Pinned by `test/flowchart/layout.test.ts` ("a fork defect, pinned"); a fix changes it.
+  - **Found writing `merman`'s flowchart drawing:** of two parallel edges top-down (`A --> B` twice), the first
+    runs from A's right side straight down to B's right side and draws its head `▼` there, pointing past B rather
+    into it; the second lane ends on the same cell. Pinned by `test/flowchart/drawing.test.ts`; a fix changes it.
   - Possible later, not asked: ADR-117 exempts a Python module with no code from the guard question; a
     TS module of only types or re-exports is still asked, hence the second entry.
 
