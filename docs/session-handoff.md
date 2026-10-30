@@ -1,7 +1,7 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-30 (forty-ninth session, end); `main` at 0.3.9-beta (`8205e42`, PRs #8–#14 merged, no
-branch open); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+**Reviewed 2026-10-30 (fiftieth session); `main` at 0.3.9-beta (`8205e42`, PRs #8–#14 merged); branch
+`test/merman-sequence` committed, not yet pushed; the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -40,21 +40,22 @@ session went belongs in the BUILDLOG.
   the readable statement of the rule). PRs #13 and #14 flagged cases kept the same way, or kept because they
   guard a fault `subsume` cannot plant (checked by planting it by hand); neither was overruled.
 
-**Next: `merman`'s last three diagram families, then the rest of the fork's tests.** Done: `core` (PR #9),
-the top level (PR #10), flowchart (PR #13, 97 cases), gantt and gitGraph (PR #14, 71 cases). Left, in order,
-each on its own branch and PR:
-- **sequence** (`src/sequence/`: `parser` 282 lines, `placement` 684, `drawing` 287, `style`, `options`).
+**Next: `merman`'s last two diagram families, then the rest of the fork's tests.** Done: `core` (PR #9),
+the top level (PR #10), flowchart (PR #13, 97 cases), gantt and gitGraph (PR #14, 71 cases), sequence
+(branch `test/merman-sequence`, 62 cases, PR waiting on Max's push; it carries this handoff's `74408d8`).
+Left, in order, each on its own branch and PR:
 - **state** (`src/state/`: `parser`, `layout` 1,134, `routing` 1,522, `search`, `note`, `visible-model`,
   `endpoint`, `drawing`, `style`, `options`). Its layout and routing are flowchart-sized.
 - **timeline** (`src/timeline/`: `parser` 119, `drawing` 109, `style`).
 
-How, as the last three families were done (BUILDLOG 2026-10-30 entries; tests under
+How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests under
 `packages/merman/test/<family>/`, one file per module, `prettier --write` on new files):
 - derive each expected output by hand from the source, then run it;
-- `bench/subsume` per module, **serially with `-j 2`** (Max, 2026-10-29: its default 6 workers peaked this
+- `bench/subsume` per module against **that module's own test file** (`--tests test/<family>/<module>.test.ts`;
+  against the whole family every other file's cases read as redundant), **serially with `-j 2`** (Max, 2026-10-29: its default 6 workers peaked this
   machine's memory), detached (`setsid nohup … &`, then an until-loop waiter); read every survivor; close the
   gaps; fold redundant cases, or keep one only if a fault planted by hand fails it alone, and say so above it;
-- for a layout or routing module where derived cases leave large gaps, the pinned-input method (flowchart
+- for a layout or routing module where derived cases leave large gaps (sequence's placement did not), the pinned-input method (flowchart
   entry: plant each survivor in a scratch copy, search random diagrams for an input it changes, shrink, keep
   the fewest). **Its scripts were in the forty-ninth session's scratchpad and are gone**; rebuild them from
   that entry, or ask Max whether to keep them in `bench/` this time.
@@ -66,8 +67,8 @@ ADR first. The extraction routes stand as they were: C is the next-thinnest lang
 
 **Waiting on Max:**
 - The fork defects our tests pin (`currently-open.md`, the fork-tests item): `latex`'s four, `merman`'s
-  `core` diamond caps, and flowchart's two (an outside node laid over a framed one; a parallel edge's head
-  beside its target). Fix them, or leave them pinned.
+  `core` diamond caps, flowchart's two (an outside node laid over a framed one; a parallel edge's head
+  beside its target), and sequence's note over no one (dropped silently). Fix them, or leave them pinned.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - H-39: the trace oracle's re-entrance guard is shared across threads; a thread-local guard moves every key
   with a threaded test (`currently-open.md`).
