@@ -16990,3 +16990,57 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   into it. Also pinned as behaviour: a dashed edge draws as a solid one; box and rounded nodes draw alike; a thick
   edge's tee on its source stays light.
 - `bun test` (merman): 174 pass across 18 files. `tsc --noEmit` clean.
+
+## 2026-10-30 (forty-ninth session, cont.) — our own tests for `merman`'s gantt (39 cases)
+
+- PR #13 (flowchart, 97 cases) merged on Max's word after its CI read green (`graph` 20 min); main at `b5bce3e`.
+- Gantt, the second family: `parser.test.ts` (18), `drawing.test.ts` (16), `style.test.ts` (5, the colours and
+  `render-grid`), under `packages/merman/test/gantt/`. Derived from the source, then run; two expected strings
+  of mine were mistyped against my own working (a gap count), corrected to it.
+- `bench/subsume` (`-j 2`, serially): `parser` 198 faults, first pass 170 caught, 4 redundant, 26 survivors;
+  final 180 caught, 16 survivors. `drawing` 276, first 252 caught, 4 redundant, 12 survivors; final 257 (11 hang
+  or crash), 7 survivors. `style` + `render-grid` 48 → 47, 0 redundant. Gaps closed: the parser's regex anchors
+  (a task labelled `Review section 2`, `Write title page`, `sections` or `Draft accDescr notes` is a task; a
+  one-line `accDescr {…}` opens no block), `vert` read as a flag not an id, `2days`/`5min` refused, a start of
+  `xafter a` not a dependency; in drawing, the default 120-cell room (a 55-cell label), the one-millisecond
+  span floor, odd-width title and axis-label centring, capsule caps with no line given. Survivors left are
+  equivalent: a dead `!line` guard (the line filter drops what it would), trims and anchors on input already
+  trimmed, `Number()` where JS coerces anyway, a `%%` at index 0 already filtered, loops one cell past the
+  canvas (clipped), strings in type positions, `String()` before `replaceAll`.
+- Redundancy: folded the bare-header, flag-after-id, dateFormat-order, entry-row and default-track cases into
+  their neighbours, and took the comment off the accDescr case's `}` so comments are tested in one place. Three
+  cases `subsume` still reads as redundant stay, each the only one to fail on a fault it cannot plant (planted
+  by hand in a scratch copy): a task's section spread dropped, `.filter(Boolean)` dropped, the track drawn
+  thin whatever the line. The test files say so.
+- Pinned as observed: a track's end points take the track's tone, not the task's; a milestone draws no track;
+  with `labels: "right"` a section stays at the left edge.
+- `bun test` (merman): 213 pass across 21 files. `tsc --noEmit` clean.
+
+## 2026-10-30 (forty-ninth session, cont.) — our own tests for `merman`'s gitGraph (32 cases)
+
+- The third family: `parser.test.ts` (18), `drawing.test.ts` (10), `style.test.ts` (4, colours and
+  `render-grid`), under `packages/merman/test/gitgraph/`. Every drawn graph worked by hand from the source
+  first (lanes, spans, fork rows, the connection masks), then run; all matched.
+- `bench/subsume` (`-j 2`, serially): `parser` 256 faults, first pass 231 caught, 2 redundant, 24 survivors;
+  final 244 caught, 11 survivors. `drawing` 166, first 131, 2 redundant, 34 survivors; final 132 (one more
+  now fails every case), 32 survivors. `style` + `render-grid` 53 → 36, 0 redundant. Gaps closed: the
+  accessibility, title and accDescr-block anchors (`noaccTitle: x`, `subtitle x`, `accDescr {one line}`), the
+  quoted-message anchors (`x"a"`, `"a"b`), a key-less `:x`, a single-quoted `%%`, `%%` straight after a word or
+  at the line's end, a quote opening the line, an error line's comment cut with its space; in drawing, a
+  fork drawn after an earlier lane ended (the rail loop's `continue`), and a headless branch ahead of a headed
+  one (the heads loop's `continue`). Survivors left are equivalent: `quote`'s type annotations, the initial
+  `"LR"` the required header overwrites, loop bounds one past the line, trims on trimmed lines, the order
+  tie-break behind a stable sort (checked on Bun at 2 to 30 ties), the glyph table's unreachable masks (`┬`,
+  `┴`, the one-way masks, the blank), connection bits the commit glyph overwrites or the rail already sets,
+  bounds that never bind (no merge at index 1, a parent's span never past the index), and in `style` the
+  unused palette entries and type strings.
+- Redundancy: folded the numbering cases into one and the direction case into the one-lane case. Two cases
+  `subsume` still reads as redundant stay, each the only one to fail on a fault it cannot plant (by hand):
+  taking a number for every commit, id given or not; the lane style modulo nine (inside a template).
+- Pinned as observed: a missing header is reported at line 1 wherever the first line is; the header line is
+  matched before its comment is cut and before an accessibility line is skipped (`gitGraph %% x` and an
+  `accTitle` first both fail); unordered branches take lanes before ordered ones; a given id may claim
+  `commit-n` and the next numbered commit then collides; the direction is parsed and never drawn. Read, not
+  changed: `BRANCH_RGB` lists eight colours but every lane draws in the muted rail colour and only four
+  entries colour marks.
+- `bun test` (merman): 245 pass across 24 files. `tsc --noEmit` clean.
