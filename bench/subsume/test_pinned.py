@@ -26,3 +26,19 @@ def test_cover_keeps_the_fewest_inputs_that_tell_every_fault_apart():
     assert cover(tells) == ["d"]
     assert cover({"aa": {1}, "b": {1}, "c": {2}}) == ["b", "c"]
     assert cover({}) == []
+
+
+def test_the_harnesses_bun_tests_pass_where_bun_is():
+    import subprocess
+    from pathlib import Path
+
+    import pytest
+    import subsume
+
+    if not Path(subsume.BUN).exists():
+        pytest.skip("no Bun here: the harnesses' tests run where the TUI's workspace is installed")
+    here = Path(__file__).parent
+    if not (here / "../../tui/opencode/packages/merman/node_modules").exists():
+        pytest.skip("the TUI's workspace is not installed (tui/install.sh)")
+    proc = subprocess.run([subsume.BUN, "test", "harnesses.test.ts"], cwd=here, capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stdout + proc.stderr

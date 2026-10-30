@@ -54,7 +54,10 @@ named below was removed unless it says otherwise.
   --harness <family harness> [-n N] [--seed S] [-j N]`, run from `tui/opencode`. Plants each survivor of a
   `subsume` report, runs N random inputs through the package as is and planted, shrinks each telling input,
   keeps the fewest; the docstring gives the harness protocol. Harnesses in `bench/subsume/harnesses/`
-  (`sequence.ts`). `test_pinned.py` beside it (CI).
+  (`sequence.ts`; shared `random.ts`, `cli.ts`), each loading its package from `cli.ts`'s root (the mirror's,
+  or `$PINNED_PACKAGE`); `harnesses.test.ts` (Bun) runs them against the real package, and `test_pinned.py`
+  runs it where Bun and the TUI's workspace are. Every Bun run of both tools is capped at
+  `$SUBSUME_MEMORY_MAX` (default 4G) in a systemd user scope.
 
 ## 2026-10-29 — our own tests for the opencode fork
 

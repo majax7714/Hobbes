@@ -1,26 +1,17 @@
 // pinned.py's harness for merman's sequence family: random diagrams, each summarized as its parse, its
 // placement plan and its drawn text, flattened to one key per value. An input's `%%opts` line (a comment
-// to the parser) carries the render options. Copied into the package root, so `./src` is the planted copy.
-import { drawSequenceDiagramGrid } from "./src/sequence/drawing"
-import { parseMermaidSequenceDiagram } from "./src/sequence/parser"
-import { createSequencePlacementPlan } from "./src/sequence/placement"
-import { renderSequenceGridText } from "./src/sequence/render-grid"
+// to the parser) carries the render options. It loads the package from `cli.ts`'s root (the planted copy).
+import { packageRoot, runHarness } from "./cli"
 
-function random(seed: number) {
-  let state = seed >>> 0
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0
-    let t = state
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
+const { drawSequenceDiagramGrid } = await import(`${packageRoot}/src/sequence/drawing.ts`)
+const { parseMermaidSequenceDiagram } = await import(`${packageRoot}/src/sequence/parser.ts`)
+const { createSequencePlacementPlan } = await import(`${packageRoot}/src/sequence/placement.ts`)
+const { renderSequenceGridText } = await import(`${packageRoot}/src/sequence/render-grid.ts`)
 
 const WORDS = ["a", "go", "ok", "hey", "send", "reply", "a long label", "Customer facing", "x<br>yy", "one<br>two<br>3"]
 const ARROWS = ["->>", "-->>", "->", "-->", "-x", "--x", "-)", "--)"]
 
-function generate(rand: () => number): string {
+export function generate(rand: () => number): string {
   const pick = <T>(items: readonly T[]) => items[Math.floor(rand() * items.length)]!
   const chance = (p: number) => rand() < p
   const ids = ["A", "B", "C", "D"].slice(0, 1 + Math.floor(rand() * 4))
@@ -75,7 +66,7 @@ function flatten(value: unknown, prefix: string, out: Record<string, unknown>): 
   }
 }
 
-function summarize(input: string): Record<string, unknown> {
+export function summarize(input: string): Record<string, unknown> {
   try {
     const opts = input.match(/^%%opts compact=(\d) gap=(\d*)$/m)
     const options = { compact: opts?.[1] === "1", minParticipantGap: opts?.[2] ? Number(opts[2]) : undefined }
@@ -90,11 +81,4 @@ function summarize(input: string): Record<string, unknown> {
   }
 }
 
-const [command, seed, count] = process.argv.slice(2)
-if (command === "gen") {
-  const rand = random(Number(seed))
-  console.log(JSON.stringify(Array.from({ length: Number(count) }, () => generate(rand))))
-} else {
-  const inputs: string[] = JSON.parse(await Bun.stdin.text())
-  console.log(JSON.stringify(inputs.map(summarize)))
-}
+if (import.meta.main) await runHarness(generate, summarize)

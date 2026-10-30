@@ -17113,3 +17113,18 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   derived case added ("a canvas is at least 3 rows, or 5 with a box"); planted by hand, each floor fails it
   alone. A search finds only what its generator makes: no input told apart is evidence, not proof.
 - `bun test` (merman): 308 pass. Handoff: run the tool on every module's survivors, not only large gaps.
+
+## 2026-10-30 (fiftieth session, cont.) — PR #16's harness made testable; the tools' memory cap brought forward
+
+- PR #16's `graph` check failed: `bench/subsume/harnesses/sequence` was new code no test reached (its `./src/`
+  imports resolved only inside a mirror). Max took the recommended route: make the harnesses testable, not
+  accept them. Each harness now exports `generate` and `summarize` and loads the package from `cli.ts`'s
+  `packageRoot` (the mirror's when `pinned.py` runs it as `.pinned/<name>`, else `$PINNED_PACKAGE`); shared
+  `random.ts` and `cli.ts`. `harnesses.test.ts` (Bun, 5 cases) imports them through `harness-package.ts`, which
+  points them at the real merman package, and checks the seed, the root, every generated diagram drawing
+  without an error, one summary worked by hand, and the gen/eval protocol end to end; `test_pinned.py` runs it
+  where Bun and the TUI's workspace are (17 pass here). One expected row of mine was a dash long; corrected
+  to my working (the inline label starts at `floor((1 + 31 - 4) / 2) = 14`).
+- Brought forward from `test/merman-state` (`eb720f1`), the tool code only: every Bun run capped at
+  `$SUBSUME_MEMORY_MAX`, and the harness directory copied as `.pinned/`. Re-run end to end on sequence's
+  placement survivors: the same verdict as before (69: 66 not told apart, 3 told).

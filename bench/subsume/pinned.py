@@ -13,14 +13,15 @@ input that tells it apart is shrunk line by line while it still does.
 Then the fewest shrunk inputs that tell every such fault apart are kept,
 each with the summary keys its faults change: a test pins those keys.
 
-The harness is a family's own Bun script, copied into the mirror's package
-root as `.pinned-harness.ts` (so it imports `./src/...`, the planted copy):
+The harness is a family's own Bun script. Its directory is copied into the
+mirror's package root as `.pinned/` (so a harness imports `../src/...`, the
+planted copy, and its neighbours, such as a shared generator):
 `gen <seed> <count>` prints a JSON list of inputs (generation must not use
 the package's code); `eval` reads a JSON list of inputs on stdin and prints
 a JSON list of flat summaries ({key: value}, or {"error": message} when an
 input throws). An input whose summary is an error is never kept. A fault
 whose run hangs or fails is listed apart, as `subsume` does. Prints one
-JSON report. Max, 2026-10-30: kept in `bench/` this time (the flowchart's
+JSON report. Every Bun run is capped as `subsume`'s are. Max, 2026-10-30: kept in `bench/` this time (the flowchart's
 scripts were lost with a session scratchpad).
 """
 import concurrent.futures as cf
@@ -35,7 +36,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import subsume  # noqa: E402
 
-HARNESS = ".pinned-harness.ts"
+HARNESS_DIR = ".pinned"
 EVAL_TIMEOUT = 120
 CHUNK = 500  # inputs per eval run
 
@@ -79,9 +80,12 @@ def cover(tells: dict[str, set]) -> list[str]:
     return chosen
 
 
+HARNESS_NAME = ""
+
+
 def harness(copy: Path, *args, stdin=None):
     try:
-        proc = subprocess.run([subsume.BUN, HARNESS, *args], cwd=copy, input=stdin, capture_output=True, text=True,
+        proc = subprocess.run(subsume.capped([subsume.BUN, f"{HARNESS_DIR}/{HARNESS_NAME}", *args]), cwd=copy, input=stdin, capture_output=True, text=True,
                               timeout=EVAL_TIMEOUT)
     except subprocess.TimeoutExpired:
         return None
@@ -122,6 +126,8 @@ def main():
     seed = option("--seed", 1, int)
     report = json.loads(Path(option("--report", None)).read_text())
     harness_file = Path(option("--harness", None)).resolve()
+    global HARNESS_NAME
+    HARNESS_NAME = harness_file.name
     workspace, package, sources = Path(args[0]).resolve(), Path(args[1]).resolve(), args[2:]
 
     work = [(source, line, label, text) for source in sources
@@ -135,7 +141,7 @@ def main():
         for n in range(jobs):
             (scratch / str(n)).mkdir()
             copy = subsume.mirror(workspace, package, scratch / str(n))
-            shutil.copy(harness_file, copy / HARNESS)
+            shutil.copytree(harness_file.parent, copy / HARNESS_DIR)
             copies.append(copy)
         inputs = harness(copies[0], "gen", str(seed), str(count))
         base = evaluate(copies[0], inputs)
