@@ -17092,3 +17092,24 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   keyword (`loop ->> B: x` is a loop); `alt` and `loop` need a label; `autonumber off` is refused; the header
   is skipped wherever it is; a `%%` after text stays in the label; `participant A` resets an earlier `as` label.
 - `bun test` (merman): 307 pass across 28 files. `tsc --noEmit` clean. `tests_guarding` not checked (no ingest).
+
+## 2026-10-30 (fiftieth session, cont.) — the pinned-input tool in `bench/`; two placement faults I misread
+
+- PR #15 (sequence, 62 cases) opened and, on Max's word ("good to open pr and merge"), merged after its CI read
+  green (`graph` 24 min); main at `1961347`. On the pinned-input scripts: "your call … if easy might as well
+  rebuild".
+- `bench/subsume/pinned.py` rebuilt from the flowchart entry and kept this time: it regenerates `subsume`'s
+  faults (same sources and order, so a report's `#n` names the same one), plants each survivor in a mirror,
+  runs N random inputs through a family harness as is and planted, shrinks the first telling input line by line,
+  and keeps the fewest inputs (greedy) with the summary keys their faults change. `harnesses/sequence.ts`
+  generates random sequence diagrams (boxes, messages of every arrow, notes, activations, autonumber, nested
+  `alt`/`loop`, compact and a minimum gap through a `%%opts` line) and summarizes the parse, the plan and the
+  drawn text. `test_pinned.py` (4) beside it; `bench/subsume` pytest 15 pass.
+- Run on the sequence survivors after PR #15's second pass (3,000 inputs each): parser 22 and drawing 20, none
+  told apart; placement 69, 66 not told apart and 3 told: `options.ts`'s `"rounded"` (known: drawing's cases
+  catch it) and both height floors, `Math.max(3, …)` and `Math.max(5, …)` at `placement.ts:531`. **PR #15's
+  entry reads those floors as "never bind"; that is wrong.** Compact mode has no rule row, so a compact
+  diagram with no steps falls short (one participant: 2 rows; with a box: 4) and the floor pads it. A
+  derived case added ("a canvas is at least 3 rows, or 5 with a box"); planted by hand, each floor fails it
+  alone. A search finds only what its generator makes: no input told apart is evidence, not proof.
+- `bun test` (merman): 308 pass. Handoff: run the tool on every module's survivors, not only large gaps.

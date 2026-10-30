@@ -48,6 +48,14 @@ named below was removed unless it says otherwise.
   pygments and markdown-it-py to its `poetry.lock`; flask's is
   `uv sync --group tests --python 3.12`.
 
+## 2026-10-30 — pinned inputs for the faults derived cases miss
+
+- `bench/subsume/pinned.py` (in the repo): `pinned.py <workspace> <package> <src>... --report <subsume report>
+  --harness <family harness> [-n N] [--seed S] [-j N]`, run from `tui/opencode`. Plants each survivor of a
+  `subsume` report, runs N random inputs through the package as is and planted, shrinks each telling input,
+  keeps the fewest; the docstring gives the harness protocol. Harnesses in `bench/subsume/harnesses/`
+  (`sequence.ts`). `test_pinned.py` beside it (CI).
+
 ## 2026-10-29 — our own tests for the opencode fork
 
 - `bench/subsume/subsume.py` (in the repo): `subsume.py <workspace> <package> <src>... [--tests …] [-j N]`,

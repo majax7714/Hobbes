@@ -1,7 +1,7 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-30 (fiftieth session); `main` at 0.3.9-beta (`8205e42`, PRs #8–#14 merged); branch
-`test/merman-sequence` committed, not yet pushed; the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+**Reviewed 2026-10-30 (fiftieth session); `main` at 0.3.9-beta (`1961347`, PRs #8–#15 merged); branch
+`feat/bench-pinned-inputs` committed, not yet pushed; the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -42,7 +42,8 @@ session went belongs in the BUILDLOG.
 
 **Next: `merman`'s last two diagram families, then the rest of the fork's tests.** Done: `core` (PR #9),
 the top level (PR #10), flowchart (PR #13, 97 cases), gantt and gitGraph (PR #14, 71 cases), sequence
-(branch `test/merman-sequence`, 62 cases, PR waiting on Max's push; it carries this handoff's `74408d8`).
+(PR #15, 62 cases; one more on `feat/bench-pinned-inputs`). State is begun, uncommitted: parser and the small
+modules drafted (`test/state/`, 6 files), first `subsume` pass read.
 Left, in order, each on its own branch and PR:
 - **state** (`src/state/`: `parser`, `layout` 1,134, `routing` 1,522, `search`, `note`, `visible-model`,
   `endpoint`, `drawing`, `style`, `options`). Its layout and routing are flowchart-sized.
@@ -55,10 +56,10 @@ How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests und
   against the whole family every other file's cases read as redundant), **serially with `-j 2`** (Max, 2026-10-29: its default 6 workers peaked this
   machine's memory), detached (`setsid nohup … &`, then an until-loop waiter); read every survivor; close the
   gaps; fold redundant cases, or keep one only if a fault planted by hand fails it alone, and say so above it;
-- for a layout or routing module where derived cases leave large gaps (sequence's placement did not), the pinned-input method (flowchart
-  entry: plant each survivor in a scratch copy, search random diagrams for an input it changes, shrink, keep
-  the fewest). **Its scripts were in the forty-ninth session's scratchpad and are gone**; rebuild them from
-  that entry, or ask Max whether to keep them in `bench/` this time.
+- for a layout or routing module where derived cases leave large gaps, the pinned-input method (flowchart
+  entry): now `bench/subsume/pinned.py` with a harness per family (`harnesses/sequence.ts`; state needs its
+  own), in `bench-drivers.md`. Run it on every module's survivors, not only large gaps: on sequence it found
+  two placement faults I had read as equivalent.
 - a fork defect found is pinned by a test and listed under the fork-tests item in `currently-open.md`.
 
 After `merman`: `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages (the count is
