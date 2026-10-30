@@ -17143,3 +17143,31 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
 - Brought forward from `test/merman-state` (`eb720f1`), the tool code only: every Bun run capped at
   `$SUBSUME_MEMORY_MAX`, and the harness directory copied as `.pinned/`. Re-run end to end on sequence's
   placement survivors: the same verdict as before (69: 66 not told apart, 3 told).
+
+## 2026-10-30 (fiftieth session, cont.) — our own tests for `merman`'s state, first part (34 cases)
+
+- On `test/merman-state`, cut from `feat/bench-pinned-inputs`. The parser and the six small modules, one file each
+  under `packages/merman/test/state/`: `parser` (13), `endpoint` (2), `options` (1), `note` (5), `search` (6),
+  `visible-model` (4), `style` (4, colours and `render-grid`). Derived from the source, then run. Mine corrected
+  to my re-derivation: `P --> P` with both markers is a way through (`P.__end → P.__start`), so it collapses to
+  `X → X`; a marker's loop on itself cannot come from the parser.
+- `bench/subsume` (`-j 2`, serially, each module against its own test file), first pass → final: `parser` 119 →
+  142 of 165 caught; `endpoint` 3 of 12 (5 fail every case, 4 type strings); `options` 11 of 11; `note` 31 → 35
+  of 35; `search` 53 → 72 of 80; `visible-model` 30 of 41 (6 hang or fail to load); `style` + `render-grid` 71
+  of 71. Gaps closed: keywords inside a transition label (`state … as`, `state … {`, `<<choice>>`, `direction`,
+  notes), trailing text after a statement, `the end note` and `end notes` inside a block note, a `%%` line, an
+  upper-case block-note position, chained arrows that reach the explicit `-->` check, a state keeping its first
+  composite, one composite entered at its marker; a note's rows touching its target's at either end; claims at
+  negative coordinates, a repeated start against the budget, the budget left after a find, a detour away from
+  the goal in each direction. One gap was my test's: three searches shared one budget, so a fault that unbounded
+  x spent it all in the first and the out-of-bounds goal read `undefined` anyway; each now has its own.
+- `pinned.py` with a new harness (`harnesses/state-search.ts`, 20,000 random grids) on search's 9 survivors: 5
+  not told apart (type strings), 4 told (the step toward the goal's row): they never change a path, only the
+  visits spent. A derived case pins those counts (5 and 18 left), worked by hand.
+- Left, equivalent: type strings, the direction fallback no matched value reaches, `ensureState`'s default kind
+  (every caller passes one), a trim after a trimmed match, the unanchored greedy end of the inline note,
+  `visible-model`'s referenced-marker test (adding a non-hidden id is harmless).
+- Redundancy: the marker case folded into the transition case, the chain case into the pass-through case, the
+  start-handling case into the detour case. Two `subsume` reads as redundant stay, each the only one to fail on a
+  fault planted by hand: the search's free test ignored, the visible model's transitions passed on uncopied.
+- `bun test` (merman): 342 pass across 35 files. `tsc --noEmit` clean. `bench/subsume` pytest 15 pass.

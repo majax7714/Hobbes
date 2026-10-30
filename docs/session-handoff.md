@@ -1,7 +1,7 @@
 # Session handoff — the single resume point
 
 **Reviewed 2026-10-30 (fiftieth session); `main` at 0.3.9-beta (`1961347`, PRs #8–#15 merged); branch
-`feat/bench-pinned-inputs` committed, not yet pushed; the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+`feat/bench-pinned-inputs` and `test/merman-state` committed, not yet pushed; the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -42,8 +42,8 @@ session went belongs in the BUILDLOG.
 
 **Next: `merman`'s last two diagram families, then the rest of the fork's tests.** Done: `core` (PR #9),
 the top level (PR #10), flowchart (PR #13, 97 cases), gantt and gitGraph (PR #14, 71 cases), sequence
-(PR #15, 62 cases; one more on `feat/bench-pinned-inputs`). State is begun, uncommitted: parser and the small
-modules drafted (`test/state/`, 6 files), first `subsume` pass read.
+(PR #15, 62 cases; one more on `feat/bench-pinned-inputs`). State is begun on `test/merman-state` (from that
+branch, not pushed): parser and the six small modules, 34 cases; `layout`, `routing` and `drawing` are next.
 Left, in order, each on its own branch and PR:
 - **state** (`src/state/`: `parser`, `layout` 1,134, `routing` 1,522, `search`, `note`, `visible-model`,
   `endpoint`, `drawing`, `style`, `options`). Its layout and routing are flowchart-sized.
