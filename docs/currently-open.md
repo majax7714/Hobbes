@@ -101,8 +101,8 @@ Left by the fold (2026-10-28):
   their expected output with the families' own code: they pin the palette mapping, not what a family
   draws, so the families still get tests of their own, next in order (flowchart done: 97 cases across six
   files; gantt: 39 across three; gitGraph: 32 across three; sequence: 63 across four; state begun, 70 across eleven files (parser, the small modules, the side rail,
-  derived and pinned-as-observed cases for layout, routing and drawing; the `subsume` rerun and the re-search
-  of 27 faults next); then timeline). The check every new case is held
+  derived and pinned-as-observed cases for layout, routing and drawing; every survivor of `subsume`'s last
+  pass read as likely equivalent by the search, or failing to run; PR open); then timeline). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
   - **Fork bugs our tests pin, not fixed** (found writing `latex`'s): `maxExpand: N` allows N−1 macro
@@ -133,7 +133,9 @@ Left by the fold (2026-10-28):
     collision check sees only state boxes, not the composite frames added later (suspected, not yet confirmed
     by a change). Pinned by `test/state/drawing.test.ts` (three cases: the marker row, the crossing with a state
     outside, the refusal in seven lines, each needed); a fix changes them. `bench/subsume/harnesses/state-defects.ts`
-    names these kinds, so no pinned-as-observed case shows one.
+    names the three drawn kinds, so no pinned-as-observed case shows one; a marker sitting high on the fallback row
+    without a route through a box is not one of them, and 24 of the 132 pinned inputs place one, so a fix to that
+    row changes those cases too (a fix planted by hand fails them and the marker case).
   - **Found fixing `merman`'s state side rail (2026-10-30):** a side-parallel route between two composites
     whose ends share a row (drawn top to bottom) runs right past its target to the rail column and back left
     along the same row, over the target, its head against the target's far wall. It used to loop forever;

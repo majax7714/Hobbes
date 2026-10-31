@@ -1,6 +1,7 @@
 import { harnessPackage } from "./harness-package"
 import { expect, test } from "bun:test"
 import { packageRoot } from "./harnesses/cli"
+import { stateDefects } from "./harnesses/state-defects"
 import { random } from "./harnesses/random"
 import { generate, summarize } from "./harnesses/sequence"
 import { generateStyled, summarize as summarizeDrawing } from "./harnesses/state-drawing"
@@ -156,7 +157,7 @@ test("the state drawing harness summarizes each route and each drawn row, with t
   ).toEqual([])
 }, 60_000)
 
-test("a state diagram drawn wrongly in a known way is summarized as a defect, so pinned.py never keeps it", () => {
+test("a state diagram drawn wrongly in a known way is summarized as a defect, so pinned.py never keeps it", async () => {
   // Two composites off the main path: the second's frame crosses the first, and its last state sits outside it.
   const crossing = "state P0 {\n[*] --> P0x\nP0x --> P0y : x<br>yy<br>zzz\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y\n}"
   expect(summarizeLayout(crossing)).toEqual({ error: "defect: composites cross, outside its composite" })
@@ -164,4 +165,7 @@ test("a state diagram drawn wrongly in a known way is summarized as a defect, so
   expect(summarizeDrawing("state ch <<choice>>\n[*] --> A\nch --> B")).toEqual({
     error: "defect: route through a state",
   })
+  // A transition's first point, its tee on its own source's border, is not a route through that state.
+  const { parseMermaidStateDiagram } = await import(`${packageRoot}/src/state/parser.ts`)
+  expect(stateDefects(parseMermaidStateDiagram("stateDiagram-v2\nA --> B\nB --> A"), { minStateGap: 5 })).toEqual([])
 })

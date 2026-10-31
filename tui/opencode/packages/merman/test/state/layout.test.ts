@@ -123,8 +123,9 @@ test("a composite is at least its title plus 5 wide", () => {
 // the fewest kept that tell every such fault apart. Each asserts only the entries of its layout (`layout-summary.ts`)
 // those faults change, as laid out today: pinned as observed, not derived by hand. The harnesses keep no input that
 // shows a known wrong drawing (`state-defects.ts`: composites crossing, a state outside its composite, a route through
-// a state), so none of these does. Cases above that are redundant against these stay as the readable statement of each
-// rule (Max, 2026-10-30).
+// a state), so none of these does. A marker or choice on the left-to-right fallback row (pinned as a defect in
+// drawing.test.ts) is not one of those kinds, and 6 of these inputs place one: a fix to that row changes them too.
+// Cases above that are redundant against these stay as the readable statement of each rule (Max, 2026-10-30).
 test("pinned as observed: notes: the side a note takes, its connector, and the room its composite makes for it", () => {
   expect(
     layout(

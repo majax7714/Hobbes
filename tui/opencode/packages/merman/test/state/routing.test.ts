@@ -41,8 +41,10 @@ test("a self transition leaves the bottom a third in and comes back up two third
 // change and, where they change the rows, the count of rows; for the faults that change no route, only drawn rows, the
 // fewest rows that tell them apart (each such fault planted, its changed rows read). All as drawn today: pinned as
 // observed, not derived by hand. The harnesses keep no input that shows a known wrong drawing (`state-defects.ts`:
-// composites crossing, a state outside its composite, a route through a state), so none of these does. Cases above that
-// are redundant against these stay as the readable statement of each rule (Max, 2026-10-30).
+// composites crossing, a state outside its composite, a route through a state), so none of these does. A marker or
+// choice on the left-to-right fallback row (pinned as a defect in drawing.test.ts) is not one of those kinds, and 16 of
+// these inputs place one: a fix to that row changes them too. Cases above that are redundant against these stay as the
+// readable statement of each rule (Max, 2026-10-30).
 test("pinned as observed: self loops", () => {
   expect(
     drawn(

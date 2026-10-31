@@ -43,11 +43,9 @@ session went belongs in the BUILDLOG.
 **Next: `merman`'s last two diagram families, then the rest of the fork's tests.** Done: `core` (PR #9),
 the top level (PR #10), flowchart (PR #13, 97 cases), gantt and gitGraph (PR #14, 71 cases), sequence
 (PR #15, 62 cases; one more in PR #16). **State** is on `test/merman-state-family` (the older
-`test/merman-state` is superseded; delete it): 70 cases across eleven files, derived and pinned as observed
-for layout, routing and drawing. Left for state: the `subsume` rerun, which says which routing
-faults need drawn rows asserted (the cases assert routes and a row count so far); and the re-search of the 27
-faults only defective inputs told (`currently-open.md`). The runs are chained in the session scratchpad;
-if it is gone, rerun them as the BUILDLOG's 2026-10-31 entry says. Then:
+`test/merman-state` is superseded; delete it), its PR open: 70 cases across eleven files, derived and pinned as
+observed for layout, routing and drawing; every survivor of `subsume`'s last pass is one the search read as
+likely equivalent, or one that fails to run. Left, once state merges:
 - **timeline** (`src/timeline/`: `parser` 119, `drawing` 109, `style`), on its own branch and PR.
 
 How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests under

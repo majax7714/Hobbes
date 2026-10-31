@@ -98,7 +98,9 @@ test("a fork defect, pinned: a self loop's head is not kept under its box", () =
 test("a fork defect, pinned: left to right, a marker or choice off the main path sits on its target's top row", () => {
   // The fallback row places every state off the main path at the same top, a 1-cell one too (`layout.ts:764`), so
   // `ch` is not level with B's centre and its route runs along B's top border, over it, into its far side
-  // (currently-open.md). A fix changes this.
+  // (currently-open.md). A fix changes this, and 24 of the state files' pinned-as-observed inputs (a fix planted by
+  // hand there fails this case and those). `subsume` reads this case and the next as redundant against drawing.ts's
+  // faults: they pin layout.ts's defects, and stay as their readable statement (Max, 2026-10-30).
   expect(lines(draw("state ch <<choice>>\n[*] --> A\nch --> B"))).toEqual([
     "              ╭───╮",
     "●────────────▶│ A │",
@@ -139,8 +141,9 @@ test("a fork defect, pinned: a valid diagram with two composites is refused, the
 // the fewest kept that tell every such fault apart. Each asserts only the routes and rows (`drawing-summary.ts`) those
 // faults change, and the count of rows where they add or take rows, as drawn today: pinned as observed, not derived by
 // hand. None shows a known wrong drawing (`state-defects.ts`: composites crossing, a state outside its composite, a
-// route through a state). Cases above that are redundant against these stay as the readable statement of each rule
-// (Max, 2026-10-30).
+// route through a state). A marker or choice on the left-to-right fallback row (pinned as a defect above) is not one
+// of those kinds, and 2 of these inputs place one: a fix to that row changes them too. Cases above that are redundant
+// against these stay as the readable statement of each rule (Max, 2026-10-30).
 test("pinned as observed: the canvas: its size, the shift off negative cells, and the separation's attempts", () => {
   expect(
     drawn(

@@ -17240,3 +17240,13 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
 - The re-search of the 27 orphaned faults with the defect-checking harnesses: layout 7 of 10 told on 6 clean
   inputs (2 likely equivalent, 1 failing to run); routing 16 of 17 on 11 (1 likely equivalent). Added to the
   pinned cases (layout 46 inputs, routing 74). `bench-drivers.md` names the state harnesses.
+- Final `subsume` pass (`-j 2`, each module against its own file): `layout` 720 of 1,052 caught (first pass 283),
+  292 survivors: 291 read as likely equivalent by the searches, 1 failing to run there; `routing` 1,165 of 1,471
+  (170), 262: 260 likely equivalent and 2 re-searched faults that change only a row (`routing.ts:871-872`; one
+  row added, both then planted by hand and failing the file); `drawing` 175 of 257 (72), 78, all likely
+  equivalent. Redundant now: four layout, four routing and one drawing derived case, each only against pinned
+  cases (none in the first pass but the folded one), kept by Max's rule; and the two layout-defect pins, which
+  `subsume` reads against `drawing.ts`'s faults, kept as their defects' statement.
+- A fix planted by hand at `layout.ts:764` (a 1-cell state one row lower) fails the marker pin and 24 of the 132
+  pinned-as-observed inputs: they place a marker on the fallback row without a route through a box, a kind
+  `state-defects.ts` does not name. The files and `currently-open.md` say so, so a fixer knows those move too.
