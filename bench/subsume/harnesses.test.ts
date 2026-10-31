@@ -130,7 +130,7 @@ test("the state layout harness lays out the visible model with the gap line's ga
   expect(
     many(generateState, 5, 100)
       .map(summarizeLayout)
-      .filter((summary) => "error" in summary),
+      .filter((summary) => "error" in summary && !String(summary.error).startsWith("defect: ")),
   ).toEqual([])
 })
 
@@ -148,6 +148,20 @@ test("the state drawing harness summarizes each route and each drawn row, with t
   // Where the drawing refuses, the summary says why; on these diagrams, only the composite separation does.
   const errors = many(generateStyled, 1, 100)
     .map(summarizeDrawing)
-    .flatMap((summary) => ("error" in summary ? [summary.error] : []))
-  expect(errors.filter((error) => error !== "Error: State composite separation did not converge")).toEqual([])
+    .flatMap((summary) => ("error" in summary ? [String(summary.error)] : []))
+  expect(
+    errors.filter(
+      (error) => error !== "Error: State composite separation did not converge" && !error.startsWith("defect: "),
+    ),
+  ).toEqual([])
 }, 60_000)
+
+test("a state diagram drawn wrongly in a known way is summarized as a defect, so pinned.py never keeps it", () => {
+  // Two composites off the main path: the second's frame crosses the first, and its last state sits outside it.
+  const crossing = "state P0 {\n[*] --> P0x\nP0x --> P0y : x<br>yy<br>zzz\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y\n}"
+  expect(summarizeLayout(crossing)).toEqual({ error: "defect: composites cross, outside its composite" })
+  // A choice off the main path on its target's top row: the route runs along that state's top border.
+  expect(summarizeDrawing("state ch <<choice>>\n[*] --> A\nch --> B")).toEqual({
+    error: "defect: route through a state",
+  })
+})

@@ -1,8 +1,9 @@
 import { expect, test } from "bun:test"
-import { drawStateDiagramGrid } from "../../src/state/drawing"
+import { createStateDiagramDrawing, drawStateDiagramGrid } from "../../src/state/drawing"
 import { parseMermaidStateDiagram } from "../../src/state/parser"
 import { renderStateGridText, type StateGrid } from "../../src/state/render-grid"
 import type { StateDiagramRenderOptions } from "../../src/state/types"
+import { summary } from "./layout-summary"
 
 const draw = (body: string, options?: StateDiagramRenderOptions) =>
   drawStateDiagramGrid(parseMermaidStateDiagram(`stateDiagram-v2\n${body}`), options)
@@ -91,4 +92,43 @@ test("a fork defect, pinned: a self loop's head is not kept under its box", () =
     "   │       │",
     "   ╰───────╯",
   ])
+})
+
+test("a fork defect, pinned: left to right, a marker or choice off the main path sits on its target's top row", () => {
+  // The fallback row places every state off the main path at the same top, a 1-cell one too (`layout.ts:764`), so
+  // `ch` is not level with B's centre and its route runs along B's top border, over it, into its far side
+  // (currently-open.md). A fix changes this.
+  expect(lines(draw("state ch <<choice>>\n[*] --> A\nch --> B"))).toEqual([
+    "              ╭───╮",
+    "●────────────▶│ A │",
+    "              ╰───╯",
+    "",
+    "",
+    "",
+    "                            ◆─────────────────────────────────╮",
+    "                                                      │ B │◀──╯",
+    "                                                      ╰───╯",
+  ])
+})
+
+test("a fork defect, pinned: two composites off each other's path are drawn crossing, a state outside its own", () => {
+  // P1 is placed by the fallback row (currently-open.md): its frame starts inside P0's, and P1y runs out past P1's
+  // right side. A fix changes this.
+  const { layout } = createStateDiagramDrawing(
+    parseMermaidStateDiagram(
+      "stateDiagram-v2\nstate P0 {\n[*] --> P0x\nP0x --> P0y : x<br>yy<br>zzz\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y\n}",
+    ),
+  )
+  expect(summary(layout)).toMatchObject({
+    "[P0]": "0,0 45x11 c22,5",
+    "[P1]": "42,6 69x7 c76,9",
+    P1y: "107,8 7x3 c110,9",
+  })
+})
+
+test("a fork defect, pinned: a valid diagram with two composites is refused, the separation not converging", () => {
+  // Each of these seven lines is needed for the refusal (currently-open.md). A fix draws it.
+  expect(() => draw("state P0 {\nP0x --> [*]\n}\nstate P1 {\n[*] --> P1x\nP1y --> [*]\n}")).toThrow(
+    "State composite separation did not converge",
+  )
 })

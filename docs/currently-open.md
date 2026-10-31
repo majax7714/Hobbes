@@ -100,8 +100,9 @@ Left by the fold (2026-10-28):
   six diagram families came off the record because its renderer's cases reach them, but those cases draw
   their expected output with the families' own code: they pin the palette mapping, not what a family
   draws, so the families still get tests of their own, next in order (flowchart done: 97 cases across six
-  files; gantt: 39 across three; gitGraph: 32 across three; sequence: 63 across four; state begun, 57 across twelve (parser, the small modules, the side rail, and
-  derived cases for layout, routing and drawing; their pinned inputs next); then timeline). The check every new case is held
+  files; gantt: 39 across three; gitGraph: 32 across three; sequence: 63 across four; state begun, 68 across eleven files (parser, the small modules, the side rail,
+  derived cases for layout, routing and drawing, and pinned-as-observed cases for layout and routing; drawing's
+  pinned inputs and the `subsume` rerun next); then timeline). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
   - **Fork bugs our tests pin, not fixed** (found writing `latex`'s): `maxExpand: N` allows N−1 macro
@@ -123,9 +124,16 @@ Left by the fold (2026-10-28):
     up one column past the right edge, on one 6 wide under the corner, and each further loop goes 4 wider (a
     second loop on a box 10 wide lands two columns past it; `state/routing.ts:674-678`). Pinned by
     `test/state/drawing.test.ts`; a fix changes it.
-  - **Found by the state harnesses (2026-10-30):** 6 of 300 random state diagrams with composites are refused,
-    "State composite separation did not converge" (`state/drawing.ts`, after its attempts): valid diagrams the
-    fork will not draw. A refusal, not a hang. Not yet shrunk to a smallest case.
+  - **Found by the state harnesses (2026-10-30/31):** of 1,000 random state diagrams (seed 11, the harnesses'
+    generator), the drawing shows composites crossing in 51, a state outside its own composite in 23 and a route
+    through a state's box in 40, and refuses 11 ("State composite separation did not converge",
+    `state/drawing.ts:272`): 105 in all, about one in ten. Shrunk, each comes from states off the main path, left
+    to right: the fallback row gives every one the same top whatever its kind (`state/layout.ts:764`), so a
+    marker or choice sits on its target's top row and its route runs along that border; and that row's
+    collision check sees only state boxes, not the composite frames added later (suspected, not yet confirmed
+    by a change). Pinned by `test/state/drawing.test.ts` (three cases: the marker row, the crossing with a state
+    outside, the refusal in seven lines, each needed); a fix changes them. `bench/subsume/harnesses/state-defects.ts`
+    names these kinds, so no pinned-as-observed case shows one.
   - **Found fixing `merman`'s state side rail (2026-10-30):** a side-parallel route between two composites
     whose ends share a row (drawn top to bottom) runs right past its target to the rail column and back left
     along the same row, over the target, its head against the target's far wall. It used to loop forever;

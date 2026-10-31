@@ -17203,3 +17203,26 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   survivors), `routing` 170 of 1,471 (1,273), `drawing` 72 of 257 (167); the cap killed 6 runs (exit −9),
   listed apart. The pinned-input search over all three is running (layout 3,000 inputs, routing and drawing
   1,000 each); its cases follow.
+
+## 2026-10-31 (fiftieth session, cont.) — state's pinned layout and routing cases; three drawing defects
+
+- The pinned-input search finished for layout (3,000 inputs: 433 of 731 survivors told apart, 295 likely
+  equivalent, 3 unattributed; 46 inputs kept) and routing (1,000 inputs, 11 hours: 981 of 1,273 told, 265
+  equivalent, 27 unattributed; 70 kept). Drawing's is still running.
+- Checked before pinning, as flowchart's were: 12 of the 116 kept inputs draw wrongly (composites crossing, a
+  state outside its own composite, or a route through a state's box). Pinning them as observed would have locked
+  the defects in. `bench/subsume/harnesses/state-defects.ts` now names those kinds, and both state harnesses
+  summarize such an input as an error, which pinned.py never keeps; `harnesses.test.ts` gains a case (10 pass).
+  The 27 faults only those inputs told (10 layout, 17 routing) wait on a re-search with the new harnesses.
+- Over 1,000 random diagrams the drawing shows one of these kinds, or refuses, in 105. Shrunk, they come from the
+  left-to-right fallback row (`state/layout.ts:764`): every state off the main path gets one top, so a 1-cell
+  marker or choice sits on its target's top row and its route runs along that border; the frames crossing are
+  suspected to come from that row's collision check seeing only state boxes. Three cases pin them in
+  `drawing.test.ts`; the separation refusal is now a seven-line case, each line needed.
+- `test/state/drawing-summary.ts` (routes and rows) is now the drawing harness's summary, as `layout-summary.ts` is
+  the layout harness's, so a pinned key is the test's own. `routing.test.ts`'s `routes()` uses it.
+- Pinned as observed, grouped by the functions their faults sit in: `layout.test.ts` 3 cases over 40 inputs (the
+  cover recomputed over the 41 clean ones), each asserting only its changed entries; `routing.test.ts` 5 over 63,
+  each asserting its changed routes and, where rows change, the row count (the rows themselves wait on the
+  `subsume` rerun, which shows which faults need them). State: 68 cases across eleven files; merman 376 pass,
+  `tsc` clean, `bench/subsume` pytest 17 passed.
