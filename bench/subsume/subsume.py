@@ -21,7 +21,11 @@ rest symlinked), never the real tree. Tests must import the package's
 source relatively; a sibling package resolves to the real tree. Prints
 one JSON report; `caught` leaves out `every_case`, faults every case
 fails on (a load broken, say), which tell no case apart. Bun is `$BUN`, else the build's pinned copy.
+Each Bun run is capped at `$SUBSUME_MEMORY_MAX` (default 4G) in a systemd user scope where one can be
+made: a planted fault can allocate without end (one input took 22 GB, 2026-10-30), and a run the
+cap kills is unattributed, as a hang is.
 """
+import functools
 import concurrent.futures as cf
 import json
 import os
@@ -36,6 +40,7 @@ from pathlib import Path
 BUN = os.environ.get("BUN") or str(Path.home() / ".watterson/bun/1.4.2/bun")
 CASE_TIMEOUT_MS = 5000  # a slowed test fails by itself
 RUN_TIMEOUT = 60  # a hung run (a synchronous infinite loop) is unattributable
+MEMORY_MAX = os.environ.get("SUBSUME_MEMORY_MAX", "4G")
 
 STRING = re.compile(r"""(["'])((?:\\.|(?!\1).)+)\1""")
 REGEX = re.compile(r"""(?:(?<=[=(,:!&|?\[;])|(?<=[=(,:!&|?\[;] )|(?<=return ))/(?![/*\s])((?:\\.|\[(?:\\.|[^\]])*\]|[^/\\\n])+)/([dgimsuvy]*)""")
@@ -188,11 +193,26 @@ def mirror(workspace, package, into):
     return into / rel
 
 
+@functools.cache
+def _can_cap() -> bool:
+    if not MEMORY_MAX or not shutil.which("systemd-run"):
+        return False
+    probe = subprocess.run(["systemd-run", "--user", "--scope", "-q", "true"], capture_output=True)
+    return probe.returncode == 0
+
+
+def capped(command: list[str]) -> list[str]:
+    """The command run in a user scope whose memory is capped, where one can be made."""
+    if not _can_cap():
+        return command
+    return ["systemd-run", "--user", "--scope", "-q", "-p", f"MemoryMax={MEMORY_MAX}", "-p", "MemorySwapMax=0", *command]
+
+
 def run(package, tests):
     with tempfile.NamedTemporaryFile(suffix=".xml") as out:
         try:
             proc = subprocess.run(
-                [BUN, "test", "--timeout", str(CASE_TIMEOUT_MS), "--reporter=junit", f"--reporter-outfile={out.name}", *tests],
+                capped([BUN, "test", "--timeout", str(CASE_TIMEOUT_MS), "--reporter=junit", f"--reporter-outfile={out.name}", *tests]),
                 cwd=package, capture_output=True, timeout=RUN_TIMEOUT,
             )
         except subprocess.TimeoutExpired:

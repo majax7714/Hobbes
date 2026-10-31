@@ -105,3 +105,17 @@ def test_a_fault_every_case_fails_on_tells_none_apart():
     # A file that no longer loads reports no cases at all.
     assert classify(baseline, {})[0] == "every-case"
     assert classify({"a": False}, {"a": True}) == ("caught", {"a"})
+
+
+def test_a_bun_run_is_capped_only_where_a_scope_can_be_made(monkeypatch):
+    import subsume
+
+    subsume._can_cap.cache_clear()
+    monkeypatch.setattr(subsume.shutil, "which", lambda name: None)
+    assert subsume.capped(["bun", "test"]) == ["bun", "test"]
+    subsume._can_cap.cache_clear()
+    monkeypatch.setattr(subsume.shutil, "which", lambda name: "/usr/bin/systemd-run")
+    monkeypatch.setattr(subsume.subprocess, "run", lambda *a, **k: type("P", (), {"returncode": 0})())
+    assert subsume.capped(["bun", "test"])[:2] == ["systemd-run", "--user"]
+    assert f"MemoryMax={subsume.MEMORY_MAX}" in subsume.capped(["bun", "test"])
+    subsume._can_cap.cache_clear()

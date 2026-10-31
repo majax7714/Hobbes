@@ -151,6 +151,11 @@ writing a brief, a probe or a pre-registration. The resume point is
 - **A before arm needs copied `node_modules`, not symlinks** (ADR-157).
   Running the before arm at HEAD before editing needs no worktree, since
   the TS helper is read live at ingest.
+- **A surviving fault read as "never binds" needs a search, not only a
+  reading** (2026-10-30, merman's sequence). Both height floors were
+  judged dead from the default mode; compact mode reaches them. Run
+  `bench/subsume/pinned.py` on every module's survivors before calling
+  them equivalent, and say how far its generator reaches.
 
 ## Facts about the tools
 

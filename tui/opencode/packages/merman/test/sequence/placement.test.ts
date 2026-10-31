@@ -264,6 +264,15 @@ test("compact inlines a label only when it and a blank each side fit 3 inside th
   expect(plan("A->>A: hi", { compact: true }).height).toBe(2 + 4)
 })
 
+test("a canvas is at least 3 rows, or 5 with a box: compact with no steps falls short and is padded", () => {
+  const bare = plan("participant A", { compact: true })
+  expect(bare.rows).toMatchObject({ participantRuleY: 0, lifelineStartY: 1, lifelineEndY: 2 })
+  expect(size(bare)).toEqual([2, 3])
+  const boxed = plan("box T\nparticipant A\nend", { compact: true })
+  expect(boxed.rows).toMatchObject({ participantHeaderTopY: 1, lifelineStartY: 2, lifelineEndY: 3 })
+  expect(boxed.height).toBe(5)
+})
+
 test("a box frames its members' headers 2 out, the canvas shifted right to fit it, and moves the header rows down one", () => {
   const placed = plan("box Team\nparticipant A as Alice\nparticipant B\nend\nparticipant C")
   expect(centers(placed)).toEqual([4, 22, 40])

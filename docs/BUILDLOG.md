@@ -17093,6 +17093,27 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   is skipped wherever it is; a `%%` after text stays in the label; `participant A` resets an earlier `as` label.
 - `bun test` (merman): 307 pass across 28 files. `tsc --noEmit` clean. `tests_guarding` not checked (no ingest).
 
+## 2026-10-30 (fiftieth session, cont.) — the pinned-input tool in `bench/`; two placement faults I misread
+
+- PR #15 (sequence, 62 cases) opened and, on Max's word ("good to open pr and merge"), merged after its CI read
+  green (`graph` 24 min); main at `1961347`. On the pinned-input scripts: "your call … if easy might as well
+  rebuild".
+- `bench/subsume/pinned.py` rebuilt from the flowchart entry and kept this time: it regenerates `subsume`'s
+  faults (same sources and order, so a report's `#n` names the same one), plants each survivor in a mirror,
+  runs N random inputs through a family harness as is and planted, shrinks the first telling input line by line,
+  and keeps the fewest inputs (greedy) with the summary keys their faults change. `harnesses/sequence.ts`
+  generates random sequence diagrams (boxes, messages of every arrow, notes, activations, autonumber, nested
+  `alt`/`loop`, compact and a minimum gap through a `%%opts` line) and summarizes the parse, the plan and the
+  drawn text. `test_pinned.py` (4) beside it; `bench/subsume` pytest 15 pass.
+- Run on the sequence survivors after PR #15's second pass (3,000 inputs each): parser 22 and drawing 20, none
+  told apart; placement 69, 66 not told apart and 3 told: `options.ts`'s `"rounded"` (known: drawing's cases
+  catch it) and both height floors, `Math.max(3, …)` and `Math.max(5, …)` at `placement.ts:531`. **PR #15's
+  entry reads those floors as "never bind"; that is wrong.** Compact mode has no rule row, so a compact
+  diagram with no steps falls short (one participant: 2 rows; with a box: 4) and the floor pads it. A
+  derived case added ("a canvas is at least 3 rows, or 5 with a box"); planted by hand, each floor fails it
+  alone. A search finds only what its generator makes: no input told apart is evidence, not proof.
+- `bun test` (merman): 308 pass. Handoff: run the tool on every module's survivors, not only large gaps.
+
 ## 2026-10-30 (fiftieth session, cont.) — fork fix: state's endless side rail bounded
 
 - Max: "yeah fix the loop". On `fix/merman-state-side-rail`, from main. `state/routing.ts`'s side-parallel rail
@@ -17107,3 +17128,18 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   `currently-open.md`.
 - `bun test` (merman): 330 pass (the state branch's untracked files included). `tsc --noEmit` clean. No version
   bump: the TUI fork is not the layer `VERSION` tracks (flagged for Max in the PR).
+
+## 2026-10-30 (fiftieth session, cont.) — PR #16's harness made testable; the tools' memory cap brought forward
+
+- PR #16's `graph` check failed: `bench/subsume/harnesses/sequence` was new code no test reached (its `./src/`
+  imports resolved only inside a mirror). Max took the recommended route: make the harnesses testable, not
+  accept them. Each harness now exports `generate` and `summarize` and loads the package from `cli.ts`'s
+  `packageRoot` (the mirror's when `pinned.py` runs it as `.pinned/<name>`, else `$PINNED_PACKAGE`); shared
+  `random.ts` and `cli.ts`. `harnesses.test.ts` (Bun, 5 cases) imports them through `harness-package.ts`, which
+  points them at the real merman package, and checks the seed, the root, every generated diagram drawing
+  without an error, one summary worked by hand, and the gen/eval protocol end to end; `test_pinned.py` runs it
+  where Bun and the TUI's workspace are (17 pass here). One expected row of mine was a dash long; corrected
+  to my working (the inline label starts at `floor((1 + 31 - 4) / 2) = 14`).
+- Brought forward from `test/merman-state` (`eb720f1`), the tool code only: every Bun run capped at
+  `$SUBSUME_MEMORY_MAX`, and the harness directory copied as `.pinned/`. Re-run end to end on sequence's
+  placement survivors: the same verdict as before (69: 66 not told apart, 3 told).
