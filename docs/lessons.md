@@ -156,6 +156,13 @@ writing a brief, a probe or a pre-registration. The resume point is
   judged dead from the default mode; compact mode reaches them. Run
   `bench/subsume/pinned.py` on every module's survivors before calling
   them equivalent, and say how far its generator reaches.
+- **Read what a pinned input draws before pinning it as observed**
+  (2026-10-31, merman's state). A search keeps whatever input tells a
+  fault apart, wrong drawings included: 12 of state's 116 drew composites
+  crossing or a route through a box, and one random diagram in ten does.
+  Check every kept input for the wrong kinds you can name, and make the
+  harness refuse them (`state-defects.ts`) so the next search cannot keep
+  one.
 
 ## Facts about the tools
 
