@@ -17186,3 +17186,20 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   `currently-open.md`. The drawing case asserts no other refusal appears.
 - The harnesses were first formatted with prettier's defaults (run from the repo root, no config there);
   reformatted with the fork's (`semi: false`, `printWidth: 120`).
+
+## 2026-10-30 (fiftieth session, cont.) — state's layout, routing and drawing: derived cases (21)
+
+- PR #16 merged on Max's word after its CI read green (`graph` 27 min); main at `697ac26`, merged into this branch.
+- `layout.test.ts` (11), with `layout-summary.ts` (one entry per state, composite and note, the pinned cases'
+  and the layout harness's shared view): the main path's row and gaps, a label's and a composite crossing's
+  room, the main path's choice (an end, then no way back, then no transition back), branches, a parallel lane,
+  the fallback row, RL's mirror and label gutter, TB/BT ranks, rank gaps for labels, self loops and a choice,
+  composite frames. Laid out from the visible model, as the drawing does. `routing.test.ts` (4): horizontal
+  forward with its label, vertical both ways, stacked bottom feedback lanes, two self loops. `drawing.test.ts`
+  (6): boxes, tees, heads and label padding with their styles, the border and head options, markers, a
+  composite, a note and its double connector, and the self-loop defect pinned. Every expected value worked
+  from the source first; all matched on the first run.
+- `bench/subsume` first pass (`-j 2`, each against its own file, capped): `layout` 283 of 1,052 caught (731
+  survivors), `routing` 170 of 1,471 (1,273), `drawing` 72 of 257 (167); the cap killed 6 runs (exit −9),
+  listed apart. The pinned-input search over all three is running (layout 3,000 inputs, routing and drawing
+  1,000 each); its cases follow.
