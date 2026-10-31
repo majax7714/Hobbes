@@ -427,7 +427,7 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
       "state P0 {\nP0x --> P0y : a<br>b\nP0y --> [*]\n}\nP0x --> B : a<br>b\nP0x --> A : go\nA --> [*]\nnote left of B : two<br>lines",
       { borderStyle: "heavy", arrowHeadStyle: "line", layoutMaxWidth: 55 },
     ),
-  ).toMatchObject({ rows: 23 })
+  ).toMatchObject({ "row:16": "┃ │       ┃    ║↓", rows: 23 })
   expect(
     drawn("direction RL\nA --> C\nA --> C\nB --> [*]", { borderStyle: "rounded", arrowHeadStyle: "line" }),
   ).toMatchObject({ "route:2": "B>__end side-parallel 20,7 21,7 21,5 3,5 3,6", rows: 13 })
