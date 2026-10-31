@@ -17114,6 +17114,21 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   alone. A search finds only what its generator makes: no input told apart is evidence, not proof.
 - `bun test` (merman): 308 pass. Handoff: run the tool on every module's survivors, not only large gaps.
 
+## 2026-10-30 (fiftieth session, cont.) — fork fix: state's endless side rail bounded
+
+- Max: "yeah fix the loop". On `fix/merman-state-side-rail`, from main. `state/routing.ts`'s side-parallel rail
+  walked `y` from `startY + step` until `y === endY`; with start and end on one row it never arrived and took
+  all memory. Now bounded as the file's other loops are (`y < endY` going down, `y > endY` going up): one-row
+  rails draw no run. No other `!==` loop in the file can miss (each runs only when its ends differ, stepping
+  toward the end).
+- `test/state/side-rail.test.ts` draws the smallest case in a child process limited to 1 s (it takes 50 ms, 60
+  MB): against the old loop both cases fail on the limit at about 1.1 s (checked under a 4 GB cap, which held);
+  against the fix they pass. `side-rail-case.ts` is the child and exports its drawing for the graph.
+- The drawing that now ends is still wrong: the rail doubles back over its target. Pinned as observed, listed in
+  `currently-open.md`.
+- `bun test` (merman): 330 pass (the state branch's untracked files included). `tsc --noEmit` clean. No version
+  bump: the TUI fork is not the layer `VERSION` tracks (flagged for Max in the PR).
+
 ## 2026-10-30 (fiftieth session, cont.) — PR #16's harness made testable; the tools' memory cap brought forward
 
 - PR #16's `graph` check failed: `bench/subsume/harnesses/sequence` was new code no test reached (its `./src/`
