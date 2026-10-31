@@ -17230,3 +17230,10 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   wrongly). `drawing.test.ts` gains 3 pinned-as-observed cases over the 12, each asserting the routes and rows
   its faults change and the row count where rows come or go; `drawn()` moved into `drawing-summary.ts` for both
   files. State: 71 cases; the handoff names the new branch.
+- `subsume` rerun against the pinned cases: `layout` 713 of 1,052 caught (was 283); its 299 survivors are the 289
+  the search read as likely equivalent and the 10 orphans, nothing else. One derived case was already redundant
+  among the derived cases alone in the first pass, missed then ("the main path runs on one row"); folded into
+  the next. The other four redundant now are redundant only against pinned cases, kept by Max's rule. `routing`
+  1,012 of 1,471 (was 170): 259 likely equivalent, 17 orphans, 1 the search could not attribute, and 138 faults
+  that change only drawn rows (glyphs, junctions, cells). Each of the 138 was planted and its changed rows read
+  on the 63 inputs; 36 rows over 26 inputs tell them all, now asserted. State: 70 cases.

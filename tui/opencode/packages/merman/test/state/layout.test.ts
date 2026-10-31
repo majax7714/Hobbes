@@ -12,16 +12,14 @@ const layout = (body: string, minStateGap = 5) =>
     }),
   )
 
-test("left to right, the main path runs on one row: a box is its label plus 2 each side, a marker 1 cell on the row below the top", () => {
+test("left to right, the main path runs on one row; neighbours sit the minimum gap plus 8 apart, or the label between them plus 2 if wider", () => {
+  // A box is its label plus 2 each side; a marker is 1 cell, on the row below the top.
   expect(layout("[*] --> A\nA --> B : go\nB --> [*]")).toEqual({
     __start: "0,1 1x1 c0,1",
     A: "14,0 5x3 c16,1",
     B: "32,0 5x3 c34,1",
     __end: "50,1 1x1 c50,1",
   })
-})
-
-test("neighbours on the main path sit the minimum gap plus 8 apart, or the label between them plus 2 if wider", () => {
   expect(layout("A --> B")).toEqual({ A: "0,0 5x3 c2,1", B: "18,0 5x3 c20,1" })
   expect(layout("A --> B", 1)).toMatchObject({ B: "14,0 5x3 c16,1" })
   expect(layout("A --> B : abcdefghijklmnopqrst")).toMatchObject({ B: "27,0 5x3 c29,1" })
