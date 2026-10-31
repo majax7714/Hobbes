@@ -118,6 +118,10 @@ Left by the fold (2026-10-28):
   - **Found writing `merman`'s flowchart drawing:** of two parallel edges top-down (`A --> B` twice), the first
     runs from A's right side straight down to B's right side and draws its head `▼` there, pointing past B rather
     into it; the second lane ends on the same cell. Pinned by `test/flowchart/drawing.test.ts`; a fix changes it.
+  - **Found fixing `merman`'s state side rail (2026-10-30):** a side-parallel route between two composites
+    whose ends share a row (drawn top to bottom) runs right past its target to the rail column and back left
+    along the same row, over the target, its head against the target's far wall. It used to loop forever;
+    since the fix it ends but draws this way. Pinned by `test/state/side-rail.test.ts`; a fix changes it.
   - **Found writing `merman`'s sequence:** a note over no one (`Note over ,: x`, the list empty once blanks are
     dropped, `sequence/parser.ts:168-171`) parses without an error, takes its rows and draws nothing: its text is
     lost silently (`placement.ts:580`). Pinned by `test/sequence/placement.test.ts`; a fix (refuse the line)
