@@ -137,6 +137,15 @@ test("pinned as observed: transitions back: lanes under and over the rows, alloc
     "row:10": "      ╰───╯",
     rows: 11,
   })
+  expect(
+    drawn(
+      "state P0 {\nP0x --> P0y : a long label here\n}\nstate ch <<choice>>\nD --> P0x : go\nch --> B : go\nP0 --> ch : retry",
+    ),
+  ).toMatchObject({
+    "route:0": "P0x>P0y horizontal-forward 8,3 27,3 @10,2",
+    "route:3": "P0>ch vertical-elbow 18,6 18,7 30,7 30,8 @20,5",
+    rows: 15,
+  })
   expect(drawn("A --> B : x<br>yy<br>zzz\nB --> A : a long label here")).toMatchObject({
     "route:0": "A>B horizontal-forward 4,3 17,3 @9,0",
     "route:1": "B>A bottom-feedback 20,4 20,8 1,8 1,5 @2,7",
@@ -230,6 +239,12 @@ test("pinned as observed: transitions back: lanes under and over the rows, alloc
   })
   expect(
     drawn(
+      "state P0 {\n[*] --> P0x\n}\n[*] --> A\nA --> P0 : go\nA --> P0\nB --> A : a long label here\nP0x --> A : a long label here",
+      { minStateGap: 6 },
+    ),
+  ).toMatchObject({ "route:1": "B>A bottom-feedback 59,8 59,14 13,14 13,3 16,3 @27,13", rows: 15 })
+  expect(
+    drawn(
       'state P0 {\nstate "Inside" as P0x\nstate P0n {\nP0nz --> P0nw\n}\n}\nP0x --> P0nw : a long label here\nP0nw --> P0x : retry',
       { minStateGap: 4 },
     ),
@@ -238,6 +253,17 @@ test("pinned as observed: transitions back: lanes under and over the rows, alloc
     "route:1": "P0x>P0nw horizontal-forward 11,5 34,5 @14,4",
     "route:2": "P0nw>P0x bottom-feedback 39,6 39,23 3,23 3,7 @18,22",
     rows: 25,
+  })
+  expect(
+    drawn(
+      'state "A long composite title" as P0 {\nP0x --> P0y : a<br>b\n}\n[*] --> A\nP0y --> A : x<br>yy<br>zzz\nP0y --> P0x : a<br>b',
+    ),
+  ).toMatchObject({
+    "route:0": "P0x>P0y horizontal-forward 46,9 59,9 @52,7",
+    "route:1": "__start>A horizontal-forward 1,3 13,3",
+    "route:2": "P0y>A bottom-feedback 63,10 63,21 15,21 15,5 @37,18",
+    "route:3": "P0y>P0x bottom-feedback 63,10 63,16 41,16 41,11 @51,14",
+    rows: 20,
   })
 })
 
@@ -396,6 +422,15 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
     "row:11": "╰───╯",
     rows: 19,
   })
+  expect(
+    drawn(
+      "state P0 {\nP0x --> P0y : a<br>b\nP0y --> [*]\n}\nP0x --> B : a<br>b\nP0x --> A : go\nA --> [*]\nnote left of B : two<br>lines",
+      { borderStyle: "heavy", arrowHeadStyle: "line", layoutMaxWidth: 55 },
+    ),
+  ).toMatchObject({ rows: 23 })
+  expect(
+    drawn("direction RL\nA --> C\nA --> C\nB --> [*]", { borderStyle: "rounded", arrowHeadStyle: "line" }),
+  ).toMatchObject({ "route:2": "B>__end side-parallel 20,7 21,7 21,5 3,5 3,6", rows: 13 })
   expect(drawn("direction TD\nstate P0 {\n}\nstate P1 {\n[*] --> P1x\n}\n[*] --> B\nP1 --> B")).toMatchObject({
     "route:0": "P1.__start>P1x vertical 5,3 5,6",
     "route:1": "__start>B vertical 5,15 5,18",
@@ -436,6 +471,32 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
     "row:6": "                                    │ ╭─────╮   retry    ╭─────╮ │          ◆───╮ yy",
     rows: 11,
   })
+  expect(
+    drawn(
+      "direction BT\nstate P0 {\nP0x --> P0y\n}\nstate P1 {\n[*] --> P1x\n}\nD --> P0x\nP0 --> P1 : a long label here",
+    ),
+  ).toMatchObject({
+    "route:0": "P0x>P0y vertical 5,21 5,17",
+    "route:1": "D>P0x side-parallel 7,1 21,1 21,22 9,22",
+    "route:2": "P0>P1x vertical-elbow 9,12 9,11 5,11 5,10 @4,4",
+    rows: 26,
+  })
+  expect(
+    drawn(
+      'state "A long composite title" as P0 {\nP0x --> P0y : a long label here\n}\nP0x --> P0y : a<br>b\nP0x --> B : a<br>b',
+      { borderStyle: "rounded", arrowHeadStyle: "filled", layoutMaxWidth: 35 },
+    ),
+  ).toMatchObject({
+    "route:0": "P0x>P0y vertical 5,4 5,9 @7,15",
+    "route:1": "P0x>P0y side-parallel 8,3 11,3 11,11 9,11 @13,5",
+    rows: 17,
+  })
+  expect(
+    drawn(
+      'state "A long composite title" as P0 {\nP0x --> P0y : a long label here\n}\nP0x --> ch : a long label here\nD --> P0x : go\nP0 --> C : go',
+      { borderStyle: "double", arrowHeadStyle: "line", layoutMaxWidth: 74 },
+    ),
+  ).toMatchObject({ "route:3": "P0>C vertical-elbow 13,13 13,14 2,14 2,24 @9,16", rows: 26 })
 })
 
 test("pinned as observed: detours round states, and the junctions where routes meet", () => {
@@ -576,6 +637,11 @@ test("pinned as observed: detours round states, and the junctions where routes m
   })
   expect(
     drawn(
+      'direction RL\nstate "A long composite title" as P0 {\n[*] --> P0x\nP0x --> P0y : a<br>b\nstate P0n {\n}\n}\n[*] --> D\nP0nz --> P0y',
+    ),
+  ).toMatchObject({ "route:3": "P0nz>P0y bottom-feedback 6,10 6,11 37,11 37,7 79,7 79,5", rows: 12 })
+  expect(
+    drawn(
       'direction TD\nstate "A long composite title" as P0 {\nstate P0n {\nP0nz --> P0nw\n}\n}\nP0nw --> P0n : a long label here\nnote right of P0nw : two<br>lines',
       { borderStyle: "single", arrowHeadStyle: "line" },
     ),
@@ -583,6 +649,16 @@ test("pinned as observed: detours round states, and the junctions where routes m
     "route:0": "P0nz>P0nw vertical 8,6 8,10",
     "route:1": "P0nw>P0n side-parallel 4,12 3,12 3,9 1,9 @5,14",
     rows: 18,
+  })
+  expect(
+    drawn(
+      "state P0 {\nP0x --> P0y : a long label here\nstate P0n {\nP0nz --> P0nw\n}\n}\nstate P2 {\nstate P2n {\n}\n}\nP0nz --> P0x\nP0nw --> P0x : x<br>yy<br>zzz\nP2nz --> P0nz : a long label here\nP0nw --> P0y : retry",
+      { borderStyle: "rounded", arrowHeadStyle: "filled", layoutMaxWidth: 45 },
+    ),
+  ).toMatchObject({
+    "route:3": "P0nw>P0x side-parallel 11,24 14,24 14,3 12,3 @16,12",
+    "route:5": "P0nw>P0y side-parallel 11,24 14,24 14,10 12,10 @16,17",
+    rows: 35,
   })
 })
 
@@ -695,4 +771,10 @@ test("pinned as observed: labels placed clear of routes and states", () => {
     "route:2": "ch>P0x side-parallel 70,7 70,10 51,10 @27,10",
     rows: 15,
   })
+  expect(
+    drawn(
+      'direction TB\nstate P0 {\n[*] --> P0x\n}\nstate "Outer" as P1 {\n[*] --> P1x\nP1x --> P1y : retry\nP1y --> [*]\n}\nD --> P0x : a long label here',
+      { minStateGap: 2 },
+    ),
+  ).toMatchObject({ "route:2": "P1x>P1y vertical 5,21 5,25 @5,14", rows: 41 })
 })

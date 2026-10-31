@@ -17237,3 +17237,6 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   1,012 of 1,471 (was 170): 259 likely equivalent, 17 orphans, 1 the search could not attribute, and 138 faults
   that change only drawn rows (glyphs, junctions, cells). Each of the 138 was planted and its changed rows read
   on the 63 inputs; 36 rows over 26 inputs tell them all, now asserted. State: 70 cases.
+- The re-search of the 27 orphaned faults with the defect-checking harnesses: layout 7 of 10 told on 6 clean
+  inputs (2 likely equivalent, 1 failing to run); routing 16 of 17 on 11 (1 likely equivalent). Added to the
+  pinned cases (layout 46 inputs, routing 74). `bench-drivers.md` names the state harnesses.
