@@ -1,8 +1,7 @@
 import { expect, test } from "bun:test"
 import { createStateDiagramDrawing } from "../../src/state/drawing"
 import { parseMermaidStateDiagram } from "../../src/state/parser"
-import type { StateDiagramRenderOptions } from "../../src/state/types"
-import { summary } from "./drawing-summary"
+import { drawn, summary } from "./drawing-summary"
 
 // Each transition as drawn: its ends, its route's kind, its corners and its label's top left.
 const routes = (body: string) =>
@@ -35,12 +34,6 @@ test("a self transition leaves the bottom a third in and comes back up two third
     "A>A self 3,2 3,7 11,7 11,3",
   ])
 })
-
-// A drawing's summary (`drawing-summary.ts`: each route and each drawn row) and its count of rows.
-const drawn = (body: string, options: StateDiagramRenderOptions = {}) => {
-  const out = summary(createStateDiagramDrawing(parseMermaidStateDiagram(`stateDiagram-v2\n${body}`), options))
-  return { ...out, rows: Object.keys(out).filter((key) => key.startsWith("row:")).length }
-}
 
 // The cases below were found by planting each fault the cases above miss into a copy of routing.ts and searching random
 // state diagrams for one it changes (`bench/subsume/pinned.py` with the state harnesses), each input then shrunk and

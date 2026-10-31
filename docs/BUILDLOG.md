@@ -17226,3 +17226,7 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   each asserting its changed routes and, where rows change, the row count (the rows themselves wait on the
   `subsume` rerun, which shows which faults need them). State: 68 cases across eleven files; merman 376 pass,
   `tsc` clean, `bench/subsume` pytest 17 passed.
+- Drawing's search finished (1,000 inputs: 83 of 167 told apart, 84 likely equivalent; 12 kept, none drawn
+  wrongly). `drawing.test.ts` gains 3 pinned-as-observed cases over the 12, each asserting the routes and rows
+  its faults change and the row count where rows come or go; `drawn()` moved into `drawing-summary.ts` for both
+  files. State: 71 cases; the handoff names the new branch.

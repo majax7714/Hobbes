@@ -1,5 +1,8 @@
-import type { StateTransitionPathPoint, StateTransitionRenderPlan } from "../../src/state/routing"
+import { createStateDiagramDrawing } from "../../src/state/drawing"
+import { parseMermaidStateDiagram } from "../../src/state/parser"
 import { renderStateGridText, type StateGrid } from "../../src/state/render-grid"
+import type { StateTransitionPathPoint, StateTransitionRenderPlan } from "../../src/state/routing"
+import type { StateDiagramRenderOptions } from "../../src/state/types"
 
 /** A path's ends and turning points. */
 function corners(path: readonly StateTransitionPathPoint[]): string {
@@ -32,4 +35,10 @@ export function summary(drawing: {
       out[`row:${index}`] = row
     })
   return out
+}
+
+/** A diagram body drawn with these options, summarized, with its count of rows. */
+export function drawn(body: string, options: StateDiagramRenderOptions = {}): Record<string, string | number> {
+  const out = summary(createStateDiagramDrawing(parseMermaidStateDiagram(`stateDiagram-v2\n${body}`), options))
+  return { ...out, rows: Object.keys(out).filter((key) => key.startsWith("row:")).length }
 }
