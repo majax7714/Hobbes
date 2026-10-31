@@ -23,11 +23,13 @@ export function generate(rand: () => number): string {
   while (declared < ids.length && chance(0.4)) {
     const take = 1 + Math.floor(rand() * (ids.length - declared))
     lines.push(`box ${chance(0.5) ? pick(["", "Team", "red Ops", "Payments and ledger teams"]) : label()}`)
-    for (const id of ids.slice(declared, declared + take)) lines.push(`participant ${id}${chance(0.3) ? ` as ${label() || id}` : ""}`)
+    for (const id of ids.slice(declared, declared + take))
+      lines.push(`participant ${id}${chance(0.3) ? ` as ${label() || id}` : ""}`)
     lines.push("end")
     declared += take
   }
-  for (const id of ids.slice(declared)) if (chance(0.5)) lines.push(`participant ${id}${chance(0.3) ? ` as ${label() || id}` : ""}`)
+  for (const id of ids.slice(declared))
+    if (chance(0.5)) lines.push(`participant ${id}${chance(0.3) ? ` as ${label() || id}` : ""}`)
   const open: string[] = []
   for (let n = Math.floor(rand() * 9); n > 0; n--) {
     const r = rand()
@@ -69,7 +71,10 @@ function flatten(value: unknown, prefix: string, out: Record<string, unknown>): 
 export function summarize(input: string): Record<string, unknown> {
   try {
     const opts = input.match(/^%%opts compact=(\d) gap=(\d*)$/m)
-    const options = { compact: opts?.[1] === "1", minParticipantGap: opts?.[2] ? Number(opts[2]) : undefined }
+    const options = {
+      compact: opts?.[1] === "1",
+      minParticipantGap: opts?.[2] ? Number(opts[2]) : undefined,
+    }
     const diagram = parseMermaidSequenceDiagram(input)
     const out: Record<string, unknown> = {}
     flatten(diagram, "diagram", out)

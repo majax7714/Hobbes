@@ -17171,3 +17171,18 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   start-handling case into the detour case. Two `subsume` reads as redundant stay, each the only one to fail on a
   fault planted by hand: the search's free test ignored, the visible model's transitions passed on uncopied.
 - `bun test` (merman): 342 pass across 35 files. `tsc --noEmit` clean. `bench/subsume` pytest 15 pass.
+
+## 2026-10-30 (fiftieth session, cont.) — the state harnesses, testable; a refusal they surface
+
+- On `test/merman-state-family`, a fresh branch from PR #16's tip (the old `test/merman-state` held a copy of the
+  tool changes PR #16 replaced; it is superseded, not rebased, so nothing is force-pushed). State's first part
+  cherry-picked (`08701c3`).
+- The four state harnesses in PR #16's form: `state-gen.ts` (the shared diagrams), `state-layout.ts` (the visible
+  model laid out, summarized by the tests' own `layout-summary.ts`), `state-drawing.ts` (routes and rows,
+  `generateStyled` adding border, head and fold-width options), `state-search.ts`. `harnesses.test.ts` gains 4
+  cases (9 pass): seeds, one summary each worked by hand, generated inputs without an error.
+- Surfaced: 6 of 300 random state diagrams with composites (seed 1) are refused with "State composite separation
+  did not converge" (`state/drawing.ts`, after its attempts). A refusal, not a hang; listed in
+  `currently-open.md`. The drawing case asserts no other refusal appears.
+- The harnesses were first formatted with prettier's defaults (run from the repo root, no config there);
+  reformatted with the fork's (`semi: false`, `printWidth: 120`).
