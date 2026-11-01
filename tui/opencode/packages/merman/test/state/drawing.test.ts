@@ -325,7 +325,7 @@ test("pinned as observed: the canvas: its size, the shift off negative cells, an
     "row:0": "╭─ A long composite title ╮",
     "row:1": "│                         │",
     "row:2": "│ ╭─────╮                 │",
-    "row:3": "┤ │ P0x │◀                │",
+    "row:3": "├▶│ P0x │                 │",
     "row:4": "│ ╰─────╯                 │",
     "row:5": "│                         │",
     "row:6": "╰─────────────────────────╯",

@@ -25,7 +25,7 @@ interface StateTransitionRoutePlanBase {
 
 export type StateTransitionRoutePlan =
   | (StateTransitionRoutePlanBase & { kind: "self"; lane: number; lanes: number; headX?: number })
-  | (StateTransitionRoutePlanBase & { kind: "horizontal-forward"; leftToRight: boolean })
+  | (StateTransitionRoutePlanBase & { kind: "horizontal-forward"; leftToRight: boolean; frame?: HorizontalRunFrame })
   | (StateTransitionRoutePlanBase & { kind: "bottom-feedback"; railY: number; approachX: number })
   | (StateTransitionRoutePlanBase & { kind: "top-feedback"; railY: number })
   | (StateTransitionRoutePlanBase & { kind: "bottom-parallel"; railY: number; approachX: number })
@@ -242,6 +242,47 @@ function hasVerticalCorridor(from: BoxBounds, to: BoxBounds): boolean {
   return from.top - 1 >= to.top + to.height
 }
 
+// Which end of a run on one row is a frame round the other: such a run stays inside the frame, from its nearer wall to
+// the member's facing side, or from the member to that wall.
+type HorizontalRunFrame = "source" | "target"
+
+function horizontalRunFrame(
+  diagram: StateVisibleDiagram,
+  transition: StateVisibleTransition,
+): HorizontalRunFrame | undefined {
+  if (containingCompositeIds(diagram, transition.to).includes(transition.from)) return "source"
+  if (containingCompositeIds(diagram, transition.from).includes(transition.to)) return "target"
+  return undefined
+}
+
+function horizontalRunIsLeftToRight(from: BoxBounds, to: BoxBounds, frame: HorizontalRunFrame | undefined): boolean {
+  if (frame === "source") return to.centerX < from.centerX
+  if (frame === "target") return from.centerX >= to.centerX
+  return from.centerX <= to.centerX
+}
+
+// The run's cells on its row: the source's tee (no cell is drawn there for a 1-cell source), its first line cell, and
+// its head.
+function horizontalRunCells(
+  from: BoxBounds,
+  to: BoxBounds,
+  leftToRight: boolean,
+  frame: HorizontalRunFrame | undefined,
+) {
+  const step = leftToRight ? 1 : -1
+  // A frame's tee is on the wall the run leaves inward; any other source's, on the side it leaves toward.
+  const teeX = (frame === "source") === leftToRight ? from.left : from.left + from.width - 1
+  const endX =
+    frame === "target"
+      ? leftToRight
+        ? to.left + to.width - 2
+        : to.left + 1
+      : leftToRight
+        ? to.left - 1
+        : to.left + to.width
+  return { teeX, startX: teeX + step, endX }
+}
+
 function horizontalCorridorCrossesUnrelatedState(
   diagram: StateVisibleDiagram,
   transition: StateVisibleTransition,
@@ -249,9 +290,8 @@ function horizontalCorridorCrossesUnrelatedState(
   to: BoxBounds,
   bounds: ReadonlyMap<string, BoxBounds>,
 ): boolean {
-  const leftToRight = from.centerX <= to.centerX
-  const startX = leftToRight ? from.left + from.width : from.left - 1
-  const endX = leftToRight ? to.left - 1 : to.left + to.width
+  const frame = horizontalRunFrame(diagram, transition)
+  const { startX, endX } = horizontalRunCells(from, to, horizontalRunIsLeftToRight(from, to, frame), frame)
   const space = SpatialIndex.empty().add(
     ...diagram.states.flatMap((state) => {
       if (state.id === transition.from || state.id === transition.to || isHiddenCompositeMarker(state)) return []
@@ -430,6 +470,15 @@ export function createStateTransitionRoutePlans(
     const targetIsChoice = targetState?.kind === "choice"
     const targetIsHiddenMarker = isHiddenCompositeMarker(targetState)
     const base = { transition, from, to, targetIsChoice, targetIsHiddenMarker }
+    const horizontalForward = (): StateTransitionRoutePlan => {
+      const frame = horizontalRunFrame(diagram, transition)
+      return {
+        ...base,
+        kind: "horizontal-forward",
+        leftToRight: horizontalRunIsLeftToRight(from, to, frame),
+        ...(frame ? { frame } : {}),
+      }
+    }
     const sideParallel = (): StateTransitionRoutePlan => {
       const railX = allocateSideRail(transition)
       return {
@@ -498,7 +547,7 @@ export function createStateTransitionRoutePlans(
             },
           ]
         }
-        return [{ ...base, kind: "horizontal-forward", leftToRight: from.centerX <= to.centerX }]
+        return [horizontalForward()]
       }
       const fromParent = statesById.get(transition.from)?.parentId
       const toParent = statesById.get(transition.to)?.parentId
@@ -564,7 +613,7 @@ export function createStateTransitionRoutePlans(
         },
       ]
     }
-    return [{ ...base, kind: "horizontal-forward", leftToRight: from.centerX <= to.centerX }]
+    return [horizontalForward()]
   })
 }
 
@@ -615,11 +664,6 @@ function addRightDeparture(builder: StateTransitionRenderBuilder, bounds: BoxBou
   })
 }
 
-function addLeftDeparture(builder: StateTransitionRenderBuilder, bounds: BoxBounds): void {
-  if (bounds.width <= 1 || bounds.height <= 1) return
-  addCell(builder, { x: bounds.left, y: bounds.centerY, char: BorderChars.rounded.rightT })
-}
-
 function addBottomDeparture(builder: StateTransitionRenderBuilder, bounds: BoxBounds, x: number): void {
   if (bounds.width <= 1 || bounds.height <= 1) return
   addCell(builder, {
@@ -635,16 +679,15 @@ function addTopDeparture(builder: StateTransitionRenderBuilder, bounds: BoxBound
 }
 
 function addHorizontalForward(builder: StateTransitionRenderBuilder): void {
-  const { from, to, targetIsChoice, targetIsHiddenMarker, leftToRight, transition } = builder.route as Extract<
+  const { from, to, targetIsChoice, targetIsHiddenMarker, leftToRight, frame, transition } = builder.route as Extract<
     StateTransitionRoutePlan,
     { kind: "horizontal-forward" }
   >
   const y = from.centerY
-  if (leftToRight) addRightDeparture(builder, from)
-  else addLeftDeparture(builder, from)
   const step = leftToRight ? 1 : -1
-  const startX = leftToRight ? from.left + from.width : from.left - 1
-  const endX = leftToRight ? to.left - 1 : to.left + to.width
+  const { teeX, startX, endX } = horizontalRunCells(from, to, leftToRight, frame)
+  if (from.width > 1 && from.height > 1)
+    addCell(builder, { x: teeX, y, char: leftToRight ? BorderChars.rounded.leftT : BorderChars.rounded.rightT })
   addHorizontalLine(builder, startX, endX - step, y, step)
   addCell(
     builder,
@@ -1026,14 +1069,40 @@ function createStateTransitionRenderPlan(route: StateTransitionRoutePlan): State
   return builder
 }
 
+// A horizontal run's frame, if it has one; other route kinds between a frame and its member go round by rails.
+function routeRunFrame(plan: StateTransitionRenderPlan): HorizontalRunFrame | undefined {
+  return plan.route.kind === "horizontal-forward" ? plan.route.frame : undefined
+}
+
+// The part of a route between leaving its source and arriving at its target, as indexes into its path. A frame round
+// the other end is left, or arrived at, at its border: its inside is where the run goes.
+function routeOpenSpan(plan: StateTransitionRenderPlan): [number, number] | undefined {
+  const { from, to } = plan.route
+  const frame = routeRunFrame(plan)
+  const outside = (bounds: BoxBounds, isFrame: boolean) => (point: StateTransitionPathPoint) =>
+    !pointIsInsideBounds(point, bounds) || (isFrame && !pointIsOnBorder(point, bounds))
+  const first = plan.path.findIndex(outside(from, frame === "source"))
+  const last = plan.path.findLastIndex(outside(to, frame === "target"))
+  return first < 0 || last < first ? undefined : [first, last]
+}
+
+function pointIsOnBorder(point: StateTransitionPathPoint, bounds: BoxBounds): boolean {
+  return (
+    point[0] === bounds.left ||
+    point[0] === bounds.left + bounds.width - 1 ||
+    point[1] === bounds.top ||
+    point[1] === bounds.top + bounds.height - 1
+  )
+}
+
 // Between leaving its source and arriving at its target, a route may cross neither end's box: a side rail whose ends
 // are a row apart once ran along its target's border, or came back along its source's (a composite end is a frame
 // routes enter, so it is not checked).
 function routeCrossesOwnEnd(plan: StateTransitionRenderPlan, diagram: StateVisibleDiagram): boolean {
   if (plan.route.transition.from === plan.route.transition.to) return false
-  const sourceOutsideIndex = plan.path.findIndex((point) => !pointIsInsideBounds(point, plan.route.from))
-  const targetOutsideIndex = plan.path.findLastIndex((point) => !pointIsInsideBounds(point, plan.route.to))
-  if (sourceOutsideIndex < 0 || targetOutsideIndex < sourceOutsideIndex) return false
+  const open = routeOpenSpan(plan)
+  if (!open) return false
+  const [sourceOutsideIndex, targetOutsideIndex] = open
   const between = plan.path.slice(sourceOutsideIndex, targetOutsideIndex + 1)
   const isState = (id: string) => diagram.states.some((state) => state.id === id && !isHiddenCompositeMarker(state))
   return (
@@ -1096,7 +1165,14 @@ function findBodySafePath(
   budget: StateSearchBudget,
 ): StateTransitionPathPoint[] | undefined {
   const margin = Math.max(8, bounds.size * 2)
-  const compositeId = innermostCommonComposite(diagram, plan.route.transition)
+  // A run between a frame and its own member stays inside that frame.
+  const frame = routeRunFrame(plan)
+  const compositeId =
+    frame === "source"
+      ? plan.route.transition.from
+      : frame === "target"
+        ? plan.route.transition.to
+        : innermostCommonComposite(diagram, plan.route.transition)
   const composite = compositeId ? bounds.get(compositeId) : undefined
   const searchBounds = {
     minX: composite ? composite.left + 1 : search.minX - margin,
@@ -1153,9 +1229,9 @@ function bodySafeTransitionPlan(
   forceRepair = false,
 ): StateTransitionRenderPlan {
   if (!forceRepair && !routeIntersectsUnrelatedState(plan, diagram, bounds, noteBounds)) return plan
-  const sourceOutsideIndex = plan.path.findIndex((point) => !pointIsInsideBounds(point, plan.route.from))
-  const targetOutsideIndex = plan.path.findLastIndex((point) => !pointIsInsideBounds(point, plan.route.to))
-  if (sourceOutsideIndex < 0 || targetOutsideIndex < sourceOutsideIndex) return plan
+  const open = routeOpenSpan(plan)
+  if (!open) return plan
+  const [sourceOutsideIndex, targetOutsideIndex] = open
   const safePath = findBodySafePath(
     plan.path[sourceOutsideIndex]!,
     plan.path[targetOutsideIndex]!,
