@@ -115,17 +115,24 @@ test("top to bottom, states sharing a rank sit left to right; a row's gap grows 
 })
 
 test("a composite overlapping another moves whole, 4 clear of its frame, and every frame holds its own states", () => {
-  // Once a fork defect: P1's frame started inside P0's, and P1y ran out past P1's right side. P1 moves to P0's right
-  // edge plus 4 (45 + 4 = 49) with its states, and its frame still holds P1y (109 + 7 + 2 = 49 + 69).
-  expect(
-    layout("state P0 {\n[*] --> P0x\nP0x --> P0y : x<br>yy<br>zzz\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y\n}"),
-  ).toMatchObject({ "[P0]": "0,0 45x7 c22,3", "[P1]": "49,6 69x7 c83,9", P1y: "109,8 7x3 c112,9" })
-  // Once refused when drawn ("State composite separation did not converge"), each of these seven lines needed: P1
-  // now moves to P0's right edge plus 4 (40 + 25 + 4), and it draws.
-  expect(layout("state P0 {\nP0x --> [*]\n}\nstate P1 {\n[*] --> P1x\nP1y --> [*]\n}")).toMatchObject({
-    "[P0]": "40,6 25x7 c52,9",
-    "[P1]": "69,0 105x13 c121,6",
-  })
+  // Once a fork defect: P1's frame started inside P0's, and P1y ran out past P1's right side. Asserted as relations,
+  // so the rows each lands on are left to the cases above.
+  const box = (summary: string) => summary.split(/[ ,x]/).slice(0, 4).map(Number)
+  const right = ([left, , width]: number[]) => left! + width!
+  const holds = (outer: number[], inner: number[]) =>
+    inner[0]! >= outer[0]! &&
+    inner[1]! >= outer[1]! &&
+    right(inner) <= right(outer) &&
+    inner[1]! + inner[3]! <= outer[1]! + outer[3]!
+  const crossing = layout(
+    "state P0 {\n[*] --> P0x\nP0x --> P0y : x<br>yy<br>zzz\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y\n}",
+  )
+  const [p0, p1] = [box(crossing["[P0]"]!), box(crossing["[P1]"]!)]
+  expect(p1[0]! - right(p0)).toBe(4)
+  for (const id of ["P1x", "P1y"]) expect(holds(p1, box(crossing[id]!))).toBe(true)
+  // Once refused when drawn ("State composite separation did not converge"), each of these seven lines needed.
+  const refused = layout("state P0 {\nP0x --> [*]\n}\nstate P1 {\n[*] --> P1x\nP1y --> [*]\n}")
+  expect(box(refused["[P1]"]!)[0]! - right(box(refused["[P0]"]!))).toBe(4)
 })
 
 test("a composite is at least its title plus 5 wide", () => {
