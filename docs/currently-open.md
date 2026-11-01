@@ -112,13 +112,21 @@ Left by the fold (2026-10-28):
     - **State, fixed** (`fix/fork-found-defects`): a route that crossed its own source's or target's box (a side
       rail whose ends are a row apart ran on the target's border) is now repaired, and a repair walled in by
       earlier routes may cross one of them. Routes through a state: 8 of 3,000 -> 0 of 10,000.
-    - **Flowchart, open, for Max:** a nested frame can take in its parent's other nodes (15 of 10,000 random
-      flowcharts, `harnesses/flowchart.ts`, seeds 1–10). Two causes: a frame fitted to a self loop that an
-      earlier routing pass sent round the diagram, never refitted after the last pass (most cases); a nested
-      frame's margin over a sibling node it was not separated from (seed 1 #77). Tried and dropped: refitting
-      every frame after the last pass (91 defects), refitting only to shrink (none fixed), keeping a self loop
-      inside its own frame (12, 387 layouts changed, two new defects). Pinned by `test/flowchart/layout.test.ts`.
-    PR #20's review (10 comments, not reproduced): six possible faults and four cleanups, untriaged.
+    - **Flowchart, left pinned (Max's route 3, 2026-11-01):** a nested frame can take in its parent's other
+      nodes (15 of 10,000 random flowcharts, `harnesses/flowchart.ts`, seeds 1–10; all a nested frame over a
+      node in its parent). Two causes: a frame fitted to a self loop that an earlier routing pass sent round the
+      diagram, never refitted after the last pass; a nested frame's margin over a sibling node. Route 1
+      (refit after the last pass, separate, reroute; three passes) measured heavy: 15 -> 91, frames and routes
+      do not settle, and nested separation would be a new pass. Also dropped: shrink-only refit (none fixed),
+      keeping a self loop in its own frame (12, 387 layouts changed). Pinned by `test/flowchart/layout.test.ts`.
+    - **PR #20's review, triaged:** :809 (fallback row, taller boxes) confirmed and fixed. :753 (self-loop heads
+      rebuild a repaired loop) true but harmless (2 of 3,370 loops; one repair was empty, both rebuilt loops drew well); probing
+      it found self loops repaired to nothing (58 of 3,370) and fixed. Not reproduced on random inputs: :570
+      (frames grown once; the layout check, 10,000), :575 (notes past their frame; 0 of 582), :1033 (flowchart
+      pass order; no free node among the 15). :489 (same-row straight run) draws repaired; only note placement
+      reads the unrepaired plan, as for every route kind. :237 (diamond box fallback at 1 wide) is latent: the
+      only caller draws a decision at least 7 by 5. The four cleanups (a shadowed `selfTransitionCounts`, two
+      grow-round-members copies, a copied `overlap` in the flowchart harness) are not done.
     The fixes do not bump `VERSION` (Max, 2026-11-01: fork fixes do not).
   - **Found re-checking flowchart's tests (2026-11-01):** four derived cases in
     `test/flowchart/layout.test.ts` are redundant among the derived cases alone, already on `main` (unreached

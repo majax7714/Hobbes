@@ -1,7 +1,8 @@
 # Session handoff — the single resume point
 
 **Reviewed 2026-11-01 (fiftieth session); `main` at 0.3.9-beta (`2ec43ce`, PRs #8–#20 merged); branch
-`fix/fork-found-defects` (state's own-end crossing fixed; flowchart's nested frame waits on Max); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+`fix/fork-found-defects`, not yet pushed (state's own-end crossing, empty self-loop repairs and the fallback row
+fixed; PR #20's review triaged; flowchart's nested frame left pinned); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -44,8 +45,8 @@ session went belongs in the BUILDLOG.
 `core` (PR #9), the top level (PR #10), flowchart (PR #13), gantt and gitGraph (PR #14), sequence (PR #15, #16),
 state (PR #18; the older `test/merman-state` branch is superseded, delete it), timeline (PR #19). Max
 (2026-11-01): "look to fix the defects before proceeding with core/shell"; all ten are fixed (PR #20, merged),
-and of the two found measuring them, state's is fixed on `fix/fork-found-defects` (merman 407 pass); flowchart's
-waits on Max (`currently-open.md`). **Measure a layout fix on random inputs before and after** (state: the
+and of the two found measuring them, state's is fixed on `fix/fork-found-defects` (merman 408 pass); flowchart's
+stays pinned (Max's route 3: route 1 measured heavy). PR #20's review is triaged there too (`currently-open.md`). **Measure a layout fix on random inputs before and after** (state: the
 harnesses' generator and `state-defects.ts`, seeds 11–13; flowchart: `harnesses/flowchart.ts`, seeds 1–10).
 
 How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests under
@@ -67,9 +68,8 @@ in `currently-open.md`). Then ADR-184's unbuilt levers (`currently-open.md`): a 
 ADR first. The extraction routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- Flowchart's nested frame grown over its parent's other nodes (15 in 10,000; `currently-open.md`): three
-  targeted fixes tried and dropped; a fix changes how frames are fitted to routes. The route to take.
-- PR #20's review comments (six possible faults, four cleanups): triage now or later.
+- Push `fix/fork-found-defects` (Max's step), then its PR; next, `core/shell` on his word.
+- PR #20's four cleanup comments: whether to do them.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - H-39: the trace oracle's re-entrance guard is shared across threads; a thread-local guard moves every key
   with a threaded test (`currently-open.md`).

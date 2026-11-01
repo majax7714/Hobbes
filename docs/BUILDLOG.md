@@ -17358,3 +17358,35 @@ possible faults, four cleanups, none reproduced), merged (`2ec43ce`). On `fix/fo
   two new defects). Reverted; the pin stays.
 
 Not done: PR #20's review comments are untriaged (`currently-open.md`).
+
+## 2026-11-01 (fiftieth session, cont.) — flowchart's nested frame left pinned; PR #20's review triaged; two state fixes
+
+Max: "measure route 1, if pretty straightforward good to proceed, if change is heavy route 3 but move onto
+inspection of the possible bugs not core/shell"; the branch waits to push, these go on it.
+
+- **Route 1 measured heavy.** After the last routing pass, refit the frames, separate the top-level items and
+  reroute, up to three passes, then refit: 10,000 random flowcharts, 15 -> 91 (one pass: 94) defective layouts,
+  161 changed, time +24%. Classified (seeds 1–10): main's 15 are all a nested frame over a node in its parent;
+  with the refit, top-level frames over free (36) and framed (18) nodes appear: every reroute moves the internal
+  routes the frames fit. Reverted; the pin stays (Route 3).
+- **PR #20's review, each possible fault probed** (scratch probes over 3,000 to 10,000 random inputs):
+  - :809 confirmed: on the left-to-right fallback row a box taller than 3 kept its top 5 below the baseline, so a
+    choice sat above its centre and its route went round the box. Every fallback state is now centred on the row
+    (`top = baseline + 6 - floor(h/2)`; 3-tall boxes and markers unchanged).
+  - :753 true, harmless: 167 of 3,370 self-loop heads move, 2 of them repaired loops (one repair empty), both
+    rebuilt well; no move makes a new run along another route. Probing it found **self loops repaired to
+    nothing**: 58 of 3,370 loops in final drawings (a choice's loop beside a note drawn as no route at all). The
+    alternate repair paired each port with itself, an empty path, the shortest. Ports are no longer paired with
+    themselves, and a repaired path off a 1-cell source joins it with a corner. The five self-loop refusals ("no
+    clear label position", seeds 12–19) are gone with it.
+  - Not reproduced: :570 (frames grown once: the layout's own box check, 10,000 diagrams, none), :575 (notes past
+    their composite: 0 of 582), :1033 (flowchart pass order: no free node among the 15 defects). :489 draws
+    repaired; the unrepaired plan only steers note placement, as for every kind. :237 latent (decisions are at
+    least 7 by 5). A probe of :489 with a made-up feedback lane (0) ran out of memory and was killed: pass the
+    real lane.
+  - The four cleanups are not done.
+
+Both fixes, random diagrams seeds 11–13: 53 of 3,000 drawings change, no defect, the one refusal as before; route
+cells 429,167 -> 429,385 (the lost loops drawn). Three pinned-as-observed values moved, drawn before and after and
+read (one had pinned the lost loop); each change fails a case alone. merman 408 pass, `tsc` and prettier clean,
+harnesses 14.
