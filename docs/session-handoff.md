@@ -1,7 +1,7 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-11-01 (fiftieth session); `main` at 0.3.9-beta (`eb3b8d6`, PRs #8–#18 merged); branch
-`test/merman-timeline`, its PR open (timeline, `merman`'s last family); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+**Reviewed 2026-11-01 (fiftieth session); `main` at 0.3.9-beta (`74ce499`, PRs #8–#19 merged); branch
+`fix/fork-pinned-defects`, its PR open (the fork defects our tests pinned, fixed); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -40,11 +40,13 @@ session went belongs in the BUILDLOG.
   the readable statement of the rule). PRs #13 and #14 flagged cases kept the same way, or kept because they
   guard a fault `subsume` cannot plant (checked by planting it by hand); neither was overruled.
 
-**Next: the rest of the fork's tests, `core/shell` first.** `merman` is done once timeline merges: `core`
-(PR #9), the top level (PR #10), flowchart (PR #13, 97 cases), gantt and gitGraph (PR #14, 71), sequence
-(PR #15, 62; one more in PR #16), state (PR #18, 70; the older `test/merman-state` branch is superseded,
-delete it), and **timeline** on `test/merman-timeline`, its PR open: 20 cases across three files, every
-survivor of `subsume`'s last pass read as never told apart, or failing to run; merman 398 pass.
+**Next: the rest of the fork's tests, `core/shell` first, once the defect fixes merge.** `merman` is done:
+`core` (PR #9), the top level (PR #10), flowchart (PR #13), gantt and gitGraph (PR #14), sequence (PR #15, #16),
+state (PR #18; the older `test/merman-state` branch is superseded, delete it), timeline (PR #19). Max
+(2026-11-01): "look to fix the defects before proceeding with core/shell"; all ten are fixed on
+`fix/fork-pinned-defects` (BUILDLOG 2026-11-01), merman 406 pass, latex 86. **Measure a layout fix on random
+inputs before and after** (state: the harnesses' generator and `state-defects.ts`; seeds 11–13): it found two
+more defects, now pinned (`currently-open.md`).
 
 How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests under
 `packages/merman/test/<family>/`, one file per module, `prettier --write` on new files):
@@ -65,12 +67,11 @@ in `currently-open.md`). Then ADR-184's unbuilt levers (`currently-open.md`): a 
 ADR first. The extraction routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- The fork defects our tests pin (`currently-open.md`, the fork-tests item): `latex`'s four, `merman`'s
-  `core` diamond caps, flowchart's two (an outside node laid over a framed one; a parallel edge's head
-  beside its target), sequence's note over no one (dropped silently), and state's: a self loop's head past
-  its box, the side rail doubling back, and the left-to-right fallback row (a marker on its target's top row,
-  composites drawn crossing, the separation refusal; one diagram in ten). Fix them, or leave them pinned.
-- `VERSION` was not bumped for PR #17's fork fix (0.3.9-beta tracks the graph layer, not the fork).
+- The two defects found measuring the fixes (`currently-open.md`, the fork-tests item): state's side rail
+  whose ends are a row apart runs on its target's border (9 in 3,000); flowchart's nested frame grown over
+  its parent's other nodes (2 in 2,000). Fix them, or leave them pinned.
+- `VERSION` was not bumped for PR #17's fork fix nor for the defect fixes (0.3.9-beta tracks the graph layer,
+  not the fork): whether fork fixes bump it.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - H-39: the trace oracle's re-entrance guard is shared across threads; a thread-local guard moves every key
   with a threaded test (`currently-open.md`).
@@ -79,7 +80,7 @@ ADR first. The extraction routes stand as they were: C is the next-thinnest lang
 
 ## Where the last day left things (2026-10-31; the CHANGELOG and BUILDLOG have each one)
 
-Fiftieth session: `merman`'s timeline (PR open) and state (PR #18), sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
+Fiftieth session: the fork's ten pinned defects fixed (PR open); `merman`'s timeline (PR #19) and state (PR #18), sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
 cap (PR #16), the state side rail's endless loop fixed (PR #17); three state drawing defects found and pinned.
 
 Forty-ninth session: 0.3.7-beta to 0.3.9-beta (the gate's `attr-call` reason, H-38, ADR-187; the accept list,

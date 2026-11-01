@@ -163,6 +163,11 @@ writing a brief, a probe or a pre-registration. The resume point is
   Check every kept input for the wrong kinds you can name, and make the
   harness refuse them (`state-defects.ts`) so the next search cannot keep
   one.
+- **Measure a drawing fix on random inputs, before and after, beside the defect counts** (2026-11-01, the
+  fork's pinned defects). Clamping state's self-loop heads under their box fixed 795 of 1,097 heads and
+  doubled the heads drawn on another route (40 -> 88); only the count showed it, and widening the box took it
+  to 21. The same measure turned up two defects no test had named. Count the kinds the fix could add, not only
+  the one it removes, and read every pinned drawing that moves.
 
 ## Facts about the tools
 

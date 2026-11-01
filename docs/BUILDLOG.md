@@ -17274,3 +17274,60 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
   the events' width, fails only the wide-character case. No fork defect found.
 - merman: 398 pass, 0 fail (42 files); `tsc --noEmit` exit 0; prettier clean. `build-and-test.md`'s merman row
   was 77 (2026-10-29), now 398.
+
+## 2026-11-01 (fiftieth session, cont.) — the fork's ten pinned defects fixed; two more found and pinned
+
+Max: "look to fix the defects before proceeding with core/shell". On `fix/fork-pinned-defects`, a commit each:
+- **sequence:** a note over no one (`Note over ,: x`) is refused ("Note requires a participant"), not dropped;
+  placement keeps its guard, tested on a diagram built by hand.
+- **latex:** `maxExpand: N` allows N expanding passes (the confirming pass is not counted); `maxDepth` counts the
+  atoms around an atom, so the parser takes what the brace check lets through (`{{x}}` is two); `a+-b` draws
+  `a + -b` (only the sign after a sign is unary, as in TeX); dead code removed. `subsume` on `parser.ts` and
+  `layout.ts`: no survivor on a changed line.
+- **core:** a diamond's caps never share a column (inset at most half the width less two); under 4 wide or 4 tall
+  (the second found fixing the first) it is drawn as a box. The flowchart's one caller is unchanged.
+- **state self loops:** each head comes up under its own box, nested, on a column no other route touches; a state
+  with loops is at least 2 * loops + 5 wide, its label centred. Found on the way: a repaired route's head pointed
+  by the bearing to the box's centre, so off the centre column it could point sideways; now by its side. Over
+  1,000 random diagrams (seed 11): heads outside the box 795 of 1,097 -> 0; heads on another route's cell
+  40 -> 21; sideways heads 73 -> 0. The clamp alone took the merged heads to 88: only the count showed it.
+- **flowchart parallel edges:** the first lane is one cell past the nodes' sides on either axis, so the head
+  comes into the target's side.
+- **state same-row transitions** go straight across (or under, for the reverse of a pair), never by a side rail
+  that leaves and returns along the row over the target. PR #17's loop bound stays.
+- **state layout:** the fallback row puts a marker or choice on the row's centre; the separation pass moves the
+  outermost composite still outside the one overlapped, whole, never that one's ancestors, keeps a cell clear of
+  the frame, and grows every frame round its members after. Diagrams showing a defect `state-defects.ts` names,
+  or refused, seeds 11/12/13: 111/117/118 -> 2/5/2; refusals 16/12/17 -> 0 (and a stack overflow at HEAD gone);
+  routes crossing an unrelated frame (seed 12) 92 -> 76; mean width about +5 columns.
+- **flowchart outside nodes:** a node outside every frame moves past whatever it overlaps (across the flow, or
+  along it with a target width top-down). Random flowcharts with a node in a wrong frame or nodes overlapping,
+  seeds 1/2/3: 76/69/66 -> 2/0/0.
+
+Every pinned-as-observed input that moved was drawn before and after and read (state 16 + 24, flowchart 9 + 1 + 4);
+none shows a known defect; values rewritten with a scratchpad tool that reports each change. Derived cases that
+stated a defect as the rule (the parallel-lane case, the self-loop case) were derived again by hand.
+
+Two defects found measuring the fixes, pinned, listed in `currently-open.md`: a state side rail whose ends are a
+row apart runs on its target's border (9 of 3,000); a flowchart nested frame can take in its parent's other
+nodes (2 of 2,000). `bench/subsume/harnesses/flowchart.ts` is new (pinned.py's flowchart harness, the one lost
+with a scratchpad, rebuilt), with `flowchartDefects`; `state-defects.ts` exports its checks, held on hand-built
+boxes since the fork no longer draws those kinds.
+
+A slip: one commit went in with a test failing (the nested-frame pin asserted the wrong node, A for F); the test
+ran in the same command as the commit. Caught on the next run, amended before any push.
+
+Checked with `bench/subsume`, each module against its own file, then a pinned-input search on the 174 faults new
+since `main` (by source line and fault): state layout 29 (3,000 inputs: 17 told, 12 inputs pinned), drawing 15
+(8, 4), routing 81 (54, 23); flowchart layout 39 (2,000: 15, 10), routing 10 (5, 4). Final pass, against `main`:
+state layout 783 of 1,123 caught (main 720 of 1,052), drawing 167 + 17 every case of 272 (175 of 257), routing
+1,211 of 1,542 (1,165 of 1,471); flowchart layout 755 of 1,001 (737 of 962), routing 924 of 1,302 (929 of
+1,303); `core/drawing` 358 of 373, no survivor in the diamond; `latex` and the sequence parser no survivor on a
+changed line. Every survivor new since `main` is one the searches read as likely equivalent, or one that cannot
+run. Redundancy, derived cases alone (pinned blocks stripped): none new. Two derived cases were made relational
+when they took in older cases' faults (the composite separation, moved from drawing to layout; the outside
+node). Redundant only against pinned cases, kept by Max's rule: the parallel-lane case, and the drawing cases
+that state layout and routing rules. Found re-checking: four flowchart layout derived cases redundant among the
+derived alone, already on `main` (`currently-open.md`).
+
+merman 406 pass, latex 86, `tsc` clean in both; `harnesses.test.ts` 14 pass; `bench/subsume` pytest 17.

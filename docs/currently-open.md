@@ -103,48 +103,25 @@ Left by the fold (2026-10-28):
   files; gantt: 39 across three; gitGraph: 32 across three; sequence: 63 across four; state: 70 across eleven files (parser, the small modules, the side rail,
   derived and pinned-as-observed cases for layout, routing and drawing; every survivor of `subsume`'s last
   pass read as likely equivalent by the search, or failing to run); timeline: 20 across three, derived alone,
-  every survivor read as never told apart, PR open). The check every new case is held
+  every survivor read as never told apart, PR #19). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
-  - **Fork bugs our tests pin, not fixed** (found writing `latex`'s): `maxExpand: N` allows N−1 macro
-    passes (`maxExpand: 1` refuses any macro, `parser.ts:91-120`); `maxDepth` counts braces in
-    `assertNestingDepth` but the parser counts the atom inside too (N−1 effective); `a+-b` draws
-    `a+ - b` (`normalizeBinaryRole`); dead code at `parser.ts:332`. A fix changes the pinning test.
-  - **Found writing `merman`'s `core`:** `drawDiagramDiamond` 2, 3 or 5 wide puts both caps on one column
-    (`capLeft === capRight`, or crossed at 2), the right cap's glyph over the left's (`core/drawing.ts:236`);
-    4 and 6 or more are whole. Unreachable from the fork: its one caller, the flowchart's decision node,
-    is always odd and at least 7 wide (`flowchart/layout.ts:116-121`).
-  - **Found writing `merman`'s flowchart layout:** a node outside every frame can be laid out on top of a
-    framed node. Smallest case: `flowchart TD`, `subgraph G0` {B}, `subgraph G1` {A}, `E --> A`, `A --> F`,
-    `A --> A`: the self loop widens G1's frame, the separation pass moves the frames, and E lands over B inside
-    G0 (B's label hidden). Pinned by `test/flowchart/layout.test.ts` ("a fork defect, pinned"); a fix changes it.
-  - **Found writing `merman`'s flowchart drawing:** of two parallel edges top-down (`A --> B` twice), the first
-    runs from A's right side straight down to B's right side and draws its head `▼` there, pointing past B rather
-    into it; the second lane ends on the same cell. Pinned by `test/flowchart/drawing.test.ts`; a fix changes it.
-  - **Found writing `merman`'s state:** a self loop's head is not kept under its box: on a box 5 wide it comes
-    up one column past the right edge, on one 6 wide under the corner, and each further loop goes 4 wider (a
-    second loop on a box 10 wide lands two columns past it; `state/routing.ts:674-678`). Pinned by
-    `test/state/drawing.test.ts`; a fix changes it.
-  - **Found by the state harnesses (2026-10-30/31):** of 1,000 random state diagrams (seed 11, the harnesses'
-    generator), the drawing shows composites crossing in 51, a state outside its own composite in 23 and a route
-    through a state's box in 40, and refuses 11 ("State composite separation did not converge",
-    `state/drawing.ts:272`): 105 in all, about one in ten. Shrunk, each comes from states off the main path, left
-    to right: the fallback row gives every one the same top whatever its kind (`state/layout.ts:764`), so a
-    marker or choice sits on its target's top row and its route runs along that border; and that row's
-    collision check sees only state boxes, not the composite frames added later (suspected, not yet confirmed
-    by a change). Pinned by `test/state/drawing.test.ts` (three cases: the marker row, the crossing with a state
-    outside, the refusal in seven lines, each needed); a fix changes them. `bench/subsume/harnesses/state-defects.ts`
-    names the three drawn kinds, so no pinned-as-observed case shows one; a marker sitting high on the fallback row
-    without a route through a box is not one of them, and 24 of the 132 pinned inputs place one, so a fix to that
-    row changes those cases too (a fix planted by hand fails them and the marker case).
-  - **Found fixing `merman`'s state side rail (2026-10-30):** a side-parallel route between two composites
-    whose ends share a row (drawn top to bottom) runs right past its target to the rail column and back left
-    along the same row, over the target, its head against the target's far wall. It used to loop forever;
-    since the fix it ends but draws this way. Pinned by `test/state/side-rail.test.ts`; a fix changes it.
-  - **Found writing `merman`'s sequence:** a note over no one (`Note over ,: x`, the list empty once blanks are
-    dropped, `sequence/parser.ts:168-171`) parses without an error, takes its rows and draws nothing: its text is
-    lost silently (`placement.ts:580`). Pinned by `test/sequence/placement.test.ts`; a fix (refuse the line)
-    changes it.
+  - **Fork defects found by our tests, fixed 2026-11-01** (BUILDLOG; `fix/fork-pinned-defects`, PR open):
+    `latex`'s four, `core`'s diamond caps, flowchart's two, sequence's note over no one, and state's self loop
+    heads, same-row side rail and left-to-right fallback row (marker row, crossing composites, the refusal). Two
+    more, found measuring those fixes on random inputs, are pinned, not fixed:
+    - **State:** a side rail whose ends are a row apart leaves along its target's bottom row and runs on that
+      border (9 of 3,000 random diagrams, the harnesses' generator, seeds 11–13). Pinned by
+      `test/state/drawing.test.ts`, and the harness test's end-to-end defect example; a fix changes them.
+    - **Flowchart:** a nested frame can take in its parent's other nodes, grown by its own routes (a self loop,
+      long labels) or, once, with no routes in it (2 of 2,000 random flowcharts, `harnesses/flowchart.ts`, seeds
+      1–2). Pinned by `test/flowchart/layout.test.ts`; a fix changes it.
+    The fixes do not bump `VERSION` (0.3.9-beta tracks the graph layer, not the fork), as PR #17's did not;
+    whether fork fixes should is Max's call.
+  - **Found re-checking flowchart's tests (2026-11-01):** four derived cases in
+    `test/flowchart/layout.test.ts` are redundant among the derived cases alone, already on `main` (unreached
+    nodes ranked, ranks four rows apart, wrapping into bands, frames already apart). PR #13 judged redundancy
+    against the pinned cases only. Fold them, or keep each with a fault planted by hand that fails it alone.
   - Possible later, not asked: ADR-117 exempts a Python module with no code from the guard question; a
     TS module of only types or re-exports is still asked, hence the second entry.
 
