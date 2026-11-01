@@ -565,3 +565,115 @@ test("pinned as observed: the main path, ranks, branches and the states off the 
     __start: "0,1 1x1 c0,1",
   })
 })
+
+// Found the same way after the 2026-11-01 defect fixes, searching only the faults those fixes left untold: their new
+// code, and faults only inputs above told apart until the fixes changed what those inputs draw. Pinned as observed;
+// the harnesses keep no input that shows a known wrong drawing.
+test("pinned as observed: faults the defect fixes left untold: the widening, the separation and the frames grown after it", () => {
+  expect(
+    layout(
+      "direction BT\nstate P0 {\nP0x --> [*]\nstate P0n {\nP0nz --> P0nw\n}\n}\n[*] --> D\nP0x --> P0nw : retry\nnote right of P0nz : n\nnote right of P0nz : two<br>lines",
+      6,
+    ),
+  ).toMatchObject({
+    D: "6,31 5x3 c8,32",
+    "P0.__end": "8,19 1x1 c8,19",
+    P0nw: "4,5 8x3 c8,6",
+    P0nz: "4,12 8x3 c8,13",
+    P0x: "5,24 7x3 c8,25",
+    "[P0]": "0,0 29x29 c14,14",
+    "[P0n]": "2,2 25x15 c14,9",
+    __start: "8,38 1x1 c8,38",
+    "{P0nz-note-0}": "16,12 5x3 c18,13 12,13 12,13 14,13 15,13",
+    "{P0nz-note-1}":
+      "16,3 9x4 c20,5 3,12 3,11 3,10 3,9 3,8 3,7 3,6 3,5 3,4 4,4 5,4 6,4 7,4 8,4 9,4 10,4 11,4 12,4 13,4 14,4 14,5 15,5",
+  })
+  expect(layout("state ch <<choice>>\nch --> ch : x<br>yy<br>zzz")).toMatchObject({ ch: "0,3 1x1 c0,3" })
+  expect(layout("state P0 {\nP0x --> P0y\n}\nstate P1 {\nP1y --> [*]\n}\nnote right of P0y : n", 6)).toMatchObject({
+    P0x: "2,2 7x3 c5,3",
+    P0y: "23,2 7x3 c26,3",
+    "P1.__end": "65,9 1x1 c65,9",
+    P1y: "44,8 7x3 c47,9",
+    "[P0]": "0,0 41x7 c20,3",
+    "[P1]": "42,6 26x7 c55,9",
+    "{P0y-note-0}": "34,2 5x3 c36,3 30,3 30,3 32,3 33,3",
+  })
+  expect(
+    layout(
+      "state P0 {\nstate P0n {\nP0nz --> P0nw\n}\n}\nstate P2 {\nstate P2n {\n}\n}\n[*] --> A\nP0nw --> P0x\nA --> P0nw : a long label here\nnote left of P0nw : n",
+    ),
+  ).toMatchObject({ "[P0]": "29,0 67x17 c62,8" })
+  expect(layout('state P0 {\nstate "Inside" as P0x\n}\nstate P1 {\n}\nP0x --> P0x : a<br>b')).toMatchObject({
+    P0x: "2,2 10x3 c7,3",
+    "[P0]": "0,0 14x7 c7,3",
+  })
+  expect(
+    layout('direction BT\nstate P0 {\nP0x --> [*]\n}\nstate "Outer" as P1 {\nstate P1n {\nP1nz --> P1nw\n}\n}'),
+  ).toMatchObject({
+    "P0.__end": "8,18 1x1 c8,18",
+    P0x: "5,23 7x3 c8,24",
+    P1nw: "29,4 8x3 c33,5",
+    P1nz: "29,11 8x3 c33,12",
+    "[P0]": "3,16 18x12 c12,22",
+    "[P1]": "25,0 23x18 c36,9",
+    "[P1n]": "27,2 19x14 c36,9",
+  })
+  expect(
+    layout(
+      "state P0 {\n}\nstate P1 {\nP1x --> P1y : go\n}\nP1 --> P1\nP1x --> A\nP1x --> C\nA --> [*]\nnote left of C : a note",
+    ),
+  ).toMatchObject({
+    "{C-note-0}":
+      "4,16 10x3 c9,17 23,9 24,9 25,9 26,9 27,9 28,9 29,9 30,9 31,9 32,9 33,9 34,9 35,9 35,8 36,8 37,8 37,9 37,10 37,11 37,12 37,13 37,14 37,15 36,15 35,15 34,15 33,15 32,15 31,15 30,15 29,15 28,15 27,15 26,15 25,15 24,15 23,15 22,15 21,15 20,15 19,15 18,15 17,15 16,15 15,15 15,16 15,17 14,17",
+  })
+  expect(
+    layout(
+      'state "Outer" as P0 {\nP0x --> P0y : a long label here\n}\nstate P1 {\n}\n[*] --> B\nnote left of P0y : two<br>lines',
+    ),
+  ).toMatchObject({ "[P0]": "38,0 31x12 c53,6" })
+  expect(
+    layout(
+      "direction TB\nB --> A : a long label here\nC --> B : a<br>b\nC --> C : x<br>yy<br>zzz\nnote right of A : a note\nnote right of A : n",
+    ),
+  ).toMatchObject({
+    A: "1,9 5x3 c3,10",
+    B: "1,2 5x3 c3,3",
+    C: "0,16 7x3 c3,17",
+    "{A-note-0}": "10,9 10x3 c15,10 6,10 6,10 8,10 9,10",
+    "{A-note-1}":
+      "10,19 5x3 c12,20 0,9 0,8 0,7 0,6 0,5 0,4 0,3 0,2 0,1 1,1 2,1 3,1 4,1 4,0 5,0 6,0 7,0 8,0 9,0 10,0 11,0 12,0 13,0 14,0 15,0 16,0 17,0 18,0 19,0 20,0 21,0 22,0 23,0 24,0 24,1 24,2 24,3 24,4 23,4 22,4 21,4 20,4 20,5 20,6 20,7 20,8 20,9 20,10 20,11 20,12 19,12 18,12 17,12 16,12 15,12 14,12 13,12 12,12 11,12 11,13 11,14 11,15 11,16 11,17 11,18 10,18 9,18 8,18 8,19 8,20 9,20",
+  })
+  expect(
+    layout(
+      "direction BT\nstate P0 {\nP0x --> [*]\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y\nP1y --> [*]\n}\nP1y --> P0x : a long label here\nA --> P1y\nP0 --> A\nnote right of P0x : a note",
+    ),
+  ).toMatchObject({ "[P0]": "0,3 25x9 c12,7", "{P0x-note-0}": "13,4 10x3 c18,5 9,6 9,5 11,5 12,5" })
+  expect(
+    layout(
+      'direction TB\nstate "A long composite title" as P0 {\nP0x --> P0y : retry\nstate P0n {\nP0nz --> P0nw\n}\n}\n[*] --> A\nP0nw --> P0nz : a<br>b\nA --> P0nw\nP0nw --> P0y : x<br>yy<br>zzz',
+    ),
+  ).toMatchObject({ A: "98,5 5x3 c100,6", __start: "100,0 1x1 c100,0" })
+  expect(
+    layout(
+      'direction TD\nstate P0 {\n[*] --> P0x\nP0y --> [*]\nstate P0n {\nP0nz --> P0nw\n}\n}\nstate "Outer" as P2 {\nP2x --> P2y\nstate P2n {\nP2nz --> P2nw\n}\n}\n[*] --> A\nP0n --> P2nz : go\nP2y --> P2 : a<br>b',
+      2,
+    ),
+  ).toMatchObject({
+    A: "26,74 5x3 c28,75",
+    "P0.__end": "8,21 1x1 c8,21",
+    "P0.__start": "8,2 1x1 c8,2",
+    P0nw: "4,33 8x3 c8,34",
+    P0nz: "4,26 8x3 c8,27",
+    P0x: "5,7 7x3 c8,8",
+    P0y: "5,14 7x3 c8,15",
+    P2nw: "24,62 8x3 c28,63",
+    P2nz: "24,55 8x3 c28,56",
+    P2x: "25,40 7x3 c28,41",
+    P2y: "25,47 7x3 c28,48",
+    "[P0]": "0,0 16x40 c8,20",
+    "[P0n]": "2,24 12x14 c8,31",
+    "[P2]": "20,38 16x31 c28,53",
+    "[P2n]": "22,53 12x14 c28,60",
+    __start: "40,69 1x1 c40,69",
+  })
+})

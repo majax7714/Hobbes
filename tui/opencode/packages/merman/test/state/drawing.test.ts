@@ -552,3 +552,45 @@ test("pinned as observed: the glyphs of frames, notes and junctions", () => {
     rows: 15,
   })
 })
+
+// Found the same way after the 2026-11-01 defect fixes, searching only the faults those fixes left untold: their new
+// code, and faults only inputs above told apart until the fixes changed what those inputs draw. Pinned as observed;
+// the harnesses keep no input that shows a known wrong drawing.
+test("pinned as observed: faults the defect fixes left untold: labels centred, the canvas and its shift", () => {
+  expect(drawn("C --> C : go\nC --> C : a long label here")).toMatchObject({
+    "route:0": "C>C self 4,2 4,4 7,4 7,3 @1,4",
+    "route:1": "C>C self 4,2 4,7 8,7 8,3 @10,6",
+    "row:0": " ╭───────╮",
+    "row:1": " │   C   │",
+    "row:2": " ╰──┬────╯",
+    "row:3": "    │  ▲▲",
+    "row:4": " go ├──╯│",
+    "row:5": "    │   │",
+    "row:6": "    │   │ a long label here",
+    "row:7": "    ╰───╯",
+    rows: 8,
+  })
+  expect(
+    drawn(
+      "state P0 {\n[*] --> P0x\nP0x --> [*]\nstate P0n {\nP0nz --> P0nw\n}\n}\nA --> P0n : x<br>yy<br>zzz\nP0n --> P0x : a long label here\nA --> P0nw\nB --> P0nz : a<br>b\nP0x --> P0nw",
+    ),
+  ).toMatchObject({
+    "row:3": "│ ┼────────────▶│ P0x ├┬─────────────│                                                           │",
+    rows: 29,
+  })
+  expect(
+    drawn('state P0 {\n[*] --> P0x\nstate "In" as P0x\n}\nP0x --> P0 : go', {
+      borderStyle: "single",
+      arrowHeadStyle: "line",
+      layoutMaxWidth: 40,
+    }),
+  ).toMatchObject({ "row:3": "│ │ In  │ │", rows: 9 })
+  expect(
+    drawn(
+      "state ch <<choice>>\n[*] --> B\nB --> D : go\nch --> ch : go\nA --> D\nnote left of ch : n\nnote left of ch : a note",
+    ),
+  ).toMatchObject({
+    "row:5": "                                ╭╯                                     ╔═════╗",
+    rows: 17,
+  })
+})

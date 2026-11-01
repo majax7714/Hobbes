@@ -390,3 +390,21 @@ test("pinned as observed: the whole layout: reroutes after a move, the canvas sh
   expect(parts("flowchart RL\nsubgraph G0\ndirection TB\nA[(Adb)]\nend\nsubgraph G1\nB[[Bs]]\nend", {"minRankGap": 1})).toEqual(expect.arrayContaining(["B 14,11 8x3 c18,12", "[G1 12,10 12x5 c18,12 top]", "28x19 RL"]))
   expect(parts("flowchart TD\nsubgraph G0\nB\nend\nA[[As]]\nA -.->|ll<br>l| B", {})).toEqual(expect.arrayContaining(["A 1,0 8x3 c5,1", "B 2,7 5x3 c4,8", "[G0 0,6 9x5 c4,8 bottom]", "A>B 4,3 4,6 @5,4", "13x15 TD"]))
 })
+
+// Found the same way after the 2026-11-01 defect fixes, with bench/subsume/harnesses/flowchart.ts, searching only the
+// faults those fixes left untold: their new code, and faults only inputs above told apart until the fixes changed
+// what those inputs lay out. Pinned as observed; the harness keeps no input with overlapping nodes or a node in the
+// wrong frame.
+test("pinned as observed: faults the defect fixes left untold: outside nodes moved off frames, across or along the flow", () => {
+  expect(parts("flowchart RL\nsubgraph G2\nA[[s]]\nF\nend\nsubgraph G1\nend\nD[(db)] ~~~|ll<br>l| E\nE -->|l| F", {"compact": true})).toEqual(expect.arrayContaining(["A 33,1 7x3 c36,2", "D 33,12 6x5 c36,14", "E 17,12 5x3 c19,13", "E>F 16,13 11,13 11,7 7,7 @12,10", "F 2,6 5x3 c4,7", "[G2 0,0 42x10 c21,5 top]", "46x21 RL"]))
+  expect(parts("flowchart BT\nsubgraph G1\nA{d}\nE\nend\nA --> B[x]", {"compact": true})).toEqual(expect.arrayContaining(["A 2,8 7x5 c5,10", "A>B 5,7 5,0 13,0 13,2", "B 11,3 5x3 c13,4", "E 21,9 5x3 c23,10", "[G1 0,7 28x7 c14,10 bottom]"]))
+  expect(parts("flowchart LR\nsubgraph G2\nend\nsubgraph G1\nD[x]\nsubgraph H1\nend\nend\nF --- B\nF ==>|ll<br>l| B", {"layoutMaxWidth": 26})).toEqual(expect.arrayContaining(["F>B 24,2 25,2 25,9 15,9 y", "F>B 24,2 27,2 27,9 15,9 @28,5 y", "36x15 TD"]))
+  expect(parts("subgraph G1\nD[(db)]\nB\nend\nD ~~~ D\nB ==> A{d}\nB --> C", {"layoutMaxWidth": 39, "minNodeGap": 5})).toEqual(expect.arrayContaining(["A 0,8 7x5 c3,10", "B>A 11,4 11,5 3,5 3,7", "B>C 11,4 11,5 21,5 21,8", "28x27 TD"]))
+  expect(parts("subgraph G1 [t]\nF[(db)]\nE\nend\nD[a<br>b] --- A\nF ==>|ll<br>l| F\nE ==>|l| B", {"compact": true})).toEqual(expect.arrayContaining(["A 27,11 5x3 c29,12", "B 33,11 5x3 c35,12", "D 27,4 5x4 c29,6", "D>A 29,8 29,10", "E 2,4 5x3 c4,5", "E>B 4,3 4,0 35,0 35,10 @18,0", "F 10,16 6x5 c13,18", "F>F 16,18 19,18 19,22 13,22 13,21 @20,19", "[G1 0,3 26x21 c13,13 bottom]"]))
+  expect(parts("subgraph G1\nB[a<br>b]\nA{d}\nend\nE[a<br>b] ~~~ D[[s]]\nD ==> F[x]\nD -.-> B\nF ~~~|lllllll| F", {})).toEqual(expect.arrayContaining(["D 12,10 7x3 c15,11", "D>B 15,13 15,14 4,14 4,16", "D>F 15,13 15,14 26,14 26,16"]))
+  expect(parts("subgraph G2\nC[(db)]\nend\nsubgraph G1\nF{d}\nsubgraph H1\nend\nend\nF -->|ll<br>l| F\nE[x] -.-> E", {})).toEqual(expect.arrayContaining(["F>F 21,12 32,12 32,28 17,28 17,15 @25,10", "[G1 12,9 23x21 c23,19 top]", "39x34 TD"]))
+  expect(parts("subgraph G2 [t]\nF\nsubgraph H2\nB\nend\nend\nsubgraph G1\nC\nend\nB --> B\nC -.-> F\nB ==>|ll<br>l| B", {})).toEqual(expect.arrayContaining(["B>B 13,18 13,25 4,25 4,16 10,16", "B>B 13,18 13,25 4,25 4,16 10,16 @7,23", "24x32 TD"]))
+  expect(parts("subgraph G1 [tt<br>t]\nC[(db)]\nend\nF[wwwwwwwwww] -.-> D[[s]]\nC ==> E\nE -->|l| C", {"compact": true})).toEqual(expect.arrayContaining(["D 9,5 7x3 c12,6", "F>D 12,3 12,4", "24x25 TD"]))
+  expect(parts("flowchart LR\nsubgraph G2\nend\nsubgraph G1 [tt<br>t]\nE[x]\nsubgraph H1\nD[(db)]\nend\nend\nA --- B\nD ---|ll<br>l| E", {"compact": true, "minNodeGap": 4})).toEqual(expect.arrayContaining(["A>B 9,13 16,13 16,12 20,12", "B 21,11 5x3 c23,12", "32x19 LR"]))
+})
+

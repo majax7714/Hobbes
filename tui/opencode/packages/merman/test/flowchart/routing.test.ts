@@ -255,3 +255,15 @@ test("pinned as observed: a label moved off whatever it would cover", () => {
 test("pinned as observed: routes stepped off a frame border", () => {
   expect(parts("flowchart LR\nsubgraph G0\nend\nsubgraph G1 [tttttttttttttttttt]\ndirection TB\nC[(Cdb)]\nend\nA ==> C\nB --> B", {})).toEqual(expect.arrayContaining(["B>B 13,6 16,6 15,6 15,9 16,9 10,9 10,8"]))
 })
+
+// Found the same way after the 2026-11-01 defect fixes, with bench/subsume/harnesses/flowchart.ts, searching only the
+// faults those fixes left untold: their new code, and faults only inputs above told apart until the fixes changed
+// what those inputs lay out. Pinned as observed; the harness keeps no input with overlapping nodes or a node in the
+// wrong frame.
+test("pinned as observed: faults the defect fixes left untold: parallel lanes and the routes round them", () => {
+  expect(parts("subgraph G2 [tt<br>t]\nend\nsubgraph G1\ndirection RL\nD\nF[a<br>b]\nend\nA[x] ==>|a long label here| D\nE --- E\nC --> C", {"compact": true})).toEqual(expect.arrayContaining(["A>D 34,6 39,6 39,17 14,17 13,17 @36,7"]))
+  expect(parts("flowchart LR\nF[x] ---|lllllll| E\nF ==> F", {})).toEqual(expect.arrayContaining(["F>E 5,1 20,1 @8,1"]))
+  expect(parts("flowchart RL\nsubgraph G2 [t]\nD[x]\nend\nsubgraph G1 [tttttttttttt]\nend\nE ---|l| B\nA{d} ==>|lllllll| D", {})).toEqual(expect.arrayContaining(["A 26,8 7x5 c29,10", "A>D 29,13 0,13 0,2 3,2 4,2 @10,13", "B 5,9 5x3 c7,10", "D 5,1 5x3 c7,2", "E 27,0 5x3 c29,1", "E>B 26,1 14,1 14,10 10,10 @19,1", "[G2 3,0 9x5 c7,2 top]"]))
+  expect(parts("subgraph G2 [tttttttttttt]\nF{d}\nend\nsubgraph G1 [t]\nB[[s]]\nD[[s]]\nend\nF ---|ll<br>l| B\nA -.->|ll<br>l| B\nF -.-> A\nD -.-> C[x]\nC ==> F", {})).toEqual(expect.arrayContaining(["F>B 10,16 3,16 3,54 9,54 10,54 @7,16"]))
+})
+
