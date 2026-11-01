@@ -1,7 +1,7 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-31 (fiftieth session); `main` at 0.3.9-beta (`697ac26`, PRs #8–#17 merged); branch
-`test/merman-state-family` pushed, its PR open (state, in progress); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+**Reviewed 2026-11-01 (fiftieth session); `main` at 0.3.9-beta (`eb3b8d6`, PRs #8–#18 merged); branch
+`test/merman-timeline`, its PR open (timeline, `merman`'s last family); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -40,13 +40,11 @@ session went belongs in the BUILDLOG.
   the readable statement of the rule). PRs #13 and #14 flagged cases kept the same way, or kept because they
   guard a fault `subsume` cannot plant (checked by planting it by hand); neither was overruled.
 
-**Next: `merman`'s last two diagram families, then the rest of the fork's tests.** Done: `core` (PR #9),
-the top level (PR #10), flowchart (PR #13, 97 cases), gantt and gitGraph (PR #14, 71 cases), sequence
-(PR #15, 62 cases; one more in PR #16). **State** is on `test/merman-state-family` (the older
-`test/merman-state` is superseded; delete it), its PR open: 70 cases across eleven files, derived and pinned as
-observed for layout, routing and drawing; every survivor of `subsume`'s last pass is one the search read as
-likely equivalent, or one that fails to run. Left, once state merges:
-- **timeline** (`src/timeline/`: `parser` 119, `drawing` 109, `style`), on its own branch and PR.
+**Next: the rest of the fork's tests, `core/shell` first.** `merman` is done once timeline merges: `core`
+(PR #9), the top level (PR #10), flowchart (PR #13, 97 cases), gantt and gitGraph (PR #14, 71), sequence
+(PR #15, 62; one more in PR #16), state (PR #18, 70; the older `test/merman-state` branch is superseded,
+delete it), and **timeline** on `test/merman-timeline`, its PR open: 20 cases across three files, every
+survivor of `subsume`'s last pass read as never told apart, or failing to run; merman 398 pass.
 
 How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests under
 `packages/merman/test/<family>/`, one file per module, `prettier --write` on new files):
@@ -81,8 +79,8 @@ ADR first. The extraction routes stand as they were: C is the next-thinnest lang
 
 ## Where the last day left things (2026-10-31; the CHANGELOG and BUILDLOG have each one)
 
-Fiftieth session: `merman`'s sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
-cap (PR #16), the state side rail's endless loop fixed (PR #17); state in progress, three drawing defects found.
+Fiftieth session: `merman`'s timeline (PR open) and state (PR #18), sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
+cap (PR #16), the state side rail's endless loop fixed (PR #17); three state drawing defects found and pinned.
 
 Forty-ninth session: 0.3.7-beta to 0.3.9-beta (the gate's `attr-call` reason, H-38, ADR-187; the accept list,
 ADR-185 amended; a computed TS/JS title, ADR-188, C-199); `merman`'s top level, flowchart, gantt and gitGraph.

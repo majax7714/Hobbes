@@ -17250,3 +17250,27 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
 - A fix planted by hand at `layout.ts:764` (a 1-cell state one row lower) fails the marker pin and 24 of the 132
   pinned-as-observed inputs: they place a marker on the fallback row without a route through a box, a kind
   `state-defects.ts` does not name. The files and `currently-open.md` say so, so a fixer knows those move too.
+
+## 2026-11-01 (fiftieth session, cont.) — merman's timeline, the last diagram family
+
+- PR #18 (state) merged. `test/merman-timeline`: 20 cases in `packages/merman/test/timeline/` (parser 8,
+  drawing 7, style and render-grid 5), each expected value derived by hand from the source first; all
+  matched on their first run.
+- `subsume` first pass (`-j 2`, each module against its own file): parser 100 of 115, drawing 107 of 119, style
+  and render-grid 27 of 35. Closed: unanchored `title`, `section`, `acc…` and `accDescr {` regexes, the default
+  direction, a continuation with no space after its colon, the widest event and title line (not the last), a
+  title of no width or of one cell, the spine's style below a section, a section after a section, a label of
+  only line breaks, and the fade names. Two derived cases were redundant: the direction case, folded into the
+  first period case; the wide-character case, which now also holds the zero-width label.
+- Final pass: parser 108 of 115, drawing 109 of 119 (and 5 more that every case fails), style 35 of 35,
+  nothing redundant. The 12 left, read:
+  parser 6 never told apart (a type annotation; a loop bound past the end; a `start` skipping whitespace that is
+  trimmed anyway; a comment at column 0 that never reaches the cut) and 1 that cannot run (dropping
+  `.toUpperCase()` from `header[1]?.toUpperCase()` leaves a syntax error, checked by building it); drawing 5
+  never told apart (a return before an empty loop; spine cells that `●`, `┐` or `┤` overwrite or that fall past
+  the grid). No pinned-input search: these are not placement modules, and every survivor is read.
+- `subsume` never plants a decimal, so the blend amounts are held by the fades case alone: 0.67 -> 0.6 planted
+  by hand fails it alone, noted above it. `.length` for terminal width, planted by hand in the section label and
+  the events' width, fails only the wide-character case. No fork defect found.
+- merman: 398 pass, 0 fail (42 files); `tsc --noEmit` exit 0; prettier clean. `build-and-test.md`'s merman row
+  was 77 (2026-10-29), now 398.
