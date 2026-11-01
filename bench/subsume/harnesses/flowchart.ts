@@ -3,6 +3,7 @@
 // an error where the layout shows a known wrong kind: nodes overlapping, a node outside its own frame, or one inside
 // a frame it is not in. An input's `%%opts` line (a comment to the parser) carries the layout options. It loads the
 // package from `cli.ts`'s root (the planted copy).
+import { type Box, inside, overlap } from "./boxes"
 import { packageRoot, runHarness } from "./cli"
 
 const { layoutFlowchartDiagram } = await import(`${packageRoot}/src/flowchart/layout.ts`)
@@ -52,11 +53,6 @@ export function generate(rand: () => number): string {
   return lines.join("\n")
 }
 
-type Box = { id: string; left: number; top: number; width: number; height: number }
-const overlap = (a: Box, b: Box) =>
-  a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height
-const inside = (a: Box, o: Box) =>
-  a.left >= o.left && a.top >= o.top && a.left + a.width <= o.left + o.width && a.top + a.height <= o.top + o.height
 
 /** The known wrong kinds a flowchart layout shows, sorted. */
 export function flowchartDefects(layout: {

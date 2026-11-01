@@ -1111,6 +1111,11 @@ function routeCrossesOwnEnd(plan: StateTransitionRenderPlan, diagram: StateVisib
   )
 }
 
+// A marker or a choice is one cell, with no border for a tee to sit on.
+function hasBorderCells(bounds: BoxBounds): boolean {
+  return bounds.width > 1 && bounds.height > 1
+}
+
 function pointIsInsideBounds(point: StateTransitionPathPoint, bounds: BoxBounds): boolean {
   return (
     point[0] >= bounds.left &&
@@ -1120,7 +1125,7 @@ function pointIsInsideBounds(point: StateTransitionPathPoint, bounds: BoxBounds)
   )
 }
 
-function routeIntersectsUnrelatedState(
+function routeNeedsRepair(
   plan: StateTransitionRenderPlan,
   diagram: StateVisibleDiagram,
   bounds: ReadonlyMap<string, BoxBounds>,
@@ -1228,7 +1233,7 @@ function bodySafeTransitionPlan(
   budget: StateSearchBudget,
   forceRepair = false,
 ): StateTransitionRenderPlan {
-  if (!forceRepair && !routeIntersectsUnrelatedState(plan, diagram, bounds, noteBounds)) return plan
+  if (!forceRepair && !routeNeedsRepair(plan, diagram, bounds, noteBounds)) return plan
   const open = routeOpenSpan(plan)
   if (!open) return plan
   const [sourceOutsideIndex, targetOutsideIndex] = open
@@ -1263,16 +1268,21 @@ function alternateBodySafeTransitionPlan(
   for (const source of stateRoutePorts(plan.route.from)) {
     for (const target of stateRoutePorts(plan.route.to)) {
       // A self loop's port paired with itself has no path to draw: taken, the shortest, the loop was lost.
-      if (source.outside[0] === target.outside[0] && source.outside[1] === target.outside[1]) continue
+      if (
+        plan.route.transition.from === plan.route.transition.to &&
+        source.outside[0] === target.outside[0] &&
+        source.outside[1] === target.outside[1]
+      )
+        continue
       const safePath = findBodySafePath(source.outside, target.outside, diagram, bounds, plan, search, budget)
       if (!safePath) continue
-      const prefix = plan.route.from.width > 1 && plan.route.from.height > 1 ? [source.border] : []
+      const prefix = hasBorderCells(plan.route.from) ? [source.border] : []
       const suffix =
         plan.route.targetIsChoice || plan.route.targetIsHiddenMarker
           ? ([[plan.route.to.left, plan.route.to.top]] as const)
           : []
       const repaired = renderBodySafeTransitionPlan(plan, safePath, prefix, suffix, source.char)
-      if (!routeIntersectsUnrelatedState(repaired, diagram, bounds, noteBounds)) candidates.push(repaired)
+      if (!routeNeedsRepair(repaired, diagram, bounds, noteBounds)) candidates.push(repaired)
     }
   }
   return candidates.sort((left, right) => left.path.length - right.path.length)[0] ?? plan
@@ -1335,7 +1345,7 @@ function renderBodySafeTransitionPlan(
     const before =
       index > 0
         ? safePath[index - 1]
-        : (previous ?? (source.width <= 1 && source.height <= 1 ? ([source.left, source.top] as const) : undefined))
+        : (previous ?? (hasBorderCells(source) ? undefined : ([source.left, source.top] as const)))
     const after = safePath[index + 1]!
     const connections = new Set<DiagramDirection>()
     if (before) connections.add(connectionDirection(point, before))
@@ -1567,7 +1577,6 @@ export function createStateTransitionRenderPlans(
     return placeStateTransitionLabels(placeSelfLoopHeads(plans), diagram, bounds, noteBounds)
   }
   const baseObstacles = transitionObstacles(diagram, bounds, noteBounds)
-  const bodySpace = createStateSearchSpace(baseObstacles)
   const repaired: StateTransitionRenderPlan[] = []
   for (const [index, plan] of plans.entries()) {
     const disjoint = repaired.filter((previous) => transitionsHaveDisjointEndpoints(previous, plan))
@@ -1595,10 +1604,11 @@ export function createStateTransitionRenderPlans(
       budget,
       disjoint.some((previous) => pathsIntersect(previous.path, plan.path)),
     )
-    // Routes drawn before can wall an end in; crossing one of them is better than running through a box.
+    // Routes drawn before can wall an end in; crossing one of them, or running along it, is better than running through
+    // a box.
     repaired.push(
-      routeIntersectsUnrelatedState(safe, diagram, bounds, noteBounds)
-        ? bodySafeTransitionPlan(plan, diagram, bounds, noteBounds, bodySpace, budget)
+      routeNeedsRepair(safe, diagram, bounds, noteBounds)
+        ? bodySafeTransitionPlan(plan, diagram, bounds, noteBounds, createStateSearchSpace(baseObstacles), budget)
         : safe,
     )
   }

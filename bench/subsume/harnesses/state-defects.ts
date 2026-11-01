@@ -2,20 +2,16 @@
 // shows one as a case "pinned as observed": laid out and drawn, no two composites may cross (overlap with neither
 // inside the other), no state or composite may sit outside its own composite, and no route may pass through a
 // state's box (a route's first point, its departure on its own source, aside). Returns the kinds found.
+import { type Box, inside, overlap } from "./boxes"
 import { packageRoot } from "./cli"
 
 const { createStateDiagramDrawing } = await import(`${packageRoot}/src/state/drawing.ts`)
 const { createStateDiagramLayout } = await import(`${packageRoot}/src/state/layout.ts`)
 const { prepareVisibleStateDiagram } = await import(`${packageRoot}/src/state/visible-model.ts`)
 
-type Box = { id: string; left: number; top: number; width: number; height: number }
 type Layout = { bounds: Map<string, Box>; compositeBounds: Map<string, Box> }
 type Diagram = { states: { id: string; parentId?: string }[]; composites: { id: string; parentId?: string }[] }
 
-const overlap = (a: Box, b: Box) =>
-  a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height
-const inside = (a: Box, o: Box) =>
-  a.left >= o.left && a.top >= o.top && a.left + a.width <= o.left + o.width && a.top + a.height <= o.top + o.height
 
 export function boxDefects(diagram: Diagram, layout: Layout): string[] {
   const found: string[] = []
