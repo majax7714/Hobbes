@@ -929,8 +929,32 @@ function separateTopLevelItems(
     return moved
   }
 
+  // A node outside every frame never lies over a frame or another item: it moves across the flow, past each one it
+  // overlaps, as far as needed. With a target width, top-down, the pass below moves it down or up instead.
+  const separateOutsideNodes = (): boolean => {
+    if (targetWidth !== undefined && !horizontal) return false
+    let shifted = false
+    const overlaps = (left: FlowchartBounds, right: FlowchartBounds) =>
+      left.left < right.left + right.width &&
+      right.left < left.left + left.width &&
+      left.top < right.top + right.height &&
+      right.top < left.top + left.height
+    for (const item of items) {
+      if (topLevelIds.has(item.id)) continue
+      for (let attempt = 0; attempt < items.length; attempt++) {
+        const other = items.find((candidate) => candidate !== item && overlaps(item.bounds, candidate.bounds))
+        if (!other) break
+        const shift = horizontal
+          ? other.bounds.top + other.bounds.height + gap - item.bounds.top
+          : other.bounds.left + other.bounds.width + gap - item.bounds.left
+        shifted = true
+        moveItem(item, horizontal ? 0 : shift, horizontal ? shift : 0)
+      }
+    }
+    return shifted
+  }
   const rankedItems = items.filter((item) => topLevelIds.has(item.id))
-  if (rankedItems.length < 2) return false
+  if (rankedItems.length < 2) return separateOutsideNodes()
 
   const itemById = new Map(rankedItems.map((item) => [item.id, item]))
   const outgoing = new Map(rankedItems.map((item) => [item.id, new Set<string>()]))
@@ -998,6 +1022,7 @@ function separateTopLevelItems(
       crossCursor = start + shift + size + gap
     }
   }
+  moved = separateOutsideNodes() || moved
   if (targetWidth !== undefined && !horizontal) {
     const intersects = (left: (typeof items)[number], right: (typeof items)[number]): boolean =>
       [...left.nodeIds].some((leftId) => {
