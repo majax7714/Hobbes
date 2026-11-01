@@ -4,8 +4,9 @@ import { renderStateGridText } from "../../src/state/render-grid"
 
 /**
  * The smallest diagram found whose side rail starts and ends on one row (P0x to P1x, across two composites):
- * drawn top to bottom, the rail loop never ended and took all memory (22 GB on the host that found it). Run as
- * a child process by `side-rail.test.ts`, so a return of that loop fails on a time limit instead of hanging.
+ * drawn top to bottom, the rail loop never ended and took all memory (22 GB on the host that found it). Ends on one
+ * row now go straight across, so no rail is drawn here. Run as a child process by `side-rail.test.ts`, so a return
+ * of that loop fails on a time limit instead of hanging.
  */
 export const SIDE_RAIL_SOURCE = [
   "stateDiagram-v2",

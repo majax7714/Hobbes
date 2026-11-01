@@ -484,18 +484,8 @@ export function createStateTransitionRoutePlans(
       return [sideParallel()]
     }
     if (diagram.direction !== "LR" && diagram.direction !== "RL") {
-      const fromParent = statesById.get(transition.from)?.parentId
-      const toParent = statesById.get(transition.to)?.parentId
-      if (fromParent && toParent && fromParent !== toParent) {
-        return [sideParallel()]
-      }
-      if (verticalCorridorCrossesUnrelatedState(diagram, transition, from, to, bounds)) {
-        return [sideParallel()]
-      }
-      const verticalFeedback = diagram.direction === "BT" ? from.centerY < to.centerY : from.centerY > to.centerY
-      if (verticalFeedback) {
-        return [sideParallel()]
-      }
+      // Ends on one row go straight across (or under, for the reverse of a pair): a side rail would leave and come
+      // back along that row, through whatever box is on it, the target's own included.
       if (from.centerY === to.centerY) {
         if (hasReverseTransition(diagram, transition) && from.centerX > to.centerX) {
           const railY = allocateBottomRail()
@@ -509,6 +499,18 @@ export function createStateTransitionRoutePlans(
           ]
         }
         return [{ ...base, kind: "horizontal-forward", leftToRight: from.centerX <= to.centerX }]
+      }
+      const fromParent = statesById.get(transition.from)?.parentId
+      const toParent = statesById.get(transition.to)?.parentId
+      if (fromParent && toParent && fromParent !== toParent) {
+        return [sideParallel()]
+      }
+      if (verticalCorridorCrossesUnrelatedState(diagram, transition, from, to, bounds)) {
+        return [sideParallel()]
+      }
+      const verticalFeedback = diagram.direction === "BT" ? from.centerY < to.centerY : from.centerY > to.centerY
+      if (verticalFeedback) {
+        return [sideParallel()]
       }
       if (!hasVerticalCorridor(from, to)) {
         return [sideParallel()]

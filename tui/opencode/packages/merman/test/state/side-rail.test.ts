@@ -6,23 +6,25 @@ import { drawSideRailCase } from "./side-rail-case"
 const drawInChild = (mode: "TB" | "width") =>
   Bun.spawnSync([process.execPath, `${import.meta.dir}/side-rail-case.ts`, mode], { timeout: 1000 })
 
-test("a fork fix: a side rail that starts and ends on one row is drawn and ends, top to bottom or by the width fallback", () => {
+test("a fork fix: the diagram whose side rail once looped forever is drawn and ends, top to bottom or by the width fallback", () => {
+  // Its rail started and ended on one row; ends on one row now go straight across, so no rail is drawn, and the
+  // rail loop keeps its bound for any other caller.
   for (const mode of ["TB", "width"] as const) {
     const child = drawInChild(mode)
     expect([child.exitedDueToTimeout, child.exitCode]).toEqual([false, 0])
     expect(child.stdout.toString().trimEnd().split("\n").slice(0, 4)).toEqual([
       "__start>B vertical 4",
       "B>P0x vertical-elbow 7",
-      "P0x>P1x side-parallel 65",
+      "P0x>P1x horizontal-forward 14",
       "B>P1x vertical-elbow 27",
     ])
   }
   expect(typeof drawSideRailCase).toBe("function")
 })
 
-test("a fork defect, pinned: that rail doubles back along its own row, over the target, into its far side", () => {
-  // P0x's rail runs right past P1x to the rail column and back left along the same row, over P1x, its head
-  // against P1x's far wall (currently-open.md). A fix changes this.
+test("top to bottom, a transition between composites whose ends share a row goes straight across into the target's near side", () => {
+  // Once a fork defect: a side rail ran right past P1x to the rail column and back along the same row, over P1x
+  // (its label lost), its head against P1x's far wall.
   const child = drawInChild("TB")
   expect(child.stdout.toString().trimEnd().split("\n").slice(4)).toEqual([
     "    ●",
@@ -38,8 +40,8 @@ test("a fork defect, pinned: that rail doubles back along its own row, over the 
     "   b╰┬───────────────────╮",
     "╭─ P0 ────╮         ╭─ A long composite title ╮",
     "│    ▼    │         │    ▼                    │",
-    "│ ╭─────╮ │         │ ╭─────╮                 │",
-    "│ │ P0x ├────────────────────◀────────────────────┤ retry",
+    "│ ╭─────╮ │ retry   │ ╭─────╮                 │",
+    "│ │ P0x ├────────────▶│ P1x │                 │",
     "│ ╰─────╯ │         │ ╰─────╯                 │",
     "│         │         │                         │",
     "╰─────────╯         ╰─────────────────────────╯",
