@@ -131,17 +131,17 @@ test("a subgraph is a frame in the group style with its title set into the side 
   ])
 })
 
-test("a fork defect, pinned: the first of two parallel edges ends beside its target with its head pointing past it", () => {
-  // Both lanes end on the target's right side; the first, a straight run down, draws ▼ there (currently-open.md).
+test("two parallel edges top-down both run down lanes right of the nodes and come into the target's side", () => {
+  // Once a fork defect: the first lane ran straight down the nodes' sides and drew ▼ beside the target.
   expect(picture("flowchart\nA --> B\nA --> B").slice(1, 9)).toEqual([
-    "│ A ├┬─╮  Nnnn3eee",
-    "╰───╯│ │  NNNNNe.e",
-    "     │ │  .....e.e",
-    "     │ │  .....e.e",
-    "     │ │  .....e.e",
-    "     │ │  .....e.e",
-    "╭───╮│ │  NNNNNe.e",
-    "│ B │▼─╯  NnnnNeee",
+    "│ A ├─┬─╮  Nnnn3eeee",
+    "╰───╯ │ │  NNNNN.e.e",
+    "      │ │  ......e.e",
+    "      │ │  ......e.e",
+    "      │ │  ......e.e",
+    "      │ │  ......e.e",
+    "╭───╮ │ │  NNNNN.e.e",
+    "│ B │◀┴─╯  NnnnNeeee",
   ])
 })
 

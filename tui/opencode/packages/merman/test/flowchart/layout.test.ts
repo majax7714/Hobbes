@@ -315,7 +315,7 @@ test("a fork defect, pinned: a self loop widening one frame lets an outside node
 // 2026-10-30): they stay as the readable statement of each rule.
 test("pinned as observed: label gaps across ranks, self loops and back edges", () => {
   expect(parts("flowchart LR\nB -.->|ll<br>l| B\nB -.->|llllllll| A", {})).toEqual(expect.arrayContaining(["B 0,0 5x3 c2,1", "A 22,0 5x3 c24,1", "B>B 5,1 8,1 8,4 2,4 2,3 @9,2", "B>A 5,1 21,1 @8,1", "31x9 LR"]))
-  expect(parts("flowchart LR\nsubgraph G0 [tt<br>t]\nend\nsubgraph G1\nend\nC ==>|llllllll| A\nC -->|lllllll| A", {})).toEqual(expect.arrayContaining(["A 22,0 5x3 c24,1", "C>A 2,3 24,3 @8,3 x", "C>A 2,3 2,4 24,4 24,3 @9,4 x", "31x9 LR"]))
+  expect(parts("flowchart LR\nsubgraph G0 [tt<br>t]\nend\nsubgraph G1\nend\nC ==>|llllllll| A\nC -->|lllllll| A", {})).toEqual(expect.arrayContaining(["A 22,0 5x3 c24,1", "C>A 2,3 2,4 24,4 24,3 @8,4 x", "C>A 2,3 2,5 24,5 24,3 @9,5 x", "31x10 LR"]))
   expect(parts("flowchart TD\nB -->|llllllll| B\nA ==>|lll| B", {"compact": true})).toEqual(expect.arrayContaining(["B 0,6 5x3 c2,7", "B>B 5,7 8,7 8,10 2,10 2,9 @9,8", "A>B 2,3 2,5 @3,4", "23x15 TD"]))
 })
 
