@@ -169,6 +169,9 @@ export function parseMermaidSequenceDiagram(content: string): SequenceDiagram {
         .split(",")
         .map((participant) => stripQuotes(participant))
         .filter((participant) => participant.length > 0)
+      if (over.length === 0) {
+        throw new MermaidSyntaxError("sequence", source.lineNumber, line, "Note requires a participant")
+      }
       for (const participant of over) ensureParticipant(participants, participant)
       steps.push({
         type: "note",
