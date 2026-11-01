@@ -88,7 +88,8 @@ function expandMacros(
   if (!macros || Object.keys(macros).length === 0) return source
 
   let result = source
-  for (let pass = 0; pass < maxExpand; pass++) {
+  // A pass that finds nothing new only confirms the result, so it is not one of the maxExpand passes.
+  for (let pass = 0; ; pass++) {
     let changed = false
     let cursor = 0
     let outputLength = 0
@@ -103,6 +104,7 @@ function expandMacros(
       if (typeof replacement !== "string") {
         throw new TypeError(`Macro ${command} must expand to a string`)
       }
+      if (pass === maxExpand) throw new LatexParseError(`Macro expansion exceeded ${maxExpand} passes`, 0)
 
       appendWithinLimit(output, result.slice(cursor, index), outputLength, maxExpandedLength)
       outputLength += index - cursor
@@ -116,8 +118,6 @@ function expandMacros(
     appendWithinLimit(output, result.slice(cursor), outputLength, maxExpandedLength)
     result = output.join("")
   }
-
-  throw new LatexParseError(`Macro expansion exceeded ${maxExpand} passes`, 0)
 }
 
 function appendWithinLimit(output: string[], value: string, currentLength: number, maximum: number): void {
@@ -172,12 +172,10 @@ class Parser {
     return body
   }
 
+  // An atom's depth is the number of atoms around it, so `{{x}}` is two deep, as the brace check counts it.
   private parseAtom(): MathNode {
+    if (this.depth > this.maxDepth) this.fail(`LaTeX nesting exceeds the ${this.maxDepth}-level limit`)
     this.depth++
-    if (this.depth > this.maxDepth) {
-      this.depth--
-      this.fail(`LaTeX nesting exceeds the ${this.maxDepth}-level limit`)
-    }
     try {
       return this.parseAtomInner()
     } finally {
@@ -329,7 +327,6 @@ class Parser {
     if (command === "backslash") return { type: "symbol", value: "\\" }
     const delimiter = delimiterTable[`\\${command}`] ?? delimiterTable[command]
     if (delimiter !== undefined) return { type: "symbol", value: delimiter }
-    if (command === "{" || command === "}") return { type: "symbol", value: command }
     if (command === "%" || command === "#" || command === "$" || command === "&" || command === "_") {
       return { type: "symbol", value: command }
     }

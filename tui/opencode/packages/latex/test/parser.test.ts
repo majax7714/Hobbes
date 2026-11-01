@@ -356,10 +356,11 @@ test("a macro that is not a string is a TypeError", () => {
   )
 })
 
-test("expansion stops after maxExpand passes, counting the pass that finds nothing new", () => {
-  expect(expandLatexMacros("\\a", { macros: { a: "\\b", b: "c" }, maxExpand: 3 })).toBe("c")
-  expect(() => expandLatexMacros("\\a", { macros: { a: "\\b", b: "c" }, maxExpand: 2 })).toThrow(
-    "Macro expansion exceeded 2 passes at offset 0",
+test("expansion stops after maxExpand passes that change the source; the pass that finds nothing new is not one", () => {
+  expect(expandLatexMacros("\\a", { macros: { a: "\\b", b: "c" }, maxExpand: 2 })).toBe("c")
+  expect(expandLatexMacros("\\a", { macros: { a: "c" }, maxExpand: 1 })).toBe("c")
+  expect(() => expandLatexMacros("\\a", { macros: { a: "\\b", b: "c" }, maxExpand: 1 })).toThrow(
+    "Macro expansion exceeded 1 passes at offset 0",
   )
   expect(() => expandLatexMacros("\\a", { macros: { a: "\\a" } })).toThrow("Macro expansion exceeded 100 passes")
 })
@@ -386,11 +387,15 @@ test("the expanded source is checked for brace depth again", () => {
   )
 })
 
-test("maxDepth bounds nested atoms as well as braces, and siblings do not add up", () => {
-  expect(parseLatex("\\sqrt\\sqrt x", { maxDepth: 3 })).toEqual({ type: "root", body: { type: "root", body: ord("x") } })
-  expect(failure("\\sqrt\\sqrt x", { maxDepth: 2 }).message).toBe("LaTeX nesting exceeds the 2-level limit at offset 11")
-  expect(parseLatex("\\sqrt x\\sqrt y\\sqrt z", { maxDepth: 2 })).toMatchObject({ type: "row" })
-  expect(parseLatex("\\frac{a}{b}", { maxDepth: 2 })).toMatchObject({ type: "fraction" })
+test("maxDepth bounds the atoms around an atom, braces or not, as the brace check counts them; siblings do not add up", () => {
+  expect(parseLatex("\\sqrt\\sqrt x", { maxDepth: 2 })).toEqual({ type: "root", body: { type: "root", body: ord("x") } })
+  expect(failure("\\sqrt\\sqrt x", { maxDepth: 1 }).message).toBe("LaTeX nesting exceeds the 1-level limit at offset 11")
+  expect(parseLatex("\\sqrt x\\sqrt y\\sqrt z", { maxDepth: 1 })).toMatchObject({ type: "row" })
+  // A fraction reads its own arguments, so their braces are not atoms around a or b.
+  expect(parseLatex("\\frac{a}{b}", { maxDepth: 1 })).toMatchObject({ type: "fraction" })
+  // Two braces are two levels to both checks: the parser takes what the brace check lets through.
+  expect(parseLatex("{{x}}", { maxDepth: 2 })).toEqual(ord("x"))
+  expect(failure("{{x}}", { maxDepth: 1 }).message).toBe("LaTeX nesting exceeds the 1-level limit at offset 1")
 })
 
 test("every limit option must be a positive safe integer, and is refused by name before parsing", () => {
