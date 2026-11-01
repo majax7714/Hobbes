@@ -1,10 +1,9 @@
 import { expect, test } from "bun:test"
-import { createStateDiagramDrawing, drawStateDiagramGrid } from "../../src/state/drawing"
+import { drawStateDiagramGrid } from "../../src/state/drawing"
 import { parseMermaidStateDiagram } from "../../src/state/parser"
 import { renderStateGridText, type StateGrid } from "../../src/state/render-grid"
 import type { StateDiagramRenderOptions } from "../../src/state/types"
 import { drawn } from "./drawing-summary"
-import { summary } from "./layout-summary"
 
 const draw = (body: string, options?: StateDiagramRenderOptions) =>
   drawStateDiagramGrid(parseMermaidStateDiagram(`stateDiagram-v2\n${body}`), options)
@@ -77,30 +76,28 @@ test("a note is a double frame beside its target, joined by a double line into a
   ])
 })
 
-test("a fork defect, pinned: a self loop's head is not kept under its box", () => {
-  // On a box 5 wide (a one-letter state) the head comes up one column past the right edge; on one 6 wide, under
-  // the corner; each further loop goes 4 wider, so on a box 10 wide the second's head is two columns past it
-  // (currently-open.md). A fix changes these.
-  expect(lines(draw("A --> A"))).toEqual(["╭───╮", "│ A │", "╰─┬─╯", "  │  ▲", "  ╰──╯"])
-  expect(lines(draw('state "AB" as A\nA --> A'))).toEqual(["╭────╮", "│ AB │", "╰─┬──╯", "  │  ▲", "  ╰──╯"])
+test("a self loop's head comes up under its own box, the box widened for it and its label centred", () => {
+  // Once a fork defect: on a box 5 wide the head came up past the right edge, and each further loop went 4 wider.
+  // A one-letter state with a loop is 7 wide, so the head two thirds in (5) is under it.
+  expect(lines(draw("A --> A"))).toEqual(["╭─────╮", "│  A  │", "╰─┬───╯", "  │  ▲", "  ╰──╯"])
+  // The label block is centred, an odd column left over on the right: (7 - 4 - 2) / 2 rounds down to 0.
+  expect(lines(draw('state "AB" as A\nA --> A'))[1]).toBe("│ AB  │")
+  // Two loops on a box 10 wide: the second head stops short of the corner, outside the first, the loops nested.
   expect(lines(draw('state "Longer" as A\nA --> A\nA --> A'))).toEqual([
     "╭────────╮",
     "│ Longer │",
     "╰──┬─────╯",
-    "   │   ▲   ▲",
-    "   ├───╯   │",
-    "   │       │",
-    "   │       │",
-    "   ╰───────╯",
+    "   │   ▲▲",
+    "   ├───╯│",
+    "   │    │",
+    "   │    │",
+    "   ╰────╯",
   ])
 })
 
-test("a fork defect, pinned: left to right, a marker or choice off the main path sits on its target's top row", () => {
-  // The fallback row places every state off the main path at the same top, a 1-cell one too (`layout.ts:764`), so
-  // `ch` is not level with B's centre and its route runs along B's top border, over it, into its far side
-  // (currently-open.md). A fix changes this, and 24 of the state files' pinned-as-observed inputs (a fix planted by
-  // hand there fails this case and those). `subsume` reads this case and the next as redundant against drawing.ts's
-  // faults: they pin layout.ts's defects, and stay as their readable statement (Max, 2026-10-30).
+test("left to right, a marker or choice off the main path sits on the row's centre, so its route runs straight in", () => {
+  // Once a fork defect: the fallback row gave a 1-cell state a box's top, so ch sat on B's top row and its route ran
+  // along B's top border. The baseline is row 1; a box off the path has its top 5 below (6), a marker its centre (7).
   expect(lines(draw("state ch <<choice>>\n[*] --> A\nch --> B"))).toEqual([
     "              ╭───╮",
     "●────────────▶│ A │",
@@ -108,32 +105,25 @@ test("a fork defect, pinned: left to right, a marker or choice off the main path
     "",
     "",
     "",
-    "                            ◆─────────────────────────────────╮",
-    "                                                      │ B │◀──╯",
+    "                                                      ╭───╮",
+    "                            ◆────────────────────────▶│ B │",
     "                                                      ╰───╯",
   ])
 })
 
-test("a fork defect, pinned: two composites off each other's path are drawn crossing, a state outside its own", () => {
-  // P1 is placed by the fallback row (currently-open.md): its frame starts inside P0's, and P1y runs out past P1's
-  // right side. A fix changes this.
-  const { layout } = createStateDiagramDrawing(
-    parseMermaidStateDiagram(
-      "stateDiagram-v2\nstate P0 {\n[*] --> P0x\nP0x --> P0y : x<br>yy<br>zzz\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y\n}",
+test("a fork defect, pinned: a side rail whose ends are a row apart runs along its target's bottom border", () => {
+  // P0 --> B leaves P0's right side on row 8, B's bottom row, and runs along B's border to the rail before turning
+  // up and back into B's side (currently-open.md; 9 of 3,000 random diagrams). A fix changes this.
+  const rows = lines(
+    draw(
+      'state P0 {\nstate "Inside" as P0x\n}\n[*] --> A\nP0 --> B : retry\nB --> P0x\nP0x --> P0x : a long label here',
     ),
   )
-  expect(summary(layout)).toMatchObject({
-    "[P0]": "0,0 45x11 c22,5",
-    "[P1]": "42,6 69x7 c76,9",
-    P1y: "107,8 7x3 c110,9",
-  })
-})
-
-test("a fork defect, pinned: a valid diagram with two composites is refused, the separation not converging", () => {
-  // Each of these seven lines is needed for the refusal (currently-open.md). A fix draws it.
-  expect(() => draw("state P0 {\nP0x --> [*]\n}\nstate P1 {\n[*] --> P1x\nP1y --> [*]\n}")).toThrow(
-    "State composite separation did not converge",
-  )
+  expect(rows.slice(6, 9).map((row) => row.slice(44))).toEqual([
+    "│ ╭────────╮               │    ╭───╮",
+    "│ │ Inside │               │    │ B │◀──╮ retry",
+    "│ ╰──┬─────╯               ├──────┬─────╯",
+  ])
 })
 
 // The cases below were found by planting each fault the cases above miss into a copy of drawing.ts and searching random
@@ -249,22 +239,22 @@ test("pinned as observed: the canvas: its size, the shift off negative cells, an
       "direction TB\nB --> B : a<br>b\nB --> A : a long label here\nB --> A : a long label here\nA --> B : a long label here\nA --> B",
     ),
   ).toMatchObject({
-    "route:0": "B>B self 3,2 3,4 6,4 6,3 @1,4",
-    "route:1": "B>A vertical 3,2 3,7 @17,4",
-    "route:2": "B>A side-parallel 5,1 9,1 9,9 6,9 @17,6",
-    "route:3": "A>B side-parallel 5,9 12,9 12,1 6,1 @17,2",
-    "route:4": "A>B side-parallel 5,9 15,9 15,1 6,1",
-    "row:0": " ╭───╮",
-    "row:1": " │ B ├◀──┬──┬──╮",
+    "route:0": "B>B self 2,2 2,4 5,4 5,3 @7,4",
+    "route:1": "B>A vertical 3,2 3,7 @18,4",
+    "route:2": "B>A side-parallel 6,1 10,1 10,9 6,9 @18,6",
+    "route:3": "A>B side-parallel 5,9 13,9 13,1 7,1 @18,2",
+    "route:4": "A>B side-parallel 5,9 16,9 16,1 7,1",
+    "row:0": "╭─────╮",
+    "row:1": "│  B  ├◀──┬──┬──╮",
     "row:10": " ╰───╯",
-    "row:2": " ╰─┬─╯   │  │  │ a long label here",
-    "row:3": "   │  ▲  │  │  │",
-    "row:4": " a ├──╯  │  │  │ a long label here",
-    "row:5": " b │     │  │  │",
-    "row:6": "   │     │  │  │ a long label here",
-    "row:7": "   ▼     │  │  │",
-    "row:8": " ╭───╮   │  │  │",
-    "row:9": " │ A ├───┴──┴──╯",
+    "row:2": "╰─┬┬──╯   │  │  │ a long label here",
+    "row:3": "  ││ ▲    │  │  │",
+    "row:4": "  ╰┼─╯ a  │  │  │ a long label here",
+    "row:5": "   │   b  │  │  │",
+    "row:6": "   │      │  │  │ a long label here",
+    "row:7": "   ▼      │  │  │",
+    "row:8": " ╭───╮    │  │  │",
+    "row:9": " │ A ├────┴──┴──╯",
   })
   expect(
     drawn(
@@ -370,9 +360,9 @@ test("pinned as observed: the canvas: its size, the shift off negative cells, an
     "row:30": "┃ ┃                         ┃ ┃    ┏━━━┓   │",
     "row:31": "┃ ┃                         ┃ ┃    ┃ A ┃←──╯",
     "row:32": "┃ ┃                         ┃ ┃    ┗━━━┛",
-    "row:33": "┃ ┗━━━━━━━━━━━━━━━━━━━━━━━━━┛ ┃",
-    "row:34": "┃                             ┃",
-    "row:35": "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛",
+    "row:33": "┃ ┃                         ┃ ┃",
+    "row:34": "┃ ┗━━━━━━━━━━━━━━━━━━━━━━━━━┛ ┃",
+    "row:35": "┃                             ┃",
     "row:4": "┃    ┗━━┬━━┛                  ┃",
     "row:5": "┃       │                     ┃",
     "row:6": "┃       │ go                  ┃",
@@ -454,32 +444,39 @@ test("pinned as observed: the glyphs of frames, notes and junctions", () => {
     "route:0": "P0.__start>P0x horizontal-forward 3,3 15,3",
     "route:1": "P0x>P0.__end horizontal-forward 22,3 36,3",
     "route:2": "P0nz>P0nw bottom-feedback 90,10 90,23 16,23 16,11",
-    "route:3": "__start>B side-parallel 103,8 103,11 141,11",
-    "route:4": "A>P0n side-parallel 162,9 183,9 183,13 96,13 @185,10",
+    "route:3": "__start>B horizontal-forward 103,9 139,9",
+    "route:4": "A>P0n side-parallel 162,9 163,9 163,13 96,13 @162,15",
     "route:5": "P0n>P0x bottom-feedback 54,19 54,18 96,18 96,5 17,5 @67,16",
     "route:6":
-      "B>P0nz bottom-feedback 140,9 97,9 97,4 37,4 37,2 23,2 23,1 15,1 15,2 2,2 2,4 15,4 15,5 16,5 16,6 85,6 85,9 @114,6",
-    "route:7": "P0x>P0nw vertical-elbow 22,3 23,3 23,5 86,5 86,7 94,7 94,11 23,11 23,9",
-    "route:8": "A>__end side-parallel 162,9 186,9 186,8 177,8",
-    "row:0": "╭─ P0 ───────────────────────────────────────────────────────────────────────────────────────────╮",
-    "row:1": "│              ╭───────╮                                                                         │",
+      "B>P0nz bottom-feedback 142,8 142,7 144,7 144,1 154,1 154,3 158,3 158,7 163,7 163,8 164,8 164,14 97,14 97,19 85,19 85,20 53,20 53,17 85,17 85,9 @114,16",
+    "route:7": "P0x>P0nw vertical-elbow 19,4 19,7",
+    "route:8":
+      "A>__end horizontal-forward 160,10 160,11 139,11 139,10 101,10 101,8 139,8 139,7 141,7 141,6 143,6 143,0 176,0 176,8",
+    "row:0":
+      "╭─ P0 ───────────────────────────────────────────────────────────────────────────────────────────╮                                             ╭────────────────────────────────╮",
+    "row:1":
+      "│                                                                                                │                                             │╭─────────╮                     │",
     "row:10":
-      "│            │ ╰──────╯│                                                              ╰───┬──╯││││     │                                    ╰───╯             ╰───╯                    │ x",
+      "│            │ ╰──────╯                                                              │╰───┬──╯ │││   ╰─────────────────────────────────────╮╰───╯             ╰─┬─╯││",
     "row:11":
-      "│            │  ▲      ╰──────────────────────────────────────────────────────────────────┼───╯│││     ╰─────────────────────────────────────▲                                         │ yy",
+      "│            │  ▲                                                                    │    │    │││                                         ╰────────────────────╯  ││",
     "row:12":
-      "│            │  │                                                                         │    │││                                                                                     │ zzz",
+      "│            │  │                                                                    │    │    │││                                                                 ││",
     "row:13":
-      "│            │  │                                                                         │    ││──────────────────────────────────────────────────────────────────────────────────────╯",
-    "row:14": "│            │  │                                                                         │    │││",
-    "row:15": "│            │  │                                                                         │    │││",
-    "row:16": "│            │  │                                                  a long label here      │    │││",
-    "row:17": "│            │  │                                                                         │    │││",
-    "row:18": "│            │  │                                     ╰───────────────────────────────────┼─────╯│",
-    "row:19": "│            │  │                                     ┬                                   │    │ │",
+      "│            │  │                                                                    │    │    ││──────────────────────────────────────────────────────────────────╯│",
+    "row:14":
+      "│            │  │                                                                    │    │    ││╭──────────────────────────────────────────────────────────────────╯",
+    "row:15":
+      "│            │  │                                                                    │    │    │││                                                                x",
+    "row:16":
+      "│            │  │                                                  a long label here │    │    │││                a                                               yy",
+    "row:17":
+      "│            │  │                                    ╭───────────────────────────────╯    │    │││                b                                               zzz",
+    "row:18": "│            │  │                                    │╰───────────────────────────────────┼─────╯│",
+    "row:19": "│            │  │                                    │┬                              ╭────┼──────╯",
     "row:2":
-      "│ ╭────────────╯╭─────╮╰─────────────╮                                                           │                                               ╔═══════╗",
-    "row:20": "│            │  │                                                                         │    │ │",
+      "│               ╭─────╮                                                                          │                                             ││╔═══════╗│                     │",
+    "row:20": "│            │  │                                    ╰───────────────────────────────╯    │    │ │",
     "row:21": "│            │  │                                                                         │    │ │",
     "row:22": "│            │  │                                                                         │    │ │",
     "row:23": "│            │  ╰─────────────────────────────────────────────────────────────────────────╯    │ │",
@@ -487,19 +484,19 @@ test("pinned as observed: the glyphs of frames, notes and junctions", () => {
     "row:25": "│                                                                                                │",
     "row:26": "╰────────────────────────────────────────────────────────────────────────────────────────────────╯",
     "row:3":
-      "│ ┼────────────▶│ P0x ├┬─────────────│                                                           │                                               ║ two   ║",
+      "│ ─────────────▶│ P0x ├──────────────                                                            │                                             ││║ two   ║╰───╮                 │",
     "row:4":
-      "│ ╰────────────╮╰─────╯│             ╰───────────────────────────────────────────────────────────╮                                               ║ lines ╠═══╗",
+      "│               ╰──┬──╯                                                                          │                                             ││║ lines ╠═══╗│                 │",
     "row:5":
-      "│              ╰╮▶─────┴──────────────────────────────────────────────────────────────┬─────────╮│                                               ╚═══════╝   ║",
+      "│                ▲─┼────────────────────────────────────────────────────────────────────────────╮│                                             ││╚═══════╝   ║│                 │",
     "row:6":
-      "│            ╭─ P0n ─────────────────────────────────────────────────────────────────╮│────────╮││                a                                          ║",
+      "│            ╭─ P0n ───────────────────────────────────────────────────────────────────────────╮││                                           ╭─╯│            ║│                 │",
     "row:7":
-      "│            │                                                                       │╰───────╮│││                b                                          ║",
+      "│            │     ▼                                                                           │││                                         ╭─╯╭─╯            ║╰────╮            │",
     "row:8":
-      "│            │ ╭──────╮                                                              │╭──────╮││││    ●│                                    ╭───╮             ╭───╮             ◎◀────────╮",
+      "│            │ ╭──────╮                                                               ╭──────╮ │││   ╭─────────────────────────────────────╯╭─┴─╮            ║╭───╮╰╮           ▼",
     "row:9":
-      "│            │ │ P0nw │◀                                                             ▶│ P0nz ││││╰─────┼────────────────────────────────────┤ B │             │ A ├────────────────────┬──╯",
+      "│            │ │ P0nw │                                                              ▶│ P0nz │ │││   │●────────────────────────────────────▶│ B │            ║│ A ├╮│           ◎",
     rows: 27,
   })
   expect(
@@ -507,29 +504,71 @@ test("pinned as observed: the glyphs of frames, notes and junctions", () => {
       "direction RL\nstate P0 {\n}\nstate P1 {\nP1x --> P1y\n}\n[*] --> B\nP1x --> D : retry\nC --> C\nA --> [*]\nnote right of C : a note",
     ),
   ).toMatchObject({
-    "route:0": "P1x>P1y horizontal-forward 90,7 77,7",
-    "route:1": "__start>B horizontal-forward 135,1 123,1",
-    "route:2": "P1x>D bottom-parallel 93,8 93,14 53,14 53,9 @70,13",
-    "route:3": "C>C self 36,8 36,10 39,10 39,9",
-    "route:4": "A>__end side-parallel 20,7 33,7 33,9 35,9 35,11 40,11 40,8 39,8 39,5 34,5 34,4 2,4 2,5",
+    "route:0": "P1x>P1y horizontal-forward 92,7 79,7",
+    "route:1": "__start>B horizontal-forward 137,1 125,1",
+    "route:2": "P1x>D bottom-parallel 95,8 95,14 55,14 55,9 @72,13",
+    "route:3": "C>C self 34,8 34,10 37,10 37,9",
+    "route:4": "A>__end horizontal-forward 14,7 1,7",
     "row:0":
-      "                                           ╔════════╗                                                                 ╭───╮",
+      "                                                                                                                        ╭───╮",
     "row:1":
-      "                                         ╔═╣ a note ║                                                                 │ B │◀────────────●",
-    "row:10": "                                   │╰──╯│            │              ╰────────────────────────│────╯",
-    "row:11": "                                   ╰────╯            │                                       │",
-    "row:12": "                                                     │                                       │",
-    "row:13": "                                                     │                retry                  │",
-    "row:14": "                                                     ╰───────────────────────────────────────╯",
+      "                                                                                                                        │ B │◀────────────●",
+    "row:10": "                                  ╰──╯                 │              ╰────────────────────────│────╯",
+    "row:11": "                                                       │                                       │",
+    "row:12": "                                                       │                                       │",
+    "row:13": "                                                       │                retry                  │",
+    "row:14": "                                                       ╰───────────────────────────────────────╯",
     "row:2":
-      "                                         ║ ╚════════╝                                                                 ╰───╯",
-    "row:3": " ╔═══════════════════════════════════════╝",
-    "row:4": " ║╭───────────────────────────────╮                                 ╭─ P1 ────────────────────────╮",
-    "row:5": " ║▼            ╔═════════════════╗╰────╮                            │                             │",
-    "row:6": " ║◎            ║╭───╮            ║╭───╮│            ╭───╮           │ ╭─────╮             ╭─────╮ │",
-    "row:7": " ╚═════════════╝│ A ├────────────╮│ C ││            │ D │           │ │ P1y │◀────────────┤ P1x │ │",
-    "row:8": "                ╰───╯            │╰─┬─╯╰╮           ╰───╯           │ ╰─────╯             ╰──┬──╯ │",
-    "row:9": "                                 ╰─╮│  ▲│            ▲              │                        │    │",
+      "                                                                                                                        ╰───╯",
+    "row:3": "",
+    "row:4": "                                                                      ╭─ P1 ────────────────────────╮",
+    "row:5": "                                                                      │                             │",
+    "row:6": "              ╭───╮             ╭─────╮    ╔════════╗ ╭───╮           │ ╭─────╮             ╭─────╮ │",
+    "row:7": "◎◀────────────┤ A │             │  C  │════╣ a note ║ │ D │           │ │ P1y │◀────────────┤ P1x │ │",
+    "row:8": "              ╰───╯             ╰─┬───╯    ╚════════╝ ╰───╯           │ ╰─────╯             ╰──┬──╯ │",
+    "row:9": "                                  │  ▲                 ▲              │                        │    │",
     rows: 15,
+  })
+})
+
+// Found the same way after the 2026-11-01 defect fixes, searching only the faults those fixes left untold: their new
+// code, and faults only inputs above told apart until the fixes changed what those inputs draw. Pinned as observed;
+// the harnesses keep no input that shows a known wrong drawing.
+test("pinned as observed: faults the defect fixes left untold: labels centred, the canvas and its shift", () => {
+  expect(drawn("C --> C : go\nC --> C : a long label here")).toMatchObject({
+    "route:0": "C>C self 4,2 4,4 7,4 7,3 @1,4",
+    "route:1": "C>C self 4,2 4,7 8,7 8,3 @10,6",
+    "row:0": " ╭───────╮",
+    "row:1": " │   C   │",
+    "row:2": " ╰──┬────╯",
+    "row:3": "    │  ▲▲",
+    "row:4": " go ├──╯│",
+    "row:5": "    │   │",
+    "row:6": "    │   │ a long label here",
+    "row:7": "    ╰───╯",
+    rows: 8,
+  })
+  expect(
+    drawn(
+      "state P0 {\n[*] --> P0x\nP0x --> [*]\nstate P0n {\nP0nz --> P0nw\n}\n}\nA --> P0n : x<br>yy<br>zzz\nP0n --> P0x : a long label here\nA --> P0nw\nB --> P0nz : a<br>b\nP0x --> P0nw",
+    ),
+  ).toMatchObject({
+    "row:3": "│ ┼────────────▶│ P0x ├┬─────────────│                                                           │",
+    rows: 29,
+  })
+  expect(
+    drawn('state P0 {\n[*] --> P0x\nstate "In" as P0x\n}\nP0x --> P0 : go', {
+      borderStyle: "single",
+      arrowHeadStyle: "line",
+      layoutMaxWidth: 40,
+    }),
+  ).toMatchObject({ "row:3": "│ │ In  │ │", rows: 9 })
+  expect(
+    drawn(
+      "state ch <<choice>>\n[*] --> B\nB --> D : go\nch --> ch : go\nA --> D\nnote left of ch : n\nnote left of ch : a note",
+    ),
+  ).toMatchObject({
+    "row:5": "                                ╭╯                                     ╔═════╗",
+    rows: 17,
   })
 })

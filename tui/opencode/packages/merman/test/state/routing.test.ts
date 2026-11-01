@@ -28,11 +28,20 @@ test("left to right, a transition back runs under the row, the shorter on the hi
   ])
 })
 
-test("a self transition leaves the bottom a third in and comes back up two thirds in; another loops 3 lower and 4 wider", () => {
+test("a self transition leaves the bottom a third in and comes back up two thirds in; another loops 3 lower and wider, its head still under the box short of the corner", () => {
+  // Box 10 wide: the source a third in (3), the first head two thirds in (7); the second would go 4 wider (11), past
+  // the box, so it takes the last column short of the corner (8).
   expect(routes('state "Longer" as A\nA --> A\nA --> A')).toEqual([
     "A>A self 3,2 3,4 7,4 7,3",
-    "A>A self 3,2 3,7 11,7 11,3",
+    "A>A self 3,2 3,7 8,7 8,3",
   ])
+})
+
+test("a self loop's head moves to the nearest column no other route takes below the box", () => {
+  // Alone, the head comes up at 5; here B --> A arrives on 5, so the head takes 4.
+  expect(routes("A --> A")).toEqual(["A>A self 2,2 2,4 5,4 5,3"])
+  const drawnRoutes = routes("A --> A\nA --> B\nB --> A\nA --> [*]")
+  expect([drawnRoutes[0], drawnRoutes[2]]).toEqual(["A>A self 2,2 2,4 4,4 4,3", "B>A vertical-elbow 4,6 4,5 5,5 5,3"])
 })
 
 // The cases below were found by planting each fault the cases above miss into a copy of routing.ts and searching random
@@ -68,9 +77,9 @@ test("pinned as observed: self loops", () => {
     rows: 11,
   })
   expect(drawn("A --> A : retry\nA --> A : retry")).toMatchObject({
-    "route:0": "A>A self 2,2 2,4 5,4 5,3 @7,2",
-    "route:1": "A>A self 2,2 2,7 9,7 9,3 @11,6",
-    "row:6": "  │      │ retry",
+    "route:0": "A>A self 3,2 3,4 6,4 6,3 @9,4",
+    "route:1": "A>A self 3,2 3,7 7,7 7,3 @9,6",
+    "row:6": "   │   │ retry",
     rows: 8,
   })
   expect(
@@ -145,7 +154,7 @@ test("pinned as observed: transitions back: lanes under and over the rows, alloc
     ),
   ).toMatchObject({
     "route:0": "P0x>P0y horizontal-forward 8,3 27,3 @10,2",
-    "route:3": "P0>ch vertical-elbow 18,6 18,7 30,7 30,8 @20,5",
+    "route:3": "P0>ch vertical-elbow 16,6 16,8 30,8 30,9 @18,7",
     rows: 15,
   })
   expect(drawn("A --> B : x<br>yy<br>zzz\nB --> A : a long label here")).toMatchObject({
@@ -166,7 +175,7 @@ test("pinned as observed: transitions back: lanes under and over the rows, alloc
   ).toMatchObject({
     "route:0": "__start>C horizontal-forward 1,6 13,6",
     "route:1": "B>C bottom-feedback 56,13 56,17 15,17 15,8 @34,14",
-    "route:2": "A>ch top-feedback 74,11 74,0 28,0 28,11",
+    "route:2": "A>ch top-feedback 74,11 74,0 28,0 28,12",
     "row:1": "                            │                                             │",
     rows: 18,
   })
@@ -199,7 +208,7 @@ test("pinned as observed: transitions back: lanes under and over the rows, alloc
       minStateGap: 8,
     }),
   ).toMatchObject({
-    "route:0": "P0x>P0.__end bottom-feedback 111,10 111,16 87,16 87,8",
+    "route:0": "P0x>P0.__end bottom-feedback 111,10 111,16 87,16 87,9",
     "route:1": "P1.__start>P1x horizontal-forward 3,3 18,3",
     "route:2": "P1x>P1y horizontal-forward 25,3 41,3",
     "route:3": "P1y>P1.__end horizontal-forward 48,3 65,3",
@@ -222,10 +231,10 @@ test("pinned as observed: transitions back: lanes under and over the rows, alloc
       'direction RL\nstate P0 {\n[*] --> P0x\n}\nstate P1 {\nstate "Inside" as P1x\n}\n[*] --> B\nA --> B : a<br>b\nB --> P1x',
     ),
   ).toMatchObject({
-    "route:0": "P0.__start>P0x horizontal-forward 106,3 94,3",
-    "route:1": "__start>B side-parallel 39,8 39,11 23,11",
-    "route:2": "A>B bottom-feedback 4,10 4,16 23,16 23,11 @13,14",
-    "route:3": "B>P1x bottom-feedback 22,10 22,20 60,20 60,11",
+    "route:0": "P0.__start>P0x horizontal-forward 104,3 92,3",
+    "route:1": "__start>B horizontal-forward 35,9 23,9",
+    "route:2": "A>B bottom-feedback 2,10 2,16 21,16 21,11 @11,14",
+    "route:3": "B>P1x bottom-feedback 20,10 20,20 58,20 58,11",
     rows: 21,
   })
   expect(
@@ -236,7 +245,7 @@ test("pinned as observed: transitions back: lanes under and over the rows, alloc
   ).toMatchObject({
     "route:0": "P0nz>P0nw horizontal-forward 11,8 24,8",
     "route:1": "D>P0nw bottom-feedback 69,15 69,19 26,19 26,10",
-    "route:2": "C>ch top-feedback 87,13 87,0 41,0 41,13 @43,3",
+    "route:2": "C>ch top-feedback 87,13 87,0 41,0 41,14 @43,3",
     rows: 20,
   })
   expect(
@@ -312,12 +321,12 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
     ),
   ).toMatchObject({
     "route:0": "__start>A horizontal-forward 1,2 13,2",
-    "route:1": "A>B vertical-elbow 15,3 15,6 @12,5",
-    "route:2": "A>B side-parallel 16,3 16,6 @22,6",
-    "route:3": "A>A self 16,3 16,5 19,5 19,4 @21,4",
-    "route:4": "A>B side-parallel 16,3 16,6 @24,5",
-    "route:5": "B>A vertical-elbow 17,7 17,4 @20,6",
-    "row:1": "●────────────▶│ A │════╣ a note ║",
+    "route:1": "A>B vertical-elbow 15,3 15,5 16,5 16,6 @12,3",
+    "route:2": "A>B side-parallel 17,3 17,6 @23,4",
+    "route:3": "A>A self 16,3 16,5 18,5 18,4 @20,4",
+    "route:4": "A>B side-parallel 17,3 17,6 @25,5",
+    "route:5": "B>A vertical-elbow 18,7 18,6 19,6 19,4 @21,6",
+    "row:1": "●────────────▶│  A  │════╣ a note ║",
     rows: 9,
   })
   expect(
@@ -326,9 +335,9 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
     ),
   ).toMatchObject({
     "route:0": "P0x>P0.__end horizontal-forward 8,3 22,3",
-    "route:1": "P1y>P1.__end side-parallel 48,9 63,9 63,8 62,8",
-    "route:2": "A>ch bottom-feedback 94,10 94,16 76,16 76,8 @77,14",
-    "row:8": "                                        │ ╭─────╮             ─┬│           ◆               ╭───╮",
+    "route:1": "P1y>P1.__end horizontal-forward 48,9 62,9",
+    "route:2": "A>ch bottom-feedback 94,10 94,16 76,16 76,9 @77,14",
+    "row:8": "                                        │ ╭─────╮               │                           ╭───╮",
     rows: 17,
   })
   expect(drawn("direction TB\nstate ch <<choice>>\nch --> A\nch --> B : retry", { minStateGap: 1 })).toMatchObject({
@@ -351,11 +360,11 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
     ),
   ).toMatchObject({
     "route:0": "P0y>P0.__end horizontal-forward 8,6 24,6",
-    "route:1": "B>B self 64,13 64,15 67,15 67,14",
-    "route:2": "D>P0x bottom-feedback 84,13 84,17 3,17 3,14 @42,16",
+    "route:1": "B>B self 70,13 70,15 73,15 73,14",
+    "route:2": "D>P0x bottom-feedback 92,13 92,17 3,17 3,14 @46,16",
     "route:3": "P0y>P0x vertical-elbow 5,7 5,10 @7,8",
-    "route:4": "C>P0 top-feedback 104,11 104,0 25,0 25,2 @97,3",
-    "route:5": "A>B bottom-feedback 124,13 124,14 87,14 87,10 67,10 67,14 63,14 @93,16",
+    "route:4": "C>P0 top-feedback 112,11 112,0 25,0 25,2 @105,3",
+    "route:5": "A>B bottom-feedback 132,13 132,14 95,14 95,10 75,10 75,14 69,14 @100,16",
     rows: 18,
   })
   expect(
@@ -376,7 +385,7 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
     ),
   ).toMatchObject({
     "route:0": "P0x>P0.__end vertical 7,4 7,9",
-    "route:1": "P0x>P1 vertical-elbow 7,4 7,9 13,9 13,11",
+    "route:1": "P0x>P1 vertical-elbow 7,4 7,9 30,9 30,11",
     rows: 19,
   })
   expect(
@@ -432,7 +441,7 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
   ).toMatchObject({ "row:16": "┃ │       ┃    ║↓", rows: 23 })
   expect(
     drawn("direction RL\nA --> C\nA --> C\nB --> [*]", { borderStyle: "rounded", arrowHeadStyle: "line" }),
-  ).toMatchObject({ "route:2": "B>__end side-parallel 20,7 21,7 21,5 3,5 3,6", rows: 13 })
+  ).toMatchObject({ "route:2": "B>__end horizontal-forward 14,7 1,7", rows: 13 })
   expect(drawn("direction TD\nstate P0 {\n}\nstate P1 {\n[*] --> P1x\n}\n[*] --> B\nP1 --> B")).toMatchObject({
     "route:0": "P1.__start>P1x vertical 5,3 5,6",
     "route:1": "__start>B vertical 5,15 5,18",
@@ -469,9 +478,9 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
   ).toMatchObject({
     "route:0": "P0x>P0y horizontal-forward 44,9 56,9 @48,8",
     "route:1": "__start>B horizontal-forward 1,3 12,3",
-    "route:2": "ch>P0x side-parallel 77,8 80,8 80,12 43,12 43,11 @82,7",
-    "row:6": "                                    │ ╭─────╮   retry    ╭─────╮ │          ◆───╮ yy",
-    rows: 11,
+    "route:2": "ch>P0x bottom-feedback 76,10 76,16 39,16 39,11 @56,13",
+    "row:6": "                                    │ ╭─────╮   retry    ╭─────╮ │",
+    rows: 15,
   })
   expect(
     drawn(
@@ -479,8 +488,8 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
     ),
   ).toMatchObject({
     "route:0": "P0x>P0y vertical 5,21 5,17",
-    "route:1": "D>P0x side-parallel 7,1 21,1 21,22 9,22",
-    "route:2": "P0>P1x vertical-elbow 9,12 9,11 5,11 5,10 @4,4",
+    "route:1": "D>P0x side-parallel 29,1 36,1 36,22 9,22",
+    "route:2": "P0>P1x vertical-elbow 9,12 9,11 27,11 27,10 @5,9",
     rows: 26,
   })
   expect(
@@ -510,13 +519,13 @@ test("pinned as observed: detours round states, and the junctions where routes m
     "route:0": "P0.__start>P0x horizontal-forward 3,3 15,3",
     "route:1": "P0x>P0.__end horizontal-forward 22,3 36,3",
     "route:2": "P0nz>P0nw bottom-feedback 90,10 90,23 16,23 16,11",
-    "route:3": "__start>B side-parallel 103,8 103,11 141,11",
+    "route:3": "__start>B horizontal-forward 103,9 139,9",
     "route:4": "A>P0n side-parallel 158,9 157,9 157,13 96,13 @153,9",
     "route:5": "P0n>P0x bottom-feedback 54,19 54,18 96,18 96,5 17,5 @67,16",
     "route:6": "A>P0nw bottom-feedback 160,10 160,28 16,28 16,11",
     "route:7":
-      "B>P0nz bottom-feedback 140,9 97,9 97,4 37,4 37,2 23,2 23,1 15,1 15,2 2,2 2,4 15,4 15,5 16,5 16,6 85,6 85,9 @114,6",
-    "route:8": "P0x>P0nw vertical-elbow 19,4 19,7",
+      "B>P0nz bottom-feedback 140,9 103,9 103,8 97,8 97,4 37,4 37,2 23,2 23,1 15,1 15,2 2,2 2,4 15,4 15,5 16,5 16,6 85,6 85,9 @114,11",
+    "route:8": "P0x>P0nw vertical-elbow 19,4 19,5 86,5 86,7 94,7 94,11 19,11",
     rows: 29,
   })
   expect(
@@ -539,10 +548,10 @@ test("pinned as observed: detours round states, and the junctions where routes m
     drawn('direction RL\nstate "Outer" as P0 {\n}\nstate P1 {\nP1x --> P1y\nP1y --> [*]\n}\n[*] --> A'),
   ).toMatchObject({
     "route:0": "P1x>P1y horizontal-forward 36,7 23,7",
-    "route:1": "P1y>P1.__end side-parallel 22,7 23,7 23,5 2,5 2,6",
+    "route:1": "P1y>P1.__end horizontal-forward 16,7 2,7",
     "route:2": "__start>A horizontal-forward 81,1 69,1",
-    "row:5": "│ │────────────────────╮                    │",
-    "row:6": "│ │             ╭─────╮│            ╭─────╮ │",
+    "row:5": "│                                           │",
+    "row:6": "│               ╭─────╮             ╭─────╮ │",
     rows: 11,
   })
   expect(
@@ -581,15 +590,15 @@ test("pinned as observed: detours round states, and the junctions where routes m
   })
   expect(drawn("state ch <<choice>>\n[*] --> C\nch --> A : go\nnote right of ch : a note")).toMatchObject({
     "route:0": "__start>C horizontal-forward 1,1 13,1",
-    "route:1": "ch>A side-parallel 28,7 28,8 53,8 53,7 @51,6",
+    "route:1": "ch>A horizontal-forward 28,6 28,5 53,5 53,7 @40,3",
     rows: 9,
   })
   expect(
     drawn("state ch <<choice>>\n[*] --> C\nch --> B : a long label here\nA --> A\nnote right of ch : two<br>lines"),
   ).toMatchObject({
     "route:0": "__start>C horizontal-forward 1,1 13,1",
-    "route:1": "ch>B side-parallel 28,7 28,9 56,9 @48,11",
-    "route:2": "A>A self 74,8 74,10 77,10 77,9",
+    "route:1": "ch>B horizontal-forward 28,8 28,9 53,9 53,7 @32,11",
+    "route:2": "A>A self 82,8 82,10 85,10 85,9",
     rows: 12,
   })
   expect(
@@ -633,7 +642,7 @@ test("pinned as observed: detours round states, and the junctions where routes m
     "route:0": "C>P0x horizontal-forward 4,3 13,3 @8,1",
     "route:1": "A>C bottom-feedback 30,10 30,14 1,14 1,5",
     "route:2": "B>C bottom-feedback 44,10 44,19 1,19 1,5 @21,16",
-    "route:3": "A>__end side-parallel 32,9 41,9 41,7 46,7 46,3 50,3 50,2 61,2 61,6 57,6 57,8",
+    "route:3": "A>__end bottom-parallel 30,10 30,11 41,11 41,7 46,7 46,3 50,3 50,2 61,2 61,6 57,6 57,10 56,10",
     "row:13": " ├────────────────────────────╯             │",
     rows: 19,
   })
@@ -641,7 +650,7 @@ test("pinned as observed: detours round states, and the junctions where routes m
     drawn(
       'direction RL\nstate "A long composite title" as P0 {\n[*] --> P0x\nP0x --> P0y : a<br>b\nstate P0n {\n}\n}\n[*] --> D\nP0nz --> P0y',
     ),
-  ).toMatchObject({ "route:3": "P0nz>P0y bottom-feedback 6,10 6,11 37,11 37,7 79,7 79,5", rows: 12 })
+  ).toMatchObject({ "route:3": "P0nz>P0y bottom-feedback 6,10 6,14 79,14 79,5", rows: 15 })
   expect(
     drawn(
       'direction TD\nstate "A long composite title" as P0 {\nstate P0n {\nP0nz --> P0nw\n}\n}\nP0nw --> P0n : a long label here\nnote right of P0nw : two<br>lines',
@@ -670,11 +679,11 @@ test("pinned as observed: labels placed clear of routes and states", () => {
       "state P0 {\n[*] --> P0x\nP0x --> [*]\n}\nP0x --> A : x<br>yy<br>zzz\nP0x --> P0x : go\nP0 --> P0 : x<br>yy<br>zzz\nP0x --> B : go",
     ),
   ).toMatchObject({
-    "route:0": "P0x>A horizontal-forward 8,3 38,3 @22,0",
-    "route:1": "P0x>P0x self 4,4 4,6 7,6 7,5 @1,6",
-    "route:2": "P0x>B vertical-elbow 5,4 5,6 22,6 22,7 @9,4",
-    "route:3": "P0x>P0x self 4,4 4,9 11,9 11,5 @10,11",
-    "row:6": "│go ├┴─┴───┼──────────╮",
+    "route:0": "P0x>A horizontal-forward 10,3 40,3 @24,0",
+    "route:1": "P0x>P0x self 5,4 5,6 8,6 8,5 @2,6",
+    "route:2": "P0x>B vertical-elbow 6,4 6,6 23,6 23,7 @11,4",
+    "route:3": "P0x>P0x self 5,4 5,9 9,9 9,5 @8,11",
+    "row:6": "│ go ├┴─┴┼─────────────╮",
     rows: 15,
   })
   expect(
@@ -689,9 +698,9 @@ test("pinned as observed: labels placed clear of routes and states", () => {
     "route:3": "P0x>P1x horizontal-forward 7,3 30,3 @10,2",
     "route:4": "A>C top-feedback 94,8 94,7 50,7 @71,4",
     "route:5": "P0>C vertical-elbow 3,6 3,7 48,7 @5,9",
-    "route:6": "C>__end side-parallel 51,9 52,9 52,7 62,7",
+    "route:6": "C>__end horizontal-forward 51,9 61,9",
     "route:7": "C>P1x bottom-feedback 49,10 49,14 32,14 32,5 @39,13",
-    "row:5": "│  ▶────╯│                   │  ▲ │   ╰────────────╯    │              b",
+    "row:5": "│  ▲────╯│                   │  ▲ │   ╰────────────╯    │              b",
     rows: 19,
   })
   expect(
@@ -699,12 +708,12 @@ test("pinned as observed: labels placed clear of routes and states", () => {
       "direction TB\nB --> B : a<br>b\nB --> A : a long label here\nB --> A : a long label here\nA --> B : a long label here\nA --> B",
     ),
   ).toMatchObject({
-    "route:0": "B>B self 3,2 3,4 6,4 6,3 @1,4",
-    "route:1": "B>A vertical 3,2 3,7 @17,4",
-    "route:2": "B>A side-parallel 5,1 9,1 9,9 6,9 @17,6",
-    "route:3": "A>B side-parallel 5,9 12,9 12,1 6,1 @17,2",
-    "route:4": "A>B side-parallel 5,9 15,9 15,1 6,1",
-    "row:9": " │ A ├───┴──┴──╯",
+    "route:0": "B>B self 2,2 2,4 5,4 5,3 @7,4",
+    "route:1": "B>A vertical 3,2 3,7 @18,4",
+    "route:2": "B>A side-parallel 6,1 10,1 10,9 6,9 @18,6",
+    "route:3": "A>B side-parallel 5,9 13,9 13,1 7,1 @18,2",
+    "route:4": "A>B side-parallel 5,9 16,9 16,1 7,1",
+    "row:9": " │ A ├────┴──┴──╯",
     rows: 11,
   })
   expect(
@@ -722,8 +731,8 @@ test("pinned as observed: labels placed clear of routes and states", () => {
     drawn("direction TB\nstate P0 {\nstate P0n {\nP0nz --> P0nw\n}\n}\nP0 --> P0y\nP0n --> P0x : retry"),
   ).toMatchObject({
     "route:0": "P0nz>P0nw vertical 8,6 8,10",
-    "route:1": "P0>P0y side-parallel 15,9 19,9 19,19 12,19",
-    "route:2": "P0n>P0x side-parallel 13,9 14,9 14,8 20,8 20,20 12,20 12,26 @24,17",
+    "route:1": "P0>P0y side-parallel 15,9 30,9 30,19 27,19",
+    "route:2": "P0n>P0x vertical-elbow 8,15 8,22 23,22 23,24 @10,21",
     rows: 28,
   })
   expect(
@@ -732,10 +741,10 @@ test("pinned as observed: labels placed clear of routes and states", () => {
     ),
   ).toMatchObject({
     "route:0": "P0x>P0y vertical 8,4 8,8 @10,6",
-    "route:1": "P1x>P1y vertical 8,18 8,22 @10,20",
-    "route:2": "P1nz>P1nw vertical 8,32 8,36",
-    "route:3": "P1nz>B side-parallel 11,31 19,31 19,45 11,45 @21,38",
-    "route:4": "P1y>P1nw side-parallel 5,24 3,24 3,38 @16,30",
+    "route:1": "P1x>P1y vertical 44,18 44,22 @46,20",
+    "route:2": "P1nz>P1nw vertical 44,32 44,36",
+    "route:3": "P1nz>B side-parallel 47,31 64,31 64,45 61,45 @66,38",
+    "route:4": "P1y>P1nw side-parallel 41,24 39,24 39,38 @20,31",
     rows: 47,
   })
   expect(drawn("A --> A : x<br>yy<br>zzz\nnote right of A : two<br>lines")).toMatchObject({
@@ -753,7 +762,7 @@ test("pinned as observed: labels placed clear of routes and states", () => {
       arrowHeadStyle: "line",
       layoutMaxWidth: 72,
     }),
-  ).toMatchObject({ "route:0": "A>C vertical 2,7 2,3 @4,4", "route:1": "A>A self 2,9 2,11 5,11 5,10 @7,10", rows: 12 })
+  ).toMatchObject({ "route:0": "A>C vertical 3,7 3,3 @5,4", "route:1": "A>A self 2,9 2,11 5,11 5,10 @7,10", rows: 12 })
   expect(
     drawn("direction TB\n[*] --> A\nD --> B : go\nC --> A : a long label here\nnote right of A : two<br>lines"),
   ).toMatchObject({
@@ -769,14 +778,471 @@ test("pinned as observed: labels placed clear of routes and states", () => {
     ),
   ).toMatchObject({
     "route:0": "__start>A horizontal-forward 1,2 16,2",
-    "route:1": "B>P0x bottom-feedback 88,9 88,15 47,15 47,10 @67,13",
-    "route:2": "ch>P0x side-parallel 70,7 70,10 51,10 @27,10",
-    rows: 15,
+    "route:1": "B>P0x bottom-feedback 88,9 88,19 47,19 47,10 @67,17",
+    "route:2": "ch>P0x bottom-feedback 69,9 69,15 47,15 47,10 @49,14",
+    rows: 19,
   })
   expect(
     drawn(
       'direction TB\nstate P0 {\n[*] --> P0x\n}\nstate "Outer" as P1 {\n[*] --> P1x\nP1x --> P1y : retry\nP1y --> [*]\n}\nD --> P0x : a long label here',
       { minStateGap: 2 },
     ),
-  ).toMatchObject({ "route:2": "P1x>P1y vertical 5,21 5,25 @5,14", rows: 41 })
+  ).toMatchObject({ "route:2": "P1x>P1y vertical 20,21 20,25 @20,14", rows: 41 })
+})
+
+// Found the same way after the 2026-11-01 defect fixes, searching only the faults those fixes left untold: their new
+// code, and faults only inputs above told apart until the fixes changed what those inputs draw. Pinned as observed;
+// the harnesses keep no input that shows a known wrong drawing.
+test("pinned as observed: faults the defect fixes left untold: self-loop heads, same-row routes and the heads repaired routes draw", () => {
+  expect(
+    drawn(
+      'direction TB\nstate "Outer" as P0 {\nstate "Inside" as P0x\n}\nstate P1 {\nP1x --> P1y : x<br>yy<br>zzz\n}\nA --> C\nP1y --> C : retry\nA --> [*]\nnote right of C : a note',
+    ),
+  ).toMatchObject({
+    "route:3": "A>__end side-parallel 25,26 26,26 26,31 40,31 40,35 24,35 24,39",
+    "row:26": "                    ││ A ├╮",
+    "row:27": "                    │╰─┬─╯│",
+    "row:28": "                    │  │  │",
+    "row:29": "                    │  │  │",
+    "row:30": "                    │  │  │",
+    "row:31": "                    │  ▼  ╰─────────────╮",
+    "row:33": "                    ▶│ C │════╣ a note ║│",
+    "row:35": "                        ╭───────────────╯",
+    "row:36": "                        │",
+    "row:37": "                        │",
+    "row:38": "                        │",
+    "row:39": "                       ◎◀",
+    rows: 40,
+  })
+  expect(
+    drawn('state P0 {\n}\nstate "Outer" as P1 {\nP1x --> [*]\n}\nnote right of P1x : n', { minStateGap: 7 }),
+  ).toMatchObject({
+    "route:0": "P1x>P1.__end horizontal-forward 5,2 5,1 24,1 24,3",
+    "row:0": "╭─ Outer ─────────────────╮",
+    "row:1": "│    ╭──────────────────╮ │",
+    "row:2": "│ ╭──┴──╮    ╔═══╗      │ │",
+    "row:3": "│ │ P1x │════╣ n ║      │ │",
+    "row:4": "│ ╰─────╯    ╚═══╝        │",
+    "row:5": "│                         │",
+    "row:6": "╰─────────────────────────╯",
+    rows: 7,
+  })
+  expect(
+    drawn("[*] --> A\nA --> B : a<br>b\nA --> A : go\nA --> B : go\nB --> B : go\nB --> A : a<br>b"),
+  ).toMatchObject({
+    "route:0": "__start>A horizontal-forward 1,2 13,2",
+    "route:1": "A>B vertical-elbow 15,3 15,6 @12,5",
+    "route:2": "A>A self 16,3 16,5 18,5 18,4 @20,4",
+    "route:3": "A>B side-parallel 20,2 24,2 24,8 21,8 @26,5",
+    "route:4": "B>B self 16,9 16,11 19,11 19,10 @21,10",
+    "route:5": "B>A vertical-elbow 19,7 19,4 @22,6",
+    "row:0": "              ╭─────╮",
+    "row:1": "●────────────▶│  A  ├───╮",
+    "row:10": "                ╰──╯",
+    "row:2": "              ╰┬┬───╯   │",
+    "row:3": "               ││ ▲▲go  │",
+    "row:4": "            a  │╰─╯│    │ go",
+    "row:5": "            b  ▼   │  a │",
+    "row:6": "              ╭────┴╮ b │",
+    "row:7": "              │  B  │◀──╯",
+    "row:8": "              ╰─┬───╯",
+    "row:9": "                │  ▲ go",
+    rows: 11,
+  })
+  expect(drawn("C --> C : go\nC --> C : a long label here")).toMatchObject({
+    "route:0": "C>C self 4,2 4,4 7,4 7,3 @1,4",
+    "route:1": "C>C self 4,2 4,7 8,7 8,3 @10,6",
+    "row:0": " ╭───────╮",
+    "row:1": " │   C   │",
+    "row:2": " ╰──┬────╯",
+    "row:3": "    │  ▲▲",
+    "row:4": " go ├──╯│",
+    "row:5": "    │   │",
+    "row:6": "    │   │ a long label here",
+    "row:7": "    ╰───╯",
+    rows: 8,
+  })
+  expect(
+    drawn(
+      "state P0 {\nP0x --> P0y : a long label here\n}\nstate ch <<choice>>\nP0x --> ch : retry\nD --> P0x : go\nch --> B : go",
+    ),
+  ).toMatchObject({
+    "route:0": "P0x>P0y horizontal-forward 8,3 27,3 @10,2",
+    "route:1": "P0x>ch vertical-elbow 5,4 5,8 @7,5",
+    "route:2": "D>P0x bottom-feedback 76,10 76,14 3,14 3,5 @38,13",
+    "route:3": "ch>B side-parallel 6,8 6,11 39,11 @41,11",
+    "row:0": "╭─ P0 ──────────────────────────────╮",
+    "row:1": "│                                   │",
+    "row:10": "   │  │                               ╰───╯                               ╰─┬─╯",
+    "row:11": "   │  ╰────────────────────────────────▲ go                                 │",
+    "row:12": "   │                                                                        │",
+    "row:13": "   │                                  go                                    │",
+    "row:14": "   ╰────────────────────────────────────────────────────────────────────────╯",
+    "row:2": "│ ╭─────╮ a long label here ╭─────╮ │",
+    "row:3": "│ │ P0x ├──────────────────▶│ P0y │ │",
+    "row:4": "│ ╰──┬──╯                   ╰─────╯ │",
+    "row:5": "│  ▲ │ retry                        │",
+    "row:6": "╰──│─│──────────────────────────────╯",
+    "row:7": "   │ ▼",
+    "row:8": "   │ ◆│                               ╭───╮                               ╭───╮",
+    "row:9": "   │  │                               │ B │                               │ D │",
+    rows: 15,
+  })
+  expect(
+    drawn("direction TB\nstate P0 {\n}\nstate P1 {\n}\n[*] --> D\nA --> A\nP0x --> D : a<br>b\nA --> [*]"),
+  ).toMatchObject({
+    "route:0": "__start>D vertical 4,1 4,4",
+    "route:1": "A>A self 3,14 3,16 4,16 4,15",
+    "route:2": "P0x>D side-parallel 7,20 11,20 11,6 7,6 @13,12",
+    "route:3": "A>__end side-parallel 7,13 8,13 8,15 5,15 5,18 0,18 0,22 5,22 5,27",
+    "row:0": "    ●",
+    "row:1": "    │",
+    "row:10": "           │",
+    "row:11": "           │",
+    "row:12": " ╭─────╮   │ a",
+    "row:13": " │  A  ├╮  │ b",
+    "row:14": " ╰─┬───╯│  │",
+    "row:15": "   │▲╭──╯  │",
+    "row:16": "   ╰╯│     │",
+    "row:17": "     │     │",
+    "row:18": "╭────╯     │",
+    "row:19": "│╭─────╮   │",
+    "row:2": "    │",
+    "row:20": "││ P0x ├───╯",
+    "row:21": "│╰─────╯",
+    "row:22": "╰────╮",
+    "row:23": "     │",
+    "row:24": "     │",
+    "row:25": "     │",
+    "row:26": "     │",
+    "row:27": "    ◎◀",
+    "row:3": "    │",
+    "row:4": "    ▼",
+    "row:5": "  ╭───╮",
+    "row:6": "  │ D │◀───╮",
+    "row:7": "  ╰───╯    │",
+    "row:8": "           │",
+    "row:9": "           │",
+    rows: 28,
+  })
+  expect(
+    drawn(
+      "state P0 {\n[*] --> P0x\n}\nstate P1 {\nP1x --> [*]\n}\n[*] --> A\nA --> A\nP1 --> A : retry\nA --> A : a<br>b",
+    ),
+  ).toMatchObject({
+    "route:0": "P0.__start>P0x horizontal-forward 3,3 15,3",
+    "route:1": "__start>A horizontal-forward 63,9 89,9",
+    "route:2": "A>A self 93,10 93,12 96,12 96,11",
+    "route:3": "A>A self 93,10 93,15 97,15 97,11 @99,14",
+    "route:4": "P1x>A bottom-parallel 45,10 45,16 97,16 97,11 @68,15",
+    "row:0": "╭─ P0 ──────────────────╮",
+    "row:1": "│                       │",
+    "row:10": "                                        │ ╰──┬──╯ │                                       ╰──┬────╯",
+    "row:11": "                                        │    │    │                                          │  ▲▲",
+    "row:12": "                                        ╰────│────╯                                          ├──╯│",
+    "row:13": "                                             │                                               │   │",
+    "row:14": "                                             │                                               │   │ a",
+    "row:15": "                                             │                      retry                    ╰───┤ b",
+    "row:16": "                                             ╰───────────────────────────────────────────────────╯",
+    "row:2": "│               ╭─────╮ │",
+    "row:3": "│ ─────────────▶│ P0x │ │",
+    "row:4": "│               ╰─────╯ │",
+    "row:5": "│                       │",
+    "row:6": "╰───────────────────────╯               ╭─ P1 ────╮",
+    "row:7": "                                        │         │",
+    "row:8": "                                        │ ╭─────╮ │                                       ╭───────╮",
+    "row:9": "                                        │ │ P1x │ │           ●──────────────────────────▶│   A   │",
+    rows: 17,
+  })
+  expect(
+    drawn(
+      'direction BT\nstate "A long composite title" as P0 {\nP0x --> [*]\n}\nstate P1 {\n[*] --> P1x\n}\nP1 --> P0',
+      { borderStyle: "double", arrowHeadStyle: "line", layoutMaxWidth: 79 },
+    ),
+  ).toMatchObject({
+    "route:2": "P1>P0 side-parallel 48,18 52,18 52,6 27,6",
+    "row:10": "║                         ║                         │",
+    "row:11": "╚═════════════════════════╝                         │",
+    "row:12": "                               ╔═ P1 ═══════════╗   │",
+    "row:13": "                               ║                ║   │",
+    "row:14": "                               ║ ╔═════╗        ║   │",
+    "row:15": "                               ║ ║ P1x ║        ║   │",
+    "row:16": "                               ║ ╚═════╝        ║   │",
+    "row:17": "                               ║    ↑           ║   │",
+    "row:18": "                               ║    │           ├───╯",
+    "row:6": "║    │                    ║←────────────────────────╮",
+    "row:7": "║ ╔══┴══╗                 ║                         │",
+    "row:8": "║ ║ P0x ║                 ║                         │",
+    "row:9": "║ ╚═════╝                 ║                         │",
+    rows: 24,
+  })
+  expect(
+    drawn(
+      "direction TB\nstate P0 {\nP0x --> P0y\nstate P0n {\nP0nz --> P0nw\n}\n}\nP0 --> P0y\nP0n --> P0x : retry\nnote right of P0nw : a note",
+    ),
+  ).toMatchObject({
+    "route:3": "P0n>P0x side-parallel 15,14 15,13 4,13 4,3 @16,12",
+    "row:12": "│   │           retry                    │   │",
+    "row:13": "│   ╰──────────╮                         │   │",
+    "row:3": "│   ▶│ P0x │                             │",
+    rows: 30,
+  })
+  expect(drawn("direction TD\nstate ch <<choice>>\nB --> ch : a long label here")).toMatchObject({
+    "route:0": "B>ch side-parallel 4,8 8,8 8,0 2,0 @10,4",
+  })
+  expect(
+    drawn("state P0 {\nstate P0n {\nP0nz --> P0nw\n}\n}\nP0n --> P0n : x<br>yy<br>zzz\nP0n --> P0n"),
+  ).toMatchObject({
+    "route:2": "P0n>P0n self 13,8 13,13 28,13 28,9",
+    "row:10": "│            ├──────────╯   │       │",
+    "row:11": "│            │              │       │",
+    "row:12": "│            │              │       │",
+    "row:13": "│            ╰──────────────╯       │",
+    "row:8": "│ ╰──────────┬────────────────────╯ │",
+    "row:9": "│            │          ▲   ▲       │",
+    rows: 18,
+  })
+  expect(
+    drawn('direction TB\nstate P0 {\nstate "Inside" as P0x\n}\nA --> A : go\nP0 --> C : x<br>yy<br>zzz'),
+  ).toMatchObject({
+    "route:0": "A>A self 6,11 6,13 9,13 9,12 @11,12",
+    "route:1": "P0>C side-parallel 13,3 17,3 17,17 10,17 @19,9",
+    "row:0": "╭─ P0 ───────╮",
+    "row:1": "│            │",
+    "row:10": "    │  A  │      │ yy",
+    "row:11": "    ╰─┬───╯      │ zzz",
+    "row:12": "      │  ▲ go    │",
+    "row:13": "      ╰──╯       │",
+    "row:14": "                 │",
+    "row:15": "                 │",
+    "row:16": "     ╭───╮       │",
+    "row:17": "     │ C │◀──────╯",
+    "row:18": "     ╰───╯",
+    "row:2": "│ ╭────────╮ │",
+    "row:3": "│ │ Inside │ ├───╮",
+    "row:4": "│ ╰────────╯ │   │",
+    "row:5": "│            │   │",
+    "row:6": "╰────────────╯   │",
+    "row:7": "                 │",
+    "row:8": "                 │",
+    "row:9": "    ╭─────╮      │ x",
+    rows: 19,
+  })
+  expect(
+    drawn('state P0 {\nstate "Inside" as P0x\nP0x --> [*]\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y\nP1y --> [*]\n}', {
+      minStateGap: 8,
+    }),
+  ).toMatchObject({
+    "row:10":
+      "                                                                                     │ │                  ╰────┬───╯ │",
+    rows: 18,
+  })
+  expect(
+    drawn('state P0 {\n[*] --> P0x\n}\nstate P1 {\nstate "Inside" as P1x\n}\nP0 --> P1 : a<br>b\nA --> [*]', {
+      borderStyle: "double",
+      arrowHeadStyle: "filled",
+    }),
+  ).toMatchObject({
+    "route:1": "P0>P1 side-parallel 24,3 93,3 93,14 47,14 47,13 @95,5",
+    "row:12": "                                              ╚════════════╝                                 │",
+    "row:13": "                                               ▲                                             │",
+    "row:3": "║ ─────────────▶║ P0x ║ ├────────────────────────────────────────────────────────────────────╮",
+    "row:5": "║                       ║                                                                    │ a",
+    "row:6": "╚═══════════════════════╝                     ╔═ P1 ═══════╗                                 │ b",
+    rows: 15,
+  })
+  expect(
+    drawn(
+      'state "Outer" as P0 {\nstate "In" as P0x\n}\nstate P1 {\n}\nP0 --> P0 : x<br>yy<br>zzz\nP0 --> P0 : a<br>b\nP0 --> P0 : go',
+    ),
+  ).toMatchObject({
+    "route:0": "P0>P0 self 3,6 3,8 6,8 6,7 @10,7",
+    "route:1": "P0>P0 self 3,6 3,11 7,11 7,7 @1,10",
+    "route:2": "P0>P0 self 3,6 3,14 8,14 8,7 @10,13",
+    "row:0": "╭─ Outer ╮",
+    "row:1": "│        │",
+    "row:10": " a │   ││",
+    "row:11": " b ├───╯│",
+    "row:12": "   │    │",
+    "row:13": "   │    │ go",
+    "row:14": "   ╰────╯",
+    "row:2": "│ ╭────╮ │",
+    "row:3": "│ │ In │ │",
+    "row:4": "│ ╰────╯ │",
+    "row:5": "│        │",
+    "row:6": "╰──┬─────╯",
+    "row:7": "   │  ▲▲▲ x",
+    "row:8": "   ├──╯││ yy",
+    "row:9": "   │   ││ zzz",
+    rows: 15,
+  })
+  expect(
+    drawn(
+      "direction BT\nstate P0 {\n[*] --> P0x\nstate P0n {\n}\n}\nstate P2 {\nstate P2n {\nP2nz --> P2nw\n}\n}\n[*] --> B\nP2n --> A : go",
+    ),
+  ).toMatchObject({
+    "route:3": "P2n>A vertical-elbow 29,17 29,16 23,16 23,1 @27,14",
+    "row:1": "                       ▶│ A │",
+    "row:14": "                       │   go                ●",
+    rows: 43,
+  })
+  expect(
+    drawn(
+      "direction BT\nstate P0 {\nP0x --> P0y : x<br>yy<br>zzz\n}\nP0 --> P0 : a long label here\nP0x --> P0x : x<br>yy<br>zzz",
+      { borderStyle: "heavy", arrowHeadStyle: "line" },
+    ),
+  ).toMatchObject({
+    "route:0": "P0x>P0y vertical 5,9 5,5 @10,6",
+    "route:1": "P0>P0 self 7,13 7,15 14,15 14,14 @16,14",
+    "route:2": "P0x>P0x self 4,11 4,13 6,13 6,12 @34,12",
+    "row:0": "┏━ P0 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
+    "row:1": "┃                                    ┃",
+    "row:10": "┃ ┃ P0x ┃                            ┃",
+    "row:11": "┃ ┗━┬━━━┛                            ┃",
+    "row:12": "┃   │ ↑                           x  ┃",
+    "row:13": "┃   ╰─╯┬                          yy ┃",
+    "row:14": "┃      │      ↑ a long label here zzz┃",
+    "row:15": "┗━━━━━━╰──────╯━━━━━━━━━━━━━━━━━━━━━━┛",
+    "row:2": "┃ ┏━━━━━┓                            ┃",
+    "row:3": "┃ ┃ P0y ┃                            ┃",
+    "row:4": "┃ ┗━━━━━┛                            ┃",
+    "row:5": "┃    ↑                               ┃",
+    "row:6": "┃    │    x                          ┃",
+    "row:7": "┃    │    yy                         ┃",
+    "row:8": "┃    │    zzz                        ┃",
+    "row:9": "┃ ┏━━┴━━┓                            ┃",
+    rows: 16,
+  })
+  expect(
+    drawn(
+      "state P0 {\n}\nstate P1 {\nP1y --> [*]\nstate P1n {\nP1nz --> P1nw\n}\n}\nP1nw --> P1nz : x<br>yy<br>zzz\nP1nz --> P1n : a long label here",
+    ),
+  ).toMatchObject({
+    "route:3": "P1nz>P1n side-parallel 51,9 52,9 52,13 75,13 @77,11",
+    "row:11": "│                                         │  ▲      │                │    │  a long label here│",
+    "row:13": "│                                         │  │      ╰────────────────┼─────◀                  │",
+    rows: 22,
+  })
+  expect(
+    drawn(
+      'direction TB\nstate "Outer" as P0 {\nP0x --> P0y\n}\nA --> A : a long label here\nA --> D : a long label here\nA --> [*]',
+      { borderStyle: "double", arrowHeadStyle: "filled" },
+    ),
+  ).toMatchObject({
+    "route:0": "P0x>P0y vertical 5,4 5,8",
+    "route:1": "A>A self 4,18 4,20 7,20 7,19 @16,19",
+    "route:2": "A>D vertical 5,18 5,22 @16,21",
+    "route:3": "A>__end side-parallel 8,17 14,17 14,30 6,30",
+    "row:0": "╔═ Outer ═╗",
+    "row:1": "║         ║",
+    "row:10": "║ ║ P0y ║ ║",
+    "row:11": "║ ╚═════╝ ║",
+    "row:12": "║         ║",
+    "row:13": "╚═════════╝",
+    "row:14": "",
+    "row:15": "",
+    "row:16": "  ╔═════╗",
+    "row:17": "  ║  A  ├─────╮",
+    "row:18": "  ╚═┬┬══╝     │",
+    "row:19": "    ││ ▲      │ a long label here",
+    "row:2": "║ ╔═════╗ ║",
+    "row:20": "    ╰┼─╯      │",
+    "row:21": "     │        │ a long label here",
+    "row:22": "     ▼        │",
+    "row:23": "   ╔═══╗      │",
+    "row:24": "   ║ D ║      │",
+    "row:25": "   ╚═══╝      │",
+    "row:26": "              │",
+    "row:27": "              │",
+    "row:28": "              │",
+    "row:29": "              │",
+    "row:3": "║ ║ P0x ║ ║",
+    "row:30": "     ◎◀───────╯",
+    "row:4": "║ ╚══┬══╝ ║",
+    "row:5": "║    │    ║",
+    "row:6": "║    │    ║",
+    "row:7": "║    │    ║",
+    "row:8": "║    ▼    ║",
+    "row:9": "║ ╔═════╗ ║",
+    rows: 31,
+  })
+  expect(
+    drawn(
+      "state P0 {\nstate P0n {\nP0nz --> P0nw\n}\n}\nA --> P0n : x<br>yy<br>zzz\nA --> P0nw\nB --> P0nz : a<br>b\nP0n --> P0n : retry\nP0x --> P0nw",
+    ),
+  ).toMatchObject({
+    "route:4": "P0n>P0n self 13,8 13,10 24,10 24,9 @21,12",
+    "route:5":
+      "P0x>P0nw top-feedback 84,11 63,11 63,9 46,9 46,8 34,8 34,2 11,2 11,3 3,3 3,7 4,7 4,8 12,8 12,11 25,11 25,8 24,8 24,5",
+    "row:10": "│  │        │╰──────────╯││         │   ╭───╮│            ╭───╮│                    ╭─────╮",
+    "row:5": "│ │││ P0nz ├┼───────────▶│ P0nw │││ │",
+    "row:7": "│ │╰╮▲──────╯           │ ▲      ││ │",
+    "row:8": "│ ╰─╰───────╮┬──────────╰╮│──────│╰───────────╮",
+    "row:9": "│  ▲        ││          ▲││      ╰───────────╮╰────────────────╮",
+    rows: 22,
+  })
+  expect(
+    drawn(
+      'state "Outer" as P0 {\nstate P0n {\nP0nz --> P0nw\n}\n}\nstate P2 {\nstate P2n {\nP2nz --> P2nw\n}\n}\nstate ch <<choice>>\nP0n --> ch : a long label here',
+    ),
+  ).toMatchObject({
+    "route:2": "P0n>ch vertical-elbow 18,8 18,9 88,9 88,11 @20,11",
+    "row:10": "╰───────────────────────────────────╯     │ │ ╭──────╮             ╭──────╮ │ │         ▼",
+    rows: 17,
+  })
+  expect(
+    drawn(
+      'direction RL\nstate "Outer" as P0 {\nP0x --> P0y : retry\n}\nP0y --> A : x<br>yy<br>zzz\nP0y --> P0 : a<br>b\nP0y --> P0x : retry\nnote right of P0y : n',
+    ),
+  ).toMatchObject({
+    "route:2": "P0y>P0 side-parallel 18,3 17,3 17,6 15,6 @14,4",
+    "row:1": "         yy     │    ▼───────────────╮        │",
+    "row:4": "╰───╯         a ││╰──┬──╯    ╚═══╝    ╰─────╯ │",
+    "row:5": "              b ││   │             retry   ▲  │",
+    "row:6": "               ▶─╯   │                     │  │",
+    "row:8": "                │    │                     │  │",
+    "row:9": "                │    │       retry         │  │",
+    rows: 12,
+  })
+  expect(
+    drawn(
+      'direction TB\nstate P0 {\nP0x --> P0y : go\n}\nstate "Outer" as P1 {\nP1x --> P1y : go\nstate P1n {\nP1nz --> P1nw\n}\n}\nP1nz --> B : retry\nP0y --> ch : retry\nP1y --> P1nw : a long label here',
+    ),
+  ).toMatchObject({
+    "route:3": "P1nz>B side-parallel 11,38 46,38 46,52 43,52 @48,45",
+    "row:21": "╭─ Outer ────────────────────────╮",
+    "row:22": "│                                │",
+    "row:23": "│    ╭─────╮                     │",
+    "row:24": "│    │ P1x │                     │",
+    "row:25": "│    ╰──┬──╯                     │",
+    "row:26": "│       │                        │",
+    "row:27": "│       │ go                     │",
+    "row:28": "│       │                        │",
+    "row:29": "│       ▼                        │",
+    "row:30": "│    ╭─────╮                     │",
+    "row:31": "│  ╭─┤ P1y │                     │",
+    "row:32": "│  │ ╰─────╯                     │",
+    "row:33": "│  │                             │",
+    "row:34": "│  │ a long label here           │",
+    "row:35": "│ ╭│ P1n ────╮                   │",
+    "row:36": "│ ││         │                   │",
+    "row:37": "│ ││╭──────╮ │                   │",
+    "row:38": "│ │││ P1nz ├──────────────────────────────────╮",
+    "row:39": "│ ││╰───┬──╯ │                   │            │",
+    "row:40": "│ ││    │    │                   │            │",
+    "row:41": "│ ││    │    │                   │            │",
+    "row:42": "│ ││    │    │                   │            │",
+    "row:43": "│ ││    ▼    │                   │            │",
+    "row:44": "│ ││╭──────╮ │                   │            │",
+    "row:45": "│ │▶│ P1nw │ │                   │            │ retry",
+    "row:46": "│ │ ╰──────╯ │                   │            │",
+    "row:47": "│ │          │                   │            │",
+    "row:48": "│ ╰──────────╯                   │            │",
+    "row:49": "│                                │            │",
+    "row:50": "╰────────────────────────────────╯            │",
+    "row:51": "                                      ╭───╮   │",
+    "row:52": "                                      │ B │◀──╯",
+    "row:53": "                                      ╰───╯",
+    rows: 54,
+  })
 })

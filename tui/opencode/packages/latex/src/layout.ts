@@ -526,7 +526,6 @@ function normalizeBinaryRole(
     previous === "punctuation" ||
     previous === "opening" ||
     next === undefined ||
-    next === "binary" ||
     next === "relation" ||
     next === "punctuation" ||
     next === "closing"

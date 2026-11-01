@@ -42,14 +42,15 @@ test("binary and relation symbols and operators get a space each side; punctuati
   expect(draw(r(rel("="), op("lim")))).toBe("= lim")
 })
 
-test("a binary sign is drawn unary at the start, after a relation, operator, punctuation or opening, and before the end, a sign, a relation, punctuation or a closing", () => {
+test("a binary sign is drawn unary at the start, after a sign, relation, operator, punctuation or opening, and before the end, a relation, punctuation or a closing", () => {
   expect(draw(r(bin("-"), s("a")))).toBe("-a")
   expect(draw(r(s("x"), rel("="), bin("-"), s("1")))).toBe("x = -1")
   expect(draw(r(op("sin"), bin("-"), s("x")))).toBe("sin -x")
   expect(draw(r(s(",", "punctuation"), bin("-"), s("x")))).toBe(",-x")
   expect(draw(r(s("(", "opening"), bin("-"), s("x")))).toBe("(-x")
   expect(draw(r(s("x"), bin("-")))).toBe("x-")
-  expect(draw(r(s("a"), bin("+"), bin("-"), s("b")))).toBe("a+ - b")
+  // As in TeX, the sign after a sign is the unary one: a + -b.
+  expect(draw(r(s("a"), bin("+"), bin("-"), s("b")))).toBe("a + -b")
   expect(draw(r(s("x"), bin("-"), rel("=")))).toBe("x- =")
   expect(draw(r(s("x"), bin("-"), s(",", "punctuation")))).toBe("x-,")
   expect(draw(r(s("x"), bin("-"), s(")", "closing")))).toBe("x-)")

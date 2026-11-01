@@ -1,7 +1,8 @@
 import { harnessPackage } from "./harness-package"
 import { expect, test } from "bun:test"
 import { packageRoot } from "./harnesses/cli"
-import { stateDefects } from "./harnesses/state-defects"
+import { flowchartDefects, generate as generateFlowchart, summarize as summarizeFlowchart } from "./harnesses/flowchart"
+import { boxDefects, routeDefects, stateDefects } from "./harnesses/state-defects"
 import { random } from "./harnesses/random"
 import { generate, summarize } from "./harnesses/sequence"
 import { generateStyled, summarize as summarizeDrawing } from "./harnesses/state-drawing"
@@ -158,14 +159,103 @@ test("the state drawing harness summarizes each route and each drawn row, with t
 }, 60_000)
 
 test("a state diagram drawn wrongly in a known way is summarized as a defect, so pinned.py never keeps it", async () => {
-  // Two composites off the main path: the second's frame crosses the first, and its last state sits outside it.
-  const crossing = "state P0 {\n[*] --> P0x\nP0x --> P0y : x<br>yy<br>zzz\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y\n}"
-  expect(summarizeLayout(crossing)).toEqual({ error: "defect: composites cross, outside its composite" })
-  // A choice off the main path on its target's top row: the route runs along that state's top border.
-  expect(summarizeDrawing("state ch <<choice>>\n[*] --> A\nch --> B")).toEqual({
-    error: "defect: route through a state",
-  })
+  // P0 --> B's side rail leaves P0 on B's bottom row and runs along B's border (a fork defect, pinned in merman).
+  const along =
+    'state P0 {\nstate "Inside" as P0x\n}\n[*] --> A\nP0 --> B : retry\nB --> P0x\nP0x --> P0x : a long label here'
+  expect(summarizeDrawing(along)).toEqual({ error: "defect: route through a state" })
+  expect(summarizeLayout(along)).toEqual({ error: "defect: route through a state" })
   // A transition's first point, its tee on its own source's border, is not a route through that state.
   const { parseMermaidStateDiagram } = await import(`${packageRoot}/src/state/parser.ts`)
   expect(stateDefects(parseMermaidStateDiagram("stateDiagram-v2\nA --> B\nB --> A"), { minStateGap: 5 })).toEqual([])
+})
+
+test("the defect checks name composites crossing, a state outside its own, and a route through a box but its own tee", () => {
+  const box = (id: string, left: number, top: number, width: number, height: number) => ({
+    id,
+    left,
+    top,
+    width,
+    height,
+  })
+  // The fork no longer draws these; laid out by hand so the checks stay held.
+  const diagram = { states: [{ id: "a", parentId: "P" }], composites: [{ id: "P" }, { id: "Q" }] }
+  const layout = {
+    bounds: new Map([["a", box("a", 20, 2, 5, 3)]]),
+    compositeBounds: new Map([
+      ["P", box("P", 0, 0, 12, 7)],
+      ["Q", box("Q", 8, 4, 12, 7)],
+    ]),
+  }
+  expect(boxDefects(diagram, layout).sort()).toEqual(["composites cross", "outside its composite"])
+  const states = { bounds: new Map([["b", box("b", 10, 0, 5, 3)]]), compositeBounds: new Map() }
+  const plan = (from: string, path: [number, number][]) => ({ path, route: { transition: { from } } })
+  expect(
+    routeDefects(states, [
+      plan("b", [
+        [12, 2],
+        [12, 5],
+      ]),
+    ]),
+  ).toEqual([])
+  expect(
+    routeDefects(states, [
+      plan("c", [
+        [8, 1],
+        [12, 1],
+        [16, 1],
+      ]),
+    ]),
+  ).toEqual(["route through a state"])
+})
+
+test("the flowchart harness makes the same inputs for a seed, an options line and a header first, each node in one frame at most", () => {
+  expect(many(generateFlowchart, 5, 50)).toEqual(many(generateFlowchart, 5, 50))
+  for (const input of many(generateFlowchart, 5, 200)) {
+    expect(input.split("\n").slice(0, 2)).toEqual([
+      expect.stringMatching(/^%%opts \{.*\}$/),
+      expect.stringMatching(/^flowchart (TD|LR|BT|RL)$/),
+    ])
+    const members = [...input.matchAll(/^subgraph [^\n]*\n((?:(?!end\n)[^\n]*\n)*?)end/gm)].flatMap((block) =>
+      block[1]!.split("\n").flatMap((line) => (/^[A-F][^ ]*$/.test(line) ? [line[0]] : [])),
+    )
+    expect(new Set(members).size).toBe(members.length)
+  }
+})
+
+test("the flowchart harness summarizes one key per layout item, by the tests' own summary, with the options line", () => {
+  expect(summarizeFlowchart("%%opts {}\nflowchart LR\nA --> B")).toEqual({
+    A: "A 0,0 5x3 c2,1",
+    B: "B 12,0 5x3 c14,1",
+    "A>B": "A>B 5,1 11,1",
+    size: "21x7 LR",
+  })
+  expect(summarizeFlowchart('%%opts {"minNodeGap":1}\nflowchart LR\nA --> A\nA --> A')).toMatchObject({
+    "A>A": expect.any(String),
+    "A>A#1": expect.any(String),
+  })
+  expect(summarizeFlowchart("%%opts {}\nflowchart LR\nA -->")).toEqual({
+    error: expect.stringContaining("MermaidSyntaxError"),
+  })
+})
+
+test("the flowchart defect check names nodes overlapping, a node outside its own frame and one in another's", () => {
+  const box = (id: string, left: number, top: number, width = 5, height = 3) => ({ id, left, top, width, height })
+  const layout = {
+    diagram: {
+      subgraphs: [
+        { id: "G", nodeIds: ["a"] },
+        { id: "H", nodeIds: [] },
+      ],
+    },
+    bounds: new Map([
+      ["a", box("a", 20, 0)],
+      ["b", box("b", 22, 1)],
+    ]),
+    subgraphBounds: new Map([
+      ["G", box("G", 0, 0, 10, 5)],
+      ["H", box("H", 18, 0, 12, 6)],
+    ]),
+  }
+  expect(flowchartDefects(layout)).toEqual(["in another frame", "nodes overlap", "outside its frame"])
+  expect(flowchartDefects({ ...layout, bounds: new Map([["a", box("a", 2, 1)]]) })).toEqual([])
 })

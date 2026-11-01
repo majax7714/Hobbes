@@ -233,7 +233,22 @@ export function drawDiagramDiamond(
   const right = bounds.left + bounds.width - 1
   const top = bounds.top
   const bottom = bounds.top + bounds.height - 1
-  const capInset = Math.min(2, Math.max(1, Math.floor((bounds.width - 1) / 2)))
+  // Under 4 wide the caps cannot stand apart, and under 4 tall the shoulders and the foot share a row: a box.
+  if (bounds.width < 4 || bounds.height < 4) {
+    setCell(left, top, chars.topLeft)
+    for (let x = left + 1; x < right; x++) setCell(x, top, chars.horizontal)
+    setCell(right, top, chars.topRight)
+    for (let y = top + 1; y < bottom; y++) {
+      setCell(left, y, chars.vertical)
+      setCell(right, y, chars.vertical)
+    }
+    setCell(left, bottom, chars.bottomLeft)
+    for (let x = left + 1; x < right; x++) setCell(x, bottom, chars.horizontal)
+    setCell(right, bottom, chars.bottomRight)
+    return
+  }
+  // At most half the width less two, so the caps keep at least one column apart.
+  const capInset = Math.min(2, Math.floor((bounds.width - 2) / 2))
   const capLeft = left + capInset
   const capRight = right - capInset
 

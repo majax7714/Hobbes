@@ -339,6 +339,18 @@ test("a line no statement matches is refused: an arrow inside an end, no colon, 
   }
 })
 
+test("a note over no one, its list only commas and blanks, is refused rather than drawn as nothing", () => {
+  for (const line of ["Note over ,: ghost", "Note right of , ,: ghost"]) {
+    expect(where(syntaxError(`sequenceDiagram\nA->>B: x\n${line}`))).toEqual([
+      3,
+      line,
+      `Note requires a participant in sequence diagram at line 3: "${line}"`,
+    ])
+  }
+  // A blank between two participants is still dropped.
+  expect(parse("Note over A, ,B: x").steps[0]).toMatchObject({ note: { over: ["A", "B"] } })
+})
+
 // subsume reads this case as redundant: it cannot plant a change in the order statements are tried. Planted by
 // hand (messages matched before loop and activate), this is the only case that fails.
 test("statements are matched before messages, so a keyword-named sender followed by a space reads as that keyword", () => {

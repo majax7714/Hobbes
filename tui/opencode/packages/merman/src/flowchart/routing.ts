@@ -549,14 +549,16 @@ function routeParallelEdges(
     let previousRoute: FlowchartEdgeRoute | undefined
     for (const edge of edges) {
       const height = labelHeight(edge)
+      // The side points are the first cells outside each node, so the first lane is at least one beyond them: on
+      // them, the route would run straight along both sides and its head point past the target.
       const laneCoordinate =
         parallelAxis === "x"
           ? previousRoute
             ? rightRenderExtent(previousRoute) + NODE_CLEARANCE
-            : Math.max(boundsSidePoint(from, "right").x, boundsSidePoint(to, "right").x) + (directionAligned ? 1 : 0)
+            : Math.max(boundsSidePoint(from, "right").x, boundsSidePoint(to, "right").x) + 1
           : previousRoute
             ? Math.max(...previousRoute.points.map((point) => point.y)) + (height > 1 ? height + 1 : 1)
-            : Math.max(boundsSidePoint(from, "bottom").y, boundsSidePoint(to, "bottom").y) + (height > 1 ? height : 0)
+            : Math.max(boundsSidePoint(from, "bottom").y, boundsSidePoint(to, "bottom").y) + (height > 1 ? height : 1)
       const route: FlowchartEdgeRoute = {
         edge,
         points: parallelEdgePath(from, to, parallelAxis, laneCoordinate),

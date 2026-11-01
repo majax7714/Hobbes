@@ -17,7 +17,7 @@ const overlap = (a: Box, b: Box) =>
 const inside = (a: Box, o: Box) =>
   a.left >= o.left && a.top >= o.top && a.left + a.width <= o.left + o.width && a.top + a.height <= o.top + o.height
 
-function boxDefects(diagram: Diagram, layout: Layout): string[] {
+export function boxDefects(diagram: Diagram, layout: Layout): string[] {
   const found: string[] = []
   for (const item of [...diagram.states, ...diagram.composites]) {
     const box = layout.compositeBounds.get(item.id) ?? layout.bounds.get(item.id)
@@ -37,14 +37,20 @@ export function stateDefects(diagram: unknown, options: { minStateGap: number })
   const found = boxDefects(visible, createStateDiagramLayout(visible, { minStateGap: options.minStateGap }))
   const drawing = createStateDiagramDrawing(diagram, options)
   found.push(...boxDefects(drawing.diagram, drawing.layout))
-  const states = [...drawing.layout.bounds.values()].filter(
-    (box: Box) => !drawing.layout.compositeBounds.has(box.id) && box.width > 1,
-  )
-  for (const plan of drawing.transitionPlans)
-    plan.path.forEach(([x, y]: [number, number], index: number) => {
+  found.push(...routeDefects(drawing.layout, drawing.transitionPlans))
+  return [...new Set(found)].sort()
+}
+
+type Plan = { path: [number, number][]; route: { transition: { from: string } } }
+
+export function routeDefects(layout: Layout, plans: readonly Plan[]): string[] {
+  const found: string[] = []
+  const states = [...layout.bounds.values()].filter((box: Box) => !layout.compositeBounds.has(box.id) && box.width > 1)
+  for (const plan of plans)
+    plan.path.forEach(([x, y], index) => {
       for (const box of states)
         if (overlap({ id: "", left: x, top: y, width: 1, height: 1 }, box))
           if (index > 0 || box.id !== plan.route.transition.from) found.push("route through a state")
     })
-  return [...new Set(found)].sort()
+  return found
 }

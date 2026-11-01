@@ -929,8 +929,41 @@ function separateTopLevelItems(
     return moved
   }
 
+  const reversed = diagram.direction === "RL" || diagram.direction === "BT"
+  // A node outside every frame never lies over a frame or another item: it moves past each one it overlaps, as far
+  // as needed: across the flow, or, with a target width top-down, along it (down, or up bottom to top) so the width
+  // holds.
+  const separateOutsideNodes = (): boolean => {
+    const along = targetWidth !== undefined && !horizontal
+    let shifted = false
+    const overlaps = (left: FlowchartBounds, right: FlowchartBounds) =>
+      left.left < right.left + right.width &&
+      right.left < left.left + left.width &&
+      left.top < right.top + right.height &&
+      right.top < left.top + left.height
+    for (const item of items) {
+      if (topLevelIds.has(item.id)) continue
+      for (let attempt = 0; attempt < items.length; attempt++) {
+        const other = items.find((candidate) => candidate !== item && overlaps(item.bounds, candidate.bounds))
+        if (!other) break
+        const [dx, dy] = along
+          ? [
+              0,
+              reversed
+                ? other.bounds.top - gap - (item.bounds.top + item.bounds.height)
+                : other.bounds.top + other.bounds.height + gap - item.bounds.top,
+            ]
+          : horizontal
+            ? [0, other.bounds.top + other.bounds.height + gap - item.bounds.top]
+            : [other.bounds.left + other.bounds.width + gap - item.bounds.left, 0]
+        shifted = true
+        moveItem(item, dx, dy)
+      }
+    }
+    return shifted
+  }
   const rankedItems = items.filter((item) => topLevelIds.has(item.id))
-  if (rankedItems.length < 2) return false
+  if (rankedItems.length < 2) return separateOutsideNodes()
 
   const itemById = new Map(rankedItems.map((item) => [item.id, item]))
   const outgoing = new Map(rankedItems.map((item) => [item.id, new Set<string>()]))
@@ -947,7 +980,6 @@ function separateTopLevelItems(
   )
   for (const item of rankedItems) item.rank = ranks.get(item.id)!
 
-  const reversed = diagram.direction === "RL" || diagram.direction === "BT"
   const primaryStart = (item: (typeof items)[number]): number => {
     const start = horizontal ? item.bounds.left : item.bounds.top
     const size = horizontal ? item.bounds.width : item.bounds.height
@@ -998,6 +1030,7 @@ function separateTopLevelItems(
       crossCursor = start + shift + size + gap
     }
   }
+  moved = separateOutsideNodes() || moved
   if (targetWidth !== undefined && !horizontal) {
     const intersects = (left: (typeof items)[number], right: (typeof items)[number]): boolean =>
       [...left.nodeIds].some((leftId) => {

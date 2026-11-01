@@ -7,6 +7,7 @@ import {
   hasReverseTransition,
   isStateHorizontalFeedback,
   measureStateTransitionLabel,
+  selfTransitionCounts,
   type StateTransitionRenderPlan,
 } from "./routing.js"
 import {
@@ -145,6 +146,19 @@ function computeMainPath(diagram: StateDiagram): string[] {
 function stateSize(state: StateDiagramState): { width: number; height: number; lines: string[] } {
   if (state.kind !== "state") return { width: 1, height: 1, lines: [state.label] }
   return measureDiagramTextBox(state.label, { paddingX: 2, paddingY: 1 })
+}
+
+// A state with self loops is at least two columns wider per loop than a bare box, so each head can find a column
+// under it that no other route touches.
+function stateSizes(diagram: StateDiagram): Map<string, { width: number; height: number; lines: string[] }> {
+  const loops = selfTransitionCounts(diagram)
+  return new Map(
+    diagram.states.map((state) => {
+      const size = stateSize(state)
+      const count = loops.get(state.id) ?? 0
+      return [state.id, size.width > 1 && count > 0 ? { ...size, width: Math.max(size.width, 2 * count + 5) } : size]
+    }),
+  )
 }
 
 function noteLines(note: StateDiagramNote): string[] {
@@ -511,42 +525,39 @@ function enforceCompositeMargins(diagram: StateDiagram, compositeBounds: Map<str
   for (const composite of diagram.composites.filter((candidate) => !candidate.parentId)) expand(composite)
 }
 
-function boundsIntersect(left: StateDiagramBoxBounds, right: StateDiagramBoxBounds): boolean {
-  return intersects(left.left, left.top, left.width, left.height, right, 0)
-}
-
 export function separateExternalBoundsFromComposites(diagram: StateDiagram, layout: StateDiagramLayout): boolean {
   const statesById = new Map(diagram.states.map((state) => [state.id, state]))
   const compositesById = new Map(diagram.composites.map((composite) => [composite.id, composite]))
+  const parentOf = (id: string) => statesById.get(id)?.parentId ?? compositesById.get(id)?.parentId
+  const ids = [...diagram.states.map((state) => state.id), ...diagram.composites.map((composite) => composite.id)]
   let shifted = false
 
   for (const composite of diagram.composites) {
     const compositeBound = layout.compositeBounds.get(composite.id)
     if (!compositeBound) continue
+    const ancestors = new Set<string>()
+    for (let id = composite.parentId; id; id = compositesById.get(id)?.parentId) ancestors.add(id)
+    // Outside the composite: neither it, nor inside it, nor one of the composites around it.
+    const outside = (id: string) =>
+      id !== composite.id && !ancestors.has(id) && !belongsToComposite(id, composite.id, statesById, compositesById)
 
-    for (const state of diagram.states) {
-      if (belongsToComposite(state.id, composite.id, statesById, compositesById)) continue
-      const bound = layout.bounds.get(state.id)
-      if (!bound || !boundsIntersect(bound, compositeBound)) continue
+    for (const id of ids) {
+      if (!outside(id)) continue
+      const bound = layout.bounds.get(id)
+      // A cell clear of the frame, so a route into a state just under or beside it need not run on the border.
+      if (!bound || !intersects(bound.left, bound.top, bound.width, bound.height, compositeBound, 1)) continue
 
-      const dx = compositeBound.left + compositeBound.width + 4 - bound.left
+      // What moves is the outermost composite around it that is still outside, so a composite moves whole.
+      let unit = id
+      for (let parent = parentOf(unit); parent && outside(parent); parent = parentOf(parent)) unit = parent
+      const unitBound = layout.bounds.get(unit)!
+      const dx = compositeBound.left + compositeBound.width + 4 - unitBound.left
       if (dx <= 0) continue
-      const leftThreshold = bound.left
-      const boundsToShift: StateDiagramBoxBounds[] = []
-
-      for (const candidate of diagram.states) {
-        if (belongsToComposite(candidate.id, composite.id, statesById, compositesById)) continue
-        const candidateBound = layout.bounds.get(candidate.id)
-        if (candidateBound && candidateBound.left >= leftThreshold) boundsToShift.push(candidateBound)
-      }
-
-      for (const candidate of diagram.composites) {
-        if (candidate.id === composite.id || belongsToComposite(candidate.id, composite.id, statesById, compositesById))
-          continue
-        const candidateBound = layout.compositeBounds.get(candidate.id)
-        if (candidateBound && candidateBound.left >= leftThreshold) boundsToShift.push(candidateBound)
-      }
-
+      const leftThreshold = unitBound.left
+      const boundsToShift = ids.flatMap((candidate) => {
+        const candidateBound = layout.bounds.get(candidate)
+        return outside(candidate) && candidateBound && candidateBound.left >= leftThreshold ? [candidateBound] : []
+      })
       for (const noteBound of layout.noteBounds) {
         const target = layout.bounds.get(noteBound.note.target)
         if (target && boundsToShift.includes(target)) boundsToShift.push(noteBound)
@@ -556,7 +567,39 @@ export function separateExternalBoundsFromComposites(diagram: StateDiagram, layo
       shifted = true
     }
   }
+  if (shifted) growCompositesAroundMembers(diagram, layout)
   return shifted
+}
+
+// After a shift, each composite, innermost first, grows to keep its members 2 cells inside its frame again.
+function growCompositesAroundMembers(diagram: StateDiagram, layout: StateDiagramLayout): void {
+  const compositesById = new Map(diagram.composites.map((composite) => [composite.id, composite]))
+  const depth = (id: string) => {
+    let count = 0
+    for (let parent = compositesById.get(id)?.parentId; parent; parent = compositesById.get(parent)?.parentId) count++
+    return count
+  }
+  const members = new Map<string, string[]>()
+  for (const item of [...diagram.states, ...diagram.composites]) {
+    if (item.parentId) members.set(item.parentId, [...(members.get(item.parentId) ?? []), item.id])
+  }
+  for (const composite of [...diagram.composites].sort((left, right) => depth(right.id) - depth(left.id))) {
+    const frame = layout.compositeBounds.get(composite.id)
+    const inner = (members.get(composite.id) ?? []).flatMap((id) => layout.bounds.get(id) ?? [])
+    if (!frame || inner.length === 0) continue
+    const left = Math.min(frame.left, ...inner.map((bound) => bound.left - 2))
+    const top = Math.min(frame.top, ...inner.map((bound) => bound.top - 2))
+    const right = Math.max(frame.left + frame.width, ...inner.map((bound) => bound.left + bound.width + 2))
+    const bottom = Math.max(frame.top + frame.height, ...inner.map((bound) => bound.top + bound.height + 2))
+    Object.assign(frame, {
+      left,
+      top,
+      width: right - left,
+      height: bottom - top,
+      centerX: left + Math.floor((right - left) / 2),
+      centerY: top + Math.floor((bottom - top) / 2),
+    })
+  }
 }
 
 function finalizeLayout(
@@ -613,7 +656,7 @@ export function createStateDiagramLayout(
   }
 
   const rankKeys = [...byRank.keys()].sort((a, b) => a - b)
-  const sizes = new Map(diagram.states.map((state) => [state.id, stateSize(state)]))
+  const sizes = stateSizes(diagram)
   const bounds = new Map<string, StateDiagramBoxBounds>()
   const outgoingLabelRows = new Map<string, number>()
   const selfTransitionCounts = new Map<string, number>()
@@ -665,7 +708,7 @@ export function createStateDiagramLayout(
 }
 
 function createHorizontalLayout(diagram: StateDiagram, options: StateDiagramLayoutOptions): StateDiagramLayout {
-  const sizes = new Map(diagram.states.map((state) => [state.id, stateSize(state)]))
+  const sizes = stateSizes(diagram)
   const bounds = new Map<string, StateDiagramBoxBounds>()
   const statesById = new Map(diagram.states.map((state) => [state.id, state]))
   const mainPath = computeMainPath(diagram)
@@ -761,7 +804,9 @@ function createHorizontalLayout(diagram: StateDiagram, options: StateDiagramLayo
     .sort((left, right) => (ranks.get(left.id) ?? 0) - (ranks.get(right.id) ?? 0))
   for (const state of fallbackStates) {
     const size = sizes.get(state.id)!
-    const top = baselineY + 5
+    // As on the main path, a marker or choice sits on the row's centre: a box's top is 5 below the baseline, so its
+    // centre is 6 below.
+    const top = state.kind === "state" ? baselineY + 5 : baselineY + 6
     const rank = ranks.get(state.id) ?? bounds.size
     let left = rank * (size.width + defaultGap)
     while (true) {

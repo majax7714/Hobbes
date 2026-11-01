@@ -103,22 +103,29 @@ test("a diamond has caps inset by two, shoulders, sides and a foot; its characte
   )
 })
 
-test("a narrow diamond insets its caps by half its width less one, at least one and at most two", () => {
+test("a narrow diamond insets its caps by half its width less two, at most two, so they stay apart", () => {
   const diamond = (width: number) => draw(width, 4, (set) => drawDiagramDiamond(diagramBoundsFromRect(0, 0, width, 4), set))
   expect(diamond(4)).toBe(" ╭╮\n╭╯╰╮\n╰╮╭╯\n ╰╯")
+  expect(diamond(5)).toBe(" ╭─╮\n╭╯ ╰╮\n╰╮ ╭╯\n ╰─╯")
   expect(diamond(6)).toBe("  ╭╮\n╭─╯╰─╮\n╰─╮╭─╯\n  ╰╯")
 })
 
-test("a diamond 2, 3 or 5 wide draws both caps on one column, the right one over the left (a fork oddity, pinned)", () => {
-  const diamond = (width: number) => draw(width, 4, (set) => drawDiagramDiamond(diagramBoundsFromRect(0, 0, width, 4), set))
-  expect(diamond(5)).toBe("  ╮\n╭─╰─╮\n╰─╭─╯\n  ╯")
-  expect(diamond(3)).toBe(" ╮\n╭╰╮\n╰╭╯\n ╯")
-  expect(diamond(2)).toBe("╮╭\n╰╮\n╭╯\n╯╰")
+test("a diamond under 4 wide or under 4 tall has no room for caps and shoulders, so it is drawn as a box", () => {
+  const diamond = (width: number, height: number) =>
+    draw(width, height, (set) => drawDiagramDiamond(diagramBoundsFromRect(0, 0, width, height), set))
+  expect(diamond(3, 4)).toBe("╭─╮\n│ │\n│ │\n╰─╯")
+  expect(diamond(2, 4)).toBe("╭╮\n││\n││\n╰╯")
+  expect(diamond(7, 3)).toBe("╭─────╮\n│     │\n╰─────╯")
 })
 
-test("a whole diamond and a frame write each cell once, so a merging canvas sees no stray glyph", () => {
+test("a diamond of any size from 2 by 3 and a frame write each cell once, so a merging canvas sees no stray glyph", () => {
+  const diamonds = [2, 3, 4, 5, 6, 7, 8, 9].flatMap((width) =>
+    [3, 4, 5, 6].map((height) => (set: (x: number, y: number, char: string) => void) =>
+      drawDiagramDiamond(diagramBoundsFromRect(0, 0, width, height), set),
+    ),
+  )
   for (const paint of [
-    (set: (x: number, y: number, char: string) => void) => drawDiagramDiamond(diagramBoundsFromRect(0, 0, 9, 6), set),
+    ...diamonds,
     (set: (x: number, y: number, char: string) => void) => drawDiagramFrame(diagramBoundsFromRect(0, 0, 5, 4), BorderChars.single, set),
   ]) {
     const writes = new Map<string, number>()

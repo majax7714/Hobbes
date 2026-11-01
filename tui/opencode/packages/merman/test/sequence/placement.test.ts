@@ -192,8 +192,12 @@ test("a note over participants apart widens no gap; it centres between the outer
   expect(apart.width).toBe(44)
 })
 
-test("a note over no one takes its rows and places nothing (a fork defect: its text is dropped without an error)", () => {
-  const placed = plan("A->>B: x\nNote over ,: ghost")
+test("a note over no one, which the parser refuses but a diagram built by hand can hold, takes its rows and places nothing", () => {
+  const diagram = parseMermaidSequenceDiagram("sequenceDiagram\nA->>B: x\nNote over A: ghost")
+  const note = diagram.steps[1]!
+  if (note.type !== "note") throw new Error("expected the note")
+  note.note.over = []
+  const placed = createSequencePlacementPlan(diagram)
   expect(placed.steps.map((step) => step.type)).toEqual(["message"])
   expect(size(placed)).toEqual([21, 3 + 3 + 3])
 })
