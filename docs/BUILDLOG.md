@@ -17390,3 +17390,36 @@ Both fixes, random diagrams seeds 11–13: 53 of 3,000 drawings change, no defec
 cells 429,167 -> 429,385 (the lost loops drawn). Three pinned-as-observed values moved, drawn before and after and
 read (one had pinned the lost loop); each change fails a case alone. merman 408 pass, `tsc` and prettier clean,
 harnesses 14.
+
+## 2026-11-01 (fifty-first session) — PR #21 merged; a state frame's run to its own member; the reviews' cleanups
+
+PR #21 opened and reviewed on Max's word ("good to open pr review and proceed to merging"), all four CI jobs green,
+merged as `434daf3`. The review posted 10 comments. I checked its two drawing findings against the code before the merge:
+
+- The composite-to-member finding was not from the PR: `P0 --> P0y` draws only a tee on the PR's base too, in a
+  two-state composite. It did not block the merge.
+- The shared-segment finding was a cost of the PR: routes with no end in common share a segment in 3 of 3,000, against
+  1 before. Its worked example has same-end routes, which were never obstacles, so it does not itself show this. Kept
+  as the price of routes through a state 8 -> 0, recorded in `currently-open.md`.
+
+Then, on `fix/state-composite-member`:
+
+- **The run fixed.** The run left the frame's far side outward, so it had no cells and its head fell on the member's far
+  side. It now goes from the nearer wall to the member's facing side, or from the member to that wall.
+- **A first version was too wide.** It applied the frame rule to every route kind and took routes through a state from
+  0 to 27 of 3,000. Only horizontal runs take it now: 0 of 3,000.
+- **A stale baseline, caught.** My first before-and-after for the fix used a copy of the tree from before PR #21 merged,
+  so its counts mixed in PR #21's changes (8 defects "before", 312 drawings changed). Re-extracted from `434daf3`: 0
+  defects, 178 of 3,000 change. The "about 200 of 3,000" I gave Max before the merge also overstated this defect: that
+  metric counts any jump in a path, and 189 of its routes were this horizontal shape, the rest other kinds (16 drawings
+  remain).
+- **Measures**, seeds 11-13: horizontal routes with a gap 0 of 4,831; routes through a state 0; refusals 1 -> 1. Six
+  pinned-as-observed cases moved, each read: they had pinned the misdrawn run or a frame grown round it. One derived
+  case added.
+- **Left open** (`currently-open.md`): rails off a nested frame with a gap (16 of 3,000; two drawings read, the rest
+  not), a note in the run's way (2 of 3,000; the connector reads badly), the shared segments, and a side rail built
+  along its target's border then repaired.
+- **Cleanups.** PR #20's four and PR #21's small ones. All 3,000 diagrams' transition plans are byte-identical before and
+  after.
+
+merman 409 pass, `tsc` and prettier clean, harnesses 14, `test_pinned.py` 5. No `VERSION` bump (fork fixes do not).

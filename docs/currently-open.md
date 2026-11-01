@@ -109,9 +109,17 @@ Left by the fold (2026-10-28):
   - **Fork defects found by our tests, fixed 2026-11-01** (BUILDLOG; PR #20, merged): `latex`'s four, `core`'s
     diamond caps, flowchart's two, sequence's note over no one, and state's self loop heads, same-row side rail
     and left-to-right fallback row. Two more were found measuring those fixes on random inputs:
-    - **State, fixed** (`fix/fork-found-defects`): a route that crossed its own source's or target's box (a side
+    - **State, fixed** (PR #21, merged): a route that crossed its own source's or target's box (a side
       rail whose ends are a row apart ran on the target's border) is now repaired, and a repair walled in by
-      earlier routes may cross one of them. Routes through a state: 8 of 3,000 -> 0 of 10,000.
+      earlier routes may cross or run along one of them. Routes through a state: 8 of 3,000 -> 0 of 3,000 on today's
+      code (seeds 11–13; 0 of 10,000 before the later self-loop commit). The check skips 1-cell states and notes.
+    - **State, open, found by PR #21's review:**
+      - a side rail or bottom rail off a nested frame still has a gap in its path, so part of the route is not drawn
+        (16 of 3,000, seeds 11–13). The same defect on a horizontal run is fixed (`fix/state-composite-member`).
+      - a note in such a run's way can stay under it, or take a connector that reads badly (2 of 3,000).
+      - routes with no end in common share a segment in 3 of 3,000, against 1 before PR #21's retry; `state-defects.ts`
+        does not flag it. The price of 8 -> 0 above.
+      - a side rail is still built along its target's border and then repaired, rather than built clear.
     - **Flowchart, left pinned (Max's route 3, 2026-11-01):** a nested frame can take in its parent's other
       nodes (15 of 10,000 random flowcharts, `harnesses/flowchart.ts`, seeds 1–10; all a nested frame over a
       node in its parent). Two causes: a frame fitted to a self loop that an earlier routing pass sent round the
@@ -125,8 +133,7 @@ Left by the fold (2026-10-28):
       (frames grown once; the layout check, 10,000), :575 (notes past their frame; 0 of 582), :1033 (flowchart
       pass order; no free node among the 15). :489 (same-row straight run) draws repaired; only note placement
       reads the unrepaired plan, as for every route kind. :237 (diamond box fallback at 1 wide) is latent: the
-      only caller draws a decision at least 7 by 5. The four cleanups (a shadowed `selfTransitionCounts`, two
-      grow-round-members copies, a copied `overlap` in the flowchart harness) are not done.
+      only caller draws a decision at least 7 by 5. Its four cleanups are done (`fix/state-composite-member`).
     The fixes do not bump `VERSION` (Max, 2026-11-01: fork fixes do not).
   - **Found re-checking flowchart's tests (2026-11-01):** four derived cases in
     `test/flowchart/layout.test.ts` are redundant among the derived cases alone, already on `main` (unreached

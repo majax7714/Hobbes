@@ -1,8 +1,7 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-11-01 (fiftieth session); `main` at 0.3.9-beta (`2ec43ce`, PRs #8–#20 merged); branch
-`fix/fork-found-defects`, not yet pushed (state's own-end crossing, empty self-loop repairs and the fallback row
-fixed; PR #20's review triaged; flowchart's nested frame left pinned); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+**Reviewed 2026-11-01 (fifty-first session); `main` at 0.3.9-beta (`434daf3`, PRs #8–#21 merged); branch
+`fix/state-composite-member`, not yet pushed (a state frame's run to its own member fixed; the reviews' cleanups); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -45,8 +44,9 @@ session went belongs in the BUILDLOG.
 `core` (PR #9), the top level (PR #10), flowchart (PR #13), gantt and gitGraph (PR #14), sequence (PR #15, #16),
 state (PR #18; the older `test/merman-state` branch is superseded, delete it), timeline (PR #19). Max
 (2026-11-01): "look to fix the defects before proceeding with core/shell"; all ten are fixed (PR #20, merged),
-and of the two found measuring them, state's is fixed on `fix/fork-found-defects` (merman 408 pass); flowchart's
-stays pinned (Max's route 3: route 1 measured heavy). PR #20's review is triaged there too (`currently-open.md`). **Measure a layout fix on random inputs before and after** (state: the
+and of the two found measuring them, state's is fixed (PR #21); flowchart's stays pinned (Max's route 3: route 1
+measured heavy). PR #21's review found more; one is fixed on `fix/state-composite-member` (merman 409 pass), the rest
+are open in `currently-open.md`. **Measure a layout fix on random inputs before and after** (state: the
 harnesses' generator and `state-defects.ts`, seeds 11–13; flowchart: `harnesses/flowchart.ts`, seeds 1–10).
 
 How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests under
@@ -68,8 +68,7 @@ in `currently-open.md`). Then ADR-184's unbuilt levers (`currently-open.md`): a 
 ADR first. The extraction routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- Push `fix/fork-found-defects` (Max's step), then its PR; next, `core/shell` on his word.
-- PR #20's four cleanup comments: whether to do them.
+- Push `fix/state-composite-member` (Max's step), then its PR and merge; then `core/shell`.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - H-39: the trace oracle's re-entrance guard is shared across threads; a thread-local guard moves every key
   with a threaded test (`currently-open.md`).
@@ -78,6 +77,7 @@ ADR first. The extraction routes stand as they were: C is the next-thinnest lang
 
 ## Where the last day left things (2026-10-31; the CHANGELOG and BUILDLOG have each one)
 
+Fifty-first session: PR #21 merged; a state frame's run to its own member fixed, the reviews' cleanups done.
 Fiftieth session: the fork's ten pinned defects fixed (PR #20); state's own-end crossing fixed; `merman`'s timeline (PR #19) and state (PR #18), sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
 cap (PR #16), the state side rail's endless loop fixed (PR #17); three state drawing defects found and pinned.
 
