@@ -1,6 +1,7 @@
 import { harnessPackage } from "./harness-package"
 import { expect, test } from "bun:test"
 import { packageRoot } from "./harnesses/cli"
+import { flowchartDefects, generate as generateFlowchart, summarize as summarizeFlowchart } from "./harnesses/flowchart"
 import { boxDefects, routeDefects, stateDefects } from "./harnesses/state-defects"
 import { random } from "./harnesses/random"
 import { generate, summarize } from "./harnesses/sequence"
@@ -205,4 +206,56 @@ test("the defect checks name composites crossing, a state outside its own, and a
       ]),
     ]),
   ).toEqual(["route through a state"])
+})
+
+test("the flowchart harness makes the same inputs for a seed, an options line and a header first, each node in one frame at most", () => {
+  expect(many(generateFlowchart, 5, 50)).toEqual(many(generateFlowchart, 5, 50))
+  for (const input of many(generateFlowchart, 5, 200)) {
+    expect(input.split("\n").slice(0, 2)).toEqual([
+      expect.stringMatching(/^%%opts \{.*\}$/),
+      expect.stringMatching(/^flowchart (TD|LR|BT|RL)$/),
+    ])
+    const members = [...input.matchAll(/^subgraph [^\n]*\n((?:(?!end\n)[^\n]*\n)*?)end/gm)].flatMap((block) =>
+      block[1]!.split("\n").flatMap((line) => (/^[A-F][^ ]*$/.test(line) ? [line[0]] : [])),
+    )
+    expect(new Set(members).size).toBe(members.length)
+  }
+})
+
+test("the flowchart harness summarizes one key per layout item, by the tests' own summary, with the options line", () => {
+  expect(summarizeFlowchart("%%opts {}\nflowchart LR\nA --> B")).toEqual({
+    A: "A 0,0 5x3 c2,1",
+    B: "B 12,0 5x3 c14,1",
+    "A>B": "A>B 5,1 11,1",
+    size: "21x7 LR",
+  })
+  expect(summarizeFlowchart('%%opts {"minNodeGap":1}\nflowchart LR\nA --> A\nA --> A')).toMatchObject({
+    "A>A": expect.any(String),
+    "A>A#1": expect.any(String),
+  })
+  expect(summarizeFlowchart("%%opts {}\nflowchart LR\nA -->")).toEqual({
+    error: expect.stringContaining("MermaidSyntaxError"),
+  })
+})
+
+test("the flowchart defect check names nodes overlapping, a node outside its own frame and one in another's", () => {
+  const box = (id: string, left: number, top: number, width = 5, height = 3) => ({ id, left, top, width, height })
+  const layout = {
+    diagram: {
+      subgraphs: [
+        { id: "G", nodeIds: ["a"] },
+        { id: "H", nodeIds: [] },
+      ],
+    },
+    bounds: new Map([
+      ["a", box("a", 20, 0)],
+      ["b", box("b", 22, 1)],
+    ]),
+    subgraphBounds: new Map([
+      ["G", box("G", 0, 0, 10, 5)],
+      ["H", box("H", 18, 0, 12, 6)],
+    ]),
+  }
+  expect(flowchartDefects(layout)).toEqual(["in another frame", "nodes overlap", "outside its frame"])
+  expect(flowchartDefects({ ...layout, bounds: new Map([["a", box("a", 2, 1)]]) })).toEqual([])
 })

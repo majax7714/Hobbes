@@ -103,6 +103,9 @@ test("top to bottom, states sharing a rank sit left to right; a row's gap grows 
   })
   // Two loops: A is 2 * 2 + 5 = 9 wide, and B is centred under it; the gap is 3 rows per loop plus 1.
   expect(layout("direction TB\nA --> A\nA --> A\nA --> B")).toEqual({ A: "0,0 9x3 c4,1", B: "2,10 5x3 c4,11" })
+  // A box already as wide keeps its width (10 for "Longer", over 2 * 1 + 5), and a choice is never widened.
+  expect(layout('direction TB\nstate "Longer" as A\nA --> A')).toEqual({ A: "0,0 10x3 c5,1" })
+  expect(layout("direction TB\nstate c <<choice>>\nc --> c")).toEqual({ c: "0,0 1x1 c0,0" })
   // An unreached state takes the next free rank.
   expect(layout("direction TB\nstate c <<choice>>\nA --> c\nc --> B")).toEqual({
     c: "2,0 1x1 c2,0",

@@ -81,6 +81,8 @@ test("a self loop's head comes up under its own box, the box widened for it and 
   // Once a fork defect: on a box 5 wide the head came up past the right edge, and each further loop went 4 wider.
   // A one-letter state with a loop is 7 wide, so the head two thirds in (5) is under it.
   expect(lines(draw("A --> A"))).toEqual(["╭─────╮", "│  A  │", "╰─┬───╯", "  │  ▲", "  ╰──╯"])
+  // The label block is centred, an odd column left over on the right: (7 - 4 - 2) / 2 rounds down to 0.
+  expect(lines(draw('state "AB" as A\nA --> A'))[1]).toBe("│ AB  │")
   // Two loops on a box 10 wide: the second head stops short of the corner, outside the first, the loops nested.
   expect(lines(draw('state "Longer" as A\nA --> A\nA --> A'))).toEqual([
     "╭────────╮",
