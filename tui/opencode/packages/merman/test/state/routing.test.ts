@@ -44,16 +44,34 @@ test("a self loop's head moves to the nearest column no other route takes below 
   expect([drawnRoutes[0], drawnRoutes[2]]).toEqual(["A>A self 2,2 2,4 4,4 4,3", "B>A vertical-elbow 4,6 4,5 5,5 5,3"])
 })
 
+test("a route whose end earlier routes wall in crosses one of them rather than run through a box", () => {
+  // B --> P1x's side rail would come back along row 10, B's bottom row. P1x is ringed by P1y --> P0y's lane under the
+  // rows (column 120 down to row 17) and the routes along rows 3 and 6, so no way into it avoids every earlier route:
+  // the repair goes under B on row 11 and up into P1x's right side, crossing that lane at column 120.
+  const drawnRoutes = routes(
+    [
+      "state P0 {\n[*] --> P0x\nP0x --> P0y\n}",
+      'state "A long composite title" as P1 {\n[*] --> P1x\nP1x --> P1y : a long label here\n}',
+      "[*] --> A\nP0y --> P1y\nA --> P0 : a long label here\nA --> P1 : a long label here",
+      "P1y --> P0y : a<br>b\nB --> P1",
+    ].join("\n"),
+  )
+  expect(drawnRoutes).toEqual(
+    expect.arrayContaining([
+      "P1y>P0y bottom-feedback 120,4 120,17 63,17 63,5 @91,15",
+      "B>P1x side-parallel 147,9 148,9 148,11 84,11 84,10",
+    ]),
+  )
+})
+
 // The cases below were found by planting each fault the cases above miss into a copy of routing.ts and searching random
 // state diagrams for one it changes (`bench/subsume/pinned.py` with the state harnesses), each input then shrunk and
 // the fewest kept that tell every such fault apart. Each asserts only the routes (`drawing-summary.ts`) those faults
 // change and, where they change the rows, the count of rows; for the faults that change no route, only drawn rows, the
 // fewest rows that tell them apart (each such fault planted, its changed rows read). All as drawn today: pinned as
 // observed, not derived by hand. The harnesses keep no input that shows a known wrong drawing (`state-defects.ts`:
-// composites crossing, a state outside its composite, a route through a state), so none of these does. A marker or
-// choice on the left-to-right fallback row (pinned as a defect in drawing.test.ts) is not one of those kinds, and 16 of
-// these inputs place one: a fix to that row changes them too. Cases above that are redundant against these stay as the
-// readable statement of each rule (Max, 2026-10-30).
+// composites crossing, a state outside its composite, a route through a state), so none of these does. Cases above that
+// are redundant against these stay as the readable statement of each rule (Max, 2026-10-30).
 test("pinned as observed: self loops", () => {
   expect(
     drawn(

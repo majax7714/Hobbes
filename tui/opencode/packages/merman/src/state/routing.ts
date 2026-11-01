@@ -1026,6 +1026,22 @@ function createStateTransitionRenderPlan(route: StateTransitionRoutePlan): State
   return builder
 }
 
+// Between leaving its source and arriving at its target, a route may cross neither end's box: a side rail whose ends
+// are a row apart once ran along its target's border, or came back along its source's (a composite end is a frame
+// routes enter, so it is not checked).
+function routeCrossesOwnEnd(plan: StateTransitionRenderPlan, diagram: StateVisibleDiagram): boolean {
+  if (plan.route.transition.from === plan.route.transition.to) return false
+  const sourceOutsideIndex = plan.path.findIndex((point) => !pointIsInsideBounds(point, plan.route.from))
+  const targetOutsideIndex = plan.path.findLastIndex((point) => !pointIsInsideBounds(point, plan.route.to))
+  if (sourceOutsideIndex < 0 || targetOutsideIndex < sourceOutsideIndex) return false
+  const between = plan.path.slice(sourceOutsideIndex, targetOutsideIndex + 1)
+  const isState = (id: string) => diagram.states.some((state) => state.id === id && !isHiddenCompositeMarker(state))
+  return (
+    (isState(plan.route.transition.from) && between.some((point) => pointIsInsideBounds(point, plan.route.from))) ||
+    (isState(plan.route.transition.to) && between.some((point) => pointIsInsideBounds(point, plan.route.to)))
+  )
+}
+
 function pointIsInsideBounds(point: StateTransitionPathPoint, bounds: BoxBounds): boolean {
   return (
     point[0] >= bounds.left &&
@@ -1054,6 +1070,7 @@ function routeIntersectsUnrelatedState(
     })
   )
     return true
+  if (routeCrossesOwnEnd(plan, diagram)) return true
 
   return noteBounds.some((noteBound) => {
     if (plan.path.some((point) => pointIsInsideBounds(point, noteBound))) return true
@@ -1467,6 +1484,7 @@ export function createStateTransitionRenderPlans(
     return placeStateTransitionLabels(placeSelfLoopHeads(plans), diagram, bounds, noteBounds)
   }
   const baseObstacles = transitionObstacles(diagram, bounds, noteBounds)
+  const bodySpace = createStateSearchSpace(baseObstacles)
   const repaired: StateTransitionRenderPlan[] = []
   for (const [index, plan] of plans.entries()) {
     const disjoint = repaired.filter((previous) => transitionsHaveDisjointEndpoints(previous, plan))
@@ -1485,16 +1503,20 @@ export function createStateTransitionRenderPlans(
         ),
       ),
     )
+    const safe = bodySafeTransitionPlan(
+      plan,
+      diagram,
+      bounds,
+      noteBounds,
+      routeSpace,
+      budget,
+      disjoint.some((previous) => pathsIntersect(previous.path, plan.path)),
+    )
+    // Routes drawn before can wall an end in; crossing one of them is better than running through a box.
     repaired.push(
-      bodySafeTransitionPlan(
-        plan,
-        diagram,
-        bounds,
-        noteBounds,
-        routeSpace,
-        budget,
-        disjoint.some((previous) => pathsIntersect(previous.path, plan.path)),
-      ),
+      routeIntersectsUnrelatedState(safe, diagram, bounds, noteBounds)
+        ? bodySafeTransitionPlan(plan, diagram, bounds, noteBounds, bodySpace, budget)
+        : safe,
     )
   }
   return placeStateTransitionLabels(placeSelfLoopHeads(repaired), diagram, bounds, noteBounds)
