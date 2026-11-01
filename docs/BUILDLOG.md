@@ -17331,3 +17331,30 @@ that state layout and routing rules. Found re-checking: four flowchart layout de
 derived alone, already on `main` (`currently-open.md`).
 
 merman 406 pass, latex 86, `tsc` clean in both; `harnesses.test.ts` 14 pass; `bench/subsume` pytest 17.
+
+## 2026-11-01 (fiftieth session, cont.) — PR #20 merged; state's own-end crossing fixed; flowchart's nested frame to Max
+
+Max: "youre good to open pr review then merge … the two issues found in the last session can be fixed instead of
+test pinned"; fork fixes do not bump `VERSION`. PR #20 opened (suites re-run first: merman 406, latex 86,
+harnesses 14, `bench/subsume` pytest 17, `tsc` clean), reviewed with `/code-review` (10 inline comments: six
+possible faults, four cleanups, none reproduced), merged (`2ec43ce`). On `fix/fork-found-defects`:
+
+- **State, fixed.** The route repair skipped a route's own ends, so a side rail whose ends are a row apart ran on
+  its target's border (or came back along its source's) unrepaired. A route that crosses either end's box between
+  leaving and arriving is now repaired; and where earlier routes wall an end in (no body-safe way that crosses no
+  route), the repair may cross a route rather than keep a route through a box. Random diagrams (`generateStyled`,
+  seeds 11–13, scratch measure beside `state-defects.ts`): routes through a state 2/5/1 -> 0/0/0; 11 of 3,000
+  drawings change; totals over the 3,000: route cells 429,351 -> 429,167, cells shared by two routes 25,586 ->
+25,551, time 75.2 s -> 76.4 s. Seeds 14–20 and a
+  narrow-width sweep (1,200): no defect; 4 refusals ("no clear label position", self loops), as before. Each half
+  fails a case alone (the own-end check both, the walled-in retry the routing case). The pinned case became a
+  derived one (shortest way round B, 12 cells); the walled-in case is a shrunk random input. The harness test's
+  end-to-end defect example now plants the fault in a temp copy of the package (route repair skipped).
+- **Flowchart, not fixed: to Max.** 15 of 10,000 random flowcharts (seeds 1–10) put a node in a frame it is not in.
+  Most: a nested frame fitted to its self loop as one routing pass drew it (round the whole diagram, the only
+  candidate clear of the obstacles), never refitted after the last pass, which drew it small. One: a nested
+  frame's margin over a sibling node. Tried: refit every frame after the last pass (2,000: 2 -> 20 defects),
+  refit only to shrink (none fixed), keep a rerouted self loop in its own frame (15 -> 12, 387 layouts changed,
+  two new defects). Reverted; the pin stays.
+
+Not done: PR #20's review comments are untriaged (`currently-open.md`).

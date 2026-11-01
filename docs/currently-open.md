@@ -106,18 +106,20 @@ Left by the fold (2026-10-28):
   every survivor read as never told apart, PR #19). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
-  - **Fork defects found by our tests, fixed 2026-11-01** (BUILDLOG; `fix/fork-pinned-defects`, PR open):
-    `latex`'s four, `core`'s diamond caps, flowchart's two, sequence's note over no one, and state's self loop
-    heads, same-row side rail and left-to-right fallback row (marker row, crossing composites, the refusal). Two
-    more, found measuring those fixes on random inputs, are pinned, not fixed:
-    - **State:** a side rail whose ends are a row apart leaves along its target's bottom row and runs on that
-      border (9 of 3,000 random diagrams, the harnesses' generator, seeds 11–13). Pinned by
-      `test/state/drawing.test.ts`, and the harness test's end-to-end defect example; a fix changes them.
-    - **Flowchart:** a nested frame can take in its parent's other nodes, grown by its own routes (a self loop,
-      long labels) or, once, with no routes in it (2 of 2,000 random flowcharts, `harnesses/flowchart.ts`, seeds
-      1–2). Pinned by `test/flowchart/layout.test.ts`; a fix changes it.
-    The fixes do not bump `VERSION` (0.3.9-beta tracks the graph layer, not the fork), as PR #17's did not;
-    whether fork fixes should is Max's call.
+  - **Fork defects found by our tests, fixed 2026-11-01** (BUILDLOG; PR #20, merged): `latex`'s four, `core`'s
+    diamond caps, flowchart's two, sequence's note over no one, and state's self loop heads, same-row side rail
+    and left-to-right fallback row. Two more were found measuring those fixes on random inputs:
+    - **State, fixed** (`fix/fork-found-defects`): a route that crossed its own source's or target's box (a side
+      rail whose ends are a row apart ran on the target's border) is now repaired, and a repair walled in by
+      earlier routes may cross one of them. Routes through a state: 8 of 3,000 -> 0 of 10,000.
+    - **Flowchart, open, for Max:** a nested frame can take in its parent's other nodes (15 of 10,000 random
+      flowcharts, `harnesses/flowchart.ts`, seeds 1–10). Two causes: a frame fitted to a self loop that an
+      earlier routing pass sent round the diagram, never refitted after the last pass (most cases); a nested
+      frame's margin over a sibling node it was not separated from (seed 1 #77). Tried and dropped: refitting
+      every frame after the last pass (91 defects), refitting only to shrink (none fixed), keeping a self loop
+      inside its own frame (12, 387 layouts changed, two new defects). Pinned by `test/flowchart/layout.test.ts`.
+    PR #20's review (10 comments, not reproduced): six possible faults and four cleanups, untriaged.
+    The fixes do not bump `VERSION` (Max, 2026-11-01: fork fixes do not).
   - **Found re-checking flowchart's tests (2026-11-01):** four derived cases in
     `test/flowchart/layout.test.ts` are redundant among the derived cases alone, already on `main` (unreached
     nodes ranked, ranks four rows apart, wrapping into bands, frames already apart). PR #13 judged redundancy
