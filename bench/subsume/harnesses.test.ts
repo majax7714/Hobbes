@@ -1,7 +1,7 @@
 import { harnessPackage } from "./harness-package"
 import { expect, test } from "bun:test"
 import { packageRoot } from "./harnesses/cli"
-import { stateDefects } from "./harnesses/state-defects"
+import { boxDefects, routeDefects, stateDefects } from "./harnesses/state-defects"
 import { random } from "./harnesses/random"
 import { generate, summarize } from "./harnesses/sequence"
 import { generateStyled, summarize as summarizeDrawing } from "./harnesses/state-drawing"
@@ -158,14 +158,51 @@ test("the state drawing harness summarizes each route and each drawn row, with t
 }, 60_000)
 
 test("a state diagram drawn wrongly in a known way is summarized as a defect, so pinned.py never keeps it", async () => {
-  // Two composites off the main path: the second's frame crosses the first, and its last state sits outside it.
-  const crossing = "state P0 {\n[*] --> P0x\nP0x --> P0y : x<br>yy<br>zzz\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y\n}"
-  expect(summarizeLayout(crossing)).toEqual({ error: "defect: composites cross, outside its composite" })
-  // A choice off the main path on its target's top row: the route runs along that state's top border.
-  expect(summarizeDrawing("state ch <<choice>>\n[*] --> A\nch --> B")).toEqual({
-    error: "defect: route through a state",
-  })
+  // P0 --> B's side rail leaves P0 on B's bottom row and runs along B's border (a fork defect, pinned in merman).
+  const along =
+    'state P0 {\nstate "Inside" as P0x\n}\n[*] --> A\nP0 --> B : retry\nB --> P0x\nP0x --> P0x : a long label here'
+  expect(summarizeDrawing(along)).toEqual({ error: "defect: route through a state" })
+  expect(summarizeLayout(along)).toEqual({ error: "defect: route through a state" })
   // A transition's first point, its tee on its own source's border, is not a route through that state.
   const { parseMermaidStateDiagram } = await import(`${packageRoot}/src/state/parser.ts`)
   expect(stateDefects(parseMermaidStateDiagram("stateDiagram-v2\nA --> B\nB --> A"), { minStateGap: 5 })).toEqual([])
+})
+
+test("the defect checks name composites crossing, a state outside its own, and a route through a box but its own tee", () => {
+  const box = (id: string, left: number, top: number, width: number, height: number) => ({
+    id,
+    left,
+    top,
+    width,
+    height,
+  })
+  // The fork no longer draws these; laid out by hand so the checks stay held.
+  const diagram = { states: [{ id: "a", parentId: "P" }], composites: [{ id: "P" }, { id: "Q" }] }
+  const layout = {
+    bounds: new Map([["a", box("a", 20, 2, 5, 3)]]),
+    compositeBounds: new Map([
+      ["P", box("P", 0, 0, 12, 7)],
+      ["Q", box("Q", 8, 4, 12, 7)],
+    ]),
+  }
+  expect(boxDefects(diagram, layout).sort()).toEqual(["composites cross", "outside its composite"])
+  const states = { bounds: new Map([["b", box("b", 10, 0, 5, 3)]]), compositeBounds: new Map() }
+  const plan = (from: string, path: [number, number][]) => ({ path, route: { transition: { from } } })
+  expect(
+    routeDefects(states, [
+      plan("b", [
+        [12, 2],
+        [12, 5],
+      ]),
+    ]),
+  ).toEqual([])
+  expect(
+    routeDefects(states, [
+      plan("c", [
+        [8, 1],
+        [12, 1],
+        [16, 1],
+      ]),
+    ]),
+  ).toEqual(["route through a state"])
 })

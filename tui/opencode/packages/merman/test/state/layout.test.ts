@@ -188,15 +188,15 @@ test("pinned as observed: notes: the side a note takes, its connector, and the r
       "state P0 {\n[*] --> P0x\nstate P0n {\nP0nz --> P0nw\n}\n}\nP0 --> P0\nch --> P0x : go\nA --> P0x : a<br>b\nnote right of P0nw : two<br>lines",
     ),
   ).toMatchObject({
-    A: "90,9 5x3 c92,10",
-    P0nw: "44,9 8x3 c48,10",
-    P0nz: "23,9 8x3 c27,10",
-    P0x: "2,3 7x3 c5,4",
-    "[P0]": "0,0 67x22 c33,11",
-    "[P0n]": "21,0 46x22 c44,11",
-    ch: "71,9 6x3 c74,10",
+    A: "90,11 5x3 c92,12",
+    P0nw: "44,11 8x3 c48,12",
+    P0nz: "23,11 8x3 c27,12",
+    P0x: "2,5 7x3 c5,6",
+    "[P0]": "0,0 69x26 c34,13",
+    "[P0n]": "21,2 46x22 c44,13",
+    ch: "71,11 6x3 c74,12",
     "{P0nw-note-0}":
-      "56,1 9x4 c60,3 43,11 43,12 43,13 43,14 42,14 41,14 40,14 39,14 38,14 37,14 36,14 35,14 34,14 33,14 32,14 31,14 30,14 29,14 28,14 27,14 27,15 27,16 27,17 27,18 27,19 27,20 28,20 29,20 30,20 31,20 32,20 33,20 34,20 35,20 36,20 37,20 38,20 39,20 40,20 41,20 42,20 43,20 44,20 45,20 46,20 47,20 48,20 49,20 50,20 51,20 52,20 53,20 54,20 55,20 56,20 57,20 58,20 59,20 59,19 59,18 59,17 59,16 59,15 59,14 59,13 59,12 59,11 59,10 59,9 59,8 59,7 59,6 59,5 58,5 57,5 56,5 55,5 54,5 54,4 54,3 55,3",
+      "56,3 9x4 c60,5 43,13 43,14 43,15 43,16 42,16 41,16 40,16 39,16 38,16 37,16 36,16 35,16 34,16 33,16 32,16 31,16 30,16 29,16 28,16 27,16 27,17 27,18 27,19 27,20 27,21 27,22 28,22 29,22 30,22 31,22 32,22 33,22 34,22 35,22 36,22 37,22 38,22 39,22 40,22 41,22 42,22 43,22 44,22 45,22 46,22 47,22 48,22 49,22 50,22 51,22 52,22 53,22 54,22 55,22 56,22 57,22 58,22 59,22 59,21 59,20 59,19 59,18 59,17 59,16 59,15 59,14 59,13 59,12 59,11 59,10 59,9 59,8 59,7 58,7 57,7 56,7 55,7 54,7 54,6 54,5 55,5",
   })
   expect(
     layout("state ch <<choice>>\nC --> C : retry\nB --> ch\nA --> C : a<br>b\nnote right of B : two<br>lines"),
@@ -269,7 +269,7 @@ test("pinned as observed: notes: the side a note takes, its connector, and the r
   ).toMatchObject({
     P0x: "17,2 7x3 c20,3",
     P0y: "37,2 7x3 c40,3",
-    "P2.__end": "77,8 1x1 c77,8",
+    "P2.__end": "77,9 1x1 c77,9",
     P2y: "57,8 7x3 c60,9",
     "[P0]": "0,0 46x7 c23,3",
     "[P2]": "55,6 25x7 c67,9",
@@ -308,27 +308,26 @@ test("pinned as observed: composite frames: their margins, room for inner routes
       "direction RL\nstate P0 {\nP0x --> P0y\n}\n[*] --> D\nA --> B : a long label here\nP0y --> P0 : go\nC --> [*]\nnote right of P0y : a note",
     ),
   ).toMatchObject({
-    A: "52,7 5x3 c54,8",
-    B: "34,7 5x3 c36,8",
-    C: "16,7 5x3 c18,8",
-    D: "147,1 5x3 c149,2",
-    P0x: "90,7 7x3 c93,8",
-    P0y: "70,7 7x3 c73,8",
-    "[P0]": "68,0 75x12 c105,6",
-    __end: "2,7 1x1 c2,7",
-    __start: "176,2 1x1 c176,2",
-    "{P0y-note-0}":
-      "81,1 10x3 c86,2 77,10 78,10 79,10 80,10 81,10 82,10 83,10 84,10 85,10 86,10 87,10 88,10 89,10 90,10 91,10 92,10 93,10 94,10 95,10 96,10 97,10 97,9 98,9 99,9 100,9 101,9 102,9 103,9 104,9 105,9 106,9 107,9 108,9 109,9 110,9 111,9 112,9 113,9 114,9 115,9 116,9 117,9 118,9 119,9 120,9 121,9 122,9 123,9 124,9 125,9 126,9 127,9 128,9 129,9 130,9 131,9 132,9 133,9 134,9 135,9 136,9 137,9 138,9 139,9 140,9 141,9 141,8 141,7 141,6 141,5 141,4 140,4 139,4 138,4 137,4 136,4 135,4 134,4 133,4 132,4 131,4 130,4 129,4 128,4 127,4 126,4 125,4 124,4 123,4 122,4 121,4 120,4 119,4 118,4 117,4 116,4 115,4 114,4 113,4 112,4 111,4 110,4 109,4 108,4 107,4 106,4 105,4 104,4 103,4 102,4 101,4 100,4 99,4 98,4 97,4 96,4 95,4 94,4 93,4 92,4 91,4 90,4 89,4 88,4 87,4 86,4 85,4 84,4 83,4 82,4 81,4 80,4 79,4 79,3 79,2 80,2",
+    A: "50,6 5x3 c52,7",
+    B: "32,6 5x3 c34,7",
+    C: "14,6 5x3 c16,7",
+    D: "116,0 5x3 c118,1",
+    P0x: "88,6 7x3 c91,7",
+    P0y: "68,6 7x3 c71,7",
+    "[P0]": "66,0 31x11 c81,5",
+    __end: "0,7 1x1 c0,7",
+    __start: "134,1 1x1 c134,1",
+    "{P0y-note-0}": "79,1 10x3 c84,2 75,5 75,2 77,2 78,2",
   })
   expect(
     layout('direction BT\nstate P0 {\nP0y --> [*]\n}\nstate "A long composite title" as P1 {\n[*] --> P1x\n}'),
   ).toMatchObject({
     "P0.__end": "5,2 1x1 c5,2",
     P0y: "2,7 7x3 c5,8",
-    "P1.__start": "5,21 1x1 c5,21",
-    P1x: "2,14 7x3 c5,15",
+    "P1.__start": "27,21 1x1 c27,21",
+    P1x: "24,14 7x3 c27,15",
     "[P0]": "0,0 18x12 c9,6",
-    "[P1]": "0,12 27x12 c13,18",
+    "[P1]": "22,12 27x12 c35,18",
   })
   expect(
     layout(
@@ -366,7 +365,7 @@ test("pinned as observed: composite frames: their margins, room for inner routes
   expect(
     layout('direction TB\nstate "Outer" as P0 {\nstate "Inside" as P0x\nP0x --> [*]\n}\nstate P1 {\n}\nP0x --> B', 3),
   ).toMatchObject({
-    B: "14,9 5x3 c16,10",
+    B: "18,9 5x3 c20,10",
     "P0.__end": "2,10 1x1 c2,10",
     P0x: "2,2 10x3 c7,3",
     "[P0]": "0,0 14x13 c7,6",
@@ -377,7 +376,7 @@ test("pinned as observed: composite frames: their margins, room for inner routes
     ),
   ).toMatchObject({
     B: "89,2 5x3 c91,3",
-    "P0.__end": "82,8 1x1 c82,8",
+    "P0.__end": "82,9 1x1 c82,9",
     "P0.__start": "2,3 1x1 c2,3",
     P0x: "16,2 7x3 c19,3",
     P0y: "62,8 7x3 c65,9",
@@ -416,7 +415,7 @@ test("pinned as observed: composite frames: their margins, room for inner routes
   ).toMatchObject({ P0x: "22,1 7x3 c25,2", "P1.__end": "2,2 1x1 c2,2", P1y: "2,8 7x3 c5,9", "[P1]": "0,0 18x13 c9,6" })
   expect(
     layout("direction BT\nstate P0 {\n}\nstate P1 {\nstate P1n {\nP1nz --> P1nw\n}\n}\nD --> P1nw : go"),
-  ).toMatchObject({ D: "6,0 5x3 c8,1" })
+  ).toMatchObject({ D: "27,0 5x3 c29,1" })
   expect(
     layout(
       "direction TD\nstate P0 {\nP0y --> [*]\nstate P0n {\nP0nz --> P0nw\n}\n}\nstate P2 {\n}\nP0 --> P0n : a<br>b",
@@ -437,21 +436,21 @@ test("pinned as observed: composite frames: their margins, room for inner routes
     layout(
       'direction TD\nstate "A long composite title" as P0 {\nstate P0n {\nP0nz --> P0nw\n}\n}\nP0y --> P0nz : a long label here',
     ),
-  ).toMatchObject({ P0y: "5,18 7x3 c8,19" })
+  ).toMatchObject({ P0y: "31,18 7x3 c34,19" })
   expect(
     layout(
       "state P0 {\n[*] --> P0x\nP0x --> P0y : a<br>b\nstate P0n {\nP0nz --> P0nw\n}\n}\nA --> P0x : a<br>b\nP0x --> P0\nnote right of P0nw : two<br>lines\nnote left of P0nz : two<br>lines",
     ),
   ).toMatchObject({
-    A: "92,8 5x3 c94,9",
-    P0nw: "65,8 8x3 c69,9",
-    P0nz: "44,8 8x3 c48,9",
-    P0x: "2,2 7x3 c5,3",
-    P0y: "22,2 7x3 c25,3",
-    "[P0]": "0,0 88x15 c44,7",
-    "[P0n]": "29,1 59x12 c58,7",
-    "{P0nw-note-0}": "77,2 9x4 c81,4 73,9 73,4 75,4 76,4",
-    "{P0nz-note-1}": "31,7 9x4 c35,9 43,9 43,9 41,9 40,9",
+    A: "162,9 5x3 c164,10",
+    P0nw: "65,9 8x3 c69,10",
+    P0nz: "44,9 8x3 c48,10",
+    P0x: "2,3 7x3 c5,4",
+    P0y: "92,3 7x3 c95,4",
+    "[P0]": "0,0 101x16 c50,8",
+    "[P0n]": "29,2 59x12 c58,8",
+    "{P0nw-note-0}": "77,3 9x4 c81,5 73,10 73,5 75,5 76,5",
+    "{P0nz-note-1}": "31,8 9x4 c35,10 43,10 43,10 41,10 40,10",
   })
 })
 
@@ -517,7 +516,7 @@ test("pinned as observed: the main path, ranks, branches and the states off the 
     "P0.__start": "2,3 1x1 c2,3",
     P0x: "16,2 7x3 c19,3",
     "[P0]": "0,0 39x7 c19,3",
-    __start: "74,8 1x1 c74,8",
+    __start: "74,9 1x1 c74,9",
   })
   expect(
     layout("C --> B\nB --> C\nC --> C : a long label here\nnote left of B : two<br>lines\nnote left of B : a note"),
@@ -539,9 +538,9 @@ test("pinned as observed: the main path, ranks, branches and the states off the 
     P0x: "16,2 7x3 c19,3",
     P0y: "36,2 7x3 c39,3",
     "[P0]": "0,0 59x7 c29,3",
-    __end: "114,8 1x1 c114,8",
-    __start: "86,8 1x1 c86,8",
-    ch: "72,8 1x1 c72,8",
+    __end: "114,9 1x1 c114,9",
+    __start: "86,9 1x1 c86,9",
+    ch: "72,9 1x1 c72,9",
   })
   expect(
     layout(
@@ -556,7 +555,7 @@ test("pinned as observed: the main path, ranks, branches and the states off the 
   ).toMatchObject({
     B: "13,0 5x3 c15,1",
     P0x: "36,6 6x3 c39,7",
-    "P1.__end": "88,6 1x1 c88,6",
+    "P1.__end": "88,7 1x1 c88,7",
     P1x: "66,6 10x3 c71,7",
     "[P0]": "34,4 10x7 c39,7",
     "[P1]": "64,4 27x7 c77,7",
