@@ -1,7 +1,7 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-10-30 (fiftieth session); `main` at 0.3.9-beta (`1961347`, PRs #8–#15 merged); branch
-`feat/bench-pinned-inputs` committed, not yet pushed; the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+**Reviewed 2026-10-31 (fiftieth session); `main` at 0.3.9-beta (`697ac26`, PRs #8–#17 merged); branch
+`test/merman-state-family` pushed, its PR open (state, in progress); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -42,12 +42,11 @@ session went belongs in the BUILDLOG.
 
 **Next: `merman`'s last two diagram families, then the rest of the fork's tests.** Done: `core` (PR #9),
 the top level (PR #10), flowchart (PR #13, 97 cases), gantt and gitGraph (PR #14, 71 cases), sequence
-(PR #15, 62 cases; one more on `feat/bench-pinned-inputs`). State is begun, uncommitted: parser and the small
-modules drafted (`test/state/`, 6 files), first `subsume` pass read.
-Left, in order, each on its own branch and PR:
-- **state** (`src/state/`: `parser`, `layout` 1,134, `routing` 1,522, `search`, `note`, `visible-model`,
-  `endpoint`, `drawing`, `style`, `options`). Its layout and routing are flowchart-sized.
-- **timeline** (`src/timeline/`: `parser` 119, `drawing` 109, `style`).
+(PR #15, 62 cases; one more in PR #16). **State** is on `test/merman-state-family` (the older
+`test/merman-state` is superseded; delete it), its PR open: 70 cases across eleven files, derived and pinned as
+observed for layout, routing and drawing; every survivor of `subsume`'s last pass is one the search read as
+likely equivalent, or one that fails to run. Left, once state merges:
+- **timeline** (`src/timeline/`: `parser` 119, `drawing` 109, `style`), on its own branch and PR.
 
 How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests under
 `packages/merman/test/<family>/`, one file per module, `prettier --write` on new files):
@@ -57,9 +56,10 @@ How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests und
   machine's memory), detached (`setsid nohup … &`, then an until-loop waiter); read every survivor; close the
   gaps; fold redundant cases, or keep one only if a fault planted by hand fails it alone, and say so above it;
 - for a layout or routing module where derived cases leave large gaps, the pinned-input method (flowchart
-  entry): now `bench/subsume/pinned.py` with a harness per family (`harnesses/sequence.ts`; state needs its
-  own), in `bench-drivers.md`. Run it on every module's survivors, not only large gaps: on sequence it found
-  two placement faults I had read as equivalent.
+  entry): now `bench/subsume/pinned.py` with a harness per family (`harnesses/sequence.ts`, `state-*.ts`), in
+  `bench-drivers.md`. Run it on every module's survivors, not only large gaps: on sequence it found two
+  placement faults I had read as equivalent. **Check each kept input's drawing before pinning it**: on state,
+  12 of 116 drew wrongly; `state-defects.ts` now makes the state harnesses refuse such inputs.
 - a fork defect found is pinned by a test and listed under the fork-tests item in `currently-open.md`.
 
 After `merman`: `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages (the count is
@@ -69,22 +69,24 @@ ADR first. The extraction routes stand as they were: C is the next-thinnest lang
 **Waiting on Max:**
 - The fork defects our tests pin (`currently-open.md`, the fork-tests item): `latex`'s four, `merman`'s
   `core` diamond caps, flowchart's two (an outside node laid over a framed one; a parallel edge's head
-  beside its target), and sequence's note over no one (dropped silently). Fix them, or leave them pinned.
+  beside its target), sequence's note over no one (dropped silently), and state's: a self loop's head past
+  its box, the side rail doubling back, and the left-to-right fallback row (a marker on its target's top row,
+  composites drawn crossing, the separation refusal; one diagram in ten). Fix them, or leave them pinned.
+- `VERSION` was not bumped for PR #17's fork fix (0.3.9-beta tracks the graph layer, not the fork).
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - H-39: the trace oracle's re-entrance guard is shared across threads; a thread-local guard moves every key
   with a threaded test (`currently-open.md`).
 - From earlier: the live `watterson tui` check and the `~/.local/bin/watterson` relink; the Python routes
   (C-181's residual, ADR-156 and fixture values).
 
-## Where the last day left things (2026-10-30; the CHANGELOG and BUILDLOG have each one)
+## Where the last day left things (2026-10-31; the CHANGELOG and BUILDLOG have each one)
 
-Forty-ninth session: 0.3.7-beta (the gate's `attr-call` reason, H-38, ADR-187); 0.3.8-beta (a module the
-accept list names is accepted, ADR-185 amended; this repo's nine unguarded modules tested or accepted, CI's
-`graph` job green, PR #11); 0.3.9-beta (a TS/JS case with a computed title is a case, ADR-188, C-199);
-`merman`'s top level, flowchart, gantt and gitGraph tested (PRs #10, #13, #14).
-Forty-seventh and forty-eighth (2026-10-28/29): speed and memory, ADR-183 and ADR-184 (0.3.1–0.3.4-beta); the
-pyrefly probe; the TUI trimmed (PR #6); the fork's own tests begun (`bench/subsume/`, PRs #7, #9).
-Forty-sixth: the dev environment folded in (ADR-181, 0.3.0-beta).
+Fiftieth session: `merman`'s sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
+cap (PR #16), the state side rail's endless loop fixed (PR #17); state in progress, three drawing defects found.
+
+Forty-ninth session: 0.3.7-beta to 0.3.9-beta (the gate's `attr-call` reason, H-38, ADR-187; the accept list,
+ADR-185 amended; a computed TS/JS title, ADR-188, C-199); `merman`'s top level, flowchart, gantt and gitGraph.
+Earlier: the BUILDLOG.
 
 ## Where things stand
 

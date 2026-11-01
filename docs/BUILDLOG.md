@@ -17143,3 +17143,110 @@ accepted apart, pure packages next). The gap first, as an unnamed limit.
 - Brought forward from `test/merman-state` (`eb720f1`), the tool code only: every Bun run capped at
   `$SUBSUME_MEMORY_MAX`, and the harness directory copied as `.pinned/`. Re-run end to end on sequence's
   placement survivors: the same verdict as before (69: 66 not told apart, 3 told).
+
+## 2026-10-30 (fiftieth session, cont.) — our own tests for `merman`'s state, first part (34 cases)
+
+- On `test/merman-state`, cut from `feat/bench-pinned-inputs`. The parser and the six small modules, one file each
+  under `packages/merman/test/state/`: `parser` (13), `endpoint` (2), `options` (1), `note` (5), `search` (6),
+  `visible-model` (4), `style` (4, colours and `render-grid`). Derived from the source, then run. Mine corrected
+  to my re-derivation: `P --> P` with both markers is a way through (`P.__end → P.__start`), so it collapses to
+  `X → X`; a marker's loop on itself cannot come from the parser.
+- `bench/subsume` (`-j 2`, serially, each module against its own test file), first pass → final: `parser` 119 →
+  142 of 165 caught; `endpoint` 3 of 12 (5 fail every case, 4 type strings); `options` 11 of 11; `note` 31 → 35
+  of 35; `search` 53 → 72 of 80; `visible-model` 30 of 41 (6 hang or fail to load); `style` + `render-grid` 71
+  of 71. Gaps closed: keywords inside a transition label (`state … as`, `state … {`, `<<choice>>`, `direction`,
+  notes), trailing text after a statement, `the end note` and `end notes` inside a block note, a `%%` line, an
+  upper-case block-note position, chained arrows that reach the explicit `-->` check, a state keeping its first
+  composite, one composite entered at its marker; a note's rows touching its target's at either end; claims at
+  negative coordinates, a repeated start against the budget, the budget left after a find, a detour away from
+  the goal in each direction. One gap was my test's: three searches shared one budget, so a fault that unbounded
+  x spent it all in the first and the out-of-bounds goal read `undefined` anyway; each now has its own.
+- `pinned.py` with a new harness (`harnesses/state-search.ts`, 20,000 random grids) on search's 9 survivors: 5
+  not told apart (type strings), 4 told (the step toward the goal's row): they never change a path, only the
+  visits spent. A derived case pins those counts (5 and 18 left), worked by hand.
+- Left, equivalent: type strings, the direction fallback no matched value reaches, `ensureState`'s default kind
+  (every caller passes one), a trim after a trimmed match, the unanchored greedy end of the inline note,
+  `visible-model`'s referenced-marker test (adding a non-hidden id is harmless).
+- Redundancy: the marker case folded into the transition case, the chain case into the pass-through case, the
+  start-handling case into the detour case. Two `subsume` reads as redundant stay, each the only one to fail on a
+  fault planted by hand: the search's free test ignored, the visible model's transitions passed on uncopied.
+- `bun test` (merman): 342 pass across 35 files. `tsc --noEmit` clean. `bench/subsume` pytest 15 pass.
+
+## 2026-10-30 (fiftieth session, cont.) — the state harnesses, testable; a refusal they surface
+
+- On `test/merman-state-family`, a fresh branch from PR #16's tip (the old `test/merman-state` held a copy of the
+  tool changes PR #16 replaced; it is superseded, not rebased, so nothing is force-pushed). State's first part
+  cherry-picked (`08701c3`).
+- The four state harnesses in PR #16's form: `state-gen.ts` (the shared diagrams), `state-layout.ts` (the visible
+  model laid out, summarized by the tests' own `layout-summary.ts`), `state-drawing.ts` (routes and rows,
+  `generateStyled` adding border, head and fold-width options), `state-search.ts`. `harnesses.test.ts` gains 4
+  cases (9 pass): seeds, one summary each worked by hand, generated inputs without an error.
+- Surfaced: 6 of 300 random state diagrams with composites (seed 1) are refused with "State composite separation
+  did not converge" (`state/drawing.ts`, after its attempts). A refusal, not a hang; listed in
+  `currently-open.md`. The drawing case asserts no other refusal appears.
+- The harnesses were first formatted with prettier's defaults (run from the repo root, no config there);
+  reformatted with the fork's (`semi: false`, `printWidth: 120`).
+
+## 2026-10-30 (fiftieth session, cont.) — state's layout, routing and drawing: derived cases (21)
+
+- PR #16 merged on Max's word after its CI read green (`graph` 27 min); main at `697ac26`, merged into this branch.
+- `layout.test.ts` (11), with `layout-summary.ts` (one entry per state, composite and note, the pinned cases'
+  and the layout harness's shared view): the main path's row and gaps, a label's and a composite crossing's
+  room, the main path's choice (an end, then no way back, then no transition back), branches, a parallel lane,
+  the fallback row, RL's mirror and label gutter, TB/BT ranks, rank gaps for labels, self loops and a choice,
+  composite frames. Laid out from the visible model, as the drawing does. `routing.test.ts` (4): horizontal
+  forward with its label, vertical both ways, stacked bottom feedback lanes, two self loops. `drawing.test.ts`
+  (6): boxes, tees, heads and label padding with their styles, the border and head options, markers, a
+  composite, a note and its double connector, and the self-loop defect pinned. Every expected value worked
+  from the source first; all matched on the first run.
+- `bench/subsume` first pass (`-j 2`, each against its own file, capped): `layout` 283 of 1,052 caught (731
+  survivors), `routing` 170 of 1,471 (1,273), `drawing` 72 of 257 (167); the cap killed 6 runs (exit −9),
+  listed apart. The pinned-input search over all three is running (layout 3,000 inputs, routing and drawing
+  1,000 each); its cases follow.
+
+## 2026-10-31 (fiftieth session, cont.) — state's pinned layout and routing cases; three drawing defects
+
+- The pinned-input search finished for layout (3,000 inputs: 433 of 731 survivors told apart, 295 likely
+  equivalent, 3 unattributed; 46 inputs kept) and routing (1,000 inputs, 11 hours: 981 of 1,273 told, 265
+  equivalent, 27 unattributed; 70 kept). Drawing's is still running.
+- Checked before pinning, as flowchart's were: 12 of the 116 kept inputs draw wrongly (composites crossing, a
+  state outside its own composite, or a route through a state's box). Pinning them as observed would have locked
+  the defects in. `bench/subsume/harnesses/state-defects.ts` now names those kinds, and both state harnesses
+  summarize such an input as an error, which pinned.py never keeps; `harnesses.test.ts` gains a case (10 pass).
+  The 27 faults only those inputs told (10 layout, 17 routing) wait on a re-search with the new harnesses.
+- Over 1,000 random diagrams the drawing shows one of these kinds, or refuses, in 105. Shrunk, they come from the
+  left-to-right fallback row (`state/layout.ts:764`): every state off the main path gets one top, so a 1-cell
+  marker or choice sits on its target's top row and its route runs along that border; the frames crossing are
+  suspected to come from that row's collision check seeing only state boxes. Three cases pin them in
+  `drawing.test.ts`; the separation refusal is now a seven-line case, each line needed.
+- `test/state/drawing-summary.ts` (routes and rows) is now the drawing harness's summary, as `layout-summary.ts` is
+  the layout harness's, so a pinned key is the test's own. `routing.test.ts`'s `routes()` uses it.
+- Pinned as observed, grouped by the functions their faults sit in: `layout.test.ts` 3 cases over 40 inputs (the
+  cover recomputed over the 41 clean ones), each asserting only its changed entries; `routing.test.ts` 5 over 63,
+  each asserting its changed routes and, where rows change, the row count (the rows themselves wait on the
+  `subsume` rerun, which shows which faults need them). State: 68 cases across eleven files; merman 376 pass,
+  `tsc` clean, `bench/subsume` pytest 17 passed.
+- Drawing's search finished (1,000 inputs: 83 of 167 told apart, 84 likely equivalent; 12 kept, none drawn
+  wrongly). `drawing.test.ts` gains 3 pinned-as-observed cases over the 12, each asserting the routes and rows
+  its faults change and the row count where rows come or go; `drawn()` moved into `drawing-summary.ts` for both
+  files. State: 71 cases; the handoff names the new branch.
+- `subsume` rerun against the pinned cases: `layout` 713 of 1,052 caught (was 283); its 299 survivors are the 289
+  the search read as likely equivalent and the 10 orphans, nothing else. One derived case was already redundant
+  among the derived cases alone in the first pass, missed then ("the main path runs on one row"); folded into
+  the next. The other four redundant now are redundant only against pinned cases, kept by Max's rule. `routing`
+  1,012 of 1,471 (was 170): 259 likely equivalent, 17 orphans, 1 the search could not attribute, and 138 faults
+  that change only drawn rows (glyphs, junctions, cells). Each of the 138 was planted and its changed rows read
+  on the 63 inputs; 36 rows over 26 inputs tell them all, now asserted. State: 70 cases.
+- The re-search of the 27 orphaned faults with the defect-checking harnesses: layout 7 of 10 told on 6 clean
+  inputs (2 likely equivalent, 1 failing to run); routing 16 of 17 on 11 (1 likely equivalent). Added to the
+  pinned cases (layout 46 inputs, routing 74). `bench-drivers.md` names the state harnesses.
+- Final `subsume` pass (`-j 2`, each module against its own file): `layout` 720 of 1,052 caught (first pass 283),
+  292 survivors: 291 read as likely equivalent by the searches, 1 failing to run there; `routing` 1,165 of 1,471
+  (170), 262: 260 likely equivalent and 2 re-searched faults that change only a row (`routing.ts:871-872`; one
+  row added, both then planted by hand and failing the file); `drawing` 175 of 257 (72), 78, all likely
+  equivalent. Redundant now: four layout, four routing and one drawing derived case, each only against pinned
+  cases (none in the first pass but the folded one), kept by Max's rule; and the two layout-defect pins, which
+  `subsume` reads against `drawing.ts`'s faults, kept as their defects' statement.
+- A fix planted by hand at `layout.ts:764` (a 1-cell state one row lower) fails the marker pin and 24 of the 132
+  pinned-as-observed inputs: they place a marker on the fallback row without a route through a box, a kind
+  `state-defects.ts` does not name. The files and `currently-open.md` say so, so a fixer knows those move too.
