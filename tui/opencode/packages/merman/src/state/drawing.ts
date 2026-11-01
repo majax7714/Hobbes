@@ -92,8 +92,10 @@ function drawBox(
   }
   fillDiagramFrameInterior(bounds, (x, y) => setCell(grid, x, y, " ", "state"))
   drawStateFrame(grid, bounds, BorderChars[borderStyle], "stateBorder")
+  // Centred as a block, so a box widened for its self loops keeps its label in the middle.
+  const indent = Math.floor((bounds.width - 4 - Math.max(0, ...lines.map(diagramTextWidth))) / 2)
   lines.forEach((line, index) => {
-    setText(grid, bounds.left + 2, bounds.top + 1 + index, line, "state")
+    setText(grid, bounds.left + 2 + Math.max(0, indent), bounds.top + 1 + index, line, "state")
   })
 }
 

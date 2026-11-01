@@ -95,13 +95,14 @@ test("top to bottom, ranks are rows: a lone state centred on the widest lone one
   })
 })
 
-test("top to bottom, states sharing a rank sit left to right; a row's gap grows for labels, self loops and a choice", () => {
+test("top to bottom, states sharing a rank sit left to right; a row's gap grows for labels, self loops and a choice; a state is two columns wider per self loop than a bare box", () => {
   expect(layout("direction TB\nA --> B : x<br>y\nA --> C")).toEqual({
     A: "0,0 5x3 c2,1",
     B: "0,8 5x3 c2,9",
     C: "18,8 5x3 c20,9",
   })
-  expect(layout("direction TB\nA --> A\nA --> A\nA --> B")).toMatchObject({ B: "0,10 5x3 c2,11" })
+  // Two loops: A is 2 * 2 + 5 = 9 wide, and B is centred under it; the gap is 3 rows per loop plus 1.
+  expect(layout("direction TB\nA --> A\nA --> A\nA --> B")).toEqual({ A: "0,0 9x3 c4,1", B: "2,10 5x3 c4,11" })
   // An unreached state takes the next free rank.
   expect(layout("direction TB\nstate c <<choice>>\nA --> c\nc --> B")).toEqual({
     c: "2,0 1x1 c2,0",
@@ -200,11 +201,11 @@ test("pinned as observed: notes: the side a note takes, its connector, and the r
   expect(
     layout("state ch <<choice>>\nC --> C : retry\nB --> ch\nA --> C : a<br>b\nnote right of B : two<br>lines"),
   ).toMatchObject({
-    A: "54,7 5x3 c56,8",
-    B: "36,7 5x3 c38,8",
-    C: "18,7 5x3 c20,8",
+    A: "58,7 5x3 c60,8",
+    B: "40,7 5x3 c42,8",
+    C: "20,7 7x3 c23,8",
     ch: "0,2 1x1 c0,2",
-    "{B-note-0}": "45,12 9x4 c49,14 41,8 41,13 43,13 44,13",
+    "{B-note-0}": "49,12 9x4 c53,14 45,8 45,13 47,13 48,13",
   })
   expect(layout("state ch <<choice>>\nch --> D\nnote left of D : a note", 1)).toMatchObject({
     D: "24,0 5x3 c26,1",
@@ -242,11 +243,10 @@ test("pinned as observed: notes: the side a note takes, its connector, and the r
       3,
     ),
   ).toMatchObject({
-    A: "0,10 5x3 c2,11",
-    B: "0,3 5x3 c2,4",
-    __end: "16,11 1x1 c16,11",
-    "{A-note-0}":
-      "9,0 10x3 c14,1 5,12 6,12 7,12 8,12 9,12 10,12 11,12 12,12 13,12 14,12 15,12 16,12 17,12 18,12 19,12 20,12 21,12 22,12 23,12 24,12 24,11 24,10 24,9 24,8 24,7 24,6 24,5 24,4 24,3 23,3 22,3 21,3 20,3 19,3 18,3 17,3 16,3 15,3 14,3 13,3 12,3 11,3 10,3 9,3 8,3 7,3 7,2 7,1 8,1",
+    A: "0,7 11x3 c5,8",
+    B: "0,0 5x3 c2,1",
+    __end: "22,8 1x1 c22,8",
+    "{A-note-0}": "15,12 10x3 c20,13 11,10 11,13 13,13 14,13",
   })
   expect(
     layout(
@@ -460,7 +460,7 @@ test("pinned as observed: the main path, ranks, branches and the states off the 
     layout(
       'state "A long composite title" as P0 {\nP0x --> P0y : retry\n}\nP0y --> P0x : go\nP0y --> ch\nch --> ch : a long label here\nP0x --> P0y : go',
     ),
-  ).toMatchObject({ P0x: "2,2 7x3 c5,3", P0y: "2,8 7x3 c5,9", "[P0]": "0,0 27x13 c13,6", ch: "40,8 6x3 c43,9" })
+  ).toMatchObject({ P0x: "2,2 7x3 c5,3", P0y: "2,8 7x3 c5,9", "[P0]": "0,0 27x13 c13,6", ch: "42,8 7x3 c45,9" })
   expect(layout("C --> A : go\nB --> A : a long label here\nC --> B : retry")).toMatchObject({
     A: "18,0 5x3 c20,1",
     B: "0,6 5x3 c2,7",
@@ -492,12 +492,12 @@ test("pinned as observed: the main path, ranks, branches and the states off the 
       "direction TB\nD --> D : go\nB --> D : go\nA --> A : a<br>b\nB --> [*]\nnote right of A : a note\nnote right of A : two<br>lines",
     ),
   ).toMatchObject({
-    A: "0,14 5x3 c2,15",
-    B: "0,7 5x3 c2,8",
-    D: "0,0 5x3 c2,1",
-    __end: "2,22 1x1 c2,22",
-    "{A-note-0}": "9,14 10x3 c14,15 5,15 5,15 7,15 8,15",
-    "{A-note-1}": "9,8 9x4 c13,10 5,13 5,10 7,10 8,10",
+    A: "0,14 7x3 c3,15",
+    B: "1,7 5x3 c3,8",
+    D: "0,0 7x3 c3,1",
+    __end: "3,22 1x1 c3,22",
+    "{A-note-0}": "11,14 10x3 c16,15 7,15 7,15 9,15 10,15",
+    "{A-note-1}": "11,8 9x4 c15,10 7,13 7,10 9,10 10,10",
   })
   expect(layout("B --> C : go\nC --> A\nB --> A : a<br>b\nC --> [*]")).toMatchObject({ A: "18,7 5x3 c20,8" })
   expect(layout("direction TD\nstate ch <<choice>>\nch --> A\nch --> B : a long label here", 8)).toMatchObject({
@@ -522,11 +522,10 @@ test("pinned as observed: the main path, ranks, branches and the states off the 
   expect(
     layout("C --> B\nB --> C\nC --> C : a long label here\nnote left of B : two<br>lines\nnote left of B : a note"),
   ).toMatchObject({
-    B: "18,6 5x3 c20,7",
-    C: "0,6 5x3 c2,7",
-    "{B-note-0}": "5,0 9x4 c9,2 17,5 17,2 15,2 14,2",
-    "{B-note-1}":
-      "4,15 10x3 c9,16 23,8 23,9 23,10 23,11 24,11 25,11 25,12 25,13 25,14 25,15 24,15 23,15 22,15 21,15 20,15 19,15 18,15 17,15 16,15 15,15 15,16 14,16",
+    B: "20,6 5x3 c22,7",
+    C: "0,6 7x3 c3,7",
+    "{B-note-0}": "7,0 9x4 c11,2 19,5 19,2 17,2 16,2",
+    "{B-note-1}": "6,15 10x3 c11,16 25,6 25,16 17,16 16,16",
   })
   expect(
     layout(

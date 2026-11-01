@@ -24,7 +24,7 @@ interface StateTransitionRoutePlanBase {
 }
 
 export type StateTransitionRoutePlan =
-  | (StateTransitionRoutePlanBase & { kind: "self"; lane: number })
+  | (StateTransitionRoutePlanBase & { kind: "self"; lane: number; lanes: number; headX?: number })
   | (StateTransitionRoutePlanBase & { kind: "horizontal-forward"; leftToRight: boolean })
   | (StateTransitionRoutePlanBase & { kind: "bottom-feedback"; railY: number; approachX: number })
   | (StateTransitionRoutePlanBase & { kind: "top-feedback"; railY: number })
@@ -380,6 +380,7 @@ export function createStateTransitionRoutePlans(
   const statesById = new Map(diagram.states.map((state) => [state.id, state]))
   const endpointOccurrences = new Map<string, number>()
   const selfOccurrences = new Map<string, number>()
+  const selfLanes = selfTransitionCounts(diagram)
   const parallelLaneGap = Math.max(
     3,
     ...diagram.transitions.map((transition) => measureStateTransitionLabel(transition.label).height + 2),
@@ -441,7 +442,7 @@ export function createStateTransitionRoutePlans(
     if (transition.from === transition.to) {
       const lane = selfOccurrences.get(transition.from) ?? 0
       selfOccurrences.set(transition.from, lane + 1)
-      return [{ ...base, kind: "self", lane }]
+      return [{ ...base, kind: "self", lane, lanes: selfLanes.get(transition.from)! }]
     }
     const endpointKey = `${transition.from}\u0000${transition.to}`
     const parallelIndex = endpointOccurrences.get(endpointKey) ?? 0
@@ -655,7 +656,13 @@ function addHorizontalForward(builder: StateTransitionRenderBuilder): void {
 }
 
 function addSelfTransition(builder: StateTransitionRenderBuilder): void {
-  const { from: bounds, transition, lane } = builder.route as Extract<StateTransitionRoutePlan, { kind: "self" }>
+  const {
+    from: bounds,
+    transition,
+    lane,
+    lanes,
+    headX,
+  } = builder.route as Extract<StateTransitionRoutePlan, { kind: "self" }>
   if (bounds.width <= 1 || bounds.height <= 1) {
     const railX = bounds.left + 4 + lane * 4
     const railY = bounds.top + 2 + lane * 2
@@ -671,11 +678,9 @@ function addSelfTransition(builder: StateTransitionRenderBuilder): void {
     if (transition.label) addLabel(builder, railX + 2, lane === 0 ? bounds.top + 1 : railY - 1, transition.label)
     return
   }
-  const sourceX = bounds.left + Math.max(2, Math.floor(bounds.width / 3))
-  const bottomY = bounds.top + bounds.height - 1
-  const railY = bottomY + 2 + lane * 3
-  const targetX =
-    Math.max(sourceX + 3, bounds.left + Math.min(bounds.width - 3, Math.ceil((bounds.width * 2) / 3))) + lane * 4
+  const loop = selfLoopGeometry(bounds, lane, lanes)
+  const { sourceX, bottomY, railY } = loop
+  const targetX = headX ?? loop.targetX
 
   addBottomDeparture(builder, bounds, sourceX)
   addVerticalLine(builder, sourceX, bottomY + 1, railY - 1, 1)
@@ -685,6 +690,68 @@ function addSelfTransition(builder: StateTransitionRenderBuilder): void {
   for (let y = railY - 1; y > bottomY + 1; y--) addCell(builder, { x: targetX, y, char: "│" })
   addCell(builder, { x: targetX, y: bottomY + 1, arrowDirection: "up" })
   if (transition.label) addLabel(builder, targetX + 2, lane === 0 ? bottomY + 1 : railY - 1, transition.label)
+}
+
+/** How many transitions loop from each state to itself. */
+export function selfTransitionCounts(diagram: {
+  transitions: readonly { from: string; to: string }[]
+}): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const transition of diagram.transitions) {
+    if (transition.from === transition.to) counts.set(transition.from, (counts.get(transition.from) ?? 0) + 1)
+  }
+  return counts
+}
+
+// Every head comes up under the box's bottom border, short of its corner, right of the loops inside it, leaving a
+// column for each loop outside it.
+function selfLoopGeometry(bounds: BoxBounds, lane: number, lanes: number) {
+  const lastHeadX = bounds.left + bounds.width - 2
+  const sourceX = Math.min(bounds.left + Math.max(2, Math.floor(bounds.width / 3)), lastHeadX - lanes)
+  const bottomY = bounds.top + bounds.height - 1
+  const railY = bottomY + 2 + lane * 3
+  const maxHeadX = lastHeadX - (lanes - 1 - lane)
+  const targetX = Math.min(
+    Math.max(sourceX + 3, bounds.left + Math.min(bounds.width - 3, Math.ceil((bounds.width * 2) / 3))) + lane * 4,
+    maxHeadX,
+  )
+  return { sourceX, bottomY, railY, targetX, maxHeadX }
+}
+
+// Once every other route is drawn, each self loop's head moves to the nearest column under its box that no other
+// route touches from the box down to the loop's rail, so two heads never share a cell; the loops of one state stay
+// nested. Where no column is clear the head keeps its place.
+function placeSelfLoopHeads(plans: StateTransitionRenderPlan[]): StateTransitionRenderPlan[] {
+  const result = [...plans]
+  const loopsByState = new Map<string, number[]>()
+  plans.forEach((plan, index) => {
+    if (plan.route.kind !== "self" || plan.route.from.width <= 1 || plan.route.from.height <= 1) return
+    loopsByState.set(plan.route.transition.from, [...(loopsByState.get(plan.route.transition.from) ?? []), index])
+  })
+  for (const indexes of loopsByState.values()) {
+    const own = new Set(indexes)
+    const taken = new Set(
+      plans.flatMap((plan, index) => (own.has(index) ? [] : plan.path.map(([x, y]) => `${x},${y}`))),
+    )
+    let previousX = -Infinity
+    for (const index of indexes) {
+      const route = plans[index]!.route as Extract<StateTransitionRoutePlan, { kind: "self" }>
+      const loop = selfLoopGeometry(route.from, route.lane, route.lanes)
+      const clear = (x: number) => {
+        for (let y = loop.bottomY + 1; y <= loop.railY; y++) if (taken.has(`${x},${y}`)) return false
+        return true
+      }
+      let headX = Math.max(loop.targetX, previousX + 1)
+      let best: number | undefined
+      for (let x = Math.max(loop.sourceX + 1, previousX + 1); x <= loop.maxHeadX; x++) {
+        if (clear(x) && (best === undefined || Math.abs(x - loop.targetX) < Math.abs(best - loop.targetX))) best = x
+      }
+      if (best !== undefined) headX = best
+      previousX = headX
+      if (headX !== loop.targetX) result[index] = createStateTransitionRenderPlan({ ...route, headX })
+    }
+  }
+  return result
 }
 
 function outsideBottomY(bounds: BoxBounds): number {
@@ -1158,7 +1225,7 @@ function renderBodySafeTransitionPlan(
   const previous = prefix.at(-1)
   for (const [index, point] of safePath.entries()) {
     if (index === safePath.length - 1) {
-      const targetDirection = connectionDirection(point, [plan.route.to.centerX, plan.route.to.centerY])
+      const targetDirection = directionInto(point, plan.route.to)
       cells.push(
         plan.route.targetIsHiddenMarker
           ? { x: point[0], y: point[1], char: targetDirection === "left" || targetDirection === "right" ? "─" : "│" }
@@ -1394,7 +1461,9 @@ export function createStateTransitionRenderPlans(
   const plans = createStateTransitionRoutePlans(diagram, bounds, feedbackLaneY, options.feedbackTopY).map(
     createStateTransitionRenderPlan,
   )
-  if (options.repairRoutes === false) return placeStateTransitionLabels(plans, diagram, bounds, noteBounds)
+  if (options.repairRoutes === false) {
+    return placeStateTransitionLabels(placeSelfLoopHeads(plans), diagram, bounds, noteBounds)
+  }
   const baseObstacles = transitionObstacles(diagram, bounds, noteBounds)
   const repaired: StateTransitionRenderPlan[] = []
   for (const [index, plan] of plans.entries()) {
@@ -1426,7 +1495,7 @@ export function createStateTransitionRenderPlans(
       ),
     )
   }
-  return placeStateTransitionLabels(repaired, diagram, bounds, noteBounds)
+  return placeStateTransitionLabels(placeSelfLoopHeads(repaired), diagram, bounds, noteBounds)
 }
 
 function transitionsHaveDisjointEndpoints(left: StateTransitionRenderPlan, right: StateTransitionRenderPlan): boolean {
@@ -1477,6 +1546,14 @@ function transitionObstacles(
       ]
     }),
   )
+}
+
+// The way a head at this point, just outside the box, points into it: by the side it is on, not by the centre's
+// bearing, which tilts sideways for a head off the centre column.
+function directionInto(point: StateTransitionPathPoint, box: BoxBounds): DiagramDirection {
+  if (point[1] >= box.top + box.height) return "up"
+  if (point[1] < box.top) return "down"
+  return point[0] < box.left ? "right" : "left"
 }
 
 function connectionDirection(from: StateTransitionPathPoint, to: StateTransitionPathPoint): DiagramDirection {

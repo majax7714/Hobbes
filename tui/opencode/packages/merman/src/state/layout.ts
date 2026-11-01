@@ -7,6 +7,7 @@ import {
   hasReverseTransition,
   isStateHorizontalFeedback,
   measureStateTransitionLabel,
+  selfTransitionCounts,
   type StateTransitionRenderPlan,
 } from "./routing.js"
 import {
@@ -145,6 +146,19 @@ function computeMainPath(diagram: StateDiagram): string[] {
 function stateSize(state: StateDiagramState): { width: number; height: number; lines: string[] } {
   if (state.kind !== "state") return { width: 1, height: 1, lines: [state.label] }
   return measureDiagramTextBox(state.label, { paddingX: 2, paddingY: 1 })
+}
+
+// A state with self loops is at least two columns wider per loop than a bare box, so each head can find a column
+// under it that no other route touches.
+function stateSizes(diagram: StateDiagram): Map<string, { width: number; height: number; lines: string[] }> {
+  const loops = selfTransitionCounts(diagram)
+  return new Map(
+    diagram.states.map((state) => {
+      const size = stateSize(state)
+      const count = loops.get(state.id) ?? 0
+      return [state.id, size.width > 1 && count > 0 ? { ...size, width: Math.max(size.width, 2 * count + 5) } : size]
+    }),
+  )
 }
 
 function noteLines(note: StateDiagramNote): string[] {
@@ -613,7 +627,7 @@ export function createStateDiagramLayout(
   }
 
   const rankKeys = [...byRank.keys()].sort((a, b) => a - b)
-  const sizes = new Map(diagram.states.map((state) => [state.id, stateSize(state)]))
+  const sizes = stateSizes(diagram)
   const bounds = new Map<string, StateDiagramBoxBounds>()
   const outgoingLabelRows = new Map<string, number>()
   const selfTransitionCounts = new Map<string, number>()
@@ -665,7 +679,7 @@ export function createStateDiagramLayout(
 }
 
 function createHorizontalLayout(diagram: StateDiagram, options: StateDiagramLayoutOptions): StateDiagramLayout {
-  const sizes = new Map(diagram.states.map((state) => [state.id, stateSize(state)]))
+  const sizes = stateSizes(diagram)
   const bounds = new Map<string, StateDiagramBoxBounds>()
   const statesById = new Map(diagram.states.map((state) => [state.id, state]))
   const mainPath = computeMainPath(diagram)
