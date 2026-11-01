@@ -95,9 +95,16 @@ test("a self loop's head comes up under its own box, the box widened for it and 
   ])
 })
 
-test("left to right, a marker or choice off the main path sits on the row's centre, so its route runs straight in", () => {
+test("left to right, every state off the main path is centred on the row, so a choice's route runs straight in", () => {
   // Once a fork defect: the fallback row gave a 1-cell state a box's top, so ch sat on B's top row and its route ran
-  // along B's top border. The baseline is row 1; a box off the path has its top 5 below (6), a marker its centre (7).
+  // along B's top border; then a box taller than 3 kept its top 5 below the baseline, its centre below the choice's.
+  // The baseline is row 1, the row's centre 6 below (7): a 3-tall box's top is 6, a 4-tall box's 5.
+  expect(lines(draw('state ch <<choice>>\n[*] --> A\nch --> B\nstate "two<br>lines" as B')).slice(5)).toEqual([
+    "                                                                  ╭───────╮",
+    "                                                                  │ two   │",
+    "                            ◆────────────────────────────────────▶│ lines │",
+    "                                                                  ╰───────╯",
+  ])
   expect(lines(draw("state ch <<choice>>\n[*] --> A\nch --> B"))).toEqual([
     "              ╭───╮",
     "●────────────▶│ A │",
@@ -111,18 +118,19 @@ test("left to right, a marker or choice off the main path sits on the row's cent
   ])
 })
 
-test("a fork defect, pinned: a side rail whose ends are a row apart runs along its target's bottom border", () => {
-  // P0 --> B leaves P0's right side on row 8, B's bottom row, and runs along B's border to the rail before turning
-  // up and back into B's side (currently-open.md; 9 of 3,000 random diagrams). A fix changes this.
+test("a side rail whose ends are a row apart is repaired off its target's border, by the shortest way round it", () => {
+  // Once a fork defect: P0 --> B left P0's right side on row 8, B's bottom row, and ran along B's border to the rail.
+  // Repaired, it drops to row 9 under B and comes up into B's right side: 12 cells, where over B it would be 14.
   const rows = lines(
     draw(
       'state P0 {\nstate "Inside" as P0x\n}\n[*] --> A\nP0 --> B : retry\nB --> P0x\nP0x --> P0x : a long label here',
     ),
   )
-  expect(rows.slice(6, 9).map((row) => row.slice(44))).toEqual([
+  expect(rows.slice(6, 10).map((row) => row.slice(44).trimEnd())).toEqual([
     "│ ╭────────╮               │    ╭───╮",
-    "│ │ Inside │               │    │ B │◀──╮ retry",
-    "│ ╰──┬─────╯               ├──────┬─────╯",
+    "│ │ Inside │               │    │ B │◀ retry",
+    "│ ╰──┬─────╯               ├╮   ╰─┬─╯│",
+    "│  ▲ │   ▲                 │╰─────┼──╯",
   ])
 })
 
@@ -131,8 +139,7 @@ test("a fork defect, pinned: a side rail whose ends are a row apart runs along i
 // the fewest kept that tell every such fault apart. Each asserts only the routes and rows (`drawing-summary.ts`) those
 // faults change, and the count of rows where they add or take rows, as drawn today: pinned as observed, not derived by
 // hand. None shows a known wrong drawing (`state-defects.ts`: composites crossing, a state outside its composite, a
-// route through a state). A marker or choice on the left-to-right fallback row (pinned as a defect above) is not one
-// of those kinds, and 2 of these inputs place one: a fix to that row changes them too. Cases above that are redundant
+// route through a state). Cases above that are redundant
 // against these stay as the readable statement of each rule (Max, 2026-10-30).
 test("pinned as observed: the canvas: its size, the shift off negative cells, and the separation's attempts", () => {
   expect(

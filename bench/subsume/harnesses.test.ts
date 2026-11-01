@@ -1,4 +1,7 @@
 import { harnessPackage } from "./harness-package"
+import { cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { expect, test } from "bun:test"
 import { packageRoot } from "./harnesses/cli"
 import { flowchartDefects, generate as generateFlowchart, summarize as summarizeFlowchart } from "./harnesses/flowchart"
@@ -159,15 +162,42 @@ test("the state drawing harness summarizes each route and each drawn row, with t
 }, 60_000)
 
 test("a state diagram drawn wrongly in a known way is summarized as a defect, so pinned.py never keeps it", async () => {
-  // P0 --> B's side rail leaves P0 on B's bottom row and runs along B's border (a fork defect, pinned in merman).
+  // P0 --> B's side rail leaves P0 on B's bottom row; unrepaired, it runs along B's border. The fork repairs it (once
+  // a fork defect), so the real package summarizes it; a copy planted to skip route repair is caught by both harnesses.
   const along =
     'state P0 {\nstate "Inside" as P0x\n}\n[*] --> A\nP0 --> B : retry\nB --> P0x\nP0x --> P0x : a long label here'
-  expect(summarizeDrawing(along)).toEqual({ error: "defect: route through a state" })
-  expect(summarizeLayout(along)).toEqual({ error: "defect: route through a state" })
+  expect("error" in summarizeDrawing(along)).toBe(false)
+  expect("error" in summarizeLayout(along)).toBe(false)
+  const planted = mkdtempSync(join(tmpdir(), "planted-merman-"))
+  try {
+    cpSync(`${packageRoot}/src`, `${planted}/src`, { recursive: true })
+    cpSync(`${packageRoot}/test/state`, `${planted}/test/state`, { recursive: true })
+    symlinkSync(`${packageRoot}/node_modules`, `${planted}/node_modules`)
+    const routing = `${planted}/src/state/routing.ts`
+    const source = readFileSync(routing, "utf8")
+    expect(source).toContain("if (options.repairRoutes === false) {")
+    writeFileSync(routing, source.replace("if (options.repairRoutes === false) {", "if (true) {"))
+    const script = [
+      'import { summarize as drawing } from "./harnesses/state-drawing"',
+      'import { summarize as layout } from "./harnesses/state-layout"',
+      `const along = ${JSON.stringify(along)}`,
+      "console.log(JSON.stringify([drawing(along), layout(along)]))",
+    ].join("\n")
+    const child = Bun.spawnSync([BUN, "-e", script], {
+      cwd: import.meta.dir,
+      env: { ...process.env, PINNED_PACKAGE: planted },
+    })
+    expect(JSON.parse(child.stdout.toString())).toEqual([
+      { error: "defect: route through a state" },
+      { error: "defect: route through a state" },
+    ])
+  } finally {
+    rmSync(planted, { recursive: true, force: true })
+  }
   // A transition's first point, its tee on its own source's border, is not a route through that state.
   const { parseMermaidStateDiagram } = await import(`${packageRoot}/src/state/parser.ts`)
   expect(stateDefects(parseMermaidStateDiagram("stateDiagram-v2\nA --> B\nB --> A"), { minStateGap: 5 })).toEqual([])
-})
+}, 60_000)
 
 test("the defect checks name composites crossing, a state outside its own, and a route through a box but its own tee", () => {
   const box = (id: string, left: number, top: number, width: number, height: number) => ({

@@ -1026,6 +1026,22 @@ function createStateTransitionRenderPlan(route: StateTransitionRoutePlan): State
   return builder
 }
 
+// Between leaving its source and arriving at its target, a route may cross neither end's box: a side rail whose ends
+// are a row apart once ran along its target's border, or came back along its source's (a composite end is a frame
+// routes enter, so it is not checked).
+function routeCrossesOwnEnd(plan: StateTransitionRenderPlan, diagram: StateVisibleDiagram): boolean {
+  if (plan.route.transition.from === plan.route.transition.to) return false
+  const sourceOutsideIndex = plan.path.findIndex((point) => !pointIsInsideBounds(point, plan.route.from))
+  const targetOutsideIndex = plan.path.findLastIndex((point) => !pointIsInsideBounds(point, plan.route.to))
+  if (sourceOutsideIndex < 0 || targetOutsideIndex < sourceOutsideIndex) return false
+  const between = plan.path.slice(sourceOutsideIndex, targetOutsideIndex + 1)
+  const isState = (id: string) => diagram.states.some((state) => state.id === id && !isHiddenCompositeMarker(state))
+  return (
+    (isState(plan.route.transition.from) && between.some((point) => pointIsInsideBounds(point, plan.route.from))) ||
+    (isState(plan.route.transition.to) && between.some((point) => pointIsInsideBounds(point, plan.route.to)))
+  )
+}
+
 function pointIsInsideBounds(point: StateTransitionPathPoint, bounds: BoxBounds): boolean {
   return (
     point[0] >= bounds.left &&
@@ -1054,6 +1070,7 @@ function routeIntersectsUnrelatedState(
     })
   )
     return true
+  if (routeCrossesOwnEnd(plan, diagram)) return true
 
   return noteBounds.some((noteBound) => {
     if (plan.path.some((point) => pointIsInsideBounds(point, noteBound))) return true
@@ -1169,6 +1186,8 @@ function alternateBodySafeTransitionPlan(
   const candidates: StateTransitionRenderPlan[] = []
   for (const source of stateRoutePorts(plan.route.from)) {
     for (const target of stateRoutePorts(plan.route.to)) {
+      // A self loop's port paired with itself has no path to draw: taken, the shortest, the loop was lost.
+      if (source.outside[0] === target.outside[0] && source.outside[1] === target.outside[1]) continue
       const safePath = findBodySafePath(source.outside, target.outside, diagram, bounds, plan, search, budget)
       if (!safePath) continue
       const prefix = plan.route.from.width > 1 && plan.route.from.height > 1 ? [source.border] : []
@@ -1235,7 +1254,12 @@ function renderBodySafeTransitionPlan(
       )
       continue
     }
-    const before = index === 0 ? previous : safePath[index - 1]
+    // A 1-cell source (a marker or a choice) has no border cell before the path: the first cell joins the source.
+    const source = plan.route.from
+    const before =
+      index > 0
+        ? safePath[index - 1]
+        : (previous ?? (source.width <= 1 && source.height <= 1 ? ([source.left, source.top] as const) : undefined))
     const after = safePath[index + 1]!
     const connections = new Set<DiagramDirection>()
     if (before) connections.add(connectionDirection(point, before))
@@ -1467,6 +1491,7 @@ export function createStateTransitionRenderPlans(
     return placeStateTransitionLabels(placeSelfLoopHeads(plans), diagram, bounds, noteBounds)
   }
   const baseObstacles = transitionObstacles(diagram, bounds, noteBounds)
+  const bodySpace = createStateSearchSpace(baseObstacles)
   const repaired: StateTransitionRenderPlan[] = []
   for (const [index, plan] of plans.entries()) {
     const disjoint = repaired.filter((previous) => transitionsHaveDisjointEndpoints(previous, plan))
@@ -1485,16 +1510,20 @@ export function createStateTransitionRenderPlans(
         ),
       ),
     )
+    const safe = bodySafeTransitionPlan(
+      plan,
+      diagram,
+      bounds,
+      noteBounds,
+      routeSpace,
+      budget,
+      disjoint.some((previous) => pathsIntersect(previous.path, plan.path)),
+    )
+    // Routes drawn before can wall an end in; crossing one of them is better than running through a box.
     repaired.push(
-      bodySafeTransitionPlan(
-        plan,
-        diagram,
-        bounds,
-        noteBounds,
-        routeSpace,
-        budget,
-        disjoint.some((previous) => pathsIntersect(previous.path, plan.path)),
-      ),
+      routeIntersectsUnrelatedState(safe, diagram, bounds, noteBounds)
+        ? bodySafeTransitionPlan(plan, diagram, bounds, noteBounds, bodySpace, budget)
+        : safe,
     )
   }
   return placeStateTransitionLabels(placeSelfLoopHeads(repaired), diagram, bounds, noteBounds)

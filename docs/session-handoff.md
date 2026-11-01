@@ -1,7 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-11-01 (fiftieth session); `main` at 0.3.9-beta (`74ce499`, PRs #8–#19 merged); branch
-`fix/fork-pinned-defects`, its PR open (the fork defects our tests pinned, fixed); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+**Reviewed 2026-11-01 (fiftieth session); `main` at 0.3.9-beta (`2ec43ce`, PRs #8–#20 merged); branch
+`fix/fork-found-defects`, not yet pushed (state's own-end crossing, empty self-loop repairs and the fallback row
+fixed; PR #20's review triaged; flowchart's nested frame left pinned); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -43,10 +44,10 @@ session went belongs in the BUILDLOG.
 **Next: the rest of the fork's tests, `core/shell` first, once the defect fixes merge.** `merman` is done:
 `core` (PR #9), the top level (PR #10), flowchart (PR #13), gantt and gitGraph (PR #14), sequence (PR #15, #16),
 state (PR #18; the older `test/merman-state` branch is superseded, delete it), timeline (PR #19). Max
-(2026-11-01): "look to fix the defects before proceeding with core/shell"; all ten are fixed on
-`fix/fork-pinned-defects` (BUILDLOG 2026-11-01), merman 406 pass, latex 86. **Measure a layout fix on random
-inputs before and after** (state: the harnesses' generator and `state-defects.ts`; seeds 11–13): it found two
-more defects, now pinned (`currently-open.md`).
+(2026-11-01): "look to fix the defects before proceeding with core/shell"; all ten are fixed (PR #20, merged),
+and of the two found measuring them, state's is fixed on `fix/fork-found-defects` (merman 408 pass); flowchart's
+stays pinned (Max's route 3: route 1 measured heavy). PR #20's review is triaged there too (`currently-open.md`). **Measure a layout fix on random inputs before and after** (state: the
+harnesses' generator and `state-defects.ts`, seeds 11–13; flowchart: `harnesses/flowchart.ts`, seeds 1–10).
 
 How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests under
 `packages/merman/test/<family>/`, one file per module, `prettier --write` on new files):
@@ -67,11 +68,8 @@ in `currently-open.md`). Then ADR-184's unbuilt levers (`currently-open.md`): a 
 ADR first. The extraction routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- The two defects found measuring the fixes (`currently-open.md`, the fork-tests item): state's side rail
-  whose ends are a row apart runs on its target's border (9 in 3,000); flowchart's nested frame grown over
-  its parent's other nodes (2 in 2,000). Fix them, or leave them pinned.
-- `VERSION` was not bumped for PR #17's fork fix nor for the defect fixes (0.3.9-beta tracks the graph layer,
-  not the fork): whether fork fixes bump it.
+- Push `fix/fork-found-defects` (Max's step), then its PR; next, `core/shell` on his word.
+- PR #20's four cleanup comments: whether to do them.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - H-39: the trace oracle's re-entrance guard is shared across threads; a thread-local guard moves every key
   with a threaded test (`currently-open.md`).
@@ -80,7 +78,7 @@ ADR first. The extraction routes stand as they were: C is the next-thinnest lang
 
 ## Where the last day left things (2026-10-31; the CHANGELOG and BUILDLOG have each one)
 
-Fiftieth session: the fork's ten pinned defects fixed (PR open); `merman`'s timeline (PR #19) and state (PR #18), sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
+Fiftieth session: the fork's ten pinned defects fixed (PR #20); state's own-end crossing fixed; `merman`'s timeline (PR #19) and state (PR #18), sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
 cap (PR #16), the state side rail's endless loop fixed (PR #17); three state drawing defects found and pinned.
 
 Forty-ninth session: 0.3.7-beta to 0.3.9-beta (the gate's `attr-call` reason, H-38, ADR-187; the accept list,
