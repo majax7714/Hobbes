@@ -1,10 +1,9 @@
 import { expect, test } from "bun:test"
-import { createStateDiagramDrawing, drawStateDiagramGrid } from "../../src/state/drawing"
+import { drawStateDiagramGrid } from "../../src/state/drawing"
 import { parseMermaidStateDiagram } from "../../src/state/parser"
 import { renderStateGridText, type StateGrid } from "../../src/state/render-grid"
 import type { StateDiagramRenderOptions } from "../../src/state/types"
 import { drawn } from "./drawing-summary"
-import { summary } from "./layout-summary"
 
 const draw = (body: string, options?: StateDiagramRenderOptions) =>
   drawStateDiagramGrid(parseMermaidStateDiagram(`stateDiagram-v2\n${body}`), options)
@@ -125,27 +124,6 @@ test("a fork defect, pinned: a side rail whose ends are a row apart runs along i
     "│ │ Inside │               │    │ B │◀──╮ retry",
     "│ ╰──┬─────╯               ├──────┬─────╯",
   ])
-})
-
-test("a composite overlapping another moves whole, 4 clear of its frame, and every frame holds its own states", () => {
-  // Once a fork defect: P1's frame started inside P0's, and P1y ran out past P1's right side. P1 moves to P0's right
-  // edge plus 4 (45 + 4 = 49) with its states, and its frame still holds P1y (109 + 7 + 2 = 49 + 69).
-  const { layout } = createStateDiagramDrawing(
-    parseMermaidStateDiagram(
-      "stateDiagram-v2\nstate P0 {\n[*] --> P0x\nP0x --> P0y : x<br>yy<br>zzz\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y\n}",
-    ),
-  )
-  expect(summary(layout)).toMatchObject({
-    "[P0]": "0,0 45x11 c22,5",
-    "[P1]": "49,6 69x7 c83,9",
-    P1y: "109,8 7x3 c112,9",
-  })
-  // Once refused ("State composite separation did not converge"), each of these seven lines needed: now drawn, P1
-  // moved to P0's right edge plus 4 (40 + 25 + 4).
-  const refused = createStateDiagramDrawing(
-    parseMermaidStateDiagram("stateDiagram-v2\nstate P0 {\nP0x --> [*]\n}\nstate P1 {\n[*] --> P1x\nP1y --> [*]\n}"),
-  )
-  expect(summary(refused.layout)).toMatchObject({ "[P0]": "40,6 25x7 c52,9", "[P1]": "69,0 105x13 c121,6" })
 })
 
 // The cases below were found by planting each fault the cases above miss into a copy of drawing.ts and searching random

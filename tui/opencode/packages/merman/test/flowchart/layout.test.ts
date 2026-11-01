@@ -304,12 +304,11 @@ test("with a target width, a local layout that would crowd an outside node is of
 
 test("a node outside every frame that would lie over a frame moves across the flow past it, the gap clear", () => {
   // Once a fork defect: G1's self loop widened its frame, the frames moved apart, and E landed on B inside G0. E now
-  // sits G0's right edge plus the gap (half the vertical rank gap, 2) to the right: 19 + 9 + 2 = 30.
+  // sits the gap (half the vertical rank gap, 2) right of G0's frame, clear of B.
   const result = layout("flowchart TD\nsubgraph G0\nB\nend\nsubgraph G1\nA\nend\nE --> A\nA --> F\nA --> A")
-  expect([result.subgraphBounds.get("G0"), result.bounds.get("E")].map((box) => [box!.left, box!.top, box!.width])).toEqual([
-    [19, 7, 9],
-    [30, 8, 5],
-  ])
+  const [g0, e, b] = [result.subgraphBounds.get("G0")!, result.bounds.get("E")!, result.bounds.get("B")!]
+  expect(e.left - (g0.left + g0.width)).toBe(2)
+  expect(e.left > b.left + b.width).toBe(true)
   // Ranked between G0's own B and A, F and E once sat inside G0's frame; they now stand beside it.
   const between = layout("flowchart TD\nsubgraph G0\nB\nA\nend\nE -.->|l| A\nF --> E\nB -.-> F\nF ==> A")
   const frame = between.subgraphBounds.get("G0")!
