@@ -44,6 +44,26 @@ test("a self loop's head moves to the nearest column no other route takes below 
   expect([drawnRoutes[0], drawnRoutes[2]]).toEqual(["A>A self 2,2 2,4 4,4 4,3", "B>A vertical-elbow 4,6 4,5 5,5 5,3"])
 })
 
+test("a choice's self loop that a note blocks is repaired round the choice's other sides, never to nothing", () => {
+  // Once a fork defect: the repair tried each port paired with itself, an empty path, the shortest; the loop was lost.
+  // The note is on the right, so the loop leaves the choice's top and comes back into its bottom, round its left.
+  const drawing = createStateDiagramDrawing(
+    parseMermaidStateDiagram("stateDiagram-v2\nstate ch <<choice>>\nch --> ch\nnote right of ch : two<br>lines"),
+  )
+  const choice = drawing.layout.bounds.get("ch")!
+  const loop = drawing.transitionPlans[0]!
+  expect(loop.path.at(0)).toEqual([choice.left, choice.top - 1])
+  expect(loop.path.at(-2)).toEqual([choice.left, choice.top + 1])
+  expect(loop.path.every(([x]) => x <= choice.left)).toBe(true)
+  expect(loop.path.length).toBe(6)
+  // A choice is one cell, with no border to leave from: the first cell joins it, a corner over it, not a dash.
+  expect(drawn("state ch <<choice>>\nch --> ch\nnote right of ch : two<br>lines")).toMatchObject({
+    "row:1": "╭╮    ║ two   ║",
+    "row:2": "│◆════╣ lines ║",
+    "row:3": "╰▲    ╚═══════╝",
+  })
+})
+
 test("a route whose end earlier routes wall in crosses one of them rather than run through a box", () => {
   // B --> P1x's side rail would come back along row 10, B's bottom row. P1x is ringed by P1y --> P0y's lane under the
   // rows (column 120 down to row 17) and the routes along rows 3 and 6, so no way into it avoids every earlier route:
@@ -637,7 +657,7 @@ test("pinned as observed: detours round states, and the junctions where routes m
       arrowHeadStyle: "filled",
       layoutMaxWidth: 52,
     }),
-  ).toMatchObject({ "route:0": "ch>ch self 0,2", rows: 4 })
+  ).toMatchObject({ "route:0": "ch>ch self 1,1 0,1 0,3 1,3 1,2", rows: 4 })
   expect(
     drawn(
       'direction TD\nstate "A long composite title" as P0 {\n}\nstate P1 {\n[*] --> P1x\nP1x --> P1y : a<br>b\n}\nP1y --> P1 : a<br>b\nnote right of P1y : a note',
@@ -697,11 +717,11 @@ test("pinned as observed: labels placed clear of routes and states", () => {
       "state P0 {\n[*] --> P0x\nP0x --> [*]\n}\nP0x --> A : x<br>yy<br>zzz\nP0x --> P0x : go\nP0 --> P0 : x<br>yy<br>zzz\nP0x --> B : go",
     ),
   ).toMatchObject({
-    "route:0": "P0x>A horizontal-forward 10,3 40,3 @24,0",
-    "route:1": "P0x>P0x self 5,4 5,6 8,6 8,5 @2,6",
-    "route:2": "P0x>B vertical-elbow 6,4 6,6 23,6 23,7 @11,4",
-    "route:3": "P0x>P0x self 5,4 5,9 9,9 9,5 @8,11",
-    "row:6": "│ go ├┴─┴┼─────────────╮",
+    "route:0": "P0x>A horizontal-forward 11,3 37,3 @23,0",
+    "route:1": "P0x>P0x self 6,4 6,6 9,6 9,5 @3,6",
+    "route:2": "P0x>B vertical-elbow 7,4 7,6 20,6 20,7 @8,8",
+    "route:3": "P0x>P0x self 6,4 6,9 10,9 10,5 @9,11",
+    "row:6": "│  go ├┴─┴┼─────────╮",
     rows: 15,
   })
   expect(
@@ -902,7 +922,7 @@ test("pinned as observed: faults the defect fixes left untold: self-loop heads, 
     "row:5": "│  ▲ │ retry                        │",
     "row:6": "╰──│─│──────────────────────────────╯",
     "row:7": "   │ ▼",
-    "row:8": "   │ ◆│                               ╭───╮                               ╭───╮",
+    "row:8": "   │ ◆╮                               ╭───╮                               ╭───╮",
     "row:9": "   │  │                               │ B │                               │ D │",
     rows: 15,
   })

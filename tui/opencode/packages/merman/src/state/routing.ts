@@ -1186,6 +1186,8 @@ function alternateBodySafeTransitionPlan(
   const candidates: StateTransitionRenderPlan[] = []
   for (const source of stateRoutePorts(plan.route.from)) {
     for (const target of stateRoutePorts(plan.route.to)) {
+      // A self loop's port paired with itself has no path to draw: taken, the shortest, the loop was lost.
+      if (source.outside[0] === target.outside[0] && source.outside[1] === target.outside[1]) continue
       const safePath = findBodySafePath(source.outside, target.outside, diagram, bounds, plan, search, budget)
       if (!safePath) continue
       const prefix = plan.route.from.width > 1 && plan.route.from.height > 1 ? [source.border] : []
@@ -1252,7 +1254,12 @@ function renderBodySafeTransitionPlan(
       )
       continue
     }
-    const before = index === 0 ? previous : safePath[index - 1]
+    // A 1-cell source (a marker or a choice) has no border cell before the path: the first cell joins the source.
+    const source = plan.route.from
+    const before =
+      index > 0
+        ? safePath[index - 1]
+        : (previous ?? (source.width <= 1 && source.height <= 1 ? ([source.left, source.top] as const) : undefined))
     const after = safePath[index + 1]!
     const connections = new Set<DiagramDirection>()
     if (before) connections.add(connectionDirection(point, before))

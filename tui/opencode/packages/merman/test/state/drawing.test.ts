@@ -95,9 +95,16 @@ test("a self loop's head comes up under its own box, the box widened for it and 
   ])
 })
 
-test("left to right, a marker or choice off the main path sits on the row's centre, so its route runs straight in", () => {
+test("left to right, every state off the main path is centred on the row, so a choice's route runs straight in", () => {
   // Once a fork defect: the fallback row gave a 1-cell state a box's top, so ch sat on B's top row and its route ran
-  // along B's top border. The baseline is row 1; a box off the path has its top 5 below (6), a marker its centre (7).
+  // along B's top border; then a box taller than 3 kept its top 5 below the baseline, its centre below the choice's.
+  // The baseline is row 1, the row's centre 6 below (7): a 3-tall box's top is 6, a 4-tall box's 5.
+  expect(lines(draw('state ch <<choice>>\n[*] --> A\nch --> B\nstate "two<br>lines" as B')).slice(5)).toEqual([
+    "                                                                  ╭───────╮",
+    "                                                                  │ two   │",
+    "                            ◆────────────────────────────────────▶│ lines │",
+    "                                                                  ╰───────╯",
+  ])
   expect(lines(draw("state ch <<choice>>\n[*] --> A\nch --> B"))).toEqual([
     "              ╭───╮",
     "●────────────▶│ A │",

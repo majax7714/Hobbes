@@ -804,9 +804,9 @@ function createHorizontalLayout(diagram: StateDiagram, options: StateDiagramLayo
     .sort((left, right) => (ranks.get(left.id) ?? 0) - (ranks.get(right.id) ?? 0))
   for (const state of fallbackStates) {
     const size = sizes.get(state.id)!
-    // As on the main path, a marker or choice sits on the row's centre: a box's top is 5 below the baseline, so its
-    // centre is 6 below.
-    const top = state.kind === "state" ? baselineY + 5 : baselineY + 6
+    // As on the main path, every state is centred on the row, 6 below the baseline: a 3-tall box's top is 5 below, a
+    // marker or choice on the centre, a taller box higher.
+    const top = baselineY + 6 - Math.floor(size.height / 2)
     const rank = ranks.get(state.id) ?? bounds.size
     let left = rank * (size.width + defaultGap)
     while (true) {
