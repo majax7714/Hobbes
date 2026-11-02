@@ -95,7 +95,7 @@ Left by the fold (2026-10-28):
   checked by mutation to catch a fault no other case catches; 15 more left when the review learned to
   read the checkout's dependency trees (ADR-186, C-198), which showed a TUI test already reaching them.
   Of the 179, 12 are a second entry (Max, route 3a): no runtime logic of their own (types, a `.d.ts`,
-  re-exports), never to get a test of their own; **167 wait for tests** (`latex`'s six done: 86 cases;
+  re-exports), never to get a test of their own; **163 wait for tests** (`core/shell`'s four done: 177 cases; `latex`'s six done: 86 cases;
   `merman`'s `core`, nine modules: 64 cases; its top level, three listed and `palette`: 13). `merman`'s
   six diagram families came off the record because its renderer's cases reach them, but those cases draw
   their expected output with the families' own code: they pin the palette mapping, not what a family
@@ -106,6 +106,21 @@ Left by the fold (2026-10-28):
   every survivor read as never told apart, PR #19). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
+  - **`core/shell`: found by its tests, 2026-11-02, waiting on Max** (`test/core-shell`; pinned in
+    `test/shell/parse.test.ts`, not fixed):
+    - **The tree-sitter walk ignores parse errors** (`scanLegacy`), so permission analysis
+      (`src/tool/plugin/shell.ts:126-136`) is given the wrong directories: `Set-Location -- /etc` gives none,
+      `Set-Location $HOME/x` and `${HOME}/x` give `$HOME`. The portable route reads all three. The walk is the default
+      off the `local` and `dev` channels unless `experimental.portable_shell_scanner` is set. Routes: (a,
+      recommended) on a tree with an error, take the portable scanner and treat opaque as failure; (b) the portable
+      scanner by default everywhere.
+    - **A backslash stays in a directory's name, both routes:** `cd a\ b` reports `a\ b`, and `cd 'a'\b` reports
+      `'a'\b` (portable) or `a` and `\b` (walk), where bash enters `a b` and `ab`. Decoding it needs a decision on which
+      forms count as static (`parse.ts:258` holds a backslash back on purpose).
+    - **A lead, unconfirmed:** an option holding `E`, `F`, `i` or `n` makes a binding builtin's operand arithmetic
+      (`scan.ts:300`), so `typeset -i functions[a]=b` and `vared -ne dis_functions[1]=$(a)` pass the zsh hash refusal at
+      `scan.ts:257`, which asks for a binding. Whether zsh honours such an assignment needs a real zsh; this host has
+      none, and nor dash nor PowerShell. Check it before calling it a defect.
   - **Fork defects found by our tests, fixed 2026-11-01** (BUILDLOG; PR #20, merged): `latex`'s four, `core`'s
     diamond caps, flowchart's two, sequence's note over no one, and state's self loop heads, same-row side rail
     and left-to-right fallback row. Two more were found measuring those fixes on random inputs:

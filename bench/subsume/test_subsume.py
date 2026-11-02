@@ -3,7 +3,9 @@
 import os
 from pathlib import Path
 
-from subsume import classify, mirror, mutants, redundant_cases
+import xml.etree.ElementTree as ET
+
+from subsume import classify, mirror, mutants, redundant_cases, report_cases
 
 
 def labels(text: str) -> list[str]:
@@ -119,3 +121,21 @@ def test_a_bun_run_is_capped_only_where_a_scope_can_be_made(monkeypatch):
     assert subsume.capped(["bun", "test"])[:2] == ["systemd-run", "--user"]
     assert f"MemoryMax={subsume.MEMORY_MAX}" in subsume.capped(["bun", "test"])
     subsume._can_cap.cache_clear()
+
+
+def test_cases_sharing_a_name_are_told_apart_and_a_failure_is_never_hidden():
+    root = ET.fromstring(
+        """<testsuites>
+        <testcase file="t.ts" classname="walk" name="same"><failure/></testcase>
+        <testcase file="t.ts" classname="portable" name="same"/>
+        <testcase file="t.ts" name="twice"><failure/></testcase>
+        <testcase file="t.ts" name="twice"/>
+        <testcase file="t.ts" name="once"/>
+        </testsuites>"""
+    )
+    assert report_cases(root) == {
+        "t.ts::walk > same": True,
+        "t.ts::portable > same": False,
+        "t.ts::twice": True,
+        "t.ts::once": False,
+    }

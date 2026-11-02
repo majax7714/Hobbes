@@ -51,6 +51,7 @@ cd review && npm test                     # the dev environment's review page
 (cd tui/opencode/packages/util && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # our util tests; not in CI
 (cd tui/opencode/packages/latex && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # our latex tests; not in CI
 (cd tui/opencode/packages/merman && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # our merman tests; not in CI
+(cd tui/opencode/packages/core && ~/.watterson/bun/1.4.2/bun test --timeout 30000)  # our core/shell tests; not in CI
 ~/.watterson/bun/1.4.2/bun test tui/plugins/graph   # the graph plugin's logic; not in CI
 ```
 
@@ -83,6 +84,7 @@ Last checked 2026-10-29. pytest at 0.3.6-beta, tsextract and scip node at 0.3.4-
 | util (bun) | 49 | 49 pass (2026-10-29); `tui/opencode/packages/util`, ours since DEC-028, not in CI; `turbo test` runs it with the TUI |
 | latex (bun) | 86 | 86 pass (2026-10-29); `tui/opencode/packages/latex`, ours, not in CI; `turbo test` runs it |
 | merman (bun) | 408 | 408 pass (2026-11-01, with the self-loop repair and the fallback row), `core`, the top level and all six diagram families; `tui/opencode/packages/merman`, ours, not in CI; `turbo test` runs it |
+| core (bun) | 177 | 177 pass (2026-11-02), `core/shell` only; `tui/opencode/packages/core`, ours, not in CI; `turbo test` runs it |
 | atlas0 | 84 | |
 | identity gate | 5 | `bench/identity/test_compare.py`, run by CI with the pipeline's environment |
 | lattice | 663 | 631 pass, 32 skip on a host without clang; they run in the image (2026-10-03) |

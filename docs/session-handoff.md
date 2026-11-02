@@ -1,8 +1,7 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-11-01 (fiftieth session); `main` at 0.3.9-beta (`2ec43ce`, PRs #8–#20 merged); branch
-`fix/fork-found-defects`, not yet pushed (state's own-end crossing, empty self-loop repairs and the fallback row
-fixed; PR #20's review triaged; flowchart's nested frame left pinned); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+**Reviewed 2026-11-02 (fifty-first session); `main` at 0.3.9-beta (`434daf3`, PRs #8–#21 merged); branches
+`fix/state-composite-member` and `test/core-shell`, not yet pushed; the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -41,7 +40,8 @@ session went belongs in the BUILDLOG.
   the readable statement of the rule). PRs #13 and #14 flagged cases kept the same way, or kept because they
   guard a fault `subsume` cannot plant (checked by planting it by hand); neither was overruled.
 
-**Next: the rest of the fork's tests, `core/shell` first, once the defect fixes merge.** `merman` is done:
+**Next: the rest of the fork's tests, `codemode` next, once `test/core-shell` merges.** `core/shell` is on that branch
+(177 cases; three findings for Max in `currently-open.md`). `merman` is done:
 `core` (PR #9), the top level (PR #10), flowchart (PR #13), gantt and gitGraph (PR #14), sequence (PR #15, #16),
 state (PR #18; the older `test/merman-state` branch is superseded, delete it), timeline (PR #19). Max
 (2026-11-01): "look to fix the defects before proceeding with core/shell"; all ten are fixed (PR #20, merged),
@@ -68,7 +68,9 @@ in `currently-open.md`). Then ADR-184's unbuilt levers (`currently-open.md`): a 
 ADR first. The extraction routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- Push `fix/fork-found-defects` (Max's step), then its PR; next, `core/shell` on his word.
+- Push `fix/state-composite-member` and `test/core-shell` (Max's step), then their PRs; both touch these docs.
+- `core/shell`'s findings: the walk's parse errors (recommended: fall back to the portable scanner), a backslash in a
+  directory, the zsh lead (`currently-open.md`).
 - PR #20's four cleanup comments: whether to do them.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - H-39: the trace oracle's re-entrance guard is shared across threads; a thread-local guard moves every key
@@ -78,7 +80,8 @@ ADR first. The extraction routes stand as they were: C is the next-thinnest lang
 
 ## Where the last day left things (2026-10-31; the CHANGELOG and BUILDLOG have each one)
 
-Fiftieth session: the fork's ten pinned defects fixed (PR #20); state's own-end crossing fixed; `merman`'s timeline (PR #19) and state (PR #18), sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
+Fifty-first session (2026-11-02): PR #21 merged; `core/shell`'s tests; `bench/subsume`'s repeated-name defect fixed (no
+past report affected). Fiftieth session: the fork's ten pinned defects fixed (PR #20); state's own-end crossing fixed; `merman`'s timeline (PR #19) and state (PR #18), sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
 cap (PR #16), the state side rail's endless loop fixed (PR #17); three state drawing defects found and pinned.
 
 Forty-ninth session: 0.3.7-beta to 0.3.9-beta (the gate's `attr-call` reason, H-38, ADR-187; the accept list,
