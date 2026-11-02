@@ -17470,3 +17470,20 @@ first, and the file says why. Run a new test file under a hard `timeout` the fir
 `core`'s `package.json` gains a `test` script, so `turbo test` reaches it. The four modules leave
 `.hobbes/accepted-lost-guards.yaml`; 163 wait. Verified: core/shell 177 pass, `tsc` on the tests clean, prettier clean,
 `test_review` 43, `test_subsume` and `test_pinned` 19, harnesses 14 and 2, `test_agent_docs` 4.
+
+## 2026-11-02 (fifty-first session, cont.) — PR #22's review: a lost head and an erased route fixed before merging
+
+Max: "both branches pushed good to review pr and merge". PR #23 merged (`3edfe16`). PR #22's review reported heads lost
+where the merge base drew them; reproduced before merging: `P0 --> P0x; P0x --> C` with a centred member lost the head
+of `P0 --> P0x`, and a reciprocal pair lost one. **A wrong intermediate call of mine:** I said #22 would not merge, then
+measured: frame runs lose their head 63 of 378 on the base and 58 on the PR, so the PR was better overall, and the
+base's own rate, which nothing had measured, is the larger defect (`currently-open.md`).
+
+Two fixes on the branch, the docs conflicts with #23 resolved in a merge from `main`:
+- **A tie takes the left wall** (`horizontalRunIsLeftToRight`): a centred member's run comes from the left, leaving the
+  right to its way out and to a run back to the frame. Two pinned values moved, each drawn and read.
+- **Two ends on one cell have no path** (`findBodySafePath`), for any route. It was guarded for self loops only, so a
+  one-cell run was repaired to nothing: routes with no head, seeds 11–13, base 0, PR 1, now 0 of 17,539.
+
+Frame runs losing a head after both: 58 of 378 (2,144 unstyled diagrams). Each fix's fault planted by hand fails its new
+case. Review items not done are listed in `currently-open.md`. merman 411 pass, `tsc` and prettier clean.

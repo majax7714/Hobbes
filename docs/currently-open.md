@@ -95,7 +95,7 @@ Left by the fold (2026-10-28):
   checked by mutation to catch a fault no other case catches; 15 more left when the review learned to
   read the checkout's dependency trees (ADR-186, C-198), which showed a TUI test already reaching them.
   Of the 179, 12 are a second entry (Max, route 3a): no runtime logic of their own (types, a `.d.ts`,
-  re-exports), never to get a test of their own; **163 wait for tests** (`core/shell`'s four done: 177 cases; `latex`'s six done: 86 cases;
+  re-exports), never to get a test of their own; **165 wait for tests** (`core/shell`'s four done: 177 cases, two of them from these 167, the other two from the fold's list; `latex`'s six done: 86 cases;
   `merman`'s `core`, nine modules: 64 cases; its top level, three listed and `palette`: 13). `merman`'s
   six diagram families came off the record because its renderer's cases reach them, but those cases draw
   their expected output with the families' own code: they pin the palette mapping, not what a family
@@ -106,7 +106,25 @@ Left by the fold (2026-10-28):
   every survivor read as never told apart, PR #19). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
-  - **`core/shell`: found by its tests, 2026-11-02, waiting on Max** (`test/core-shell`; pinned in
+  - **PR #22's and #23's reviews, not done (2026-11-02):**
+    - **State, a route's head can be lost.** Frame runs (a frame and its own child): 58 of 378 lose their head in the final
+      drawing (2,144 unstyled random diagrams, seeds 11–13; 63 before PR #22). An off-centre member shows it: `state P0
+      {P0x --> P0y}; P0 --> P0y; P0y --> C` draws no head for `P0 --> P0y`, on `main` before the PR too. `state-defects.ts`
+      has no such kind; add one (a plan with a visible target needs an arrow cell that survives in the grid).
+    - **State, other findings:** a repaired run into a frame's right wall has a head pointing away from it
+      (`directionInto`; `direction RL` with a note, reproduced); in LR and RL the feedback branches (:502, :596) still
+      send half of frame-to-member runs through the frame's walls, identically before the PR, so its title claims more
+      than the code does (read, not run); the alternate-port fallback cannot succeed for a frame run (read, not run).
+      Two small cleanups: `hasBorderCells` spelled out at the departures, the retry's search space unmemoized.
+    - **Scanner, POSIX reads `repeat` as a keyword:** `repeat 3 rm x` under `posix` gives the one command `rm x`
+      (`scan.ts:969`, `dialect !== "bash"`), and every shell but bash and zsh is posix. Dash runs a program named `repeat`.
+      `scan.test.ts` pins this under a title saying only zsh has it. A decision, as "posix" is meant sound for all three.
+    - **Tests and tools:** a bare `bun test` in `bench/subsume` fails, as `harnesses-shell.test.ts`'s `PINNED_PACKAGE`
+      reaches the merman harnesses (the file-by-file runs pass); the depth tests skip the limits themselves (32; 17);
+      `select.test.ts`'s "no /etc/shells" gives an empty file, so `.catch` is untested; `shrink_words` never returns to
+      deleting lines; `saves`'s unused parameter, a repeated `consul kv`. The BUILDLOG table does not split the mutants
+      it leaves out: `select` 2, `parse` 17 (failing to compile or run, `subsume`'s `unattributed`).
+  - **`core/shell`: found by its tests, 2026-11-02, Max: left open, to resolve later** (`test/core-shell`; pinned in
     `test/shell/parse.test.ts`, not fixed):
     - **The tree-sitter walk ignores parse errors** (`scanLegacy`), so permission analysis
       (`src/tool/plugin/shell.ts:126-136`) is given the wrong directories: `Set-Location -- /etc` gives none,
@@ -117,7 +135,7 @@ Left by the fold (2026-10-28):
     - **A backslash stays in a directory's name, both routes:** `cd a\ b` reports `a\ b`, and `cd 'a'\b` reports
       `'a'\b` (portable) or `a` and `\b` (walk), where bash enters `a b` and `ab`. Decoding it needs a decision on which
       forms count as static (`parse.ts:258` holds a backslash back on purpose).
-    - **A lead, unconfirmed:** an option holding `E`, `F`, `i` or `n` makes a binding builtin's operand arithmetic
+    - **A lead, unconfirmed, pinned nowhere as such:** an option holding `E`, `F`, `i` or `n` makes a binding builtin's operand arithmetic
       (`scan.ts:300`), so `typeset -i functions[a]=b` and `vared -ne dis_functions[1]=$(a)` pass the zsh hash refusal at
       `scan.ts:257`, which asks for a binding. Whether zsh honours such an assignment needs a real zsh; this host has
       none, and nor dash nor PowerShell. Check it before calling it a defect.

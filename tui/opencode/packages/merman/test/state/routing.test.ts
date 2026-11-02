@@ -473,8 +473,8 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
     drawn("direction TB\nstate P0 {\n[*] --> P0x\n}\nstate P1 {\n}\n[*] --> D\nP0 --> P0 : x<br>yy<br>zzz"),
   ).toMatchObject({
     "route:0": "__start>D vertical 5,1 5,4",
-    "route:1": "P0>P0x horizontal-forward 10,13 9,13 @11,12",
-    rows: 17,
+    "route:1": "P0>P0x horizontal-forward 0,13 1,13 @2,17",
+    rows: 20,
   })
   expect(
     drawn(
@@ -781,7 +781,7 @@ test("pinned as observed: labels placed clear of routes and states", () => {
     "route:0": "__start>A horizontal-forward 57,3 45,3",
     "route:1": "A>P0x horizontal-forward 40,3 27,3 @32,2",
     "route:2": "P0>B vertical-elbow 22,6 22,7 2,7 @19,9",
-    "route:3": "P0>P0x horizontal-forward 28,3 27,3 @29,1",
+    "route:3": "P0>P0x horizontal-forward 15,3 16,3 @13,2",
     rows: 11,
   })
   expect(

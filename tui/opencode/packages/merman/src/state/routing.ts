@@ -256,7 +256,8 @@ function horizontalRunFrame(
 }
 
 function horizontalRunIsLeftToRight(from: BoxBounds, to: BoxBounds, frame: HorizontalRunFrame | undefined): boolean {
-  if (frame === "source") return to.centerX < from.centerX
+  // A centred member takes the left wall, leaving the right to its own way out and to a run back to the frame.
+  if (frame === "source") return to.centerX <= from.centerX
   if (frame === "target") return from.centerX >= to.centerX
   return from.centerX <= to.centerX
 }
@@ -1169,6 +1170,8 @@ function findBodySafePath(
   search: StateSearchSpace,
   budget: StateSearchBudget,
 ): StateTransitionPathPoint[] | undefined {
+  // Two ends on one cell have no path to draw: taken, an empty path is the shortest, and the route is lost.
+  if (start[0] === end[0] && start[1] === end[1]) return undefined
   const margin = Math.max(8, bounds.size * 2)
   // A run between a frame and its own member stays inside that frame.
   const frame = routeRunFrame(plan)
@@ -1267,13 +1270,6 @@ function alternateBodySafeTransitionPlan(
   const candidates: StateTransitionRenderPlan[] = []
   for (const source of stateRoutePorts(plan.route.from)) {
     for (const target of stateRoutePorts(plan.route.to)) {
-      // A self loop's port paired with itself has no path to draw: taken, the shortest, the loop was lost.
-      if (
-        plan.route.transition.from === plan.route.transition.to &&
-        source.outside[0] === target.outside[0] &&
-        source.outside[1] === target.outside[1]
-      )
-        continue
       const safePath = findBodySafePath(source.outside, target.outside, diagram, bounds, plan, search, budget)
       if (!safePath) continue
       const prefix = hasBorderCells(plan.route.from) ? [source.border] : []
