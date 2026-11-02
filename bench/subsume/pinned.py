@@ -1,7 +1,7 @@
 """Pinned inputs for the faults derived cases miss (bench tooling).
 
     pinned.py <workspace root> <package dir> <src file>... --report r.json --harness h.ts
-              [-n N] [--seed S] [-j N]
+              [-n N] [--seed S] [-j N] [--shrink-words]
 
 For a layout or routing module, `subsume` can leave hundreds of surviving
 faults that reading alone cannot sort into equivalent or not. This plants
@@ -12,6 +12,8 @@ input tells apart is likely equivalent; for each other one, the first
 input that tells it apart is shrunk line by line while it still does.
 Then the fewest shrunk inputs that tell every such fault apart are kept,
 each with the summary keys its faults change: a test pins those keys.
+`--shrink-words` then shrinks each line word by word, for a family whose
+input can be one long line, such as a shell script.
 
 The harness is a family's own Bun script. Its directory is copied into the
 mirror's package root as `.pinned/` (so a harness imports `../src/...`, the
@@ -64,6 +66,23 @@ def shrink(lines: list[str], still_differs) -> list[str]:
         lines = candidates[hit]
 
 
+def shrink_words(lines: list[str], still_differs) -> list[str]:
+    """As `shrink`, one space-separated word at a time, for inputs a line is too coarse for (a one-line script)."""
+    while True:
+        candidates = []
+        for at, line in enumerate(lines):
+            words = line.split(" ")
+            if at == 0 or len(words) < 2:
+                continue
+            candidates += [lines[:at] + [" ".join(words[:i] + words[i + 1:])] + lines[at + 1:] for i in range(len(words))]
+        if not candidates:
+            return lines
+        hit = still_differs(candidates)
+        if hit is None:
+            return lines
+        lines = candidates[hit]
+
+
 def cover(tells: dict[str, set]) -> list[str]:
     """The fewest inputs (greedy) that together tell every fault apart; `tells` maps input -> faults.
 
@@ -81,6 +100,7 @@ def cover(tells: dict[str, set]) -> list[str]:
 
 
 HARNESS_NAME = ""
+SHRINK_WORDS = False
 
 
 def harness(copy: Path, *args, stdin=None):
@@ -124,6 +144,9 @@ def main():
     jobs = option("-j", 2, int)
     count = option("-n", 3000, int)
     seed = option("--seed", 1, int)
+    global SHRINK_WORDS
+    SHRINK_WORDS = "--shrink-words" in args
+    args = [arg for arg in args if arg != "--shrink-words"]
     report = json.loads(Path(option("--report", None)).read_text())
     harness_file = Path(option("--harness", None)).resolve()
     global HARNESS_NAME
@@ -182,7 +205,10 @@ def _run(work, wanted, names, copies, inputs, base):
                     return None
                 return next((i for i, (b, f) in enumerate(zip(good, bad)) if valid(b) and changed_keys(b, f)), None)
 
-            return n, "told", "\n".join(shrink(inputs[first].split("\n"), still_differs))
+            small = shrink(inputs[first].split("\n"), still_differs)
+            if SHRINK_WORDS:
+                small = shrink_words(small, still_differs)
+            return n, "told", "\n".join(small)
         finally:
             free.append(copy)
 
