@@ -77,9 +77,7 @@ accepted:
       - tui/opencode/packages/codemode/src/tool-runtime
       - tui/opencode/packages/codemode/src/tool-schema
       - tui/opencode/packages/core/src/oauth/page
-      - tui/opencode/packages/core/src/shell/parse
       - tui/opencode/packages/core/src/shell/parser-wasm.workerd
-      - tui/opencode/packages/core/src/shell/scan
       - tui/opencode/packages/core/src/tool
       - tui/opencode/packages/core/src/tool/runtime
       - tui/opencode/packages/core/src/util/error-summary
@@ -855,8 +853,6 @@ accepted:
       - tui/opencode/packages/core/src/shell
       - tui/opencode/packages/core/src/shell/parser-wasm.bun
       - tui/opencode/packages/core/src/shell/parser-wasm.node
-      - tui/opencode/packages/core/src/shell/result
-      - tui/opencode/packages/core/src/shell/select
       - tui/opencode/packages/core/src/skill
       - tui/opencode/packages/core/src/skill/discovery
       - tui/opencode/packages/core/src/skill/instructions

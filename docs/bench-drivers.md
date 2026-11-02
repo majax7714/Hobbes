@@ -51,10 +51,11 @@ named below was removed unless it says otherwise.
 ## 2026-10-30 — pinned inputs for the faults derived cases miss
 
 - `bench/subsume/pinned.py` (in the repo): `pinned.py <workspace> <package> <src>... --report <subsume report>
-  --harness <family harness> [-n N] [--seed S] [-j N]`, run from `tui/opencode`. Plants each survivor of a
+  --harness <family harness> [-n N] [--seed S] [-j N] [--shrink-words]`, run from `tui/opencode`. Plants each survivor of a
   `subsume` report, runs N random inputs through the package as is and planted, shrinks each telling input,
   keeps the fewest; the docstring gives the harness protocol. Harnesses in `bench/subsume/harnesses/`
-  (`sequence.ts`; `flowchart.ts`, layouts by `layout-summary.ts`, an input showing overlapping nodes or a node in
+  (`sequence.ts`; `shell-scan.ts`, core's scanner, its first line naming the dialect, tested apart by
+  `harnesses-shell.test.ts` as it loads `core`, its inputs read and never run; `flowchart.ts`, layouts by `layout-summary.ts`, an input showing overlapping nodes or a node in
   the wrong frame (`flowchartDefects`) summarized as an error; state's `state-layout.ts`, `state-drawing.ts`, `state-search.ts` on `state-gen.ts`'s diagrams,
   summarized by the tests' own `layout-summary.ts` and `drawing-summary.ts`, an input drawn wrongly in a way
   `state-defects.ts` names summarized as an error and never kept; shared `random.ts`, `cli.ts`), each loading its

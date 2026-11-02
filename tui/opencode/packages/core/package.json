@@ -18,7 +18,8 @@
   "scripts": {
     "db": "bun drizzle-kit",
     "fix-node-pty": "bun run script/fix-node-pty.ts",
-    "typecheck": "tsc -b tsconfig.json tsconfig.tests.json"
+    "typecheck": "tsc -b tsconfig.json tsconfig.tests.json",
+    "test": "bun test --timeout 30000 --only-failures"
   },
   "exports": {
     "./*": "./src/*.ts"

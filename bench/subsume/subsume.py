@@ -221,10 +221,22 @@ def run(package, tests):
             root = ET.parse(out.name).getroot()
         except ET.ParseError:
             return None, f"no report (exit {proc.returncode})"
-    cases = {}
+    return report_cases(root), "ok"
+
+
+def report_cases(root: ET.Element) -> dict[str, bool]:
+    """Each case in a JUnit report and whether it failed, named by its file, its describe path and its name.
+
+    Two cases can share a name in one file (a `describe.each`, say), so a name alone would let the later one's pass
+    hide the earlier one's failure. A key that still repeats fails if either did.
+    """
+    cases: dict[str, bool] = {}
     for case in root.iter("testcase"):
-        cases[f"{case.get('file')}::{case.get('name')}"] = case.find("failure") is not None or case.find("error") is not None
-    return cases, "ok"
+        scope = case.get("classname")
+        key = f"{case.get('file')}::{f'{scope} > ' if scope else ''}{case.get('name')}"
+        failed = case.find("failure") is not None or case.find("error") is not None
+        cases[key] = cases.get(key, False) or failed
+    return cases
 
 
 def redundant_cases(kills: dict[str, set]) -> tuple[list[dict], dict[str, set]]:
