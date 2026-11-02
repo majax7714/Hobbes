@@ -128,3 +128,48 @@ amendment). `HOBBES_TS_JOBS=1` gives back the serial helper's 3.5 GB.
 - **Not changed:** each zone still starts a fresh worker, which re-imports TypeScript and copies the file
   set. That is measured fine at this repo's 27 zones. Keeping `jobs` long-lived workers is the shape for a
   repo with hundreds of zones, and it waits for one that measures it.
+
+## Amended 2026-11-02: long-lived zone workers, one walk per file, the TS helper beside the Python parse
+
+The "not changed" item above, measured. All of it is a speed or memory change under the byte-identity gate:
+no draw, refusal or record changes, so no version bump.
+
+- **Zone workers live for the run** (`extractRepoParallelJson`). A worker takes zone after zone; the first
+  also plans the repo, so the CLI's main thread never loads TypeScript. A worker whose heap is past 300 MB
+  after a zone is retired and the lane's next zone gets a fresh one, so a large zone's garbage is not carried
+  into the next zone's peak. A zone's cap now runs from when the zone is handed over, not from the worker's
+  start. Each file's record is serialized in the worker and the document spliced from those strings, exactly
+  as `JSON.stringify` writes it.
+- **One walk per file.** The seven `forEachDescendant` walks (imports, literal members, calls, constructions,
+  env reads, routes, tests) read one pre-order walk over the compiler's nodes, each stage handed its kinds in
+  the order its own walk met them and wrapped only when read, so the checker is asked the same questions in
+  the same order. Each file's wrappers are forgotten once its record is built.
+- **Line numbers by search.** ts-morph counts newlines from the file's start for every line number;
+  `StringUtils.getLineNumberAtPos` is replaced, in the helper's process only, by a binary search over newline
+  offsets with the same answer and range check (a test holds it to the count it replaced, CRLF and lone CR).
+- **The helper starts first** (`tssource.start_ts`) and runs beside the Python parse and the other lane A
+  languages; `lane A [ts]` now times the wait left.
+- **pysource reads a definition's scope facts once per parse** (`_scope_fact`): `_own_definitions`, the
+  `global`/`nonlocal` names, the lambda/comprehension binds and `_local_aliases`' refusals, shared by both
+  binders. Same values; the parse's wall time did not move measurably, so this one is housekeeping.
+
+**Measured** (this repo at `d1a4e73`, 2 cores, 7 GB, lane B unavailable on the box: no podman, so every
+lane B step was refused in both arms; `HOBBES_TS_JOBS` default, 1 here; cache off; quiet box, two runs each):
+
+| | before | after |
+|---|---|---|
+| ingest wall | 96.2 s, 95.6 s | 56.5 s, 57.1 s |
+| TS helper alone | 63.1 s | 42–44 s |
+| peak RSS, largest child (the TS helper) | 629, 654 MB | 575, 576 MB |
+| peak RSS, the ingest's own process | 381 MB | 395 MB |
+
+**Identity:** this repo (control: the before checkout run again agrees with the after run), zod and click:
+`graph.json` identical but for `built_by`, `tests.json` and `interfaces.json` identical bytes. The TS helper's
+facts on this repo are byte-identical to the before helper's. Not gated here: the other ADR-184 cells, lane B
+on, and `HOBBES_TS_JOBS` > 1 on a large box (the jobs tests cover 1, 2, 3 and 8 for identity, not for peaks).
+
+**What did not halve, and why.** The helper's peak is one zone's live program: the largest zone here
+(`tui/opencode/packages/tui`, 471 files, 3.8 MB of source) holds about 320 MB live with its program and
+checker, on top of the compiler's own code. Lowering that changes what the checker sees. Keeping one warm
+worker for every zone ran in about 38 s but peaked at 0.8–1.1 GB; collecting or retiring workers more often
+cost back most of the time, so 300 MB is the trade chosen.

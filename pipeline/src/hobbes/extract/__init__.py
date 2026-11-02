@@ -78,6 +78,7 @@ from hobbes.extract.tssource import (
     collect_ts_tests,
     declared_test_frameworks,
     extract_ts,
+    start_ts,
     uninventoried_runner_manifests,
 )
 from hobbes.extract.verification import verification_base
@@ -141,6 +142,11 @@ def extract_repo(
     # artifact, and a caller that passes none gets one that is dropped.
     timings = timings if timings is not None else Timings()
     repo_root = Path(repo_root).resolve()
+    # The TS/JS helper runs beside the Python parse below and the other
+    # languages' lane A; "lane A [ts]" times the wait that is left (ADR-184's
+    # amendment).
+    with timings.step("lane A [ts] start"):
+        ts_wait = start_ts(repo_root)
     with timings.step("discover [python]"):
         modules = discover_modules(repo_root)
     too_deep_python: list[dict] = []
@@ -181,7 +187,7 @@ def extract_repo(
     languages = ["python"] if modules else []
 
     with timings.step("lane A [ts]"):
-        ts = extract_ts(repo_root)
+        ts = ts_wait()
     if ts:
         languages += ts["languages"]
         degraded += list(ts["errors"])

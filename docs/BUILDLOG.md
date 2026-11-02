@@ -17487,3 +17487,11 @@ Two fixes on the branch, the docs conflicts with #23 resolved in a merge from `m
 
 Frame runs losing a head after both: 58 of 378 (2,144 unstyled diagrams). Each fix's fault planted by hand fails its new
 case. Review items not done are listed in `currently-open.md`. merman 411 pass, `tsc` and prettier clean.
+
+## 2026-11-02 — the extraction speed and memory pass (ADR-184 amended)
+
+Long-lived zone workers, one walk per TS file, line numbers by search, the TS helper beside the Python parse, and
+pysource scope facts read once per parse. All byte-identical (this repo with a control, zod, click). This repo, quiet
+2-core box, lane B unavailable in both arms: ingest 96 s → 57 s; the TS helper 63 s → 43 s; peak RSS, the helper 629–654
+→ 576 MB, the ingest process 381 → 395 MB. The 2x memory target was not met: the floor is one zone's live program
+(ADR-184's amendment says why). tsextract 59 pass; pipeline 3394 passed, 35 skipped.
