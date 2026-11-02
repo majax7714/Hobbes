@@ -17390,3 +17390,51 @@ Both fixes, random diagrams seeds 11–13: 53 of 3,000 drawings change, no defec
 cells 429,167 -> 429,385 (the lost loops drawn). Three pinned-as-observed values moved, drawn before and after and
 read (one had pinned the lost loop); each change fails a case alone. merman 408 pass, `tsc` and prettier clean,
 harnesses 14.
+
+## 2026-11-02 (fifty-first session, cont.) — `core/shell`'s tests; a defect in `bench/subsume`
+
+Max: "proceed to next listed open item, either small fixes or core/shell". On `test/core-shell`, from `main` at
+434daf3: 177 cases for the four modules with logic, each expected value derived from the source and then run. The
+parser-wasm files have none. **The expected values were not checked against real shells:** this host has bash, but no
+zsh, dash or PowerShell, so a dialect's behaviour here is what `scan.ts` says it reads, not what that shell does.
+
+| module | cases | mutants | caught | survivors | redundant |
+|---|---|---|---|---|---|
+| `result.ts` | 11 | 46 | 40 | 6 | 0 |
+| `select.ts` | 18 | 135 | 119 | 14 | 0 |
+| `parse.ts` | 41 | 413 | 367 | 29 | 11 |
+| `scan.ts` | 107 | 3,988 | 3,279 | 700 | 16 |
+
+- **Survivors.** `result`, `select`, `parse`: each read; type and tag strings, unreachable guards, a label only compared
+  with `command_parameter`, wasm asset resolution, a comment line that is only observable through a file so named in
+  the working directory. `scan`: the 1,282 of the first pass went through `pinned.py` (3,000 random scripts) twice;
+  what it told apart was derived as cases or pinned. Of the last 861, 161 were told apart (81 inputs, 372 keys, in
+  `scan.test.ts`), 700 never were. Those 700 were read as a list by line, not each proven equivalent: type and table
+  strings, budget off-by-ones, the budget's guards on the bash side (no input found reaches them: the depth and length
+  limits bound the work first; the PowerShell side's is reached and tested), and much of PowerShell's `indexable`
+  machine, whose one visible effect a table now exercises. Nine mutants of `scan` hang or fail to run, unattributed.
+- **Redundant, kept.** `scan`'s 16 are derived cases against the pinned inputs (Max, 2026-10-30: "Keep both, exempt
+  them"). `parse`'s 11 are a route's copy of a two-route case and one defect pin: the tool plants only in `parse.ts`;
+  three faults planted by hand in `scan.ts` (a substitution's commands dropped, a raw word cooked, PowerShell's input
+  lower-cased) fail the scanner's copy and not the walk's, and the file says so.
+- **Each of the 81 kept inputs read** against the source. None reads wrong. Some oddities are syntax errors the shell
+  would not run (`if & for (…) {…}` loses its `for`). `break\na` does not read `a`: the line after is unreachable.
+
+**A defect in `bench/subsume`, fixed.** `subsume.py:226` keyed a report by file and name, so with `describe.each` a
+repeated name's last result won, and a pass hid a fail: a fault planted by hand at `parse.ts:340` failed the walk's
+case and was reported a survivor. `report_cases` now keys by file and classname, and a repeated key fails if either
+did (`test_subsume.py`). Past reports stand: `merman`, `latex` and `util` have no repeated names. `pinned.py` gained
+`--shrink-words`, as a one-line script cannot shrink by line (`test_pinned.py`).
+
+**Found, pinned, not fixed; for Max (`currently-open.md`):** the tree-sitter walk ignores parse errors, so permission
+analysis gets wrong directories (`Set-Location -- /etc`: none; `$HOME/x`: `$HOME`); a backslash stays in a directory's
+name on both routes; and an unconfirmed lead, a typing option taking a zsh hash assignment past its refusal.
+
+**A session's own mistake, for the record.** A run of `bun test` spun for 17 hours before Max asked. The mock of
+`fs/promises` in `select.test.ts` called `realFs.readFile`, and beside `parse.test.ts` the mock had rewritten that
+namespace too, so it called itself in a tight loop that no per-test timeout can stop. Fixed by copying the originals
+first, and the file says why. Run a new test file under a hard `timeout` the first time: the wait was uncapped.
+
+`core`'s `package.json` gains a `test` script, so `turbo test` reaches it. The four modules leave
+`.hobbes/accepted-lost-guards.yaml`; 163 wait. Verified: core/shell 177 pass, `tsc` on the tests clean, prettier clean,
+`test_review` 43, `test_subsume` and `test_pinned` 19, harnesses 14 and 2, `test_agent_docs` 4.
