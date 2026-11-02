@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { drawStateDiagramGrid } from "../../src/state/drawing"
+import { createStateDiagramDrawing, drawStateDiagramGrid } from "../../src/state/drawing"
 import { parseMermaidStateDiagram } from "../../src/state/parser"
 import { renderStateGridText, type StateGrid } from "../../src/state/render-grid"
 import type { StateDiagramRenderOptions } from "../../src/state/types"
@@ -325,7 +325,7 @@ test("pinned as observed: the canvas: its size, the shift off negative cells, an
     "row:0": "╭─ A long composite title ╮",
     "row:1": "│                         │",
     "row:2": "│ ╭─────╮                 │",
-    "row:3": "┤ │ P0x │◀                │",
+    "row:3": "├▶│ P0x │                 │",
     "row:4": "│ ╰─────╯                 │",
     "row:5": "│                         │",
     "row:6": "╰─────────────────────────╯",
@@ -578,4 +578,39 @@ test("pinned as observed: faults the defect fixes left untold: labels centred, t
     "row:5": "                                ╭╯                                     ╔═════╗",
     rows: 17,
   })
+})
+
+test("a frame's run to a centred member keeps its head beside the member's way out, or a run back to the frame", () => {
+  const frame = 'state P0 {\n  state "Inside" as P0x\n}\nP0 --> P0x'
+  expect(lines(draw(`${frame}\nP0x --> C`))[3]).toBe("├▶│ Inside ├────────────▶│ C │")
+  expect(lines(draw(`${frame}\nP0x --> P0`))[3]).toBe("├▶│ Inside ├▶│")
+})
+
+test("a frame's run repaired on one cell keeps its route, rather than being repaired to nothing", () => {
+  const body = [
+    "direction TB",
+    'state "A long composite title" as P0 {',
+    "[*] --> P0x",
+    "P0x --> P0y : retry",
+    "}",
+    'state "Outer" as P1 {',
+    "[*] --> P1x",
+    'state "Inside" as P1x',
+    "}",
+    "state ch <<choice>>",
+    "[*] --> C",
+    "D --> P1 : retry",
+    "P0y --> C : go",
+    "P1x --> A : retry",
+    "P1 --> P1",
+    "D --> P0y : a<br>b",
+    "P0y --> P0y : a long label here",
+    "note right of C : a note",
+    "note right of A : a note",
+  ].join("\n")
+  const { transitionPlans } = createStateDiagramDrawing(parseMermaidStateDiagram(`stateDiagram-v2\n${body}`), {
+    minStateGap: 5,
+  })
+  const plan = transitionPlans.find((item) => item.route.transition.from === "P1" && item.route.transition.to === "P1x")
+  expect(plan?.cells.some((cell) => cell.arrowDirection)).toBe(true)
 })

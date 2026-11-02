@@ -509,16 +509,7 @@ function enforceCompositeMargins(diagram: StateDiagram, compositeBounds: Map<str
       .map(expand)
       .filter((child): child is StateDiagramBoxBounds => Boolean(child))
     if (children.length === 0) return bound
-    const left = Math.min(bound.left, ...children.map((child) => child.left - 2))
-    const top = Math.min(bound.top, ...children.map((child) => child.top - 2))
-    const right = Math.max(bound.left + bound.width, ...children.map((child) => child.left + child.width + 2))
-    const bottom = Math.max(bound.top + bound.height, ...children.map((child) => child.top + child.height + 2))
-    bound.left = left
-    bound.top = top
-    bound.width = right - left
-    bound.height = bottom - top
-    bound.centerX = left + Math.floor(bound.width / 2)
-    bound.centerY = top + Math.floor(bound.height / 2)
+    growFrameAround(bound, children)
     return bound
   }
 
@@ -586,20 +577,22 @@ function growCompositesAroundMembers(diagram: StateDiagram, layout: StateDiagram
   for (const composite of [...diagram.composites].sort((left, right) => depth(right.id) - depth(left.id))) {
     const frame = layout.compositeBounds.get(composite.id)
     const inner = (members.get(composite.id) ?? []).flatMap((id) => layout.bounds.get(id) ?? [])
-    if (!frame || inner.length === 0) continue
-    const left = Math.min(frame.left, ...inner.map((bound) => bound.left - 2))
-    const top = Math.min(frame.top, ...inner.map((bound) => bound.top - 2))
-    const right = Math.max(frame.left + frame.width, ...inner.map((bound) => bound.left + bound.width + 2))
-    const bottom = Math.max(frame.top + frame.height, ...inner.map((bound) => bound.top + bound.height + 2))
-    Object.assign(frame, {
-      left,
-      top,
-      width: right - left,
-      height: bottom - top,
-      centerX: left + Math.floor((right - left) / 2),
-      centerY: top + Math.floor((bottom - top) / 2),
-    })
+    if (frame && inner.length > 0) growFrameAround(frame, inner)
   }
+}
+
+// Grows a frame, never shrinks it, to keep what it holds 2 cells inside.
+function growFrameAround(frame: StateDiagramBoxBounds, inner: readonly StateDiagramBoxBounds[]): void {
+  const left = Math.min(frame.left, ...inner.map((bound) => bound.left - 2))
+  const top = Math.min(frame.top, ...inner.map((bound) => bound.top - 2))
+  const right = Math.max(frame.left + frame.width, ...inner.map((bound) => bound.left + bound.width + 2))
+  const bottom = Math.max(frame.top + frame.height, ...inner.map((bound) => bound.top + bound.height + 2))
+  frame.left = left
+  frame.top = top
+  frame.width = right - left
+  frame.height = bottom - top
+  frame.centerX = left + Math.floor(frame.width / 2)
+  frame.centerY = top + Math.floor(frame.height / 2)
 }
 
 function finalizeLayout(
@@ -659,13 +652,10 @@ export function createStateDiagramLayout(
   const sizes = stateSizes(diagram)
   const bounds = new Map<string, StateDiagramBoxBounds>()
   const outgoingLabelRows = new Map<string, number>()
-  const selfTransitionCounts = new Map<string, number>()
+  const selfLoops = selfTransitionCounts(diagram)
   for (const transition of diagram.transitions) {
     const rows = measureStateTransitionLabel(transition.label).height
     outgoingLabelRows.set(transition.from, Math.max(outgoingLabelRows.get(transition.from) ?? 0, rows))
-    if (transition.from === transition.to) {
-      selfTransitionCounts.set(transition.from, (selfTransitionCounts.get(transition.from) ?? 0) + 1)
-    }
   }
 
   const singleColumnCenter = Math.max(
@@ -696,10 +686,7 @@ export function createStateDiagramLayout(
       x += size.width + options.minStateGap + 8
     }
     const labelRows = states.reduce((rows, state) => Math.max(rows, outgoingLabelRows.get(state.id) ?? 0), 0)
-    const selfTransitionRows = states.reduce(
-      (rows, state) => Math.max(rows, (selfTransitionCounts.get(state.id) ?? 0) * 3 + 1),
-      0,
-    )
+    const selfTransitionRows = states.reduce((rows, state) => Math.max(rows, (selfLoops.get(state.id) ?? 0) * 3 + 1), 0)
     const pseudoStateApproachClearance = states.some((state) => state.kind === "choice") ? 2 : 0
     y += rowHeight + Math.max(4, labelRows + 3, selfTransitionRows) + pseudoStateApproachClearance
   }

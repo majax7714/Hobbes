@@ -14,6 +14,25 @@ test("on one row a transition runs from a tee on the source's facing side to an 
   expect(routes("direction RL\nA --> B")).toEqual(["A>B horizontal-forward 18,1 5,1"])
 })
 
+test("a run between a frame and its own member stays inside the frame, between the member and the nearer wall", () => {
+  // P0y's box is 22 to 28, the frame's right wall 30: the tee on the wall, the head in the one cell between them.
+  expect(routes("state P0 {\nP0x --> P0y\n}\nP0 --> P0y")).toEqual([
+    "P0x>P0y horizontal-forward 8,3 21,3",
+    "P0>P0y horizontal-forward 30,3 29,3",
+  ])
+  // P0x sits in the left half, so it leaves its left side for the left wall: tee at 2, head at 1.
+  expect(routes("state P0 {\nP0x --> P0y\n}\nP0x --> P0")).toEqual([
+    "P0x>P0y horizontal-forward 8,3 21,3",
+    "P0x>P0 horizontal-forward 2,3 1,3",
+  ])
+  expect(drawn("state P0 {\nP0x --> P0y\n}\nP0 --> P0y")).toMatchObject({
+    "row:3": "│ │ P0x ├────────────▶│ P0y │◀┤",
+  })
+  expect(drawn("state P0 {\nP0x --> P0y\n}\nP0x --> P0")).toMatchObject({
+    "row:3": "│◀┤ P0x ├────────────▶│ P0y │ │",
+  })
+})
+
 test("top to bottom a transition runs straight down the column, its label two right of it on the row after the source", () => {
   expect(routes("direction TB\nA --> B : go")).toEqual(["A>B vertical 2,2 2,6 @4,4"])
   expect(routes("direction BT\nA --> B")).toEqual(["A>B vertical 2,7 2,3"])
@@ -180,10 +199,10 @@ test("pinned as observed: transitions back: lanes under and over the rows, alloc
       arrowHeadStyle: "line",
     }),
   ).toMatchObject({
-    "route:0": "P0x>P0 horizontal-forward 9,3 0,3",
-    "route:1": "P0x>P0 bottom-parallel 6,4 6,10 10,10 10,7 @8,7",
-    "row:9": "      │   │",
-    "row:10": "      ╰───╯",
+    "route:0": "P0x>P0 horizontal-forward 8,3 9,3",
+    "route:1": "P0x>P0 bottom-parallel 5,4 5,10 9,10 9,7 @7,7",
+    "row:9": "     │   │",
+    "row:10": "     ╰───╯",
     rows: 11,
   })
   expect(
@@ -454,8 +473,8 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
     drawn("direction TB\nstate P0 {\n[*] --> P0x\n}\nstate P1 {\n}\n[*] --> D\nP0 --> P0 : x<br>yy<br>zzz"),
   ).toMatchObject({
     "route:0": "__start>D vertical 5,1 5,4",
-    "route:1": "P0>P0x horizontal-forward 10,13 1,13 @12,12",
-    rows: 17,
+    "route:1": "P0>P0x horizontal-forward 0,13 1,13 @2,17",
+    rows: 20,
   })
   expect(
     drawn(
@@ -490,7 +509,7 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
     drawn("state P0 {\nstate P0n {\nP0nz --> P0nw\n}\n}\nstate P2 {\n}\nP0n --> P0nw : go", { minStateGap: 8 }),
   ).toMatchObject({
     "route:0": "P0nz>P0nw horizontal-forward 11,5 27,5",
-    "route:1": "P0n>P0nw horizontal-forward 37,5 27,5 @26,3",
+    "route:1": "P0n>P0nw horizontal-forward 37,5 36,5 @35,3",
     rows: 11,
   })
   expect(drawn('direction BT\nstate "Outer" as P0 {\nP0y --> [*]\n}\nstate "Outer" as P1 {\n}')).toMatchObject({
@@ -505,7 +524,7 @@ test("pinned as observed: the route's kind: straight, elbowed or a side rail, th
     }),
   ).toMatchObject({
     "route:0": "P0nz>P0nw horizontal-forward 25,5 12,5",
-    "route:1": "P0nz>P0n horizontal-forward 25,5 35,5",
+    "route:1": "P0nz>P0n horizontal-forward 32,5 33,5",
     rows: 11,
   })
   expect(
@@ -623,7 +642,7 @@ test("pinned as observed: detours round states, and the junctions where routes m
     drawn('direction TB\nstate P0 {\nstate "Inside" as P0x\n}\nB --> P0\nP0 --> P0x\nnote right of P0x : n'),
   ).toMatchObject({
     "route:0": "B>P0 side-parallel 9,10 26,10 26,3 23,3",
-    "route:1": "P0>P0x horizontal-forward 0,3 12,3",
+    "route:1": "P0>P0x horizontal-forward 0,3 1,3",
     rows: 12,
   })
   expect(drawn("state ch <<choice>>\n[*] --> C\nch --> A : go\nnote right of ch : a note")).toMatchObject({
@@ -762,7 +781,7 @@ test("pinned as observed: labels placed clear of routes and states", () => {
     "route:0": "__start>A horizontal-forward 57,3 45,3",
     "route:1": "A>P0x horizontal-forward 40,3 27,3 @32,2",
     "route:2": "P0>B vertical-elbow 22,6 22,7 2,7 @19,9",
-    "route:3": "P0>P0x horizontal-forward 28,3 16,3 @13,2",
+    "route:3": "P0>P0x horizontal-forward 15,3 16,3 @13,2",
     rows: 11,
   })
   expect(

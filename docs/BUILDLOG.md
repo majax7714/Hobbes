@@ -17391,6 +17391,38 @@ cells 429,167 -> 429,385 (the lost loops drawn). Three pinned-as-observed values
 read (one had pinned the lost loop); each change fails a case alone. merman 408 pass, `tsc` and prettier clean,
 harnesses 14.
 
+## 2026-11-01 (fifty-first session) — PR #21 merged; a state frame's run to its own member; the reviews' cleanups
+
+PR #21 opened and reviewed on Max's word ("good to open pr review and proceed to merging"), all four CI jobs green,
+merged as `434daf3`. The review posted 10 comments. I checked its two drawing findings against the code before the merge:
+
+- The composite-to-member finding was not from the PR: `P0 --> P0y` draws only a tee on the PR's base too, in a
+  two-state composite. It did not block the merge.
+- The shared-segment finding was a cost of the PR: routes with no end in common share a segment in 3 of 3,000, against
+  1 before. Its worked example has same-end routes, which were never obstacles, so it does not itself show this. Kept
+  as the price of routes through a state 8 -> 0, recorded in `currently-open.md`.
+
+Then, on `fix/state-composite-member`:
+
+- **The run fixed.** The run left the frame's far side outward, so it had no cells and its head fell on the member's far
+  side. It now goes from the nearer wall to the member's facing side, or from the member to that wall.
+- **A first version was too wide.** It applied the frame rule to every route kind and took routes through a state from
+  0 to 27 of 3,000. Only horizontal runs take it now: 0 of 3,000.
+- **A stale baseline, caught.** My first before-and-after for the fix used a copy of the tree from before PR #21 merged,
+  so its counts mixed in PR #21's changes (8 defects "before", 312 drawings changed). Re-extracted from `434daf3`: 0
+  defects, 178 of 3,000 change. The "about 200 of 3,000" I gave Max before the merge also overstated this defect: that
+  metric counts any jump in a path, and 189 of its routes were this horizontal shape, the rest other kinds (16 drawings
+  remain).
+- **Measures**, seeds 11-13: horizontal routes with a gap 0 of 4,831; routes through a state 0; refusals 1 -> 1. Six
+  pinned-as-observed cases moved, each read: they had pinned the misdrawn run or a frame grown round it. One derived
+  case added.
+- **Left open** (`currently-open.md`): rails off a nested frame with a gap (16 of 3,000; two drawings read, the rest
+  not), a note in the run's way (2 of 3,000; the connector reads badly), the shared segments, and a side rail built
+  along its target's border then repaired.
+- **Cleanups.** PR #20's four and PR #21's small ones. All 3,000 diagrams' transition plans are byte-identical before and
+  after.
+
+merman 409 pass, `tsc` and prettier clean, harnesses 14, `test_pinned.py` 5. No `VERSION` bump (fork fixes do not).
 ## 2026-11-02 (fifty-first session, cont.) — `core/shell`'s tests; a defect in `bench/subsume`
 
 Max: "proceed to next listed open item, either small fixes or core/shell". On `test/core-shell`, from `main` at
@@ -17438,3 +17470,20 @@ first, and the file says why. Run a new test file under a hard `timeout` the fir
 `core`'s `package.json` gains a `test` script, so `turbo test` reaches it. The four modules leave
 `.hobbes/accepted-lost-guards.yaml`; 163 wait. Verified: core/shell 177 pass, `tsc` on the tests clean, prettier clean,
 `test_review` 43, `test_subsume` and `test_pinned` 19, harnesses 14 and 2, `test_agent_docs` 4.
+
+## 2026-11-02 (fifty-first session, cont.) — PR #22's review: a lost head and an erased route fixed before merging
+
+Max: "both branches pushed good to review pr and merge". PR #23 merged (`3edfe16`). PR #22's review reported heads lost
+where the merge base drew them; reproduced before merging: `P0 --> P0x; P0x --> C` with a centred member lost the head
+of `P0 --> P0x`, and a reciprocal pair lost one. **A wrong intermediate call of mine:** I said #22 would not merge, then
+measured: frame runs lose their head 63 of 378 on the base and 58 on the PR, so the PR was better overall, and the
+base's own rate, which nothing had measured, is the larger defect (`currently-open.md`).
+
+Two fixes on the branch, the docs conflicts with #23 resolved in a merge from `main`:
+- **A tie takes the left wall** (`horizontalRunIsLeftToRight`): a centred member's run comes from the left, leaving the
+  right to its way out and to a run back to the frame. Two pinned values moved, each drawn and read.
+- **Two ends on one cell have no path** (`findBodySafePath`), for any route. It was guarded for self loops only, so a
+  one-cell run was repaired to nothing: routes with no head, seeds 11–13, base 0, PR 1, now 0 of 17,539.
+
+Frame runs losing a head after both: 58 of 378 (2,144 unstyled diagrams). Each fix's fault planted by hand fails its new
+case. Review items not done are listed in `currently-open.md`. merman 411 pass, `tsc` and prettier clean.

@@ -95,7 +95,7 @@ Left by the fold (2026-10-28):
   checked by mutation to catch a fault no other case catches; 15 more left when the review learned to
   read the checkout's dependency trees (ADR-186, C-198), which showed a TUI test already reaching them.
   Of the 179, 12 are a second entry (Max, route 3a): no runtime logic of their own (types, a `.d.ts`,
-  re-exports), never to get a test of their own; **163 wait for tests** (`core/shell`'s four done: 177 cases; `latex`'s six done: 86 cases;
+  re-exports), never to get a test of their own; **165 wait for tests** (`core/shell`'s four done: 177 cases, two of them from these 167, the other two from the fold's list; `latex`'s six done: 86 cases;
   `merman`'s `core`, nine modules: 64 cases; its top level, three listed and `palette`: 13). `merman`'s
   six diagram families came off the record because its renderer's cases reach them, but those cases draw
   their expected output with the families' own code: they pin the palette mapping, not what a family
@@ -106,7 +106,25 @@ Left by the fold (2026-10-28):
   every survivor read as never told apart, PR #19). The check every new case is held
   to is `bench/subsume/` (no case that only fails when another does). Order (Max): `latex`, `merman`,
   `core/shell`, `codemode`, then `schema`'s decoders, then the effectful packages.
-  - **`core/shell`: found by its tests, 2026-11-02, waiting on Max** (`test/core-shell`; pinned in
+  - **PR #22's and #23's reviews, not done (2026-11-02):**
+    - **State, a route's head can be lost.** Frame runs (a frame and its own child): 58 of 378 lose their head in the final
+      drawing (2,144 unstyled random diagrams, seeds 11–13; 63 before PR #22). An off-centre member shows it: `state P0
+      {P0x --> P0y}; P0 --> P0y; P0y --> C` draws no head for `P0 --> P0y`, on `main` before the PR too. `state-defects.ts`
+      has no such kind; add one (a plan with a visible target needs an arrow cell that survives in the grid).
+    - **State, other findings:** a repaired run into a frame's right wall has a head pointing away from it
+      (`directionInto`; `direction RL` with a note, reproduced); in LR and RL the feedback branches (:502, :596) still
+      send half of frame-to-member runs through the frame's walls, identically before the PR, so its title claims more
+      than the code does (read, not run); the alternate-port fallback cannot succeed for a frame run (read, not run).
+      Two small cleanups: `hasBorderCells` spelled out at the departures, the retry's search space unmemoized.
+    - **Scanner, POSIX reads `repeat` as a keyword:** `repeat 3 rm x` under `posix` gives the one command `rm x`
+      (`scan.ts:969`, `dialect !== "bash"`), and every shell but bash and zsh is posix. Dash runs a program named `repeat`.
+      `scan.test.ts` pins this under a title saying only zsh has it. A decision, as "posix" is meant sound for all three.
+    - **Tests and tools:** a bare `bun test` in `bench/subsume` fails, as `harnesses-shell.test.ts`'s `PINNED_PACKAGE`
+      reaches the merman harnesses (the file-by-file runs pass); the depth tests skip the limits themselves (32; 17);
+      `select.test.ts`'s "no /etc/shells" gives an empty file, so `.catch` is untested; `shrink_words` never returns to
+      deleting lines; `saves`'s unused parameter, a repeated `consul kv`. The BUILDLOG table does not split the mutants
+      it leaves out: `select` 2, `parse` 17 (failing to compile or run, `subsume`'s `unattributed`).
+  - **`core/shell`: found by its tests, 2026-11-02, Max: left open, to resolve later** (`test/core-shell`; pinned in
     `test/shell/parse.test.ts`, not fixed):
     - **The tree-sitter walk ignores parse errors** (`scanLegacy`), so permission analysis
       (`src/tool/plugin/shell.ts:126-136`) is given the wrong directories: `Set-Location -- /etc` gives none,
@@ -117,16 +135,24 @@ Left by the fold (2026-10-28):
     - **A backslash stays in a directory's name, both routes:** `cd a\ b` reports `a\ b`, and `cd 'a'\b` reports
       `'a'\b` (portable) or `a` and `\b` (walk), where bash enters `a b` and `ab`. Decoding it needs a decision on which
       forms count as static (`parse.ts:258` holds a backslash back on purpose).
-    - **A lead, unconfirmed:** an option holding `E`, `F`, `i` or `n` makes a binding builtin's operand arithmetic
+    - **A lead, unconfirmed, pinned nowhere as such:** an option holding `E`, `F`, `i` or `n` makes a binding builtin's operand arithmetic
       (`scan.ts:300`), so `typeset -i functions[a]=b` and `vared -ne dis_functions[1]=$(a)` pass the zsh hash refusal at
       `scan.ts:257`, which asks for a binding. Whether zsh honours such an assignment needs a real zsh; this host has
       none, and nor dash nor PowerShell. Check it before calling it a defect.
   - **Fork defects found by our tests, fixed 2026-11-01** (BUILDLOG; PR #20, merged): `latex`'s four, `core`'s
     diamond caps, flowchart's two, sequence's note over no one, and state's self loop heads, same-row side rail
     and left-to-right fallback row. Two more were found measuring those fixes on random inputs:
-    - **State, fixed** (`fix/fork-found-defects`): a route that crossed its own source's or target's box (a side
+    - **State, fixed** (PR #21, merged): a route that crossed its own source's or target's box (a side
       rail whose ends are a row apart ran on the target's border) is now repaired, and a repair walled in by
-      earlier routes may cross one of them. Routes through a state: 8 of 3,000 -> 0 of 10,000.
+      earlier routes may cross or run along one of them. Routes through a state: 8 of 3,000 -> 0 of 3,000 on today's
+      code (seeds 11–13; 0 of 10,000 before the later self-loop commit). The check skips 1-cell states and notes.
+    - **State, open, found by PR #21's review:**
+      - a side rail or bottom rail off a nested frame still has a gap in its path, so part of the route is not drawn
+        (16 of 3,000, seeds 11–13). The same defect on a horizontal run is fixed (`fix/state-composite-member`).
+      - a note in such a run's way can stay under it, or take a connector that reads badly (2 of 3,000).
+      - routes with no end in common share a segment in 3 of 3,000, against 1 before PR #21's retry; `state-defects.ts`
+        does not flag it. The price of 8 -> 0 above.
+      - a side rail is still built along its target's border and then repaired, rather than built clear.
     - **Flowchart, left pinned (Max's route 3, 2026-11-01):** a nested frame can take in its parent's other
       nodes (15 of 10,000 random flowcharts, `harnesses/flowchart.ts`, seeds 1–10; all a nested frame over a
       node in its parent). Two causes: a frame fitted to a self loop that an earlier routing pass sent round the
@@ -140,8 +166,7 @@ Left by the fold (2026-10-28):
       (frames grown once; the layout check, 10,000), :575 (notes past their frame; 0 of 582), :1033 (flowchart
       pass order; no free node among the 15). :489 (same-row straight run) draws repaired; only note placement
       reads the unrepaired plan, as for every route kind. :237 (diamond box fallback at 1 wide) is latent: the
-      only caller draws a decision at least 7 by 5. The four cleanups (a shadowed `selfTransitionCounts`, two
-      grow-round-members copies, a copied `overlap` in the flowchart harness) are not done.
+      only caller draws a decision at least 7 by 5. Its four cleanups are done (`fix/state-composite-member`).
     The fixes do not bump `VERSION` (Max, 2026-11-01: fork fixes do not).
   - **Found re-checking flowchart's tests (2026-11-01):** four derived cases in
     `test/flowchart/layout.test.ts` are redundant among the derived cases alone, already on `main` (unreached

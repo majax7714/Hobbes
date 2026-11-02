@@ -1,7 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-11-02 (fifty-first session); `main` at 0.3.9-beta (`434daf3`, PRs #8–#21 merged); branches
-`fix/state-composite-member` and `test/core-shell`, not yet pushed; the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+**Reviewed 2026-11-02 (fifty-first session); `main` at 0.3.9-beta (PRs #8–#23 merged; #22 merges last); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
@@ -45,8 +44,9 @@ session went belongs in the BUILDLOG.
 `core` (PR #9), the top level (PR #10), flowchart (PR #13), gantt and gitGraph (PR #14), sequence (PR #15, #16),
 state (PR #18; the older `test/merman-state` branch is superseded, delete it), timeline (PR #19). Max
 (2026-11-01): "look to fix the defects before proceeding with core/shell"; all ten are fixed (PR #20, merged),
-and of the two found measuring them, state's is fixed on `fix/fork-found-defects` (merman 408 pass); flowchart's
-stays pinned (Max's route 3: route 1 measured heavy). PR #20's review is triaged there too (`currently-open.md`). **Measure a layout fix on random inputs before and after** (state: the
+and of the two found measuring them, state's is fixed (PR #21); flowchart's stays pinned (Max's route 3: route 1
+measured heavy). PR #21's review found more; one is fixed on `fix/state-composite-member` (merman 409 pass), the rest
+are open in `currently-open.md`. **Measure a layout fix on random inputs before and after** (state: the
 harnesses' generator and `state-defects.ts`, seeds 11–13; flowchart: `harnesses/flowchart.ts`, seeds 1–10).
 
 How, as the last four families were done (BUILDLOG 2026-10-30 entries; tests under
@@ -68,10 +68,9 @@ in `currently-open.md`). Then ADR-184's unbuilt levers (`currently-open.md`): a 
 ADR first. The extraction routes stand as they were: C is the next-thinnest language (two cells).
 
 **Waiting on Max:**
-- Push `fix/state-composite-member` and `test/core-shell` (Max's step), then their PRs; both touch these docs.
 - `core/shell`'s findings: the walk's parse errors (recommended: fall back to the portable scanner), a backslash in a
-  directory, the zsh lead (`currently-open.md`).
-- PR #20's four cleanup comments: whether to do them.
+  directory, the zsh lead (`currently-open.md`). Max (2026-11-02): left open, to resolve later.
+- PR #20's four cleanup comments: done on PR #22.
 - Whether a fuller pyrefly probe runs, on a held-out cell (`currently-open.md`).
 - H-39: the trace oracle's re-entrance guard is shared across threads; a thread-local guard moves every key
   with a threaded test (`currently-open.md`).
@@ -80,8 +79,9 @@ ADR first. The extraction routes stand as they were: C is the next-thinnest lang
 
 ## Where the last day left things (2026-10-31; the CHANGELOG and BUILDLOG have each one)
 
-Fifty-first session (2026-11-02): PR #21 merged; `core/shell`'s tests; `bench/subsume`'s repeated-name defect fixed (no
-past report affected). Fiftieth session: the fork's ten pinned defects fixed (PR #20); state's own-end crossing fixed; `merman`'s timeline (PR #19) and state (PR #18), sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
+Fifty-first session (2026-11-02): PR #21, #22, #23 merged; a state frame's run to its own member fixed, the reviews'
+cleanups done; `core/shell`'s tests; `bench/subsume`'s repeated-name defect fixed (no past report affected).
+Fiftieth session: the fork's ten pinned defects fixed (PR #20); state's own-end crossing fixed; `merman`'s timeline (PR #19) and state (PR #18), sequence (PR #15), `bench/subsume/pinned.py` with testable harnesses and a memory
 cap (PR #16), the state side rail's endless loop fixed (PR #17); three state drawing defects found and pinned.
 
 Forty-ninth session: 0.3.7-beta to 0.3.9-beta (the gate's `attr-call` reason, H-38, ADR-187; the accept list,
