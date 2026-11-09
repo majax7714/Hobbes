@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-11-02 (fifty-first session); `main` at 0.3.9-beta (PRs #8–#23 merged; #22 merges last); the image was built 2026-10-30 14:21 UTC, six minutes before 0.3.9-beta's commit (ADR-188):
+**Reviewed 2026-11-09 (fifty-second session); `main` at 0.3.10-beta (PRs #8–#23 merged, then the review of Alex Stanek's speed pass, ADR-184's amendment); the image was rebuilt for 0.3.10-beta:
 rebuild it if a check needs that certainty; rerun `hobbes ingest` before trusting `tests_guarding`.** A new
 session's knowledge server is a new container from the current image, so it starts fresh.
 
