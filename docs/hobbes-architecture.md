@@ -370,14 +370,21 @@ no project claims runs under the default options in both lanes and is
 reported per solution config (C-98, lifted 2026-09-10; the asymmetry
 closed later that day).
 
-Lane A runs its zones on worker threads (ADR-184, 0.3.3-beta): the main
-thread plans the zones, at most `HOBBES_TS_JOBS` run at once (the largest
-first), and their results merge in zone order with the serial loop's
-sorts, so the facts are the same bytes at any parallelism. Each zone has
-its own cap (`tsextract-zone`, 300 s); a zone past it is stopped, its
-files stay listed with no facts, and one `zone-timeout` record names them
-(C-196). On this repo at `71a28c3`, 4 at a time: 118.9 s → 48.5 s, peak
-3.7 → 6.8 GB.
+Lane A runs its zones on worker threads (ADR-184, 0.3.3-beta): the first
+worker plans the zones (the CLI's main thread never loads TypeScript), at
+most `HOBBES_TS_JOBS` run at once (the largest first), and their results
+merge in zone order with the serial loop's sorts, so the facts are the
+same bytes at any parallelism. The workers live for the run, each taking
+zone after zone; one whose heap is past 300 MB after a zone is retired
+and a fresh one takes its lane's next zone (ADR-184's amendment,
+2026-11-02). Each zone has its own cap (`tsextract-zone`, 300 s), which
+starts when the zone is handed to a worker that has loaded the compiler,
+so a fresh worker and a reused one time it alike; a zone past it is
+stopped, its files stay listed with no facts, and one `zone-timeout`
+record names them (C-196). On this repo at `71a28c3`, 4 at a time:
+118.9 s → 48.5 s, peak 3.7 → 6.8 GB. The ingest starts the helper first
+and it runs beside Python's discover, parse and graph steps; the other
+languages' lane A runs after it.
 
 Discovery, in every language, walks a directory symlink whose target is
 inside the repo **once, at its target** and records the link (C-73): a

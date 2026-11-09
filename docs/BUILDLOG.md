@@ -17495,3 +17495,20 @@ pysource scope facts read once per parse. All byte-identical (this repo with a c
 2-core box, lane B unavailable in both arms: ingest 96 s → 57 s; the TS helper 63 s → 43 s; peak RSS, the helper 629–654
 → 576 MB, the ingest process 381 → 395 MB. The 2x memory target was not met: the floor is one zone's live program
 (ADR-184's amendment says why). tsextract 59 pass; pipeline 3394 passed, 35 skipped.
+
+## 2026-11-09 — review of the extraction speed and memory pass (ADR-184's amendment)
+
+Reviewed Alex Stanek's `perf/extraction-speed-memory` (3aaa15c) and fixed four findings on top. The TS helper's facts,
+main against the branch (and again after the fixes), byte-identical at `--jobs` 1 and 4 on this repo (21.0 MB), zod
+(4.9 MB) and paseo, never graded (72.9 MB); this repo's ingest with lane B off: `graph.json` identical but `built_by`,
+`tests.json` and `interfaces.json` the same bytes. paseo's helper 502.6 → 95.4 s at 1 job and 410.5 → 42.7 s at 4
+(line numbers by search); zod at 4 jobs is the one peak that rose, 1.20 → 1.37 GB (workers held between zones).
+
+Fixed: the ADR text and the ingest's comment said the helper runs beside the other languages' lane A (it runs beside
+Python's steps only); a zone's cap timed a fresh worker's TypeScript load and not a reused one's, so whether a zone
+near its cap timed out hung on its lane (now the cap starts once the worker says it is ready; a new test, failing
+with the ready message removed); `@ts-morph/common` imported but undeclared; architecture §3 still said the main
+thread plans the zones. Two items to `currently-open.md`: the helper outlives an ingest that raises before waiting
+for it, and the other languages' lane A could run beside it. tsextract 60 pass; pipeline 3425 passed, 1 skipped, 3
+failed, each lane B through the image from a worktree (2 fail from a `main` worktree too; the third passes on
+re-run on both).

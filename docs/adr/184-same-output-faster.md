@@ -137,8 +137,9 @@ no draw, refusal or record changes, so no version bump.
 - **Zone workers live for the run** (`extractRepoParallelJson`). A worker takes zone after zone; the first
   also plans the repo, so the CLI's main thread never loads TypeScript. A worker whose heap is past 300 MB
   after a zone is retired and the lane's next zone gets a fresh one, so a large zone's garbage is not carried
-  into the next zone's peak. A zone's cap now runs from when the zone is handed over, not from the worker's
-  start. Each file's record is serialized in the worker and the document spliced from those strings, exactly
+  into the next zone's peak. A zone's cap now runs from when the zone is handed to a worker that has loaded
+  the compiler, not from the worker's start, so a fresh worker and a reused one time a zone alike (the
+  review's fix below). Each file's record is serialized in the worker and the document spliced from those strings, exactly
   as `JSON.stringify` writes it.
 - **One walk per file.** The seven `forEachDescendant` walks (imports, literal members, calls, constructions,
   env reads, routes, tests) read one pre-order walk over the compiler's nodes, each stage handed its kinds in
@@ -147,8 +148,9 @@ no draw, refusal or record changes, so no version bump.
 - **Line numbers by search.** ts-morph counts newlines from the file's start for every line number;
   `StringUtils.getLineNumberAtPos` is replaced, in the helper's process only, by a binary search over newline
   offsets with the same answer and range check (a test holds it to the count it replaced, CRLF and lone CR).
-- **The helper starts first** (`tssource.start_ts`) and runs beside the Python parse and the other lane A
-  languages; `lane A [ts]` now times the wait left.
+- **The helper starts first** (`tssource.start_ts`) and runs beside Python's discover, parse and graph steps;
+  it is waited for before Go's lane A, so Go, Rust, Java, C++ and C still run after it. `lane A [ts]` now
+  times the wait left.
 - **pysource reads a definition's scope facts once per parse** (`_scope_fact`): `_own_definitions`, the
   `global`/`nonlocal` names, the lambda/comprehension binds and `_local_aliases`' refusals, shared by both
   binders. Same values; the parse's wall time did not move measurably, so this one is housekeeping.
@@ -173,3 +175,14 @@ on, and `HOBBES_TS_JOBS` > 1 on a large box (the jobs tests cover 1, 2, 3 and 8 
 checker, on top of the compiler's own code. Lowering that changes what the checker sees. Keeping one warm
 worker for every zone ran in about 38 s but peaked at 0.8–1.1 GB; collecting or retiring workers more often
 cost back most of the time, so 300 MB is the trade chosen.
+
+**Review (2026-11-09).** Merged after Max's review with four fixes, none of which moves a byte of the facts
+(re-checked: the helper's facts on this repo, zod and paseo at `--jobs` 1 and 4, and this repo's ingest with
+lane B off). The text above first said the helper also ran beside the other languages' lane A; it does not,
+and now says so. As first written, a zone's cap started when the zone was posted, so a fresh worker loaded
+TypeScript inside it and a reused one did not: whether a zone near its cap timed out depended on which lane
+took it. A fresh worker now says it is ready once the compiler is loaded and the cap starts after that; a
+worker that hangs while loading is left to the whole run's backstop. `@ts-morph/common`, which the line-number
+change imports, is declared rather than reached by npm's hoisting. Not changed: the helper is not stopped if
+the Python steps raise before the ingest waits for it, and the other languages' lane A could also run beside
+it (both in `currently-open.md`).

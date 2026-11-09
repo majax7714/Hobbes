@@ -9,6 +9,7 @@
     "test": "node --test"
   },
   "dependencies": {
+    "@ts-morph/common": "~0.28.1",
     "ts-morph": "^27.0.0"
   }
 }

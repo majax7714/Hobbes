@@ -1406,3 +1406,25 @@ test("zones share a worker and the facts are the serial loop's bytes, whatever t
     assert.equal(JSON.stringify(await extractRepoParallel(root, { jobs })), serial, `jobs=${jobs}`);
   }
 });
+
+test("a fresh zone worker says it is ready before it is handed a zone, so a zone's cap never times the compiler's load", async () => {
+  // extractRepoParallelJson starts a zone's cap only after this message:
+  // a zone on a fresh worker and one on a reused worker are timed alike.
+  const { Worker } = await import("node:worker_threads");
+  const worker = new Worker(new URL("../extract.mjs", import.meta.url), {
+    workerData: { hobbesWorker: true, plan: { root: "/nowhere", fileSet: [], packages: [], zones: [], errors: [] } },
+  });
+  try {
+    let timer;
+    const first = await new Promise((resolve, reject) => {
+      worker.once("message", resolve);
+      worker.once("error", reject);
+      // Silence fails the test rather than hanging it on a live worker.
+      timer = setTimeout(() => resolve("no message within 30 s"), 30_000);
+    });
+    clearTimeout(timer);
+    assert.deepEqual(first, { ready: true });
+  } finally {
+    await worker.terminate();
+  }
+});

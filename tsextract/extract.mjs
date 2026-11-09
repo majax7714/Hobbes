@@ -1635,12 +1635,6 @@ export function zoneTimedOut(zone, zoneFiles, seconds, jobs = 1) {
   };
 }
 
-/** The repo's facts with its zones on worker threads, at most *jobs* at a
- * time, the largest first, each under its own cap (ADR-184 lever 2). The
- * merge is `extractRepo`'s, in zone order, so a run whose every zone
- * finishes is the same bytes as the serial one. A zone past its cap is
- * stopped and recorded (`zoneTimedOut`); a zone whose worker fails
- * otherwise fails the run, as it would in the serial loop. */
 /** A worker whose heap has grown past this after a zone is retired and the
  * lane's next zone goes to a fresh one. V8 keeps a heap it has grown, so a
  * worker that ran a large zone would otherwise hold that zone's garbage
@@ -1651,6 +1645,12 @@ const RECYCLE_HEAP_BYTES = 300 * 1024 * 1024;
 /** The longest delay setTimeout keeps: a 32-bit signed count of ms. */
 const MAX_TIMER_MS = 2 ** 31 - 1;
 
+/** The repo's facts with its zones on worker threads, at most *jobs* at a
+ * time, the largest first, each under its own cap (ADR-184 lever 2). The
+ * merge is `extractRepo`'s, in zone order, so a run whose every zone
+ * finishes is the same bytes as the serial one. A zone past its cap is
+ * stopped and recorded (`zoneTimedOut`); a zone whose worker fails
+ * otherwise fails the run, as it would in the serial loop. */
 export async function extractRepoParallel(repoRoot, options = {}) {
   return JSON.parse(await extractRepoParallelJson(repoRoot, options));
 }
@@ -1661,7 +1661,11 @@ export async function extractRepoParallel(repoRoot, options = {}) {
  * finishes the last, so the compiler is loaded once per worker rather than
  * once per zone (ADR-184's amendment, 2026-11-02). The first worker plans
  * the repo too, so this thread never loads it. A zone's cap runs from when
- * the zone is handed over; a zone past it stops its worker, is recorded
+ * the zone is handed to a worker that has loaded the compiler, so it times
+ * the zone's own work whether its worker is fresh or reused: which lane a
+ * zone lands on never decides whether it times out. A worker that hangs
+ * loading the compiler is past every zone's cap, and the whole run's
+ * backstop holds. A zone past its cap stops its worker, is recorded
  * (`zoneTimedOut`), and a fresh worker takes that lane's next zone. */
 export async function extractRepoParallelJson(repoRoot, { jobs = 1, zoneTimeoutSeconds = 300 } = {}) {
   const spawn = (init) => {
@@ -1681,7 +1685,7 @@ export async function extractRepoParallelJson(repoRoot, { jobs = 1, zoneTimeoutS
     worker.on("error", (error) => deliver({ error }));
     worker.on("exit", (code) => deliver({ exit: code }));
     const next = () => (inbox.length ? Promise.resolve(inbox.shift()) : new Promise((r) => { waiting = r; }));
-    return { worker, next };
+    return { worker, next, ready: false };
   };
   const fail = (item, what) => {
     if (item.error) throw item.error;
@@ -1692,6 +1696,8 @@ export async function extractRepoParallelJson(repoRoot, { jobs = 1, zoneTimeoutS
   const planned = await first.next();
   if (!planned.message) fail(planned, "the repo's plan");
   const plan = planned.message.plan;
+  // The plan is posted after the compiler is loaded: the first worker is ready.
+  first.ready = true;
   const results = new Array(plan.zones.length);
   const width = Math.max(1, Math.min(jobs, plan.zones.length));
   const order = plan.zones
@@ -1703,6 +1709,13 @@ export async function extractRepoParallelJson(repoRoot, { jobs = 1, zoneTimeoutS
   // the worker stopped, so the lane needs a fresh one).
   const runZone = async (handle, i) => {
     const [zone, zoneFiles] = plan.zones[i];
+    if (!handle.ready) {
+      // A fresh worker says so once the compiler is loaded; the zone's cap
+      // starts after that, as it does on a reused worker.
+      const loaded = await handle.next();
+      if (!loaded.message?.ready) fail(loaded, zone || "the default options");
+      handle.ready = true;
+    }
     handle.worker.postMessage({ zone: i });
     let timer;
     // Past setTimeout's own limit (about 24.8 days) Node fires at once,
@@ -1731,8 +1744,10 @@ export async function extractRepoParallelJson(repoRoot, { jobs = 1, zoneTimeoutS
     // A failed zone fails the run, so no lane starts another after it.
     while (nextZone < order.length && !failed) {
       const i = order[nextZone++];
-      if (!handle) handle = fresh();
-      handles.push(handle);
+      if (!handle) {
+        handle = fresh();
+        handles.push(handle);
+      }
       try {
         const { result, alive } = await runZone(handle, i);
         results[i] = result;
@@ -1817,6 +1832,10 @@ if (!isMainThread && workerData && workerData.hobbesWorker) {
   if (!plan) {
     plan = planMessage(planRepo(workerData.repoRoot));
     parentPort.postMessage({ plan });
+  } else {
+    // The compiler is loaded (this module's top-level await): the zone's
+    // cap may start (`extractRepoParallelJson`).
+    parentPort.postMessage({ ready: true });
   }
   parentPort.on("message", ({ zone: i }) => {
     const [zone, zoneFiles] = plan.zones[i];

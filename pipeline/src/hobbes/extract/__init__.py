@@ -142,9 +142,10 @@ def extract_repo(
     # artifact, and a caller that passes none gets one that is dropped.
     timings = timings if timings is not None else Timings()
     repo_root = Path(repo_root).resolve()
-    # The TS/JS helper runs beside the Python parse below and the other
-    # languages' lane A; "lane A [ts]" times the wait that is left (ADR-184's
-    # amendment).
+    # The TS/JS helper runs beside Python's discover, parse and graph steps
+    # below; it is waited for before Go's lane A, so the other languages'
+    # lane A runs after it, as before. "lane A [ts]" times the wait that is
+    # left (ADR-184's amendment).
     with timings.step("lane A [ts] start"):
         ts_wait = start_ts(repo_root)
     with timings.step("discover [python]"):

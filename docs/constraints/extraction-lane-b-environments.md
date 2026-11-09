@@ -355,6 +355,10 @@
     helper):** that zone's facts. Its files stay listed with no import,
     call, symbol, route or test. Since ADR-184 (0.3.3-beta); before, the
     helper had one 300 s cap for the whole repo, and the ingest stopped.
+    The cap times the zone's own work: it starts once the zone is handed
+    to a worker that has loaded the compiler, fresh or reused (ADR-184's
+    amendment, 2026-11-02), so which lane a zone lands on does not decide
+    whether it times out.
   - **`tsextract` (3,600 s, the whole run, a backstop for a hung
     helper):** no graph at all. The ingest stops rather than drawing the
     repo without its TS/JS.
