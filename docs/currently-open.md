@@ -195,7 +195,13 @@ Left by the fold (2026-10-28):
   pinned interpreter and config for determinism; and how an unresolved import is told from a resolved one.
 - **ADR-184's levers not built:** a TS lane A cache (its own ADR: a read-set key, a hit-equals-fresh test),
   Python lane A on a process pool, tree-sitter queries in place of walks, and lane B units within one
-  language in parallel (the tool caches' concurrency first).
+  language in parallel (the tool caches' concurrency first). Since the 2026-11-02 amendment the TS helper
+  runs beside the Python parse only; Go, Rust, Java, C++ and C lane A could run beside it too (keep the
+  merge order).
+- **The TS helper outlives a failed ingest** (ADR-184's amendment, review 2026-11-09): `start_ts` starts it
+  before the Python steps, and if one of them raises, nothing waits for or stops it; it runs to its own end
+  or the 3,600 s backstop, and an error it hits is never reported. Keep the `Popen` and stop it in a
+  `finally`.
 
 - **H-39** (`oracle/oracle-defects.md`): the trace oracle's re-entrance guard is one flag for every thread, so a
   call on one thread while another sits in a callback is lost. No pair lost on the four standing Python cells. A

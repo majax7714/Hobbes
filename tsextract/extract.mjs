@@ -14,9 +14,60 @@ import fs from "node:fs";
 import path from "node:path";
 import { builtinModules } from "node:module";
 import { pathToFileURL } from "node:url";
+import v8 from "node:v8";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 
-import { Node, Project, ts } from "ts-morph";
+// ts-morph (and the TypeScript compiler under it) is loaded where a checker
+// runs: in the zone workers, and in any thread that imports this module as
+// a library. The CLI's main thread only hands zones out and assembles the
+// facts, so it never loads it: the compiler's own heap is not paid twice
+// (ADR-184's amendment, 2026-11-02).
+let Node;
+let Project;
+let ts;
+async function loadTsMorph() {
+  if (ts) return;
+  ({ Node, Project, ts } = await import("ts-morph"));
+  fastLineNumbers((await import("@ts-morph/common")).default);
+}
+
+/** ts-morph answers every line number (`getStartLineNumber`,
+ * `getEndLineNumber`, `getLineAndColumnAtPos`) by counting the newlines
+ * from the start of the file to the position, one character at a time:
+ * quadratic in a file's length over its nodes, and the largest single cost
+ * of the walk outside the checker. This gives `StringUtils.getLineNumberAtPos`
+ * the same answer — the number of `\n` before *pos*, plus one, after the
+ * same range check — from a binary search over the text's newline offsets,
+ * kept for the last few texts asked about. Nothing else changes. */
+function fastLineNumbers(common) {
+  const { StringUtils, errors } = common;
+  const recent = [];
+  const newlines = (str) => {
+    for (const [text, offsets] of recent) if (text === str) return offsets;
+    const found = [];
+    for (let i = str.indexOf("\n"); i !== -1; i = str.indexOf("\n", i + 1)) found.push(i);
+    const offsets = Int32Array.from(found);
+    recent.unshift([str, offsets]);
+    if (recent.length > 4) recent.pop();
+    return offsets;
+  };
+  StringUtils.getLineNumberAtPos = (str, pos) => {
+    errors.throwIfOutOfRange(pos, [0, str.length], "pos");
+    const offsets = newlines(str);
+    // The count of newline offsets below pos.
+    let lo = 0;
+    let hi = offsets.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (offsets[mid] < pos) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo + 1;
+  };
+}
+const IS_CLI_MAIN = isMainThread && Boolean(process.argv[1]) &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
+if (!IS_CLI_MAIN) await loadTsMorph();
 
 // v2 (V2.M3, ADR-029/031): `calls` carries every call site rather than
 // only resolved ones, positioned on the terminal identifier with a
@@ -379,6 +430,59 @@ function enclosingScope(node) {
   return top.getName();
 }
 
+// --- the one walk ------------------------------------------------------------
+
+/** Every stage reads a file's nodes of a few kinds, in the order a
+ * pre-order walk meets them. The file is walked once, over the compiler's
+ * own nodes, and each stage is handed its kinds' nodes in that order, wrapped
+ * only when a stage asks for them: a stage sees exactly the nodes, in exactly
+ * the order, that its own `forEachDescendant` walk handed it, and asks the
+ * checker the same questions in the same order. Walking each file once
+ * rather than once per stage, and wrapping a node only when a stage reads
+ * it, was the larger part of the helper's time outside the checker
+ * (ADR-184's amendment, 2026-11-02). */
+const WALK_GROUPS = {
+  calls: new Set(),
+  callExpressions: new Set(),
+  news: new Set(),
+  envAccess: new Set(),
+  objectLiterals: new Set(),
+};
+let walked = { sourceFile: null, groups: null };
+
+function kindGroups() {
+  if (!WALK_GROUPS.calls.size) {
+    const K = ts.SyntaxKind;
+    for (const k of [K.CallExpression, K.TaggedTemplateExpression, K.JsxSelfClosingElement, K.JsxOpeningElement]) {
+      WALK_GROUPS.calls.add(k);
+    }
+    WALK_GROUPS.callExpressions.add(K.CallExpression);
+    WALK_GROUPS.news.add(K.NewExpression);
+    WALK_GROUPS.envAccess.add(K.PropertyAccessExpression).add(K.ElementAccessExpression);
+    WALK_GROUPS.objectLiterals.add(K.ObjectLiteralExpression);
+  }
+  return WALK_GROUPS;
+}
+
+/** *sourceFile*'s descendants in *group* (a key of WALK_GROUPS), in
+ * pre-order, as ts-morph nodes — what `forEachDescendant` would have visited
+ * and kept. The walk is shared by every stage of the file it was made for. */
+function descendants(sourceFile, group) {
+  if (walked.sourceFile !== sourceFile) {
+    const groups = kindGroups();
+    const found = Object.fromEntries(Object.keys(groups).map((g) => [g, []]));
+    const entries = Object.entries(groups);
+    const visit = (node) => {
+      const kind = node.kind;
+      for (const [g, kinds] of entries) if (kinds.has(kind)) found[g].push(node);
+      ts.forEachChild(node, visit);
+    };
+    ts.forEachChild(sourceFile.compilerNode, visit);
+    walked = { sourceFile, groups: found };
+  }
+  return walked.groups[group].map((node) => sourceFile._getNodeFromCompilerNode(node));
+}
+
 // --- per-file extraction ---------------------------------------------------
 
 function extractImports(sourceFile, repoRoot, fileSet, filePath, project, packages, unresolved) {
@@ -462,14 +566,13 @@ function extractImports(sourceFile, repoRoot, fileSet, filePath, project, packag
       resolveWorkspace(specifier, packages, fileSet)
     );
   };
-  sourceFile.forEachDescendant((node) => {
-    if (!Node.isCallExpression(node)) return;
+  for (const node of descendants(sourceFile, "callExpressions")) {
     const expr = node.getExpression();
     const isRequire = Node.isIdentifier(expr) && expr.getText() === "require";
     const isDynamic = expr.getKind() === ts.SyntaxKind.ImportKeyword;
-    if (!isRequire && !isDynamic) return;
+    if (!isRequire && !isDynamic) continue;
     const specifier = firstStringArg(node);
-    if (!specifier) return;
+    if (!specifier) continue;
     const resolved = resolveSpecifier(specifier);
     const line = node.getStartLineNumber();
     if (resolved) {
@@ -482,7 +585,7 @@ function extractImports(sourceFile, repoRoot, fileSet, filePath, project, packag
         unresolved.push({ line, specifier });
       }
     }
-  });
+  }
   return imports.sort(
     (a, b) => a.line - b.line || a.specifier.localeCompare(b.specifier)
   );
@@ -646,10 +749,9 @@ function literalMembers(sourceFile) {
   if (cached) return cached;
   const taken = new Set(baseSymbols(sourceFile).map((s) => s.qualname));
   const found = [];
-  sourceFile.forEachDescendant((node) => {
-    if (!Node.isObjectLiteralExpression(node)) return;
+  for (const node of descendants(sourceFile, "objectLiterals")) {
     const prefix = literalBinding(node);
-    if (!prefix) return;
+    if (!prefix) continue;
     for (const member of node.getProperties()) {
       const runs =
         Node.isMethodDeclaration(member) ||
@@ -661,7 +763,7 @@ function literalMembers(sourceFile) {
       const name = runs ? memberName(member) : null;
       if (name !== null) found.push([member, `${prefix}.${name}`]);
     }
-  });
+  }
   const count = new Map();
   for (const [, q] of found) count.set(q, (count.get(q) ?? 0) + 1);
   const members = new Map(found.filter(([, q]) => count.get(q) === 1 && !taken.has(q)));
@@ -909,7 +1011,7 @@ function extractCalls(sourceFile, repoRoot, fileSet) {
       ambiguous: null,
     });
   };
-  sourceFile.forEachDescendant((node) => {
+  for (const node of descendants(sourceFile, "calls")) {
     if (Node.isCallExpression(node)) {
       const callee = node.getExpression();
       const terminal = terminalIdentifier(callee);
@@ -918,7 +1020,7 @@ function extractCalls(sourceFile, repoRoot, fileSet) {
       // `super(..)` a keyword, not a value in callee position: neither
       // is a site, as before.
       else if (!isKeywordCallee(callee)) pushExpressionCallee(callee, node);
-      return;
+      continue;
     }
     // C-177: `` tag`text` `` calls `tag` with the template's strings and
     // values, so it is a site exactly as `tag(..)` is, its tag in callee
@@ -928,18 +1030,18 @@ function extractCalls(sourceFile, repoRoot, fileSet) {
       const terminal = terminalIdentifier(tag);
       if (terminal) push(terminal, tag, node);
       else pushExpressionCallee(tag, node);
-      return;
+      continue;
     }
     if (Node.isJsxSelfClosingElement(node) || Node.isJsxOpeningElement(node)) {
       const tag = node.getTagNameNode();
       const component =
         (Node.isIdentifier(tag) && /^[A-Z]/.test(tag.getText())) ||
         Node.isPropertyAccessExpression(tag);
-      if (!component) return;
+      if (!component) continue;
       const terminal = terminalIdentifier(tag);
       if (terminal) push(terminal, tag, node);
     }
-  });
+  }
   return calls.sort(
     (a, b) => a.line - b.line || a.col - b.col || a.name.localeCompare(b.name)
   );
@@ -969,19 +1071,18 @@ function extractCalls(sourceFile, repoRoot, fileSet) {
  */
 function extractConstructions(sourceFile) {
   const tokens = [];
-  sourceFile.forEachDescendant((node) => {
-    if (!Node.isNewExpression(node)) return;
+  for (const node of descendants(sourceFile, "news")) {
     const terminal = terminalIdentifier(node.getExpression());
-    if (!terminal) return;
+    if (!terminal) continue;
     const { line, column } = sourceFile.getLineAndColumnAtPos(terminal.getStart());
     tokens.push([line, column - 1]);
-  });
+  }
   return tokens.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 }
 
 function extractEnvReads(sourceFile) {
   const reads = [];
-  sourceFile.forEachDescendant((node) => {
+  for (const node of descendants(sourceFile, "envAccess")) {
     let base = null;
     let name = null;
     if (Node.isPropertyAccessExpression(node)) {
@@ -995,7 +1096,7 @@ function extractEnvReads(sourceFile) {
     if (name && (base === "process.env" || base === "import.meta.env")) {
       reads.push({ line: node.getStartLineNumber(), var: name });
     }
-  });
+  }
   return reads.sort((a, b) => a.line - b.line || a.var.localeCompare(b.var));
 }
 
@@ -1017,13 +1118,12 @@ function extractRoutes(sourceFile, repoRoot, fileSet) {
   // Express: app.get("/path", handler) — receiver must look like an
   // express app/router and the path literal must start with "/", so
   // map.get("key") never counts.
-  sourceFile.forEachDescendant((node) => {
-    if (!Node.isCallExpression(node)) return;
+  for (const node of descendants(sourceFile, "callExpressions")) {
     const expr = node.getExpression();
-    if (!Node.isPropertyAccessExpression(expr)) return;
+    if (!Node.isPropertyAccessExpression(expr)) continue;
     const verb = expr.getName();
-    if (!EXPRESS_VERBS.has(verb)) return;
-    if (!expressReceiverOk(expr.getExpression())) return;
+    if (!EXPRESS_VERBS.has(verb)) continue;
+    if (!expressReceiverOk(expr.getExpression())) continue;
     const args = node.getArguments();
     const routePath = firstStringArg(node);
     if (!routePath) {
@@ -1035,9 +1135,9 @@ function extractRoutes(sourceFile, repoRoot, fileSet) {
       if (args.length >= 2) {
         declined.push({ framework: "express", line: node.getStartLineNumber() });
       }
-      return;
+      continue;
     }
-    if (!routePath.startsWith("/")) return;
+    if (!routePath.startsWith("/")) continue;
     const handlerArg = args[args.length - 1];
     let handler = "<inline>";
     let handlerPath = null;
@@ -1054,7 +1154,7 @@ function extractRoutes(sourceFile, repoRoot, fileSet) {
       method: verb.toUpperCase(),
       path: routePath,
     });
-  });
+  }
   // Nest: @Controller("prefix") classes with @Get("sub")-family methods.
   // A decorator argument that exists but is not a string literal is a
   // computed path: the route is declined, never emitted with the computed
@@ -1116,15 +1216,14 @@ function testFramework(sourceFile, filePath, imports) {
   // Test-named file using bare describe/it/test globals (jest- or
   // vitest-with-globals style): inventoried, framework honest-unknown.
   let usesGlobals = false;
-  sourceFile.forEachDescendant((node) => {
+  for (const node of descendants(sourceFile, "callExpressions")) {
     if (
-      Node.isCallExpression(node) &&
       Node.isIdentifier(node.getExpression()) &&
       ["describe", "it", "test"].includes(node.getExpression().getText())
     ) {
       usesGlobals = true;
     }
-  });
+  }
   return usesGlobals ? "unknown" : null;
 }
 
@@ -1169,12 +1268,11 @@ function extractTests(sourceFile, filePath, imports) {
   const framework = testFramework(sourceFile, filePath, imports);
   if (!framework) return { framework: null, cases: [] };
   const cases = [];
-  sourceFile.forEachDescendant((node) => {
-    if (!Node.isCallExpression(node)) return;
+  for (const node of descendants(sourceFile, "callExpressions")) {
     const callName = testCallName(node);
-    if (callName !== "it" && callName !== "test") return;
+    if (callName !== "it" && callName !== "test") continue;
     const title = caseTitle(node);
-    if (title === null) return;
+    if (title === null) continue;
     const chain = [...describeChain(node), title];
     cases.push({
       line: node.getStartLineNumber(),
@@ -1186,7 +1284,7 @@ function extractTests(sourceFile, filePath, imports) {
       qualname: chain.map((t) => t.text).join(" > "),
       ...(chain.some((t) => t.computed) ? { computed_title: true } : {}),
     });
-  });
+  }
   return {
     framework,
     cases: cases.sort((a, b) => a.line - b.line || a.qualname.localeCompare(b.qualname)),
@@ -1371,115 +1469,143 @@ export function extractZone(root, zone, zoneFiles, fileSet, packages) {
   // not facts about a call: one entry per file that writes a `new`, and
   // none at all for a file that does not.
   const constructions = [];
-  {
-    // Zone configs get safety overrides: extraction must handle files
-    // the package's own build ignores (a stray service worker), and
-    // checking dependency .d.ts is pure risk with no facts to gain.
-    const project = zone
-      ? new Project({
-          tsConfigFilePath: path.join(root, zone),
-          skipAddingFilesFromTsConfig: true,
-          compilerOptions: { allowJs: true, checkJs: false, noEmit: true, skipLibCheck: true },
-        })
-      : new Project({
-          compilerOptions: {
-            allowJs: true,
-            checkJs: false,
-            module: ts.ModuleKind.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Bundler,
-            skipLibCheck: true,
-            target: ts.ScriptTarget.ES2022,
-            jsx: ts.JsxEmit.Preserve,
-          },
-        });
-    for (const file of zoneFiles) project.addSourceFileAtPath(path.join(root, file));
-    for (const file of zoneFiles) {
-      const sourceFile = project.getSourceFile(path.join(root, file));
-      // A checker internal crash on one stage of one file must not
-      // zero the repo: the stage degrades to empty and the facts say
-      // so — degradation is visible, never silent (P1).
-      const attempt = (stage, fallback, run) => {
-        try {
-          return run();
-        } catch (error) {
-          errors.push({ message: String(error.message).slice(0, 200), path: file, stage });
-          return fallback;
-        }
-      };
-      const unresolved = [];
-      const imports = attempt("imports", [], () =>
-        extractImports(sourceFile, root, fileSet, file, project, packages, unresolved)
-      );
-      if (unresolved.length) {
-        // C-12's surfacing floor: the edges that still cannot be drawn
-        // stop being silent. One record per file, specifiers named.
-        const sample = unresolved.slice(0, 4).map((u) => u.specifier).join(", ");
-        errors.push({
-          message:
-            `${unresolved.length} import(s) resolved nowhere (${sample}) — ` +
-            "edges absent rather than guessed",
-          path: file,
-          stage: "imports-unresolved",
-        });
+  // Zone configs get safety overrides: extraction must handle files
+  // the package's own build ignores (a stray service worker), and
+  // checking dependency .d.ts is pure risk with no facts to gain.
+  const project = zone
+    ? new Project({
+        tsConfigFilePath: path.join(root, zone),
+        skipAddingFilesFromTsConfig: true,
+        compilerOptions: { allowJs: true, checkJs: false, noEmit: true, skipLibCheck: true },
+      })
+    : new Project({
+        compilerOptions: {
+          allowJs: true,
+          checkJs: false,
+          module: ts.ModuleKind.ESNext,
+          moduleResolution: ts.ModuleResolutionKind.Bundler,
+          skipLibCheck: true,
+          target: ts.ScriptTarget.ES2022,
+          jsx: ts.JsxEmit.Preserve,
+        },
+      });
+  for (const file of zoneFiles) project.addSourceFileAtPath(path.join(root, file));
+  for (const file of zoneFiles) {
+    // Every ts-morph wrapper this file's stages create (its own nodes, and
+    // the declarations the checker hands back from other files) is let go
+    // once its record is built: the records are plain data, and the
+    // wrappers of every file otherwise stayed on the heap until the zone
+    // ended. The checker's own state is untouched, so the facts are the
+    // same bytes.
+    project.forgetNodesCreatedInBlock(() => extractFile(file));
+  }
+  // The last file's walk names this zone's program; let it go with the zone.
+  walked = { sourceFile: null, groups: null };
+  return { files: out, errors, constructions };
+
+  function extractFile(file) {
+    const sourceFile = project.getSourceFile(path.join(root, file));
+    // A checker internal crash on one stage of one file must not
+    // zero the repo: the stage degrades to empty and the facts say
+    // so — degradation is visible, never silent (P1).
+    const attempt = (stage, fallback, run) => {
+      try {
+        return run();
+      } catch (error) {
+        errors.push({ message: String(error.message).slice(0, 200), path: file, stage });
+        return fallback;
       }
-      const tests = attempt("tests", { framework: null, cases: [] }, () =>
-        extractTests(sourceFile, file, imports)
-      );
-      const routeFacts = attempt("routes", { routes: [], declined: [] }, () =>
-        extractRoutes(sourceFile, root, fileSet)
-      );
-      const tokens = attempt("constructions", [], () =>
-        extractConstructions(sourceFile)
-      );
-      if (tokens.length) constructions.push([file, tokens]);
-      out.push({
-        calls: attempt("calls", [], () => extractCalls(sourceFile, root, fileSet)),
-        env_reads: attempt("env_reads", [], () => extractEnvReads(sourceFile)),
-        imports,
+    };
+    const unresolved = [];
+    const imports = attempt("imports", [], () =>
+      extractImports(sourceFile, root, fileSet, file, project, packages, unresolved)
+    );
+    if (unresolved.length) {
+      // C-12's surfacing floor: the edges that still cannot be drawn
+      // stop being silent. One record per file, specifiers named.
+      const sample = unresolved.slice(0, 4).map((u) => u.specifier).join(", ");
+      errors.push({
+        message:
+          `${unresolved.length} import(s) resolved nowhere (${sample}) — ` +
+          "edges absent rather than guessed",
         path: file,
-        routes: routeFacts.routes,
-        routes_declined: routeFacts.declined,
-        symbols: attempt("symbols", [], () => extractSymbols(sourceFile)),
-        test_framework: tests.framework,
-        tests: tests.cases,
+        stage: "imports-unresolved",
       });
     }
+    const tests = attempt("tests", { framework: null, cases: [] }, () =>
+      extractTests(sourceFile, file, imports)
+    );
+    const routeFacts = attempt("routes", { routes: [], declined: [] }, () =>
+      extractRoutes(sourceFile, root, fileSet)
+    );
+    const tokens = attempt("constructions", [], () =>
+      extractConstructions(sourceFile)
+    );
+    if (tokens.length) constructions.push([file, tokens]);
+    out.push({
+      calls: attempt("calls", [], () => extractCalls(sourceFile, root, fileSet)),
+      env_reads: attempt("env_reads", [], () => extractEnvReads(sourceFile)),
+      imports,
+      path: file,
+      routes: routeFacts.routes,
+      routes_declined: routeFacts.declined,
+      symbols: attempt("symbols", [], () => extractSymbols(sourceFile)),
+      test_framework: tests.framework,
+      tests: tests.cases,
+    });
   }
-  return { files: out, errors, constructions };
 }
 
 /** The repo's facts from its plan and every zone's result, in zone order:
  * the merge the serial loop made, so the output is the same bytes however
- * the zones ran. */
-function finishRepo(plan, results) {
-  const out = [];
+ * the zones ran. Each result's files are `[path, json]` pairs, a file's
+ * record already serialized where it was built (`serializeZone`), so the
+ * merge holds strings, never the records' object graphs; the document is
+ * spliced from them exactly as `JSON.stringify` would write it. */
+function finishRepoJson(plan, results) {
+  const files = [];
   const errors = [...plan.errors];
   const constructions = new Map();
   for (const result of results) {
-    out.push(...result.files);
+    files.push(...result.files);
     errors.push(...result.errors);
     for (const [file, tokens] of result.constructions) constructions.set(file, tokens);
   }
-  out.sort((a, b) => a.path.localeCompare(b.path));
+  files.sort((a, b) => a[0].localeCompare(b[0]));
   errors.sort((a, b) => a.path.localeCompare(b.path) || a.stage.localeCompare(b.stage));
+  return (
+    '{"constructions":' +
+    JSON.stringify(Object.fromEntries([...constructions].sort((a, b) => a[0].localeCompare(b[0])))) +
+    ',"errors":' + JSON.stringify(errors) +
+    ',"files":[' + files.map(([, json]) => json).join(",") + "]" +
+    ',"helper_version":' + JSON.stringify(HELPER_VERSION) +
+    ',"tsconfigs":' + JSON.stringify(plan.zones.map(([zone]) => zone).filter(Boolean).sort()) +
+    "}"
+  );
+}
+
+/** A zone's result with each file's record serialized, for `finishRepoJson`. */
+function serializeZone(result) {
   return {
-    constructions: Object.fromEntries(
-      [...constructions].sort((a, b) => a[0].localeCompare(b[0]))
-    ),
-    errors,
-    files: out,
-    helper_version: HELPER_VERSION,
-    tsconfigs: plan.zones.map(([zone]) => zone).filter(Boolean).sort(),
+    files: result.files.map((record) => [record.path, JSON.stringify(record)]),
+    errors: result.errors,
+    constructions: result.constructions,
   };
+}
+
+/** What `planRepo` decided, as plain data a worker can post. */
+function planMessage(plan) {
+  return { root: plan.root, fileSet: plan.fileSet, packages: plan.packages, zones: plan.zones, errors: plan.errors };
 }
 
 /** The repo's facts, every zone in this thread, one after another. */
 export function extractRepo(repoRoot) {
   const plan = planRepo(repoRoot);
-  return finishRepo(
+  return JSON.parse(finishRepoJson(
     plan,
-    plan.zones.map(([zone, zoneFiles]) => extractZone(plan.root, zone, zoneFiles, plan.fileSet, plan.packages)),
-  );
+    plan.zones.map(([zone, zoneFiles]) =>
+      serializeZone(extractZone(plan.root, zone, zoneFiles, plan.fileSet, plan.packages))),
+  ));
 }
 
 /** A zone that outran its cap (ADR-184, C-196): its files stay listed —
@@ -1509,67 +1635,136 @@ export function zoneTimedOut(zone, zoneFiles, seconds, jobs = 1) {
   };
 }
 
+/** A worker whose heap has grown past this after a zone is retired and the
+ * lane's next zone goes to a fresh one. V8 keeps a heap it has grown, so a
+ * worker that ran a large zone would otherwise hold that zone's garbage
+ * beside the next zone's program; a fresh worker costs one load of the
+ * compiler. Small zones share a worker, which is where the reuse pays. */
+const RECYCLE_HEAP_BYTES = 300 * 1024 * 1024;
+
+/** The longest delay setTimeout keeps: a 32-bit signed count of ms. */
+const MAX_TIMER_MS = 2 ** 31 - 1;
+
 /** The repo's facts with its zones on worker threads, at most *jobs* at a
  * time, the largest first, each under its own cap (ADR-184 lever 2). The
  * merge is `extractRepo`'s, in zone order, so a run whose every zone
  * finishes is the same bytes as the serial one. A zone past its cap is
  * stopped and recorded (`zoneTimedOut`); a zone whose worker fails
  * otherwise fails the run, as it would in the serial loop. */
-/** The longest delay setTimeout keeps: a 32-bit signed count of ms. */
-const MAX_TIMER_MS = 2 ** 31 - 1;
+export async function extractRepoParallel(repoRoot, options = {}) {
+  return JSON.parse(await extractRepoParallelJson(repoRoot, options));
+}
 
-export async function extractRepoParallel(repoRoot, { jobs = 1, zoneTimeoutSeconds = 300 } = {}) {
-  const plan = planRepo(repoRoot);
+/** `extractRepoParallel`'s facts as the JSON document the CLI prints.
+ *
+ * The workers live for the whole run, each taking the next zone as it
+ * finishes the last, so the compiler is loaded once per worker rather than
+ * once per zone (ADR-184's amendment, 2026-11-02). The first worker plans
+ * the repo too, so this thread never loads it. A zone's cap runs from when
+ * the zone is handed to a worker that has loaded the compiler, so it times
+ * the zone's own work whether its worker is fresh or reused: which lane a
+ * zone lands on never decides whether it times out. A worker that hangs
+ * loading the compiler is past every zone's cap, and the whole run's
+ * backstop holds. A zone past its cap stops its worker, is recorded
+ * (`zoneTimedOut`), and a fresh worker takes that lane's next zone. */
+export async function extractRepoParallelJson(repoRoot, { jobs = 1, zoneTimeoutSeconds = 300 } = {}) {
+  const spawn = (init) => {
+    const worker = new Worker(new URL(import.meta.url), { workerData: { hobbesWorker: true, ...init } });
+    // Messages and failures arrive here in order; `next` hands the next one
+    // to whoever is waiting.
+    const inbox = [];
+    let waiting = null;
+    const deliver = (item) => {
+      if (waiting) {
+        const w = waiting;
+        waiting = null;
+        w(item);
+      } else inbox.push(item);
+    };
+    worker.on("message", (message) => deliver({ message }));
+    worker.on("error", (error) => deliver({ error }));
+    worker.on("exit", (code) => deliver({ exit: code }));
+    const next = () => (inbox.length ? Promise.resolve(inbox.shift()) : new Promise((r) => { waiting = r; }));
+    return { worker, next, ready: false };
+  };
+  const fail = (item, what) => {
+    if (item.error) throw item.error;
+    throw new Error(`the zone worker for ${what} exited ${item.exit} with no facts`);
+  };
+
+  const first = spawn({ repoRoot: path.resolve(repoRoot) });
+  const planned = await first.next();
+  if (!planned.message) fail(planned, "the repo's plan");
+  const plan = planned.message.plan;
+  // The plan is posted after the compiler is loaded: the first worker is ready.
+  first.ready = true;
   const results = new Array(plan.zones.length);
   const width = Math.max(1, Math.min(jobs, plan.zones.length));
   const order = plan.zones
     .map((_, i) => i)
     .sort((a, b) => plan.zones[b][1].length - plan.zones[a][1].length || a - b);
-  const runZone = (i) =>
-    new Promise((resolve, reject) => {
-      const [zone, zoneFiles] = plan.zones[i];
-      const worker = new Worker(new URL(import.meta.url), {
-        workerData: { hobbesZone: true, root: plan.root, zone, zoneFiles, fileSet: plan.fileSet, packages: plan.packages },
-      });
-      let settled = false;
-      const settle = (fn, value) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        fn(value);
-      };
-      // Past setTimeout's own limit (about 24.8 days) Node fires at once,
-      // which would stop every zone: there the zone has no cap of its own,
-      // and the whole run's backstop holds.
-      const ms = zoneTimeoutSeconds * 1000;
-      const timer = ms <= MAX_TIMER_MS
-        ? setTimeout(() => {
-          settle(resolve, zoneTimedOut(zone, zoneFiles, zoneTimeoutSeconds, width));
-          worker.terminate();
-        }, ms)
-        : undefined;
-      worker.once("message", (result) => settle(resolve, result));
-      worker.once("error", (error) => settle(reject, error));
-      worker.once("exit", (code) =>
-        settle(reject, new Error(`the zone worker for ${zone || "the default options"} exited ${code} with no facts`)),
-      );
-    });
-  let next = 0;
+  const fresh = () => spawn({ plan });
+  const ms = zoneTimeoutSeconds * 1000;
+  // A zone on *handle*'s worker: its result, or its timeout record (and
+  // the worker stopped, so the lane needs a fresh one).
+  const runZone = async (handle, i) => {
+    const [zone, zoneFiles] = plan.zones[i];
+    if (!handle.ready) {
+      // A fresh worker says so once the compiler is loaded; the zone's cap
+      // starts after that, as it does on a reused worker.
+      const loaded = await handle.next();
+      if (!loaded.message?.ready) fail(loaded, zone || "the default options");
+      handle.ready = true;
+    }
+    handle.worker.postMessage({ zone: i });
+    let timer;
+    // Past setTimeout's own limit (about 24.8 days) Node fires at once,
+    // which would stop every zone: there the zone has no cap of its own,
+    // and the whole run's backstop holds.
+    const capped = ms <= MAX_TIMER_MS
+      ? new Promise((resolve) => { timer = setTimeout(() => resolve({ timedOut: true }), ms); })
+      : new Promise(() => {});
+    const item = await Promise.race([handle.next(), capped]);
+    clearTimeout(timer);
+    if (item.timedOut) {
+      await handle.worker.terminate();
+      return { result: serializeZone(zoneTimedOut(zone, zoneFiles, zoneTimeoutSeconds, width)), alive: false };
+    }
+    if (!item.message) fail(item, zone || "the default options");
+    if (item.message.heap > RECYCLE_HEAP_BYTES) {
+      await handle.worker.terminate();
+      return { result: item.message.result, alive: false };
+    }
+    return { result: item.message.result, alive: true };
+  };
+  let nextZone = 0;
   let failed = false;
-  const lane = async () => {
+  const handles = [];
+  const lane = async (handle) => {
     // A failed zone fails the run, so no lane starts another after it.
-    while (next < order.length && !failed) {
-      const i = order[next++];
+    while (nextZone < order.length && !failed) {
+      const i = order[nextZone++];
+      if (!handle) {
+        handle = fresh();
+        handles.push(handle);
+      }
       try {
-        results[i] = await runZone(i);
+        const { result, alive } = await runZone(handle, i);
+        results[i] = result;
+        if (!alive) handle = null;
       } catch (error) {
         failed = true;
         throw error;
       }
     }
+    if (handle) await handle.worker.terminate();
   };
-  await Promise.all(Array.from({ length: width }, lane));
-  return finishRepo(plan, results);
+  try {
+    await Promise.all(Array.from({ length: width }, (_, k) => lane(k === 0 ? first : null)));
+  } finally {
+    await Promise.all([first, ...handles].map((h) => h.worker.terminate()));
+  }
+  return finishRepoJson(plan, results);
 }
 
 /** The tsconfig project each TS/JS file of the repo belongs to, by the
@@ -1609,23 +1804,45 @@ async function main(argv) {
       return 2;
     }
   }
-  const out = mode === "zones" ? zoneMap(repo) : await extractRepoParallel(repo, { jobs, zoneTimeoutSeconds });
-  process.stdout.write(JSON.stringify(out) + "\n");
+  if (mode === "zones") {
+    await loadTsMorph();
+    process.stdout.write(JSON.stringify(zoneMap(repo)) + "\n");
+  } else {
+    process.stdout.write(await extractRepoParallelJson(repo, { jobs, zoneTimeoutSeconds }) + "\n");
+  }
   return 0;
 }
 
 // process.exitCode, never process.exit(): exiting eagerly truncates
 // stdout at the 64KB pipe buffer on large repos. A zone worker loads this
 // file too, with the same argv, so only the main thread runs the CLI.
-if (isMainThread && process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (IS_CLI_MAIN) {
   main(process.argv.slice(2)).then(
     (code) => { process.exitCode = code; },
     (error) => { process.stderr.write(`tsextract: ${error?.stack ?? error}\n`); process.exitCode = 1; },
   );
 }
 
-// A zone worker (ADR-184): one zone's facts, posted back to the main thread.
-if (!isMainThread && workerData && workerData.hobbesZone) {
-  const { root, zone, zoneFiles, fileSet, packages } = workerData;
-  parentPort.postMessage(extractZone(root, zone, zoneFiles, fileSet, packages));
+// A zone worker (ADR-184): it plans the repo if it was not handed a plan
+// (the first worker, which posts the plan back), then extracts each zone the
+// main thread names, posting back its facts with each file's record
+// serialized (`serializeZone`), until it is stopped.
+if (!isMainThread && workerData && workerData.hobbesWorker) {
+  let plan = workerData.plan;
+  if (!plan) {
+    plan = planMessage(planRepo(workerData.repoRoot));
+    parentPort.postMessage({ plan });
+  } else {
+    // The compiler is loaded (this module's top-level await): the zone's
+    // cap may start (`extractRepoParallelJson`).
+    parentPort.postMessage({ ready: true });
+  }
+  parentPort.on("message", ({ zone: i }) => {
+    const [zone, zoneFiles] = plan.zones[i];
+    const result = serializeZone(extractZone(plan.root, zone, zoneFiles, plan.fileSet, plan.packages));
+    // The heap this zone left behind: the main thread retires a worker
+    // whose heap has grown past RECYCLE_HEAP_BYTES, so a large zone's
+    // garbage is never carried into the next zone's peak.
+    parentPort.postMessage({ result, heap: v8.getHeapStatistics().total_heap_size });
+  });
 }

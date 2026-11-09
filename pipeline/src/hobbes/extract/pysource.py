@@ -785,12 +785,14 @@ class ParsedFile:
 
 def parse_source(source: bytes) -> ParsedFile:
     """Walk one file's source and collect its raw facts."""
-    global _OWN_BODIES
+    global _OWN_BODIES, _SCOPE_FACTS
     outer, _OWN_BODIES = _OWN_BODIES, {}
+    outer_facts, _SCOPE_FACTS = _SCOPE_FACTS, {}
     try:
         return _parse_source(source)
     finally:
         _OWN_BODIES = outer
+        _SCOPE_FACTS = outer_facts
 
 
 def _parse_source(source: bytes) -> ParsedFile:
@@ -1867,6 +1869,26 @@ def _parameters(node: Node) -> tuple[tuple[str, int], ...]:
 #: this repo's 447 files (ADR-184 lever 1).
 _OWN_BODIES: dict | None = None
 
+#: Per parse, as :data:`_OWN_BODIES`: what a definition's scope binds, read
+#: by several rules about the same definition (:func:`_own_definitions`,
+#: :func:`_declared_names`, :func:`_lambda_and_comprehension_binds`, and
+#: :func:`_local_aliases`' refusals). Each is a pure function of the
+#: definition's subtree, so it is read once per definition and handed back
+#: unchanged to every rule that asks (ADR-184's amendment, 2026-11-02).
+_SCOPE_FACTS: dict | None = None
+
+
+def _scope_fact(kind: str, node: Node, compute):
+    """*compute()* for (*kind*, *node*), once per parse."""
+    cache = _SCOPE_FACTS
+    if cache is None:
+        return compute()
+    key = (kind, node)
+    if key in cache:
+        return cache[key]
+    value = cache[key] = compute()
+    return value
+
 
 def _own_body(node: Node) -> tuple[Node, ...]:
     """Every node inside a definition's own body, stopping at a nested
@@ -2041,15 +2063,19 @@ def _declared_outer(node: Node, name: str) -> bool:
     amendment). The one walk here that deliberately does not stop at a
     nested ``def``: what such a declaration reaches is this scope's
     binding, from inside another."""
+    return name in _scope_fact("declared", node, lambda: _declared_names(node))
+
+
+def _declared_names(node: Node) -> frozenset[str]:
+    """Every name a ``global`` or ``nonlocal`` in *node*'s subtree names."""
+    names: set[str] = set()
     stack = [node]
     while stack:
         current = stack.pop()
-        if current.type in ("global_statement", "nonlocal_statement") and any(
-            _text(child) == name for child in current.named_children
-        ):
-            return True
+        if current.type in ("global_statement", "nonlocal_statement"):
+            names.update(_text(child) for child in current.named_children)
         stack.extend(current.children)
-    return False
+    return frozenset(names)
 
 
 def _attribute_targets(node: Node | None):
@@ -2275,7 +2301,12 @@ def _rebound(node: Node, params: tuple[tuple[str, int], ...]) -> tuple[str, ...]
     return tuple(sorted(_bound_in(_own_body(node)) & names))
 
 
-def _own_definitions(node: Node):
+def _own_definitions(node: Node) -> tuple[tuple[Node, bool], ...]:
+    """:func:`_walk_own_definitions`, read once per definition per parse."""
+    return _scope_fact("definitions", node, lambda: tuple(_walk_own_definitions(node)))
+
+
+def _walk_own_definitions(node: Node):
     """Every ``def`` and ``class`` written in a definition's own body, as
     ``(definition node, decorated?)`` (ADR-147).
 
@@ -2334,6 +2365,14 @@ def _parameter_names(node: Node) -> frozenset[str]:
 
 
 def _lambda_and_comprehension_binds(node: Node) -> set[str]:
+    """:func:`_walk_lambda_and_comprehension_binds`, read once per
+    definition per parse; a fresh set each time, as before."""
+    return set(_scope_fact(
+        "lambda-binds", node, lambda: frozenset(_walk_lambda_and_comprehension_binds(node))
+    ))
+
+
+def _walk_lambda_and_comprehension_binds(node: Node) -> set[str]:
     """Every name a ``lambda``'s parameters or a comprehension's ``for``
     target binds in a definition's **own** scope (ADR-153 step 1).
 
@@ -2548,7 +2587,7 @@ def _local_aliases(node: Node, binder=None) -> tuple[tuple[str, int, str], ...]:
     :func:`_instance_binder`, read under the same refusals.
     """
     binder_of = binder or _alias_site
-    own = list(_own_body(node))
+    own = _own_body(node)
     candidates: list[tuple[str, int, str]] = []
     for current in own:
         if current.type in ("match_statement", "type_alias_statement"):
@@ -2558,14 +2597,7 @@ def _local_aliases(node: Node, binder=None) -> tuple[tuple[str, int, str], ...]:
             candidates.append((found[0], found[3], found[2]))
     if not candidates:
         return ()
-    counts: Counter = Counter()
-    for current in own:
-        counts.update(_bound_here(current))
-    for definition, _decorated in _own_definitions(node):
-        name_node = definition.child_by_field_name("name")
-        if name_node is not None:
-            counts[_text(name_node)] += 1
-    otherwise = _parameter_names(node) | _lambda_and_comprehension_binds(node)
+    counts, otherwise = _scope_fact("alias-refusals", node, lambda: _alias_refusals(node, own))
     return tuple(
         sorted(
             (name, line, last)
@@ -2575,6 +2607,22 @@ def _local_aliases(node: Node, binder=None) -> tuple[tuple[str, int, str], ...]:
             and not _declared_outer(node, name)
         )
     )
+
+
+def _alias_refusals(node: Node, own) -> tuple[Counter, set[str]]:
+    """What :func:`_local_aliases` refuses by, whatever the binder: how many
+    times the own scope binds each name (by :func:`_bound_here`'s forms and
+    by a nested ``def`` or ``class``), and the names a parameter, a lambda
+    parameter or a comprehension target holds. Read-only to its callers."""
+    counts: Counter = Counter()
+    for current in own:
+        counts.update(_bound_here(current))
+    for definition, _decorated in _own_definitions(node):
+        name_node = definition.child_by_field_name("name")
+        if name_node is not None:
+            counts[_text(name_node)] += 1
+    otherwise = _parameter_names(node) | _lambda_and_comprehension_binds(node)
+    return counts, otherwise
 
 
 def _called_local_aliases(parsed: ParsedFile, recorded: dict | None = None) -> dict:

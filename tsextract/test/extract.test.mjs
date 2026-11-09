@@ -1372,3 +1372,59 @@ test("the CLI runs zones in parallel with --jobs and caps each with --zone-timeo
   assert.equal(run("--jobs", "3"), serial);
   assert.match(run("--jobs", "2", "--zone-timeout", "0.001"), /"stage":"zone-timeout"/);
 });
+
+test("line numbers are ts-morph's own: newlines before the position, CRLF and a lone CR included", async () => {
+  // fastLineNumbers replaces ts-morph's character count with a search over
+  // newline offsets; this holds it to the count it replaced.
+  const { default: common } = await import("@ts-morph/common");
+  const naive = (str, pos) => {
+    let count = 0;
+    for (let i = 0; i < pos; i++) if (str.charCodeAt(i) === 10) count++;
+    return count + 1;
+  };
+  const texts = ["", "a", "\n", "a\nb\n", "a\r\nb\r\n\r\nc", "a\rb\rc\n", "\n\n\nx", "x".repeat(50) + "\n" + "y".repeat(3)];
+  for (const text of texts) {
+    for (let pos = 0; pos <= text.length; pos++) {
+      assert.equal(common.StringUtils.getLineNumberAtPos(text, pos), naive(text, pos), JSON.stringify([text, pos]));
+    }
+    assert.throws(() => common.StringUtils.getLineNumberAtPos(text, text.length + 1), "out of range, as before");
+  }
+});
+
+test("zones share a worker and the facts are the serial loop's bytes, whatever the order", async () => {
+  // More zones than lanes: each lane's worker takes zone after zone
+  // (ADR-184's amendment), and the merge is still the serial loop's.
+  const files = {};
+  for (let i = 0; i < 6; i++) {
+    files[`p${i}/tsconfig.json`] = "{}";
+    files[`p${i}/a.ts`] = `import { b } from "./b";\nexport function a${i}() { return b(); }\n`;
+    files[`p${i}/b.ts`] = `export function b() { return ${i}; }\nnew Map();\n`;
+  }
+  const root = makeRepo(files);
+  const serial = JSON.stringify(extractRepo(root));
+  for (const jobs of [1, 2]) {
+    assert.equal(JSON.stringify(await extractRepoParallel(root, { jobs })), serial, `jobs=${jobs}`);
+  }
+});
+
+test("a fresh zone worker says it is ready before it is handed a zone, so a zone's cap never times the compiler's load", async () => {
+  // extractRepoParallelJson starts a zone's cap only after this message:
+  // a zone on a fresh worker and one on a reused worker are timed alike.
+  const { Worker } = await import("node:worker_threads");
+  const worker = new Worker(new URL("../extract.mjs", import.meta.url), {
+    workerData: { hobbesWorker: true, plan: { root: "/nowhere", fileSet: [], packages: [], zones: [], errors: [] } },
+  });
+  try {
+    let timer;
+    const first = await new Promise((resolve, reject) => {
+      worker.once("message", resolve);
+      worker.once("error", reject);
+      // Silence fails the test rather than hanging it on a live worker.
+      timer = setTimeout(() => resolve("no message within 30 s"), 30_000);
+    });
+    clearTimeout(timer);
+    assert.deepEqual(first, { ready: true });
+  } finally {
+    await worker.terminate();
+  }
+});

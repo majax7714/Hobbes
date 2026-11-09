@@ -15,6 +15,19 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.114-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.3.10-beta — 2026-11-09
+
+**Patch: when the layer says a TS/JS zone ran out of time**, and the TS/JS lane A helper faster. ADR-184's amendment
+(2026-11-02, Alex Stanek; reviewed 2026-11-09); C-196 narrowed in its wording.
+
+- Lane A's TS/JS helper keeps its zone workers for the whole run, walks each file once rather than once per kind of
+  fact, and counts line numbers by a search rather than from the file's start. The ingest starts it first, beside
+  Python's parse. The facts are the same bytes: checked against 0.3.9-beta at `--jobs` 1 and 4 on this repo, zod
+  and paseo. paseo's helper took 95 s rather than 503 s at one job, and 43 s rather than 411 s at four.
+- A zone's 300 s cap (C-196) now times the zone's own work: it starts once the zone's worker has loaded the
+  compiler. Before, every zone's cap also covered a fresh worker's start, so a zone within a second or two of its
+  cap can now finish where it was recorded as timed out. Which lane a zone lands on never decides it.
+
 ## 0.3.9-beta — 2026-10-30
 
 **Patch: what the layer draws**, TS/JS tests. ADR-188; C-199 registered (Max: "for the gap recommended approach

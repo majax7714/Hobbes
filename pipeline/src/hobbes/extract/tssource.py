@@ -20,6 +20,7 @@ import os
 import re
 import shlex
 import subprocess
+import threading
 from collections import defaultdict
 from pathlib import Path, PurePosixPath
 
@@ -621,7 +622,37 @@ def extract_ts(repo_root: Path) -> dict | None:
     Raises :class:`TsExtractError` when TS/JS files exist but the helper
     can't run — never silently skips (P1).
     """
+    return start_ts(repo_root)()
+
+
+def start_ts(repo_root: Path):
+    """Start the TS/JS helper on *repo_root* now; return a function that
+    waits for it and gives :func:`extract_ts`'s answer.
+
+    The helper is its own process and reads only the tree, so the ingest
+    starts it first and parses the other languages while it runs (ADR-184's
+    amendment, 2026-11-02). Waiting gives the same facts, joined the same
+    way, and raises the same :class:`TsExtractError` the helper's failure
+    would have raised at the point the ingest asks for them.
+    """
     repo_root = Path(repo_root)
     if not has_ts_files(repo_root):
-        return None
-    return join_facts(run_helper(repo_root))
+        return lambda: None
+    result: dict = {}
+
+    def run() -> None:
+        try:
+            result["facts"] = run_helper(repo_root)
+        except BaseException as exc:  # handed to the waiter, raised there
+            result["error"] = exc
+
+    thread = threading.Thread(target=run, name="tsextract", daemon=True)
+    thread.start()
+
+    def wait() -> dict:
+        thread.join()
+        if "error" in result:
+            raise result.pop("error")
+        return join_facts(result.pop("facts"))
+
+    return wait
